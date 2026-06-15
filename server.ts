@@ -13,11 +13,20 @@ const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), "data");
 const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e: any) {
+  console.warn("⚠️ Local DATA_DIR creation bypassed (read-only filesystem on Vercel):", e.message);
 }
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e: any) {
+  console.warn("⚠️ Local UPLOADS_DIR creation bypassed (read-only filesystem on Vercel):", e.message);
 }
 
 const DB_FILE = path.join(DATA_DIR, "luxury_db.json");
@@ -972,10 +981,19 @@ app.post("/api/upload", async (req, res) => {
     const safeFilename = `uploaded_${Date.now()}_${filename.replace(/\s+/g, "_")}`;
     const filePath = path.join(UPLOADS_DIR, safeFilename);
 
-    // Save to local filesystem as physical backup
-    fs.writeFileSync(filePath, binaryBuffer);
+    let localWriteSucceeded = false;
+    // Save to local filesystem as physical backup with Vercel safe check
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) {
+        try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (e) {}
+      }
+      fs.writeFileSync(filePath, binaryBuffer);
+      localWriteSucceeded = true;
+    } catch (fsErr: any) {
+      console.warn("⚠️ Local disk write skipped or failed (Vercel Serverless environment):", fsErr.message);
+    }
     
-    // Default fallback url
+    // Default fallback url if local backup works
     let fileUrl = `/uploads/${safeFilename}`;
 
     // Compute active MIME type for Supabase Content-Type delivery
@@ -987,6 +1005,7 @@ app.post("/api/upload", async (req, res) => {
     else if (lowExt === ".svg") mimeType = "image/svg+xml";
 
     // Attempt to store in Supabase Bucket 'products'
+    let supabaseUploadSucceeded = false;
     try {
       const { data, error } = await supabase.storage
         .from("products")
@@ -1002,13 +1021,21 @@ app.post("/api/upload", async (req, res) => {
           .getPublicUrl(safeFilename);
         if (publicUrlData && publicUrlData.publicUrl) {
           fileUrl = publicUrlData.publicUrl;
+          supabaseUploadSucceeded = true;
           console.log("☁️ Stored image file on Supabase Storage bucket 'products':", fileUrl);
         }
       } else {
-        console.warn("⚠️ Supabase Storage upload warning (using local fallback):", error?.message);
+        const errorMessage = error?.message || "Unknown Supabase Storage error";
+        console.warn("⚠️ Supabase Storage upload error:", errorMessage);
+        if (!localWriteSucceeded || process.env.VERCEL) {
+          throw new Error(`Supabase Storage upload error: ${errorMessage}. Please ensure a Public storage bucket named 'products' exists in your Supabase project with proper storage RLS policies.`);
+        }
       }
     } catch (sbErr: any) {
-      console.warn("⚠️ Supabase Storage upload connection error (using local fallback):", sbErr.message);
+      console.warn("⚠️ Supabase Storage connection or bucket error:", sbErr.message);
+      if (!localWriteSucceeded || process.env.VERCEL) {
+        throw new Error(`Unable to complete upload. Supabase storage error: ${sbErr.message}. Make sure your 'products' bucket exists, is set to 'Public', and that your Supabase credentials are valid.`);
+      }
     }
 
     res.status(201).json({ fileUrl });
