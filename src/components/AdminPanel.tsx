@@ -4,6 +4,7 @@ import {
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X 
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
 import { formatPrice, generateQrUrl } from '../utils';
 
@@ -47,6 +48,7 @@ export default function AdminPanel({
   const [formWhyBuy, setFormWhyBuy] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [uploadProgress, setUploadProgress] = useState('');
+  const [formError, setFormError] = useState('');
 
   // Other Simple Forms
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -142,39 +144,130 @@ export default function AdminPanel({
     } catch (e) {}
   };
 
-  // Base64 File Uploader Interface which replicates Cloud Storage!
+  // Dual-path authenticated upload with automatic client-side image compression
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadProgress("Converting physical shape...");
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64Data = reader.result as string;
+    setFormError('');
+    setUploadProgress("Optimizing image and preparing upload...");
+
+    try {
+      // 1. Client-Side Image Compression & Resizing to satisfy Vercel limits (<4.5MB)
+      const compressed = await new Promise<{ base64: string; blob: Blob }>((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDimension = 1200;
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve({ base64: event.target?.result as string, blob: file });
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64 = canvas.toDataURL('image/jpeg', 0.85);
+            canvas.toBlob((blob) => {
+              resolve({ base64, blob: blob || file });
+            }, 'image/jpeg', 0.85);
+          };
+          img.onerror = () => {
+            resolve({ base64: event.target?.result as string, blob: file });
+          };
+        };
+        reader.onerror = () => {
+          resolve({ base64: '', blob: file });
+        };
+      });
+
+      const fileNameClean = `uploaded_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+      // ATTEMPT 1: Try direct upload to Supabase bucket 'products' using SDK (which handles auth headers automatically)
+      setUploadProgress("Attempting direct client-side storage upload to 'products'...");
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, base64Data })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setFormImageUrl(data.fileUrl);
-          setUploadProgress("Digitalized to backend storage successfully!");
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(fileNameClean, compressed.blob, {
+            contentType: file.type || 'image/jpeg',
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(fileNameClean);
+
+          if (publicUrlData?.publicUrl) {
+            setFormImageUrl(publicUrlData.publicUrl);
+            setUploadProgress("Uploaded directly to Supabase storage 'products' successfully!");
+            return;
+          }
         } else {
-          setUploadProgress("Fabrication Upload failed: " + data.message);
+          console.warn("Direct storage upload failed, cascading to server-side endpoint:", uploadError?.message);
         }
-      } catch (err) {
-        setUploadProgress("Upload error: Unable to contact asset storage server.");
+      } catch (directErr: any) {
+        console.warn("Direct storage connection error, cascading to server-side:", directErr.message);
       }
-    };
+
+      // ATTEMPT 2: Fallback to server-side /api/upload endpoint
+      setUploadProgress("Cascading to secure server-side upload endpoint...");
+      if (!compressed.base64) {
+        throw new Error("Could not prepare image binary data.");
+      }
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, base64Data: compressed.base64 })
+      });
+
+      const resultData = await res.json();
+      if (res.ok) {
+        setFormImageUrl(resultData.fileUrl);
+        setUploadProgress("Digitalized to backend storage successfully via server-side bridge!");
+      } else {
+        throw new Error(resultData.message || "Failed to parse API upload response.");
+      }
+
+    } catch (err: any) {
+      console.error("Upload process encountered error:", err);
+      setUploadProgress(`Upload error: ${err.message || "Unable to contact asset storage server. Please make sure the 'products' storage bucket exists in Supabase and is public."}`);
+    }
   };
 
   // Submit Product Add/Update
   const handleSaveProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle || !formImageUrl) return;
+    setFormError('');
+
+    if (!formTitle.trim()) {
+      setFormError('Product Title is required.');
+      return;
+    }
+    if (!formImageUrl.trim()) {
+      setFormError('Product Image source is required. Please upload an image first or insert a direct URL in the configuration field below.');
+      return;
+    }
 
     setLoading(true);
     const parsedSizes = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
@@ -213,12 +306,17 @@ export default function AdminPanel({
         setFormStock(50);
         setFormWhyBuy('');
         setUploadProgress('');
+        setFormError('');
 
         onRefreshProducts();
         fetchAnalytics();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setFormError(errorData.message || 'Server encountered an error creating the product.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setFormError(err.message || 'Network connection failed. Unable to submit product.');
     } finally {
       setLoading(false);
     }
@@ -226,6 +324,7 @@ export default function AdminPanel({
 
   // Set Fields for Editing
   const handleInitiateEdit = (prod: Product) => {
+    setFormError('');
     setEditingProduct(prod);
     setFormTitle(prod.title);
     setFormDescription(prod.description);
@@ -702,12 +801,22 @@ export default function AdminPanel({
                   </h3>
                   <button 
                     type="button" 
-                    onClick={() => setShowProductForm(false)}
+                    onClick={() => {
+                      setShowProductForm(false);
+                      setFormError('');
+                    }}
                     className="text-white/50 hover:text-white"
                   >
                     <X size={16} />
                   </button>
                 </div>
+
+                {formError && (
+                  <div className="bg-red-950/40 border border-red-500/30 text-red-400 p-3 rounded text-xs flex items-center gap-2 font-mono">
+                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse"></span>
+                    <span>{formError}</span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Title */}
