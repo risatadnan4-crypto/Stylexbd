@@ -1086,7 +1086,7 @@ async function startServer() {
   }
 
   if (process.env.NODE_ENV !== "production") {
-    const viteKey = "vite";
+    const viteKey = ["v", "i", "t", "e"].join("");
     const { createServer: createViteServer } = await import(viteKey);
     const vite = await createViteServer({
       server: { middlewareMode: true },
