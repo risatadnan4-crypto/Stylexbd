@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -444,9 +447,20 @@ app.post("/api/products", async (req, res) => {
       trending: !!newProduct.trending,
       featured: !!newProduct.featured
     };
-    await supabase.from("products").upsert(payload);
+    const { error: upsertError } = await supabase.from("products").upsert(payload);
+    if (upsertError) {
+      console.error("⚠️ Failed to mirror product creation to Supabase: ", upsertError.message);
+      if (process.env.VERCEL) {
+        return res.status(500).json({ 
+          message: `Product creation failed on Supabase: ${upsertError.message}. Setup instructions: Please ensure you have a table named 'products' in your Supabase project under public schema, with columns matching the Product schema.` 
+        });
+      }
+    }
   } catch (err: any) {
     console.error("⚠️ Failed to mirror product creation to Supabase: ", err.message);
+    if (process.env.VERCEL) {
+      return res.status(500).json({ message: `Database connection error: ${err.message}` });
+    }
   }
 
   res.status(201).json(newProduct);
@@ -475,9 +489,20 @@ app.put("/api/products/:id", async (req, res) => {
         trending: !!target.trending,
         featured: !!target.featured
       };
-      await supabase.from("products").upsert(payload);
+      const { error: upsertError } = await supabase.from("products").upsert(payload);
+      if (upsertError) {
+        console.error("⚠️ Failed to mirror product update to Supabase: ", upsertError.message);
+        if (process.env.VERCEL) {
+          return res.status(500).json({ 
+            message: `Product update failed on Supabase: ${upsertError.message}. Make sure your 'products' table exists with matches columns.` 
+          });
+        }
+      }
     } catch (err: any) {
       console.error("⚠️ Failed to mirror product update to Supabase: ", err.message);
+      if (process.env.VERCEL) {
+        return res.status(500).json({ message: `Database connection error: ${err.message}` });
+      }
     }
 
     res.json(target);
@@ -493,7 +518,13 @@ app.delete("/api/products/:id", async (req, res) => {
     saveDB();
 
     try {
-      await supabase.from("products").delete().eq("id", req.params.id);
+      const { error: deleteError } = await supabase.from("products").delete().eq("id", req.params.id);
+      if (deleteError) {
+        console.error("⚠️ Failed to mirror product deletion to Supabase: ", deleteError.message);
+        if (process.env.VERCEL) {
+          return res.status(500).json({ message: `Product deletion failed on Supabase: ${deleteError.message}` });
+        }
+      }
     } catch (err: any) {
       console.error("⚠️ Failed to mirror product deletion to Supabase: ", err.message);
     }

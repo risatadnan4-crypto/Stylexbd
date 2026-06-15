@@ -34,6 +34,7 @@ export default function AdminPanel({
 
   // Forms / Actions state
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showSupabaseGuide, setShowSupabaseGuide] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -773,6 +774,12 @@ export default function AdminPanel({
             {/* Header control buttons */}
             <div className="flex justify-end gap-3">
               <button
+                onClick={() => setShowSupabaseGuide(!showSupabaseGuide)}
+                className="bg-transparent text-luxury-gold border border-luxury-gold/30 hover:bg-luxury-gold/10 font-mono text-[10px] uppercase tracking-wider py-2 px-4 rounded transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                Database Setup Help ⚡
+              </button>
+              <button
                 onClick={() => {
                   setEditingProduct(null);
                   setFormTitle('');
@@ -791,6 +798,184 @@ export default function AdminPanel({
                 Add New Luxury Product
               </button>
             </div>
+
+            {/* Supabase Guide Box */}
+            {showSupabaseGuide && (
+              <div className="bg-[#0b0c10] border border-cyan-500/30 p-5 rounded-lg text-white space-y-4 font-sans text-xs">
+                <div className="flex items-center justify-between border-b border-cyan-500/10 pb-2">
+                  <h4 className="font-mono text-cyan-400 font-extrabold uppercase tracking-widest text-xs flex items-center gap-1.5">
+                    <span>⚡ SUPABASE LIVE REPLICA DATABASE BOOTSTRAPPER</span>
+                  </h4>
+                  <button 
+                    onClick={() => setShowSupabaseGuide(false)}
+                    className="text-white/40 hover:text-white font-mono cursor-pointer"
+                  >
+                    Close [x]
+                  </button>
+                </div>
+                
+                <p className="text-white/80 leading-relaxed">
+                  If you set up custom environment credentials in Vercel (<code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">VITE_SUPABASE_URL</code> &amp; <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">VITE_SUPABASE_PUBLISHABLE_KEY</code>) but your products do not load or edit properly, you must <strong>initialize the Supabase database schematics</strong> first.
+                </p>
+
+                <div className="space-y-3 pl-4 list-decimal">
+                  <div>
+                    <strong className="text-luxury-gold">Step 1: Create the SQL Tables &amp; RLS Policies</strong>
+                    <p className="text-white/60 mt-0.5">Copy the unified schematic SQL script below, open your Supabase dashboard, click "SQL Editor" in the left sidebar, create a "New Query", paste this script, and click <strong>Run</strong>:</p>
+                  </div>
+                  <div className="bg-[#050505] border border-white/10 rounded overflow-hidden">
+                    <div className="flex justify-between items-center px-3 py-1.5 bg-white/5 border-b border-white/10 text-[10px] font-mono text-white/50">
+                      <span>SUPABASE_BOOTSTRAP_SCHEMA.sql</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sql = `-- 1. Create Products Table
+CREATE TABLE IF NOT EXISTS public.products (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT,
+    price NUMERIC NOT NULL DEFAULT 0,
+    category TEXT NOT NULL,
+    stock NUMERIC NOT NULL DEFAULT 0,
+    "imageUrl" TEXT,
+    sizes TEXT, 
+    dimensions TEXT,
+    "whyBuy" TEXT,
+    trending BOOLEAN DEFAULT true,
+    featured BOOLEAN DEFAULT true
+);
+
+-- 2. Create Banners Table
+CREATE TABLE IF NOT EXISTS public.banners (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    "imageUrl" TEXT,
+    "linkUrl" TEXT,
+    active BOOLEAN DEFAULT false
+);
+
+-- 3. Create Coupons Table
+CREATE TABLE IF NOT EXISTS public.coupons (
+    code TEXT PRIMARY KEY,
+    "discountType" TEXT NOT NULL,
+    value NUMERIC NOT NULL DEFAULT 0,
+    active BOOLEAN DEFAULT true
+);
+
+-- 4. Create Campaigns Table
+CREATE TABLE IF NOT EXISTS public.campaigns (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    "discountPercent" NUMERIC NOT NULL DEFAULT 0,
+    "endDate" TEXT,
+    active BOOLEAN DEFAULT false
+);
+
+-- 5. Create Reviews Table
+CREATE TABLE IF NOT EXISTS public.reviews (
+    id TEXT PRIMARY KEY,
+    "productTitle" TEXT,
+    "productId" TEXT,
+    rating NUMERIC NOT NULL DEFAULT 5,
+    "reviewerName" TEXT,
+    comment TEXT,
+    "isApproved" BOOLEAN DEFAULT false,
+    "createdAt" TEXT
+);
+
+-- 6. Create Orders Table
+CREATE TABLE IF NOT EXISTS public.orders (
+    id TEXT PRIMARY KEY,
+    "customerName" TEXT NOT NULL,
+    "customerPhone" TEXT NOT NULL,
+    "customerAddress" TEXT,
+    "customerCity" TEXT,
+    "customerNotes" TEXT,
+    items TEXT, 
+    "totalAmount" NUMERIC NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    "paymentMethod" TEXT DEFAULT 'Cash on Delivery',
+    "createdAt" TEXT
+);
+
+-- 7. Create Chats Table
+CREATE TABLE IF NOT EXISTS public.chats (
+    id TEXT PRIMARY KEY,
+    "customerName" TEXT,
+    messages TEXT, 
+    "typingCustomer" BOOLEAN DEFAULT false,
+    "typingAdmin" BOOLEAN DEFAULT false,
+    "onlineCustomer" BOOLEAN DEFAULT false,
+    "onlineAdmin" BOOLEAN DEFAULT false,
+    "updatedAt" TEXT
+);
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY select_all_products ON public.products FOR SELECT USING (true);
+CREATE POLICY select_all_banners ON public.banners FOR SELECT USING (true);
+CREATE POLICY select_all_coupons ON public.coupons FOR SELECT USING (true);
+CREATE POLICY select_all_campaigns ON public.campaigns FOR SELECT USING (true);
+CREATE POLICY select_all_reviews ON public.reviews FOR SELECT USING (true);
+CREATE POLICY select_all_orders ON public.orders FOR SELECT USING (true);
+CREATE POLICY select_all_chats ON public.chats FOR SELECT USING (true);
+
+CREATE POLICY insert_orders ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY insert_reviews ON public.reviews FOR INSERT WITH CHECK (true);
+CREATE POLICY insert_chats ON public.chats FOR INSERT WITH CHECK (true);
+
+CREATE POLICY insert_all_products ON public.products FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_banners ON public.banners FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_coupons ON public.coupons FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_campaigns ON public.campaigns FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_reviews ON public.reviews FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_orders ON public.orders FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (true);`;
+                          navigator.clipboard.writeText(sql);
+                          alert("Schema bootstrap SQL copied to clipboard! Paste it inside your Supabase dashboard SQL Editor directly.");
+                        }}
+                        className="text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer"
+                      >
+                        Copy SQL Code 📋
+                      </button>
+                    </div>
+                    <pre className="p-3 text-[9px] font-mono text-white/50 max-h-40 overflow-y-auto whitespace-pre block bg-black">
+                      {`CREATE TABLE IF NOT EXISTS public.products (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT,
+    price NUMERIC NOT NULL DEFAULT 0,
+    category TEXT NOT NULL,
+    stock NUMERIC NOT NULL DEFAULT 0,
+    "imageUrl" TEXT,
+    sizes TEXT,
+    dimensions TEXT,
+    "whyBuy" TEXT,
+    trending BOOLEAN DEFAULT true,
+    featured BOOLEAN DEFAULT true
+);`}
+                    </pre>
+                  </div>
+
+                  <div className="pt-2">
+                    <strong className="text-luxury-gold">Step 2: Setup Public Storage Bucket for Images</strong>
+                    <p className="text-white/60 mt-0.5 leading-relaxed">
+                      Go to "Storage" in your Supabase admin dashboard, click <strong>"New Bucket"</strong>, name the bucket exactly <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">products</code>, and turn ON the <strong>"Public Bucket"</strong> toggle. Under "RLS Policies", add a Policy that grants all/write access to everyone (SELECT/INSERT/UPDATE) on the products bucket for anonymous users as well.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Interactive Add/Edit Form Overlay wrapper */}
             {showProductForm && (
