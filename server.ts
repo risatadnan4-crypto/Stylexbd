@@ -5,8 +5,8 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types";
-import { supabase } from "./src/lib/supabase";
+import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
+import { supabase } from "./src/lib/supabase.js";
 
 
 export const app = express();
