@@ -4,7 +4,6 @@ dotenv.config();
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
 import { supabase } from "./src/lib/supabase.js";
 
@@ -1087,6 +1086,8 @@ async function startServer() {
   }
 
   if (process.env.NODE_ENV !== "production") {
+    const viteKey = "vite";
+    const { createServer: createViteServer } = await import(viteKey);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
