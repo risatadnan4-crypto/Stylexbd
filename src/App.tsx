@@ -69,6 +69,18 @@ export default function App() {
     if (sessionAuth === 'true') {
       setIsAuthAdmin(true);
     }
+
+    // Check query params or hash for admin panel auto-access/redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAdminQuery = urlParams.get('admin') === 'true';
+    const hasAdminHash = window.location.hash === '#admin';
+    if (hasAdminQuery || hasAdminHash) {
+      if (sessionAuth === 'true') {
+        setIsAdminView(true);
+      } else {
+        setShowLoginModal(true);
+      }
+    }
   }, []);
 
   const loadStoreCollections = async () => {
@@ -619,9 +631,26 @@ export default function App() {
 
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-white/5 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-[10px] text-white/30 font-mono">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-white/5 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between text-[10px] text-white/30 font-mono gap-4">
           <p>© 2026 STYLE X COLLECTIVE INC.</p>
-          <p>STRICTLY CASH ON DELIVERY • SECURE CONCIERGE INTEGRITY</p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-center sm:text-left">
+            <p>STRICTLY CASH ON DELIVERY • SECURE CONCIERGE INTEGRITY</p>
+            <span className="hidden sm:inline text-white/10">•</span>
+            <button 
+              id="admin-portal-link"
+              onClick={() => {
+                if (isAuthAdmin) {
+                  setIsAdminView(true);
+                } else {
+                  setShowLoginModal(true);
+                }
+              }} 
+              className="text-luxury-gold hover:text-white transition-colors duration-200 uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold inline-block animate-pulse"></span>
+              Admin Panel Link (/?admin=true)
+            </button>
+          </div>
         </div>
       </footer>
 
