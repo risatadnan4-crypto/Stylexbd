@@ -1,0 +1,6 @@
+{
+  "name": "Style X",
+  "description": "A world-class premium luxury eCommerce platform for exclusive clothing, high-end accessories, and curated pieces by Risat Adnan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

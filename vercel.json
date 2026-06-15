@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
+      "destination": "/index.html"
+    }
+  ]
+}
