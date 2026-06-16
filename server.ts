@@ -435,11 +435,45 @@ app.get("/api/analytics", (req, res) => {
 });
 
 // Products Base API
-app.get("/api/products", (req, res) => {
+app.get("/api/products", async (req, res) => {
+  try {
+    const { data: productsData, error: pError } = await supabase.from("products").select("*");
+    if (!pError && productsData && productsData.length > 0) {
+      const products = productsData.map((p: any) => ({
+        ...p,
+        sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
+        trending: p.trending !== undefined ? !!p.trending : true,
+        featured: p.featured !== undefined ? !!p.featured : true,
+        price: Number(p.price || 0),
+        stock: Number(p.stock || 0)
+      }));
+      db.products = products;
+      saveDB();
+      return res.json(products);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct products fetch fallback to memory cache:", err.message);
+  }
   res.json(db.products);
 });
 
-app.get("/api/products/:id", (req, res) => {
+app.get("/api/products/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("products").select("*").eq("id", req.params.id).single();
+    if (!error && data) {
+      const prod = {
+        ...data,
+        sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
+        trending: data.trending !== undefined ? !!data.trending : true,
+        featured: data.featured !== undefined ? !!data.featured : true,
+        price: Number(data.price || 0),
+        stock: Number(data.stock || 0)
+      };
+      return res.json(prod);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct product selected select fallback:", err.message);
+  }
   const prod = db.products.find(p => p.id === req.params.id);
   if (prod) {
     res.json(prod);
@@ -565,7 +599,21 @@ app.delete("/api/products/:id", async (req, res) => {
 });
 
 // Banners API
-app.get("/api/banners", (req, res) => {
+app.get("/api/banners", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("banners").select("*");
+    if (!error && data && data.length > 0) {
+      const banners = data.map((b: any) => ({
+        ...b,
+        active: !!b.active
+      }));
+      db.banners = banners;
+      saveDB();
+      return res.json(banners);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct banners fetch fallback:", err.message);
+  }
   res.json(db.banners);
 });
 
@@ -615,11 +663,42 @@ app.delete("/api/banners/:id", async (req, res) => {
 });
 
 // Orders API
-app.get("/api/orders", (req, res) => {
+app.get("/api/orders", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("orders").select("*");
+    if (!error && data && data.length > 0) {
+      const orders = data.map((o: any) => ({
+        ...o,
+        items: typeof o.items === "string" ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []),
+        totalAmount: Number(o.totalAmount)
+      }));
+      db.orders = orders;
+      saveDB();
+      return res.json(orders);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct orders fetch fallback:", err.message);
+  }
   res.json(db.orders);
 });
 
-app.get("/api/orders/:id", (req, res) => {
+app.get("/api/orders/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .or(`id.eq.${req.params.id},customerPhone.eq.${req.params.id}`);
+    if (!error && data && data.length > 0) {
+      const dbOrders = data.map((o: any) => ({
+        ...o,
+        items: typeof o.items === "string" ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []),
+        totalAmount: Number(o.totalAmount)
+      }));
+      return res.json(dbOrders[0]);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct order by id fetch fallback:", err.message);
+  }
   const order = db.orders.find(o => o.id === req.params.id || o.customerPhone === req.params.id);
   if (order) {
     res.json(order);
@@ -720,7 +799,22 @@ app.put("/api/orders/:id/status", async (req, res) => {
 });
 
 // Reviews API
-app.get("/api/reviews", (req, res) => {
+app.get("/api/reviews", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("reviews").select("*");
+    if (!error && data && data.length > 0) {
+      const reviews = data.map((r: any) => ({
+        ...r,
+        rating: Number(r.rating),
+        isApproved: !!r.isApproved
+      }));
+      db.reviews = reviews;
+      saveDB();
+      return res.json(reviews);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct reviews fetch fallback:", err.message);
+  }
   res.json(db.reviews);
 });
 
@@ -779,7 +873,22 @@ app.delete("/api/reviews/:id", async (req, res) => {
 });
 
 // Coupons API
-app.get("/api/coupons", (req, res) => {
+app.get("/api/coupons", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("coupons").select("*");
+    if (!error && data && data.length > 0) {
+      const coupons = data.map((c: any) => ({
+        ...c,
+        active: !!c.active,
+        value: Number(c.value)
+      }));
+      db.coupons = coupons;
+      saveDB();
+      return res.json(coupons);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct coupons fetch fallback:", err.message);
+  }
   res.json(db.coupons);
 });
 
@@ -819,7 +928,21 @@ app.delete("/api/coupons/:code", async (req, res) => {
 });
 
 // Campaigns API
-app.get("/api/campaigns", (req, res) => {
+app.get("/api/campaigns", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("campaigns").select("*");
+    if (!error && data && data.length > 0) {
+      const campaigns = data.map((c: any) => ({
+        ...c,
+        active: !!c.active
+      }));
+      db.campaigns = campaigns;
+      saveDB();
+      return res.json(campaigns);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct campaigns fetch fallback:", err.message);
+  }
   res.json(db.campaigns);
 });
 
@@ -859,11 +982,54 @@ app.delete("/api/campaigns/:id", async (req, res) => {
 });
 
 // Live Chat API with short polling support
-app.get("/api/chat", (req, res) => {
+app.get("/api/chat", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("chats").select("*");
+    if (!error && data && data.length > 0) {
+      const chats = data.map((ch: any) => ({
+        ...ch,
+        messages: typeof ch.messages === "string" ? JSON.parse(ch.messages) : (Array.isArray(ch.messages) ? ch.messages : []),
+        typingCustomer: !!ch.typingCustomer,
+        typingAdmin: !!ch.typingAdmin,
+        onlineCustomer: !!ch.onlineCustomer,
+        onlineAdmin: !!ch.onlineAdmin
+      }));
+      db.chats = chats;
+      saveDB();
+      return res.json(chats);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct chats fetch fallback:", err.message);
+  }
   res.json(db.chats);
 });
 
 app.get("/api/chat/:id", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("chats").select("*").eq("id", req.params.id).single();
+    if (!error && data) {
+      const room = {
+        ...data,
+        messages: typeof data.messages === "string" ? JSON.parse(data.messages) : (Array.isArray(data.messages) ? data.messages : []),
+        typingCustomer: !!data.typingCustomer,
+        typingAdmin: !!data.typingAdmin,
+        onlineCustomer: !!data.onlineCustomer,
+        onlineAdmin: !!data.onlineAdmin
+      };
+      // update memory db
+      const idx = db.chats.findIndex(c => c.id === req.params.id);
+      if (idx !== -1) {
+        db.chats[idx] = room;
+      } else {
+        db.chats.push(room);
+      }
+      saveDB();
+      return res.json(room);
+    }
+  } catch (err: any) {
+    console.warn("⚠️ Direct chat select fallback:", err.message);
+  }
+
   let room = db.chats.find(c => c.id === req.params.id);
   if (!room) {
     // Create new temporary room for this guest visitor
