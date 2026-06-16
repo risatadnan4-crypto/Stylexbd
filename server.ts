@@ -177,12 +177,30 @@ function saveDB() {
 // Background sync from Supabase database
 async function syncFromSupabase() {
   try {
-    console.log("🔄 Fetching latest collections from Supabase database...");
+    console.log("🔄 Fetching latest collections from Supabase database in parallel...");
+
+    const [
+      productsResult,
+      bannersResult,
+      couponsResult,
+      campaignsResult,
+      reviewsResult,
+      ordersResult,
+      chatsResult
+    ] = await Promise.all([
+      supabase.from("products").select("*"),
+      supabase.from("banners").select("*"),
+      supabase.from("coupons").select("*"),
+      supabase.from("campaigns").select("*"),
+      supabase.from("reviews").select("*"),
+      supabase.from("orders").select("*"),
+      supabase.from("chats").select("*")
+    ]);
 
     // 1. Sync Products
     try {
-      const { data: productsData, error: pError } = await supabase.from("products").select("*");
-      if (!pError && productsData) {
+      if (!productsResult.error && productsResult.data) {
+        const productsData = productsResult.data;
         if (productsData.length > 0) {
           db.products = productsData.map((p: any) => ({
             ...p,
@@ -213,8 +231,8 @@ async function syncFromSupabase() {
             });
           }
         }
-      } else if (pError) {
-        console.warn("⚠️ [Supabase Products Sync Warning]:", pError.message);
+      } else if (productsResult.error) {
+        console.warn("⚠️ [Supabase Products Sync Warning]:", productsResult.error.message);
       }
     } catch (e: any) {
       console.warn("⚠️ Products table setup not verified:", e.message);
@@ -222,8 +240,8 @@ async function syncFromSupabase() {
 
     // 2. Sync Banners
     try {
-      const { data: bannersData, error: bError } = await supabase.from("banners").select("*");
-      if (!bError && bannersData) {
+      if (!bannersResult.error && bannersResult.data) {
+        const bannersData = bannersResult.data;
         if (bannersData.length > 0) {
           db.banners = bannersData.map((b: any) => ({
             ...b,
@@ -240,8 +258,8 @@ async function syncFromSupabase() {
 
     // 3. Sync Coupons
     try {
-      const { data: couponsData, error: cError } = await supabase.from("coupons").select("*");
-      if (!cError && couponsData) {
+      if (!couponsResult.error && couponsResult.data) {
+        const couponsData = couponsResult.data;
         if (couponsData.length > 0) {
           db.coupons = couponsData.map((c: any) => ({
             ...c,
@@ -259,8 +277,8 @@ async function syncFromSupabase() {
 
     // 4. Sync Campaigns
     try {
-      const { data: campaignsData, error: campError } = await supabase.from("campaigns").select("*");
-      if (!campError && campaignsData) {
+      if (!campaignsResult.error && campaignsResult.data) {
+        const campaignsData = campaignsResult.data;
         if (campaignsData.length > 0) {
           db.campaigns = campaignsData.map((c: any) => ({
             ...c,
@@ -277,8 +295,8 @@ async function syncFromSupabase() {
 
     // 5. Sync Reviews
     try {
-      const { data: reviewsData, error: rError } = await supabase.from("reviews").select("*");
-      if (!rError && reviewsData) {
+      if (!reviewsResult.error && reviewsResult.data) {
+        const reviewsData = reviewsResult.data;
         if (reviewsData.length > 0) {
           db.reviews = reviewsData.map((r: any) => ({
             ...r,
@@ -296,8 +314,8 @@ async function syncFromSupabase() {
 
     // 6. Sync Orders
     try {
-      const { data: ordersData, error: oError } = await supabase.from("orders").select("*");
-      if (!oError && ordersData) {
+      if (!ordersResult.error && ordersResult.data) {
+        const ordersData = ordersResult.data;
         if (ordersData.length > 0) {
           db.orders = ordersData.map((o: any) => ({
             ...o,
@@ -318,8 +336,8 @@ async function syncFromSupabase() {
 
     // 7. Sync Chats
     try {
-      const { data: chatsData, error: chatError } = await supabase.from("chats").select("*");
-      if (!chatError && chatsData) {
+      if (!chatsResult.error && chatsResult.data) {
+        const chatsData = chatsResult.data;
         if (chatsData.length > 0) {
           db.chats = chatsData.map((ch: any) => ({
             ...ch,
@@ -384,6 +402,13 @@ export async function ensureDbSynced() {
 
 
 // Set up express middlewears
+app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 app.use(async (req, res, next) => {
   try {
     await ensureDbSynced();
