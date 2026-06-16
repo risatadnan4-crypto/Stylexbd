@@ -161,8 +161,12 @@ if (fs.existsSync(DB_FILE)) {
   }
 }
 
+let lastSyncCompletedAt = 0;
+let activeSyncPromise: Promise<void> | null = null;
+
 // Function to save database file
 function saveDB() {
+  lastSyncCompletedAt = 0; // Force immediate refetch on subsequent requests on this instance
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
   } catch (err) {
@@ -344,12 +348,38 @@ async function syncFromSupabase() {
   }
 }
 
-let initialSyncPromise: Promise<void> | null = null;
 export async function ensureDbSynced() {
-  if (!initialSyncPromise) {
-    initialSyncPromise = syncFromSupabase();
+  const now = Date.now();
+
+  // If we have never synced successfully, block and execute sync
+  if (lastSyncCompletedAt === 0) {
+    if (!activeSyncPromise) {
+      activeSyncPromise = (async () => {
+        try {
+          await syncFromSupabase();
+          lastSyncCompletedAt = Date.now();
+        } finally {
+          activeSyncPromise = null;
+        }
+      })();
+    }
+    return activeSyncPromise;
   }
-  return initialSyncPromise;
+
+  // If last complete sync was more than 5 seconds ago, block and fetch fresh data
+  if (now - lastSyncCompletedAt > 5000) {
+    if (!activeSyncPromise) {
+      activeSyncPromise = (async () => {
+        try {
+          await syncFromSupabase();
+          lastSyncCompletedAt = Date.now();
+        } finally {
+          activeSyncPromise = null;
+        }
+      })();
+    }
+    await activeSyncPromise;
+  }
 }
 
 
