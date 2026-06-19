@@ -34,7 +34,7 @@ export default function ProductCard({
   };
 
   return (
-    <div className="group relative bg-[#07010e] border-2 border-white/5 hover:border-luxury-purple-glowing/60 rounded-xl p-2 sm:p-4 flex flex-col justify-between transition-all duration-500 shadow-xl hover:shadow-[0_12px_45px_rgba(154,77,255,0.2)] hover:-translate-y-1 select-none overflow-hidden">
+    <div className="group relative bg-[#07010e] border-2 border-white/5 hover:border-luxury-purple-glowing/60 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between transition-all duration-500 shadow-xl hover:shadow-[0_12px_45px_rgba(154,77,255,0.2)] hover:-translate-y-1 select-none overflow-hidden">
       {/* Premium glowing hover accent card background */}
       <div className="absolute inset-0 bg-gradient-to-tr from-luxury-purple/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
       
@@ -55,7 +55,7 @@ export default function ProductCard({
       {/* Image frame */}
       <div 
         onClick={() => onProductClick(product)}
-        className="relative aspect-[1.1] sm:aspect-square overflow-hidden rounded-lg bg-[#110121] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-purple/45 group mb-2 sm:mb-3"
+        className="relative aspect-[1.4] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#110121] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-purple/45 group mb-1.5 sm:mb-2.5"
       >
         <img 
           src={product.imageUrl} 
@@ -89,7 +89,7 @@ export default function ProductCard({
       </div>
 
       {/* Product Information */}
-      <div className="mb-2 z-10">
+      <div className="mb-1.5 z-10">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-1 mb-1">
           <h3 
             onClick={() => onProductClick(product)}
@@ -107,14 +107,14 @@ export default function ProductCard({
           <span className="text-white/40">PREMIUM</span>
         </p>
         
-        <p className="text-[10px] sm:text-xs text-white/60 line-clamp-2 italic mb-2 sm:mb-3 font-light">
+        <p className="text-[10px] sm:text-xs text-white/60 line-clamp-1 sm:line-clamp-2 italic mb-1 sm:mb-2 font-light">
           {product.description}
         </p>
 
         {/* Sizes Selections */}
         {product.sizes && product.sizes.length > 0 && (
-          <div className="mb-2.5">
-            <p className="text-[8px] sm:text-[9.5px] text-white/40 uppercase font-mono tracking-wider mb-1">DIMENSIONS</p>
+          <div className="mb-1.5">
+            <p className="text-[8px] sm:text-[9.5px] text-white/40 uppercase font-mono tracking-wider mb-0.5">DIMENSIONS</p>
             <div className="flex flex-wrap gap-1">
               {product.sizes.map((size) => (
                 <button
@@ -135,25 +135,24 @@ export default function ProductCard({
       </div>
 
       {/* Order Actions and Collapsible Explain Panels */}
-      <div className="space-y-2 mt-auto z-10">
-        <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+      <div className="space-y-2 mt-auto z-10 w-full">
+        <div className="grid grid-cols-2 gap-[10px]">
           {/* Add to Cart */}
           <button
             onClick={() => onAddToCart(product, selectedSize)}
             disabled={product.stock === 0}
-            className="w-full border border-luxury-purple-glowing/45 hover:border-luxury-purple-glowing bg-black/55 text-[8.5px] sm:text-[10px] font-display font-black uppercase tracking-[0.2em] py-2 sm:py-3 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 disabled:opacity-40 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.25)] active:scale-95 text-white/90 hover:text-white cursor-pointer luxury-reflection"
+            className="w-full h-[40px] border border-luxury-purple-glowing/30 hover:border-luxury-purple-glowing/80 bg-[#0e051c] hover:bg-[#190a33] text-[#cdaaff] hover:text-white text-[11px] sm:text-[12px] font-display font-semibold uppercase tracking-[0.1em] rounded-[14px] flex items-center justify-center gap-1.5 transition-all duration-200 ease-out disabled:opacity-45 hover:shadow-[0_0_15px_rgba(154,77,255,0.3)] active:scale-[0.98] cursor-pointer"
           >
-            <ShoppingBag size={11} className="text-[#9A4DFF] group-hover:text-white" />
-            <span>Cart</span>
+            <ShoppingBag size={13.5} className="opacity-90 text-luxury-purple-glowing" />
+            <span>Add to Cart</span>
           </button>
           
           {/* Buy Now Premium Button */}
           <button
             onClick={() => onOrderNow(product, selectedSize)}
             disabled={product.stock === 0}
-            className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#aa8323] text-black font-display font-black text-[9px] sm:text-[10.5px] uppercase tracking-[0.2em] py-2 sm:py-3 rounded-xl transition-all duration-300 disabled:opacity-40 shadow-[0_4px_15px_rgba(212,175,55,0.15)] hover:shadow-[0_4px_25px_rgba(212,175,55,0.4)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1 relative overflow-hidden group/buynow luxury-reflection"
+            className="w-full h-[40px] bg-gradient-to-r from-luxury-gold-dark via-[#ffe79c] to-luxury-gold hover:from-[#eec849] hover:to-[#bc901a] text-[#0a0515] font-display font-extrabold text-[11px] sm:text-[12px] uppercase tracking-[0.1em] rounded-[14px] transition-all duration-200 ease-out disabled:opacity-40 shadow-[0_4px_12px_rgba(212,175,55,0.22)] hover:shadow-[0_6px_22px_rgba(212,175,55,0.45)] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden"
           >
-            <span>⚜️</span>
             <span>Buy Now</span>
           </button>
         </div>
@@ -161,10 +160,11 @@ export default function ProductCard({
         {/* WhatsApp Direct Order */}
         <button
           onClick={handleWhatsAppDirect}
-          className="w-full border border-emerald-500/30 hover:border-emerald-400 bg-gradient-to-b from-[#082215] to-[#030d08] text-emerald-400 hover:text-emerald-300 text-[8.5px] sm:text-[10.5px] font-sans font-black uppercase tracking-widest py-1.5 sm:py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_2px_12px_rgba(16,185,129,0.1)] hover:shadow-[0_2px_22px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-95 cursor-pointer"
+          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[10.5px] sm:text-[11.5px] font-display font-extrabold uppercase tracking-[0.15em] py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
         >
-          <Send size={11} className="animate-pulse" />
-          <span>Concierge WhatsApp</span>
+          <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
+          <Send size={13.5} className="text-emerald-400 group-hover/wa:translate-x-0.5 group-hover/wa:-translate-y-0.5 transition-transform" />
+          <span>Order Via WhatsApp</span>
         </button>
 
         {/* Collapsible Glow accent "আপনি কেন কিনবেন?" */}

@@ -165,10 +165,11 @@ export default function ProductDetailModal({
 
               <button
                 onClick={handleWhatsAppDirect}
-                className="w-full border border-green-500/30 hover:border-green-500/60 bg-green-950/15 hover:bg-green-950/40 text-green-400 text-[10.5px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer"
+                className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
               >
-                <Send size={13} className="animate-pulse" />
-                Order via WhatsApp Direct
+                <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
+                <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
+                <span>Order Via WhatsApp</span>
               </button>
             </div>
 

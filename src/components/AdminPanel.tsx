@@ -1843,14 +1843,12 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                         </p>
                       )}
                     </div>
-                    {c.id !== 'camp-1' && (
-                      <button 
-                        onClick={() => handleDeleteCampaign(c.id)}
-                        className="text-white/40 hover:text-red-400 p-2.5 rounded"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => handleDeleteCampaign(c.id)}
+                      className="text-white/40 hover:text-red-400 p-2.5 rounded cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 ))}
               </div>

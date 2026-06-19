@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
-  Sparkles, ClipboardList, ShoppingBag, X, Percent,
-  SlidersHorizontal, RotateCcw, Bell
+  Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
+  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -54,7 +54,11 @@ export default function App() {
 
   // Notifications panel states
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(3);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
+    const saved = localStorage.getItem('stylex_notif_last_read_ts');
+    return saved ? Number(saved) : 0;
+  });
 
   // Generate unique sizes list dynamically
   const uniqueSizes = useMemo(() => {
@@ -93,6 +97,43 @@ export default function App() {
     const saved = localStorage.getItem('stylex_current_customer');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Filter notifications based on customer email/phone and show new products to everyone
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notif => {
+      // General alert notifications (like new product drop) are shown to everyone
+      if (!notif.customerEmail && !notif.customerPhone) {
+        return true;
+      }
+      
+      // If customer-specific order alert, show only if customer is logged in and matching
+      if (!currentCustomer) {
+        return false;
+      }
+      
+      const matchEmail = currentCustomer.email && notif.customerEmail && 
+        notif.customerEmail.toLowerCase().trim() === currentCustomer.email.toLowerCase().trim();
+
+      const cleanCustPhone = currentCustomer.phone ? currentCustomer.phone.replace(/[\s+]/g, '').trim() : '';
+      const cleanNotifPhone = notif.customerPhone ? notif.customerPhone.replace(/[\s+]/g, '').trim() : '';
+
+      const matchPhone = cleanCustPhone && cleanNotifPhone && (
+        cleanNotifPhone === cleanCustPhone ||
+        (cleanCustPhone.length >= 10 && cleanNotifPhone.endsWith(cleanCustPhone.slice(-10)))
+      );
+
+      return matchEmail || matchPhone;
+    });
+  }, [notifications, currentCustomer]);
+
+  // Derived unread count
+  const unreadNotificationsCount = useMemo(() => {
+    return filteredNotifications.filter(notif => {
+      const notifTime = new Date(notif.date).getTime();
+      return notifTime > lastReadTimestamp;
+    }).length;
+  }, [filteredNotifications, lastReadTimestamp]);
+
   const [showCustomerAuthModal, setShowCustomerAuthModal] = useState(false);
   const [customerAuthTab, setCustomerAuthTab] = useState<'login' | 'signup'>('login');
   
@@ -168,8 +209,10 @@ export default function App() {
     loadReviews();
     loadSettings();
     loadOrders();
+    loadNotifications();
 
     const orderPollInterval = setInterval(loadOrders, 9000);
+    const notifPollInterval = setInterval(loadNotifications, 10000);
 
     // Sticky session check if already authenticated in this window
     const sessionAuth = sessionStorage.getItem('stylex_admin_auth');
@@ -189,7 +232,10 @@ export default function App() {
       }
     }
 
-    return () => clearInterval(orderPollInterval);
+    return () => {
+      clearInterval(orderPollInterval);
+      clearInterval(notifPollInterval);
+    };
   }, []);
 
   // 100% Accurate Visitor and Presence Tracking (Heartbeat system)
@@ -270,6 +316,17 @@ export default function App() {
         setPublicReviews(list.filter(r => r.isApproved));
       }
     } catch (err) {}
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        setNotifications(await res.json());
+      }
+    } catch (err) {
+      console.warn("Failed loading notifications", err);
+    }
   };
 
   // Cart operations
@@ -883,98 +940,7 @@ export default function App() {
               </div>
             )}
 
-            {/* LIVE ORDER BROADCAST PULSE BLOCK */}
-            <div className="bg-[#080808]/90 border border-white/5 rounded-xl p-5 md:p-6 space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.8)] backdrop-blur-md relative overflow-hidden group">
-              {/* Luxury ambient light effect */}
-              <div className="absolute top-0 right-0 w-44 h-44 bg-luxury-gold/5 blur-[80px] rounded-full pointer-events-none transition-all group-hover:bg-luxury-gold/10 duration-700"></div>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative">
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <div className="w-8 h-8 rounded-lg bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center text-luxury-gold">
-                      👑
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-serif text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
-                      Live VIP Order Pulse
-                    </h4>
-                    <p className="text-[9px] text-white/45 font-mono tracking-wider uppercase mt-0.5">Real-time drops activity and secure handoff receipts</p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-1.5 bg-[#0e0e0e] border border-white/10 px-3 py-1.5 rounded-full text-[10px] font-mono text-white/60">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
-                  GLOBAL SECURE HANDOVER CHANNEL
-                </div>
-              </div>
-
-              {allOrders.length === 0 ? (
-                <div className="py-6 text-center text-white/30 font-mono text-[10px] uppercase tracking-wider space-y-2">
-                  <p>⚜️ All current dropped units intact in our central vaults</p>
-                  <p className="text-[9px] text-luxury-gold/60 font-serif italic">Be the first to authorize a custom bespoke courier dispatch today!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {allOrders.slice(0, 4).map((order) => {
-                    const firstItem = order.items?.[0] || { title: 'Authentic Drop Allotment', quantity: 1, selectedSize: 'Standard', price: order.totalAmount, productId: '' };
-                    return (
-                      <div 
-                        key={order.id}
-                        onClick={() => {
-                          setIsTrackMode(true);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                          const newUrl = `${window.location.pathname}?track=${order.id}`;
-                          window.history.pushState({}, '', newUrl);
-                        }}
-                        className="bg-[#0b0b0b] border border-white/5 hover:border-luxury-gold/30 rounded-lg p-3 flex flex-col justify-between hover:bg-[#0c0c0c] transition-all duration-300 cursor-pointer group/card shadow-sm hover:translate-y-[-2px]"
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-mono text-white/30 tracking-widest uppercase">#{order.id}</span>
-                            <span className="text-[9px] font-mono font-medium text-luxury-gold uppercase tracking-wider">{getRelativeTimeString(order.date)}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2.5 py-1">
-                            <div className="w-9 h-9 bg-luxury-charcoal/20 border border-white/10 rounded flex-shrink-0 flex items-center justify-center text-base overflow-hidden">
-                              {firstItem.productId ? (
-                                <img 
-                                  src={products.find(p => p.id === firstItem.productId)?.imageUrl || "https://images.unsplash.com/photo-1590247813693-5541d1c609fd?w=100"} 
-                                  alt={firstItem.title} 
-                                  className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                "⚜️"
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-serif font-semibold text-white truncate line-clamp-1">{firstItem.title}</p>
-                              <p className="text-[9px] font-mono text-white/40 uppercase mt-0.5">
-                                Size: <span className="text-white/60">{firstItem.selectedSize}</span> • Qty: <span className="text-white/60">{firstItem.quantity}</span>
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-white/5 mt-3 pt-2.5 flex items-center justify-between text-[10px]">
-                          <div>
-                            <p className="font-sans font-medium text-white/80 tracking-tight">{maskCustomerName(order.customerName)}</p>
-                            <p className="text-[8.5px] font-mono text-luxury-gold/70 uppercase tracking-widest mt-0.5 font-bold">📍 {order.customerCity}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="inline-flex items-center gap-1 bg-green-500/10 border border-green-500/20 text-green-400 px-1.5 py-0.5 rounded text-[8.5px] font-mono tracking-widest uppercase font-bold">
-                              {order.status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
             {/* Empty results notifications */}
             {filteredProducts.length === 0 ? (
@@ -1152,7 +1118,9 @@ export default function App() {
           <button 
             onClick={() => { 
               setIsNotificationOpen(true); 
-              setUnreadNotifications(0); 
+              const now = Date.now();
+              setLastReadTimestamp(now);
+              localStorage.setItem('stylex_notif_last_read_ts', String(now));
             }}
             className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.4),0_0_20px_rgba(154,77,255,0.3),0_0_26px_rgba(59,130,246,0.25),0_0_32px_rgba(34,197,94,0.2)] hover:scale-105 active:scale-95 transition-all outline-none cursor-pointer relative group"
             title="VIP Dispatch & Product Alerts Hub"
@@ -1162,11 +1130,11 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             <Bell className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
-            {unreadNotifications > 0 && (
+            {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[7.5px] text-white font-extrabold items-center justify-center leading-none">
-                  {unreadNotifications}
+                  {unreadNotificationsCount}
                 </span>
               </span>
             )}
@@ -1201,7 +1169,7 @@ export default function App() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin" />
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
-            <Sparkles className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-pulse" />
+            <Gift className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-pulse" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
@@ -1221,7 +1189,7 @@ export default function App() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin" />
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
-            <ClipboardList className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <Ticket className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               TRACK RECEIPT
             </span>
@@ -1301,7 +1269,22 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-white/5 mt-12 pt-6 grid grid-cols-1 md:grid-cols-3 items-center text-[10px] text-white/30 font-mono gap-4">
-          <p className="text-center md:text-left">© 2026 STYLE X COLLECTIVE INC.</p>
+          <p className="text-center md:text-left relative inline-flex items-center justify-center md:justify-start gap-1">
+            <span>© 2026 STYLE X COLLECTIVE INC.</span>
+            <button 
+              onClick={() => {
+                if (isAuthAdmin) {
+                  setIsAdminView(true);
+                } else {
+                  setShowLoginModal(true);
+                }
+              }}
+              className="opacity-0 cursor-default select-none w-5 h-4 inline-block align-middle"
+              aria-label="Admin Access"
+            >
+              [admin]
+            </button>
+          </p>
           <div className="flex justify-center">
             <button 
               id="admin-portal-link"
@@ -1312,7 +1295,7 @@ export default function App() {
                   setShowLoginModal(true);
                 }
               }} 
-              className="text-luxury-gold hover:text-white transition-colors duration-200 uppercase font-bold tracking-wider cursor-pointer flex items-center gap-1 justify-center"
+              className="opacity-0 pointer-events-none select-none uppercase font-bold tracking-wider flex items-center gap-1 justify-center"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold inline-block animate-pulse"></span>
               Risat Adnan
@@ -1661,53 +1644,49 @@ export default function App() {
               </div>
 
               {/* Notification Ticks */}
-              <div className="space-y-4 pt-2 overflow-y-auto max-h-[70vh] scrollbar-none pr-1">
-                
-                {/* Notice 1 */}
-                <div className="bg-[#0b051a] border border-luxury-gold/20 rounded-xl p-4 space-y-2 relative overflow-hidden group">
-                  <div className="absolute right-3 top-3 w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-luxury-gold">
-                    <span>⚜️ Live Drop Notification</span>
-                    <span>•</span>
-                    <span className="text-white/40">Active Now</span>
+              <div className="space-y-4 pt-2 overflow-y-auto max-h-[72vh] scrollbar-none pr-1">
+                {filteredNotifications.length === 0 ? (
+                  <div className="py-12 text-center text-white/30 font-mono text-[10px] uppercase tracking-wider space-y-3">
+                    <p>⚜️ No active notifications in your secure archive</p>
+                    <p className="text-[9px] text-luxury-gold/60 font-serif italic text-center">Place a bespoke order or check back for new product alerts!</p>
                   </div>
-                  <h4 className="font-serif text-xs font-bold text-white capitalize leading-relaxed">
-                    Exclusive Purple Gold premium capsule allocation is live!
-                  </h4>
-                  <p className="text-[10px] text-white/70 leading-relaxed font-sans font-light">
-                    VIP members can process pre-order allocations securely. Apply campaign discounts for up to 15% luxury concession.
-                  </p>
-                </div>
+                ) : (
+                  filteredNotifications.map((notif) => {
+                    const isUnread = new Date(notif.date).getTime() > lastReadTimestamp;
+                    const isNewProduct = notif.type === 'new_product';
+                    const isOrderStatus = notif.type === 'order_status';
 
-                {/* Notice 2 */}
-                <div className="bg-[#0b051a]/60 border border-white/5 rounded-xl p-4 space-y-2 relative overflow-hidden">
-                  <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-green-400">
-                    <span>📦 Courier Dispatch status</span>
-                    <span>•</span>
-                    <span className="text-white/40">1h ago</span>
-                  </div>
-                  <h4 className="font-serif text-xs font-bold text-white capitalize leading-relaxed">
-                    Fast-Track Courier Dispatch loops optimized on Dhaka Lines
-                  </h4>
-                  <p className="text-[10px] text-white/60 leading-relaxed font-sans font-light">
-                    Bespoke courier delivery loops have been allocated. Delivery schedules are operating under 24-hour fast-track timelines for Dhaka metropolitan hubs.
-                  </p>
-                </div>
-
-                {/* Notice 3 */}
-                <div className="bg-[#0b051a]/60 border border-white/5 rounded-xl p-4 space-y-2">
-                  <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-blue-400">
-                    <span>🎟️ Imperial Draw Alert</span>
-                    <span>•</span>
-                    <span className="text-white/40">Today</span>
-                  </div>
-                  <h4 className="font-serif text-xs font-bold text-white capitalize leading-relaxed">
-                    complimentary fortune ticket active
-                  </h4>
-                  <p className="text-[10px] text-white/60 leading-relaxed font-sans font-light">
-                    Every buyer is automatically entitled to a free spin daily in the Imperial Draw. Register your phone number to reveal complimentary voucher concessions.
-                  </p>
-                </div>
+                    return (
+                      <div 
+                        key={notif.id} 
+                        className={`border rounded-xl p-4 space-y-2 relative overflow-hidden transition-all duration-300 ${
+                          isUnread 
+                            ? 'bg-[#100624] border-luxury-gold/40 shadow-[0_0_15px_rgba(212,175,55,0.1)]' 
+                            : 'bg-[#05020a]/80 border-white/5 hover:border-white/10'
+                        }`}
+                      >
+                        {isUnread && (
+                          <div className="absolute right-3 top-3 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                        )}
+                        <div className="flex items-center gap-2 font-mono text-[8px] uppercase tracking-wider">
+                          <span className={isNewProduct ? "text-luxury-gold font-bold" : "text-green-400 font-bold"}>
+                            {isNewProduct ? "⚜️ NEW ARRIVAL" : "📦 COURIER ACTIVE"}
+                          </span>
+                          <span className="text-white/20">•</span>
+                          <span className="text-white/40">
+                            {getRelativeTimeString(notif.date)}
+                          </span>
+                        </div>
+                        <h4 className="font-serif text-[11px] font-bold text-white capitalize leading-relaxed">
+                          {notif.title}
+                        </h4>
+                        <p className="text-[10px] text-white/70 leading-relaxed font-sans font-light">
+                          {notif.message}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
 
                 {/* Campaign notice */}
                 {activeCampaign && (
@@ -1725,7 +1704,6 @@ export default function App() {
                     </p>
                   </div>
                 )}
-
               </div>
             </div>
 

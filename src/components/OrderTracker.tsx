@@ -53,9 +53,15 @@ export default function OrderTracker({
         const matched = data.filter(ord => {
           const matchEmail = customer.email && ord.customerEmail && 
             ord.customerEmail.toLowerCase().trim() === customer.email.toLowerCase().trim();
-          const matchPhone = customer.phone && ord.customerPhone && 
-            (ord.customerPhone.trim() === customer.phone.trim() || 
-             ord.customerPhone.replace(/[\s+]/g, '').endsWith(customer.phone.replace(/[\s+]/g, '').slice(-10)));
+          
+          const cleanCustPhone = customer.phone ? customer.phone.replace(/[\s+]/g, '').trim() : '';
+          const cleanOrdPhone = ord.customerPhone ? ord.customerPhone.replace(/[\s+]/g, '').trim() : '';
+          
+          const matchPhone = cleanCustPhone && cleanOrdPhone && (
+            cleanOrdPhone === cleanCustPhone ||
+            (cleanCustPhone.length >= 10 && cleanOrdPhone.endsWith(cleanCustPhone.slice(-10)))
+          );
+          
           return matchEmail || matchPhone;
         });
         setCustomerOrders(matched);
@@ -234,10 +240,25 @@ export default function OrderTracker({
                           </span>
                         </div>
                         <p className="text-[10px] text-white/50 font-mono truncate">
-                          {new Date(ord.date).toLocaleDateString()} • {itemsCount} Piece{itemsCount > 1 ? 's' : ''}
+                          {new Date(ord.date).toLocaleDateString()}
                         </p>
-                        <p className="text-xs font-black text-white/90">
-                          {formatPrice(ord.totalPrice)}
+                        
+                        {/* Ordered products detail breakdown */}
+                        <div className="mt-2 pt-2 border-t border-white/[0.04] space-y-1">
+                          {ord.items?.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-2 text-[10px] text-white/75 bg-white/[0.01] px-1.5 py-0.5 rounded">
+                              <span className="font-medium truncate max-w-[140px] text-white/90">
+                                {item.title}
+                              </span>
+                              <span className="font-mono text-[9px] text-[#ffd700] shrink-0 font-bold">
+                                {item.selectedSize ? `${item.selectedSize} | ` : ''}x{item.quantity}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <p className="text-xs font-black text-[#ffd700] pt-1">
+                          {formatPrice(ord.totalAmount)}
                         </p>
                       </div>
 
@@ -515,10 +536,11 @@ export default function OrderTracker({
           <div className="flex flex-col items-center text-center mt-6">
             <button
               onClick={handleSupportWhatsApp}
-              className="inline-flex items-center gap-2 border border-green-500/30 hover:border-green-500/60 bg-green-950/15 hover:bg-green-950/40 text-green-400 font-display text-[11px] uppercase font-black tracking-[0.2em] py-4 px-8 rounded-xl transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_25px_rgba(34,197,94,0.3)] hover:scale-[1.02]"
+              className="inline-flex items-center gap-2.5 border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 font-display text-[11px] uppercase font-black tracking-[0.2em] py-4 px-8 rounded-xl transition-all duration-300 relative overflow-hidden cursor-pointer shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 group/wa"
             >
-              <Send size={12} className="animate-pulse" />
-              Inquire Order via WhatsApp
+              <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
+              <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
+              <span>Inquire Order via WhatsApp</span>
             </button>
             <p className="text-[10px] text-white/30 font-sans mt-3 italic">
               Connect directly with Style X live assistant regarding delivery timing.

@@ -149,6 +149,7 @@ let db = {
   visits: 125,
   liveViews: 3,
   countedSessions: [] as string[],
+  notifications: [] as any[],
   settings: {
     whatsappNumber: "8801755104443",
     adminEmail: "risatadnan4@gmail.com",
@@ -168,6 +169,9 @@ let db = {
   }
 };
 
+let lastSyncCompletedAt = 0;
+let activeSyncPromise: Promise<void> | null = null;
+
 // Load database if exists
 if (fs.existsSync(DB_FILE)) {
   try {
@@ -175,6 +179,7 @@ if (fs.existsSync(DB_FILE)) {
     const parsedData = JSON.parse(rawData);
     db = { ...db, ...parsedData };
     db.countedSessions = db.countedSessions || [];
+    db.notifications = db.notifications || [];
     
     // Always migrate old default script URLs to the newly provided script URL
     const oldDefaultUrls = [
@@ -207,9 +212,6 @@ if (fs.existsSync(DB_FILE)) {
     console.error("Error parsing DB file, using default structure", err);
   }
 }
-
-let lastSyncCompletedAt = 0;
-let activeSyncPromise: Promise<void> | null = null;
 
 // Function to save database file
 function saveDB() {
@@ -762,6 +764,21 @@ app.post("/api/products", async (req, res) => {
   newProduct.deliveryPriceMymensingh = newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150;
   
   db.products.push(newProduct);
+  
+  // Create new product addition notification (visible to all users)
+  const productNotif = {
+    id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    type: 'new_product',
+    title: `New Creation Addition`,
+    message: `A magnificent new creation has been placed in the collective catalog: "${newProduct.title}". Inspect the bespoke custom piece and register interest now.`,
+    date: new Date().toISOString(),
+    productId: newProduct.id
+  };
+  if (!db.notifications) {
+    db.notifications = [];
+  }
+  db.notifications.unshift(productNotif);
+
   saveDB();
 
   try {
@@ -1061,8 +1078,12 @@ app.get("/api/orders/:id", async (req, res) => {
   }
 });
 
+app.get("/api/notifications", (req, res) => {
+  res.json(db.notifications || []);
+});
+
 app.post("/api/orders", async (req, res) => {
-  const { customerName, customerPhone, customerAddress, customerCity, customerNotes, items, totalAmount } = req.body;
+  const { customerName, customerPhone, customerAddress, customerCity, customerNotes, customerEmail, items, totalAmount } = req.body;
 
   // Validate Stock & Product Integrity
   for (const item of items) {
@@ -1098,6 +1119,7 @@ app.post("/api/orders", async (req, res) => {
     customerPhone,
     customerAddress,
     customerCity,
+    customerEmail,
     customerNotes,
     items,
     totalAmount,
@@ -1189,7 +1211,36 @@ app.put("/api/orders/:id/status", async (req, res) => {
   const { status } = req.body;
   const idx = db.orders.findIndex(o => o.id === req.params.id);
   if (idx !== -1) {
-    db.orders[idx].status = status;
+    const order = db.orders[idx];
+    order.status = status;
+
+    // Create a personalized customer notification
+    const statusUpper = String(status).toUpperCase();
+    let notifMsg = `Bespoke Order #${order.id} has been updated to ${statusUpper} status.`;
+    if (statusUpper === 'CONFIRMED' || statusUpper === 'APPROVED') {
+      notifMsg = `Bespoke Order #${order.id} is officially CONFIRMED! Our specialized courier has allocated your parcel from the Style X vault.`;
+    } else if (statusUpper === 'SHIPPED' || statusUpper === 'DISPATCHED') {
+      notifMsg = `Fast-track Dispatch active: Order #${order.id} has left the Style X central hub and is on route to ${order.customerCity}.`;
+    } else if (statusUpper === 'DELIVERED') {
+      notifMsg = `Acknowledgment: Order #${order.id} has been securely handed over. Thank you for your luxury purchase, we hope to serve you again!`;
+    }
+
+    const newNotif = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      type: 'order_status',
+      title: `Order #${order.id}: ${statusUpper}`,
+      message: notifMsg,
+      date: new Date().toISOString(),
+      customerEmail: order.customerEmail || "",
+      customerPhone: order.customerPhone || "",
+      orderId: order.id
+    };
+
+    if (!db.notifications) {
+      db.notifications = [];
+    }
+    db.notifications.unshift(newNotif);
+
     saveDB();
     try {
       await supabase.from("orders").update({ status }).eq("id", req.params.id);
