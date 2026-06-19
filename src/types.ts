@@ -12,6 +12,15 @@ export interface Product {
   whyBuy: string; // Explaining why they should buy this piece in "আপনি কেন কিনবেন?"
   trending?: boolean;
   featured?: boolean;
+  deliveryPrice?: number;
+  deliveryPriceDhaka?: number;
+  deliveryPriceChattogram?: number;
+  deliveryPriceRajshahi?: number;
+  deliveryPriceKhulna?: number;
+  deliveryPriceBarishal?: number;
+  deliveryPriceSylhet?: number;
+  deliveryPriceRangpur?: number;
+  deliveryPriceMymensingh?: number;
 }
 
 export interface CartItem {
@@ -34,6 +43,7 @@ export interface Order {
   customerPhone: string;
   customerAddress: string;
   customerCity: string;
+  customerEmail?: string;
   customerNotes?: string;
   items: OrderItem[];
   totalAmount: number;
@@ -98,4 +108,11 @@ export interface Campaign {
 export interface AnalyticsStats {
   visits: number;
   liveViews: number;
+}
+
+export interface Customer {
+  name: string;
+  email: string;
+  phone?: string;
+  password?: string;
 }

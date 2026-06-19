@@ -10,70 +10,72 @@ export default function Hero({
   bannerImage = "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop"
 }: HeroProps) {
   return (
-    <div className="relative w-full min-h-[60vh] md:h-[80vh] bg-luxury-black flex items-center justify-center overflow-hidden border-b border-luxury-gold/15">
+    <div className="relative w-full min-h-[60vh] md:h-[80vh] bg-gradient-to-b from-luxury-black via-[#100122] to-luxury-black flex items-center justify-center overflow-hidden border-b-2 border-luxury-gold/20 shadow-[inset_0_0_100px_rgba(106,13,173,0.3)]">
       {/* Cinematic Ambient Background Photo with Dark Luxury Overlays */}
       <div 
         className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-105"
         style={{ 
           backgroundImage: `url(${bannerImage})`,
-          filter: "brightness(0.3) contrast(1.1)"
+          filter: "brightness(0.25) contrast(1.15) saturate(0.8)"
         }}
       ></div>
 
-      {/* Luxury Golden Glimmer Particles system */}
+      {/* Luxury Golden and Royal Purple Glimmer Particles system */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-        {[...Array(15)].map((_, i) => {
-          const delay = i * 0.7;
+        {[...Array(20)].map((_, i) => {
+          const delay = i * 0.5;
           const left = Math.random() * 100;
+          const isPurple = i % 2 === 0;
           return (
             <div 
               key={i}
-              className="absolute w-1 h-1 bg-luxury-gold rounded-full opacity-60 animate-gold-particles"
+              className="absolute w-1 h-1 rounded-full opacity-65 animate-gold-particles"
               style={{
                 left: `${left}%`,
                 animationDelay: `${delay}s`,
                 top: "100%",
-                boxShadow: "0 0 8px #FFD700"
+                background: isPurple ? "#9A4DFF" : "#D4AF37",
+                boxShadow: isPurple ? "0 0 10px rgba(154,77,255,0.8)" : "0 0 8px rgba(212,175,55,0.8)"
               }}
             ></div>
           );
         })}
       </div>
 
-      {/* Decorative Blueprint Corner Metrics - Dhaka Coordinates (Authentic touch!) */}
+      {/* Decorative Blueprint Corner Metrics - Dhaka Coordinates */}
       <div className="absolute top-8 left-8 hidden lg:flex flex-col gap-1 z-20 text-[10px] tracking-wide text-white/40 font-mono">
-        <p>PROJECT: STYLE X SEQUENCE</p>
+        <p>PROJECT: STYLE X EXPANSION</p>
         <p>LAT: 23.8103° N | LONG: 90.4125° E</p>
-        <p className="text-luxury-gold/60 font-sans italic">AUTH: RISAT ADNAN SIGNATURE</p>
+        <p className="text-luxury-purple-glowing font-sans italic">SIGNATURE INK: ROYAL PURPLE</p>
       </div>
 
       <div className="absolute top-8 right-8 hidden lg:flex flex-col items-end gap-1 z-20 text-[10px] tracking-wide text-white/40 font-mono text-right">
-        <p>ARCHIVE 001 // COLLECTION 2026</p>
-        <p>INTEGRITY: SECURE SHAPE ENGINE</p>
-        <p>CONCIERGE ACTIVE</p>
+        <p>EDITION 2.0 // GOLD & PURPLE ROYAL</p>
+        <p>INTEGRITY: HIGH-CRAFT ENGINE</p>
+        <p className="text-luxury-gold/60">CONCIERGE ONLINE</p>
       </div>
 
       {/* Centered Main Story Text Box */}
       <div className="relative max-w-4xl mx-auto px-6 text-center z-20 flex flex-col items-center">
-        <p className="text-luxury-gold font-display text-[10px] tracking-[0.3em] uppercase mb-4 animate-fade-in">
-          ARCHIVE 001 / 2026
+        <p className="text-transparent bg-clip-text bg-gradient-to-r from-luxury-gold via-luxury-purple-glowing to-luxury-gold font-display text-[11px] font-bold tracking-[0.4em] uppercase mb-4 animate-pulse">
+          ARCHIVE 001 // THE EXPANSION SERIES
         </p>
 
-        {/* Large Playfair Display Headers with custom serif italicization */}
-        <h2 className="font-serif text-4xl sm:text-6xl md:text-8xl font-medium text-white tracking-normal leading-[1.05] capitalize mb-8 select-none scale-y-[0.98]">
-          <span className="block text-white">Style <span className="font-serif italic font-light text-luxury-gold">.X</span></span>
-          <span className="block italic text-white tracking-widest font-light text-3xl sm:text-5xl md:text-6xl uppercase mt-2">
-            COLLECTIVE
+        {/* Large Playfair Display Headers with sleek serif gradients */}
+        <h2 className="font-serif text-5xl sm:text-7xl md:text-9xl font-semibold tracking-normal leading-[1.05] capitalize mb-8 select-none scale-y-[0.98]">
+          <span className="block text-white transition-all duration-300">Style <span className="font-serif italic font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-luxury-purple-glowing via-luxury-gold to-white">.X</span></span>
+          <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-luxury-purple-glowing tracking-[0.2em] font-light text-2xl sm:text-4xl md:text-5xl uppercase mt-3">
+            ROYAL COUTURE
           </span>
         </h2>
 
         {/* Brand narrative details */}
-        <p className="text-white/80 font-sans text-xs sm:text-sm md:text-base font-light tracking-wide max-w-xl leading-relaxed italic mb-10">
+        <p className="text-white/85 font-sans text-xs sm:text-sm md:text-base font-light tracking-wide max-w-xl leading-relaxed italic mb-10">
           {bannerSubtitle}
         </p>
 
         {/* Scroll action element indicators */}
-        <div className="w-[1px] h-12 bg-gradient-to-b from-luxury-gold to-transparent animate-bounce"></div>
+        <div className="w-[1.5px] h-14 bg-gradient-to-b from-luxury-gold via-luxury-purple-glowing to-transparent animate-bounce"></div>
       </div>
 
       {/* Bottom Blueprint metadata strips */}

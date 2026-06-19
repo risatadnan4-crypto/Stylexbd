@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check } from 'lucide-react';
-import { CartItem, Coupon } from '../types';
-import { formatPrice, CITIES_LIST } from '../utils';
+import React, { useState, useEffect } from 'react';
+import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, Tag, ChevronDown, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CartItem, Coupon, Customer } from '../types';
+import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -10,7 +10,15 @@ interface CartDrawerProps {
   onUpdateQty: (idx: number, qty: number) => void;
   onRemoveItem: (idx: number) => void;
   activeCoupons: Coupon[];
+  settings?: {
+    whatsappNumber: string;
+    paymentBadgeTitle?: string;
+    paymentBadgeDescription?: string;
+    lotteryDiscountPercentage?: number;
+  };
   onCheckoutSuccess: (orderId: string, whatsappUrl: string) => void;
+  initialShowCheckout?: boolean;
+  customer?: Customer | null;
 }
 
 export default function CartDrawer({
@@ -20,7 +28,10 @@ export default function CartDrawer({
   onUpdateQty,
   onRemoveItem,
   activeCoupons,
-  onCheckoutSuccess
+  settings,
+  onCheckoutSuccess,
+  initialShowCheckout = false,
+  customer
 }: CartDrawerProps) {
   // Coupon State
   const [couponCode, setCouponCode] = useState('');
@@ -29,6 +40,7 @@ export default function CartDrawer({
   const [couponSuccess, setCouponSuccess] = useState('');
 
   // Checkout Form State
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -36,6 +48,22 @@ export default function CartDrawer({
   const [customerNotes, setCustomerNotes] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Auto pre-fill vip credentials
+  useEffect(() => {
+    if (customer && isOpen) {
+      setCustomerName(customer.name);
+      if (customer.phone) {
+        setCustomerPhone(customer.phone);
+      }
+    }
+  }, [customer, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowCheckoutForm(initialShowCheckout);
+    }
+  }, [isOpen, initialShowCheckout]);
 
   if (!isOpen) return null;
 
@@ -51,16 +79,58 @@ export default function CartDrawer({
     }
   }
 
-  // Delivery charge
-  const deliveryCharge = customerCity === "Dhaka" ? 100 : 150;
+  // Delivery charge - calculated dynamically from custom product attributes resolved via 8-division mapping
+  const shippingDivision = getDivisionForCity(customerCity);
+  const deliveryCharge = cartItems.length === 0
+    ? (shippingDivision === "Dhaka" ? 100 : 150)
+    : cartItems.reduce((max, item) => {
+        let customPrice = 150; // default for country/outside
+        
+        switch (shippingDivision) {
+          case "Dhaka":
+            customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 100;
+            break;
+          case "Chattogram":
+            customPrice = item.product.deliveryPriceChattogram !== undefined ? Number(item.product.deliveryPriceChattogram) : 150;
+            break;
+          case "Rajshahi":
+            customPrice = item.product.deliveryPriceRajshahi !== undefined ? Number(item.product.deliveryPriceRajshahi) : 150;
+            break;
+          case "Khulna":
+            customPrice = item.product.deliveryPriceKhulna !== undefined ? Number(item.product.deliveryPriceKhulna) : 150;
+            break;
+          case "Barishal":
+            customPrice = item.product.deliveryPriceBarishal !== undefined ? Number(item.product.deliveryPriceBarishal) : 150;
+            break;
+          case "Sylhet":
+            customPrice = item.product.deliveryPriceSylhet !== undefined ? Number(item.product.deliveryPriceSylhet) : 150;
+            break;
+          case "Rangpur":
+            customPrice = item.product.deliveryPriceRangpur !== undefined ? Number(item.product.deliveryPriceRangpur) : 150;
+            break;
+          case "Mymensingh":
+            customPrice = item.product.deliveryPriceMymensingh !== undefined ? Number(item.product.deliveryPriceMymensingh) : 150;
+            break;
+          default:
+            customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 150;
+            break;
+        }
+        
+        return customPrice > max ? customPrice : max;
+      }, 0);
   const grandTotal = Math.max(0, itemsTotal - discountAmount + deliveryCharge);
 
   // Validate and Apply Coupon
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = (overrideCode?: string) => {
     setCouponError('');
     setCouponSuccess('');
-    const codeUpper = couponCode.trim().toUpperCase();
+    const targetCode = overrideCode !== undefined ? overrideCode : couponCode;
+    const codeUpper = targetCode.trim().toUpperCase();
     if (!codeUpper) return;
+
+    if (overrideCode !== undefined) {
+      setCouponCode(codeUpper);
+    }
 
     const matched = activeCoupons.find(c => c.code === codeUpper && c.active);
     if (matched) {
@@ -113,6 +183,7 @@ export default function CartDrawer({
           customerAddress,
           customerCity,
           customerNotes,
+          customerEmail: customer?.email,
           items: dbFormatItems,
           totalAmount: grandTotal
         })
@@ -136,28 +207,36 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+    <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-500 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
       {/* Absolute dim backdrop */}
       <div 
         onClick={onClose}
-        className="absolute inset-0 bg-luxury-black/80 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md transition-opacity duration-300"
       ></div>
 
       {/* Cart Drawer Panel */}
-      <div className="relative w-full max-w-lg bg-[#080808] border-l border-luxury-gold/15 h-full flex flex-col justify-between shadow-2xl z-10 p-5 overflow-y-auto">
+      <div className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
+        showCheckoutForm 
+          ? 'max-w-2xl border-luxury-gold/30 rounded-2xl max-h-[92vh] md:max-h-[85vh] shadow-[0_0_60px_rgba(212,175,55,0.25)]' 
+          : 'max-w-lg border-l border-luxury-gold/15 h-full'
+      }`}>
         
         {/* Header Title */}
-        <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+        <div className="flex items-center justify-between border-b border-white/5 p-5">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={18} className="text-luxury-gold" />
-            <h3 className="font-serif text-lg font-medium tracking-wide uppercase text-white">Your Selection</h3>
-            <span className="text-xs text-white/40 font-mono bg-luxury-charcoal/80 px-2 py-0.5 rounded">
-              {cartItems.length}
-            </span>
+            <ShoppingBag size={18} className="text-luxury-gold animate-pulse" />
+            <h3 className="font-serif text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase text-white">
+              {showCheckoutForm ? "⚜️ SECURE DISPATCH CHECKOUT" : "Your Selection"}
+            </h3>
+            {!showCheckoutForm && (
+              <span className="text-xs text-white/40 font-mono bg-luxury-charcoal/80 px-2 py-0.5 rounded">
+                {cartItems.length}
+              </span>
+            )}
           </div>
           <button 
             onClick={onClose}
-            className="text-white/60 hover:text-luxury-gold transition-colors p-1"
+            className="text-white/60 hover:text-luxury-gold transition-colors p-1 hover:rotate-90 duration-300 cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -180,242 +259,474 @@ export default function CartDrawer({
               Continue Exploring
             </button>
           </div>
-        ) : (
-          /* Cart items & Order forms */
-          <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
-            
-            {/* List Selection items */}
-            <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-1">
-              {cartItems.map((item, idx) => (
-                <div 
-                  key={`${item.product.id}-${item.selectedSize}`} 
-                  className="flex gap-3 bg-luxury-charcoal/30 border border-white/5 p-3 rounded hover:border-luxury-gold/20 transition-all"
-                >
-                  <img 
-                    src={item.product.imageUrl} 
-                    alt={item.product.title} 
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 object-cover rounded border border-white/10"
-                  />
-                  
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start gap-1">
-                        <h4 className="font-serif text-[13px] text-white font-medium line-clamp-1">{item.product.title}</h4>
-                        <span className="font-serif text-xs font-semibold text-luxury-gold">
-                          {formatPrice(item.product.price * item.quantity)}
-                        </span>
-                      </div>
-                      <div className="flex gap-2 text-[9px] text-white/40 font-mono mt-0.5">
-                        <span>SIZE: {item.selectedSize}</span>
-                        <span>•</span>
-                        <span>{item.product.code}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-2">
-                      {/* Qty edit buttons */}
-                      <div className="flex items-center bg-luxury-black border border-white/10 rounded overflow-hidden">
-                        <button 
-                          onClick={() => onUpdateQty(idx, item.quantity - 1)}
-                          className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
-                        >
-                          <Minus size={10} />
-                        </button>
-                        <span className="px-2.5 text-[10px] font-mono text-white font-bold">{item.quantity}</span>
-                        <button 
-                          onClick={() => onUpdateQty(idx, item.quantity + 1)}
-                          className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
-                        >
-                          <Plus size={10} />
-                        </button>
-                      </div>
-
-                      {/* Remove trash */}
-                      <button 
-                        onClick={() => onRemoveItem(idx)}
-                        className="text-white/40 hover:text-red-400 transition-colors p-1"
-                        title="Remove piece"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* VIP Coupon Redeemer */}
-            <div className="border-t border-white/5 pt-4">
-              <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1.5">
-                Apply VIP Concierge Code
-              </label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="E.G. STYLEGOLD"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold uppercase tracking-widest flex-1 placeholder-white/20"
-                />
-                <button
-                  onClick={handleApplyCoupon}
-                  className="bg-luxury-charcoal hover:bg-luxury-black border border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white font-display text-[10px] uppercase font-semibold tracking-widest px-4 rounded transition-all"
-                >
-                  Apply
-                </button>
-              </div>
-              {couponError && <p className="text-[9.5px] font-mono text-red-400 mt-1">{couponError}</p>}
-              {couponSuccess && <p className="text-[9.5://] font-mono text-green-400 mt-1 flex items-center gap-1">
-                <Check size={11} /> {couponSuccess}
-              </p>}
-            </div>
-
-            {/* Checkout Delivery details form */}
-            <form onSubmit={handleFormSubmit} className="border-t border-white/5 pt-4 space-y-3.5">
-              <h4 className="font-serif text-sm text-white/90 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full"></span>
-                Delivery Credentials
-              </h4>
-
-              {/* Name */}
-              <div>
-                <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                  Recipient Full Name <span className="text-luxury-gold">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Enter your name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/20"
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                  Contact Mobile Number <span className="text-luxury-gold">*</span>
-                </label>
-                <input 
-                  type="tel" 
-                  required
-                  placeholder="e.g. +88017XXXXXXXX"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/20"
-                />
-              </div>
-
-              {/* City Dropdown */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                    Shipping City <span className="text-luxury-gold">*</span>
-                  </label>
-                  <select
-                    value={customerCity}
-                    onChange={(e) => setCustomerCity(e.target.value)}
-                    className="w-full bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+        ) : !showCheckoutForm ? (
+          /* Step 1: Cart Items Selection & Coupon Verification */
+          <div className="flex-1 flex flex-col justify-between overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {/* List Selection items - Fully visible without nested scroll boundaries */}
+              <div className="space-y-3">
+                {cartItems.map((item, idx) => (
+                  <div 
+                    key={`${item.product.id}-${item.selectedSize}`} 
+                    className="flex gap-3 bg-luxury-charcoal/30 border border-white/5 p-3 rounded hover:border-luxury-gold/20 transition-all animate-fade-in"
                   >
-                    {CITIES_LIST.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                </div>
+                    <img 
+                      src={item.product.imageUrl} 
+                      alt={item.product.title} 
+                      referrerPolicy="no-referrer"
+                      className="w-16 h-16 object-cover rounded border border-white/10 flex-shrink-0"
+                    />
+                    
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start gap-1">
+                          <h4 className="font-serif text-[13px] text-white font-medium line-clamp-1">{item.product.title}</h4>
+                          <span className="font-serif text-xs font-semibold text-luxury-gold">
+                            {formatPrice(item.product.price * item.quantity)}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 text-[9px] text-white/40 font-mono mt-0.5">
+                          <span>SIZE: {item.selectedSize}</span>
+                          <span>•</span>
+                          <span>{item.product.code}</span>
+                        </div>
+                      </div>
 
-                <div>
-                  <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                    Delivery Courier Type
+                      <div className="flex items-center justify-between mt-2">
+                        {/* Qty edit buttons */}
+                        <div className="flex items-center bg-luxury-black border border-white/10 rounded overflow-hidden">
+                          <button 
+                            onClick={() => onUpdateQty(idx, item.quantity - 1)}
+                            className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
+                          >
+                            <Minus size={10} />
+                          </button>
+                          <span className="px-2.5 text-[10px] font-mono text-white font-bold">{item.quantity}</span>
+                          <button 
+                            onClick={() => onUpdateQty(idx, item.quantity + 1)}
+                            className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
+                          >
+                            <Plus size={10} />
+                          </button>
+                        </div>
+
+                        {/* Remove trash */}
+                        <button 
+                          onClick={() => onRemoveItem(idx)}
+                          className="text-white/40 hover:text-red-400 transition-colors p-1"
+                          title="Remove piece"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* VIP Coupon Redeemer - High Premium Input Card */}
+              <div className="border-t border-white/[0.06] pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] uppercase font-mono tracking-[0.2em] text-[#d4af37] font-black flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
+                    VIP ACCREDITED CONCIERGE CODE
                   </label>
-                  <div className="w-full bg-luxury-black/80 border border-white/5 text-[10px] p-2.5 rounded font-mono text-white/60">
-                    VIP HANDPICKED
+                  <span className="text-[8px] uppercase font-mono text-white/30 tracking-widest bg-white/[0.04] px-1.5 py-0.5 rounded">
+                    PROMOTION SECURED
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="relative group flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/20 group-focus-within:text-[#ffd700] transition-colors duration-300">
+                      <Tag size={13} strokeWidth={2.5} />
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="ENTER VIP INVITATION CODE"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="w-full bg-black/40 text-white font-mono text-[11px] border border-white/10 hover:border-[#d4af37]/35 focus:border-[#d4af37] rounded-xl py-3.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-[#d4af37]/30 transition-all duration-300 placeholder-white/25 uppercase tracking-[0.14em]"
+                    />
                   </div>
-                </div>
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                  Complete Address <span className="text-luxury-gold">*</span>
-                </label>
-                <textarea 
-                  required
-                  rows={2}
-                  placeholder="Apartment, Street Name, Block No."
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  className="w-full bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/20 resize-none"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-[9.5px] uppercase font-mono tracking-widest text-white/50 mb-1">
-                  Bespoke Notes (Optional)
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="E.g. Call before delivery, morning hours"
-                  value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
-                  className="w-full bg-luxury-charcoal text-white font-sans text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/20"
-                />
-              </div>
-
-              {/* Secure Cash On Delivery Option badge strictly allowed */}
-              <div className="bg-luxury-gold/[0.03] border border-luxury-gold/25 rounded p-3 text-xs flex items-start gap-2.5">
-                <ShieldCheck size={16} className="text-luxury-gold flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-display font-bold uppercase tracking-wider text-luxury-gold text-[10.5px]">
-                    SECURE CASH ON DELIVERY GUARANTEED
-                  </p>
-                  <p className="text-[10px] text-white/60 font-sans leading-relaxed mt-0.5">
-                    Pay upon receipt of collection. We verify every package personally with VIP tracking numbers. No online gateway risks.
-                  </p>
-                </div>
-              </div>
-
-              {errorMessage && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2.5 rounded text-[11px] font-mono">
-                  {errorMessage}
-                </div>
-              )}
-
-              {/* Bottom calculations & Checkout submission */}
-              <div className="border-t border-white/5 pt-4 space-y-2 font-display">
-                <div className="flex justify-between text-xs text-white/60">
-                  <span>Subtotal Value</span>
-                  <span>{formatPrice(itemsTotal)}</span>
-                </div>
-                {appliedCoupon && (
-                  <div className="flex justify-between text-xs text-green-400">
-                    <span>VIP Code Discount</span>
-                    <span>-{formatPrice(discountAmount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs text-white/60">
-                  <span>VIP Handpicked Delivery ({customerCity})</span>
-                  <span>{formatPrice(deliveryCharge)}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCoupon()}
+                    className="bg-gradient-to-r from-[#d4af37] to-[#aa8323] hover:from-[#ffd700] hover:to-[#d4af37] text-black font-display text-[10.5px] uppercase font-black tracking-widest px-6 rounded-xl transition-all duration-300 shadow-[0_4px_12px_rgba(212,175,55,0.15)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                  >
+                    Redeem
+                  </button>
                 </div>
                 
-                <div className="flex justify-between text-sm text-white font-bold border-t border-white/5 pt-2 mb-4">
-                  <span className="uppercase tracking-widest">Grand Total</span>
-                  <span className="text-luxury-gold text-base">{formatPrice(grandTotal)}</span>
-                </div>
+                {/* Active available coupons list for clicking */}
+                {activeCoupons && activeCoupons.filter(c => c.active).length > 0 && (
+                  <div className="bg-[#0f0a17]/80 border border-[#d4af37]/20 p-4 rounded-xl space-y-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        SELECTABLE MEMBERSHIP PRIVILEGES
+                      </span>
+                      <span className="text-[8px] text-white/40 font-mono">TAP TO ACTIVATE</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-0.5">
+                      {activeCoupons.filter(c => c.active).map(c => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => handleApplyCoupon(c.code)}
+                          className={`border rounded-xl px-3 py-2 text-[10.5px] font-mono tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
+                            appliedCoupon?.code === c.code 
+                              ? 'bg-emerald-500/10 border-emerald-400 text-emerald-400 font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.25)] scale-[1.02]' 
+                              : 'bg-white/[0.02] hover:bg-[#d4af37]/10 border-white/5 hover:border-[#d4af37]/40 text-[#d4af37] hover:text-[#ffd700] hover:scale-[1.01]'
+                          }`}
+                        >
+                          <span className="font-sans font-black uppercase text-xs">🎟️ {c.code}</span>
+                          <span className={`w-1 h-3 bg-white/10 ${appliedCoupon?.code === c.code ? 'bg-emerald-500/30' : ''}`}></span>
+                          <span className={`${appliedCoupon?.code === c.code ? 'text-emerald-300 font-black' : 'text-white/55'} font-bold`}>
+                            {c.type === 'PERCENTAGE' ? `-${c.value}% OFF` : `-৳${c.value}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                <button
-                  type="submit"
-                  disabled={isCheckingOut}
-                  className="w-full bg-gradient-to-r from-luxury-gold-dark to-luxury-gold hover:brightness-110 text-luxury-black font-display font-extrabold uppercase text-xs tracking-[0.2em] py-3.5 rounded shadow-xl transition-all disabled:opacity-50 mt-2"
-                >
-                  {isCheckingOut ? "PROCESSING ARCHIFS..." : "CONFIRM LUXURY ORDER"}
-                </button>
+                {couponError && (
+                  <p className="text-[9.5px] font-mono text-red-400 mt-1.5 pl-1 animate-pulse flex items-center gap-1">
+                    <span>⚠️</span> {couponError}
+                  </p>
+                )}
+                {couponSuccess && (
+                  <p className="text-[10px] font-mono text-green-400 mt-1.5 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl animate-fade-in font-extrabold uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <Check size={12} className="text-emerald-400" strokeWidth={3} /> {couponSuccess}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Step 1 Footer Action Board */}
+            <div className="bg-[#0b0b0b] border-t border-white/5 p-5 space-y-4">
+              <div className="space-y-2 font-display">
+                <div className="flex justify-between text-xs text-zinc-400">
+                  <span>Subtotal Segment</span>
+                  <span className="font-mono">{formatPrice(itemsTotal)}</span>
+                </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-xs text-green-400 font-semibold animate-fade-in">
+                    <span>🎟️ VIP Discount Applied</span>
+                    <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm text-white font-black border-t border-white/5 pt-3">
+                  <span className="uppercase tracking-[0.14em]">Items Total</span>
+                  <span className="text-luxury-gold text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
+                </div>
               </div>
 
-            </form>
+              <button
+                type="button"
+                onClick={() => setShowCheckoutForm(true)}
+                className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] hover:brightness-110 text-black font-display font-black uppercase text-xs tracking-[0.22em] py-4 rounded-xl shadow-[0_5px_25px_rgba(212,175,55,0.25)] hover:shadow-[0_8px_35px_rgba(212,175,55,0.45)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 group relative overflow-hidden luxury-reflection"
+              >
+                <span>PROCEED TO SECURE CHECKOUT</span>
+                <ArrowRight size={14} className="text-black stroke-[2.5] group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Step 2: The Secure Order Delivery Form */
+          <div className="flex-1 flex flex-col justify-between overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              
+              {/* Back navigation CTA */}
+              <button 
+                type="button"
+                onClick={() => setShowCheckoutForm(false)}
+                className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#d4af37] hover:text-white transition-colors duration-200 cursor-pointer group mb-1"
+              >
+                <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+                <span>Return to Shopping Bag</span>
+              </button>
+
+              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                  <h4 className="font-serif text-[13px] text-white/95 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-ping"></span>
+                    Delivery Credentials
+                  </h4>
+                  <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
+                    VIP Secure Dispatch
+                  </span>
+                </div>
+
+                {/* Recipient Full Name */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
+                    Recipient Full Name <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <User size={14} />
+                    </div>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Enter recipient's complete name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                    />
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                      FULL NAME
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Mobile Number */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
+                    Contact Mobile Number <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <Phone size={14} />
+                    </div>
+                    <input 
+                      type="tel" 
+                      required
+                      placeholder="e.g. +88017XXXXXXXX"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                    />
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                      TELEPHONE
+                    </div>
+                  </div>
+                </div>
+
+                {/* City Dropdown & Courier Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Shipping City select */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
+                      Shipping City <span className="text-white/40 font-normal">• REQUIRED</span>
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                        <MapPin size={14} />
+                      </div>
+                      <select
+                        value={customerCity}
+                        onChange={(e) => setCustomerCity(e.target.value)}
+                        className="w-full bg-[#100a16]/55 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-10 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 appearance-none cursor-pointer"
+                      >
+                        {CITIES_LIST.map(city => (
+                          <option key={city} value={city} className="bg-[#0b0611] text-white font-sans">{city}</option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40 group-focus-within:text-luxury-gold transition-colors duration-300">
+                        <ChevronDown size={14} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Handpicked Delivery Info Badge */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
+                      Delivery Courier Type
+                    </label>
+                    <div className="bg-[#1a0a25]/20 border border-luxury-gold/20 text-[#ffd700] text-[10.5px] px-4 py-3 rounded-xl font-mono flex items-center justify-between shadow-inner h-[42px] mt-0.5">
+                      <span className="font-semibold tracking-wide justify-self-center">VIP HANDPICKED</span>
+                      <span className="text-[8px] bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.5 rounded font-black tracking-widest">SECURE</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Complete Address Textarea */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
+                    Complete Address <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute top-3.5 left-0 pl-3.5 flex items-start pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <MapPin size={14} />
+                    </div>
+                    <textarea 
+                      required
+                      placeholder="Provide apartment, floor, building details and street bounds"
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25 resize-none h-16"
+                    />
+                    <div className="absolute top-3 right-3 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                      LOCATOR
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bespoke Optional Notes */}
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
+                    Bespoke Notes <span className="text-zinc-500 font-normal">• OPTIONAL DISCRETION</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <MessageSquare size={14} className="scale-95" />
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="E.g. Place inside the black parcel drop box"
+                      value={customerNotes}
+                      onChange={(e) => setCustomerNotes(e.target.value)}
+                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                    />
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors pointer-events-none">
+                      MEMORANDUM
+                    </div>
+                  </div>
+                </div>
+
+                {/* VIP Coupon Redeemer - High Premium Input Card inside Step 2 Checkout */}
+                <div className="bg-black/50 border border-white/[0.04] p-4 rounded-2xl space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[9.5px] uppercase font-mono tracking-[0.2em] text-[#d4af37] font-black flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37] animate-pulse"></span>
+                      VIP ACCREDITED CONCIERGE CODE
+                    </label>
+                    <span className="text-[7.5px] uppercase font-mono text-white/20 tracking-wider bg-white/[0.03] px-1.5 py-0.5 rounded">
+                      STEP 2 CONCIERGE
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="relative group flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/20 group-focus-within:text-[#ffd700] transition-colors duration-300">
+                        <Tag size={12} strokeWidth={2.5} />
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="ENTER COUPON CODE"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        className="w-full bg-[#0a0510] text-white font-mono text-[10px] border border-white/5 hover:border-[#d4af37]/35 focus:border-[#d4af37] rounded-xl py-2.5 pl-9 pr-3 focus:outline-none focus:ring-1 focus:ring-[#d4af37]/20 transition-all duration-300 placeholder-white/20 uppercase tracking-[0.14em]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyCoupon()}
+                      className="bg-gradient-to-r from-zinc-800 to-black hover:from-[#d4af37] hover:to-[#ffd700] hover:text-black text-[#d4af37] border border-[#d4af37]/30 hover:border-transparent font-display text-[9.5px] uppercase font-black tracking-widest px-4 rounded-xl transition-all duration-300 transform active:translate-y-0 cursor-pointer"
+                    >
+                      Redeem
+                    </button>
+                  </div>
+
+                  {/* Active available coupons list in Step 2 */}
+                  {activeCoupons && activeCoupons.filter(c => c.active).length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[8.5px] uppercase font-mono text-white/40 tracking-wider block font-bold">
+                        Available VIP Privileges:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {activeCoupons.filter(c => c.active).map(c => (
+                          <button
+                            key={'step2-' + c.code}
+                            type="button"
+                            onClick={() => handleApplyCoupon(c.code)}
+                            className={`border rounded-lg px-2 py-1 text-[9.5px] font-mono tracking-wider flex items-center gap-1.5 transition-all duration-300 cursor-pointer ${
+                              appliedCoupon?.code === c.code 
+                                ? 'bg-emerald-500/10 border-emerald-400 text-emerald-400 font-extrabold scale-[1.01]' 
+                                : 'bg-white/[0.01] hover:bg-[#d4af37]/10 border-white/5 hover:border-[#d4af37]/30 text-[#d4af37] hover:text-[#ffd700]'
+                            }`}
+                          >
+                            <span>🎫 {c.code}</span>
+                            <span className="opacity-40">|</span>
+                            <span className={`${appliedCoupon?.code === c.code ? 'text-emerald-300' : 'text-white/40'}`}>
+                              {c.type === 'PERCENTAGE' ? `-${c.value}%` : `-৳${c.value}`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <p className="text-[9px] font-mono text-red-400 pl-1 animate-pulse flex items-center gap-1">
+                      <span>⚠️</span> {couponError}
+                    </p>
+                  )}
+                  {couponSuccess && (
+                    <p className="text-[9px] font-mono text-green-400 flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg animate-fade-in font-extrabold uppercase tracking-wider">
+                      <Check size={10} className="text-emerald-400" strokeWidth={3} /> {couponSuccess}
+                    </p>
+                  )}
+                </div>
+
+                {/* Secure Cash On Delivery Card Badge with sweeping shine */}
+                <div className="bg-gradient-to-r from-luxury-gold/5 to-[#160b24]/20 border border-luxury-gold/25 rounded-xl p-4 space-y-1 relative overflow-hidden group/card shadow-lg">
+                  <div className="absolute -right-6 -bottom-6 text-luxury-gold/10 pointer-events-none group-hover/card:scale-110 transition-transform duration-500">
+                    <ShieldCheck size={72} />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/card:translate-x-full transition-transform duration-[1500ms] ease-out pointer-events-none"></div>
+
+                  <div className="flex items-center gap-2.5 text-luxury-gold">
+                    <ShieldCheck size={18} className="flex-shrink-0 animate-pulse text-luxury-gold" />
+                    <p className="font-display font-black uppercase tracking-widest text-[11px] leading-tight break-words pr-4">
+                      {settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"}
+                    </p>
+                  </div>
+                  <p className="text-[10.5px] text-zinc-300 font-sans leading-relaxed pl-7 break-words whitespace-pre-wrap">
+                    {settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."}
+                  </p>
+                </div>
+
+                {errorMessage && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-[11px] font-mono animate-pulse">
+                    ⚠️ SYSTEM ALARM: {errorMessage}
+                  </div>
+                )}
+
+                {/* Calculation Matrix and Checkout Core trigger */}
+                <div className="border-t border-white/5 pt-4 space-y-2.5 font-display">
+                  <div className="flex justify-between text-[11.5px] text-zinc-400">
+                    <span>Subtotal Value</span>
+                    <span className="font-mono">{formatPrice(itemsTotal)}</span>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-[11.5px] text-green-400 font-semibold animate-fade-in">
+                      <span className="flex items-center gap-1">🎟️ VIP Code ({appliedCoupon.code})</span>
+                      <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[11.5px] text-zinc-400">
+                    <span>VIP Handpicked delivery ({customerCity})</span>
+                    <span className="font-mono">{formatPrice(deliveryCharge)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm text-white font-extrabold border-t border-white/10 pt-3.5 mb-4">
+                    <span className="uppercase tracking-[0.14em]">Grand Invoice Total</span>
+                    <span className="text-luxury-gold text-base font-mono">{formatPrice(grandTotal)}</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isCheckingOut}
+                    className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] hover:brightness-110 text-black font-display font-black uppercase text-xs tracking-[0.25em] py-4.5 rounded-xl shadow-[0_5px_25px_rgba(212,175,55,0.2)] hover:shadow-[0_8px_35px_rgba(212,175,55,0.5)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden luxury-reflection"
+                  >
+                    {isCheckingOut ? (
+                      <>
+                        <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin"></span>
+                        SECURELY CONFIRMING VIP ALLOTMENT...
+                      </>
+                    ) : (
+                      "⚜️ CONFIRM OFFICIAL LUXURY ORDER"
+                    )}
+                  </button>
+                </div>
+              </form>
+
+            </div>
           </div>
         )}
 

@@ -147,7 +147,25 @@ let db = {
   campaigns: initialCampaigns,
   chats: [] as ChatRoom[],
   visits: 125,
-  liveViews: 3
+  liveViews: 3,
+  countedSessions: [] as string[],
+  settings: {
+    whatsappNumber: "8801755104443",
+    adminEmail: "risatadnan4@gmail.com",
+    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+    logoUrl: "",
+    lotteryDiscountPercentage: 15,
+    paymentBadgeTitle: "SECURE CASH ON DELIVERY GUARANTEED",
+    paymentBadgeDescription: "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
+    lotteryPrizes: [
+      { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
+      { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
+      { text: "৳20 OFF (RISATVIP)", value: "RISATVIP", type: "coupon" },
+      { text: "Limited Edition SX Patch", value: "SX_PATCH", type: "merch" },
+      { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
+      { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
+    ]
+  }
 };
 
 // Load database if exists
@@ -156,6 +174,35 @@ if (fs.existsSync(DB_FILE)) {
     const rawData = fs.readFileSync(DB_FILE, "utf-8");
     const parsedData = JSON.parse(rawData);
     db = { ...db, ...parsedData };
+    db.countedSessions = db.countedSessions || [];
+    
+    // Always migrate old default script URLs to the newly provided script URL
+    const oldDefaultUrls = [
+      "https://script.google.com/macros/s/AKfycbwlkTgUkW1XTScs7dIIym1mNpa6MVgY9JO9c0lACN7Jaj8zi6TWYs1LgNDp4V6NoDPa/exec",
+      "https://script.google.com/macros/s/AKfycbxyp9-vg7NU4Gvi7_lEd2G1MQr_QwkbmEBT3QZhs9EsbheCr0wwYy2aLydw-HOQqjoY/exec"
+    ];
+    const currentScriptUrl = db.settings?.appsScriptUrl || oldDefaultUrls[0];
+    
+    db.settings = {
+      whatsappNumber: db.settings?.whatsappNumber || "8801755104443",
+      adminEmail: db.settings?.adminEmail || "risatadnan4@gmail.com",
+      appsScriptUrl: oldDefaultUrls.includes(currentScriptUrl)
+        ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
+        : currentScriptUrl,
+      logoUrl: db.settings?.logoUrl || "",
+      lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
+      paymentBadgeTitle: db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED",
+      paymentBadgeDescription: db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
+      lotteryPrizes: db.settings?.lotteryPrizes || [
+        { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
+        { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
+        { text: "৳20 OFF (RISATVIP)", value: "RISATVIP", type: "coupon" },
+        { text: "Limited Edition SX Patch", value: "SX_PATCH", type: "merch" },
+        { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
+        { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
+      ]
+    };
+    saveDB();
   } catch (err) {
     console.error("Error parsing DB file, using default structure", err);
   }
@@ -423,12 +470,29 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // Enable public downloads hosting
 app.use("/uploads", express.static(UPLOADS_DIR));
 
-// Simple visitor tracker logic
+// Accurate in-memory active visitor sessions mapping sessionId to last online timestamp
+const activeSessions = new Map<string, number>();
+
+// Clean up stale sessions on an interval (every 10 seconds)
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, lastPing] of activeSessions.entries()) {
+    // If no heartbeat received in the last 25 seconds, remove session
+    if (now - lastPing > 25000) {
+      activeSessions.delete(id);
+    }
+  }
+  const currentCount = Math.max(1, activeSessions.size);
+  if (db.liveViews !== currentCount) {
+    db.liveViews = currentCount;
+  }
+}, 10000);
+
+// Basic non-randomized initial handler for direct web loads
 app.use((req, res, next) => {
   if (req.url === "/" || req.url === "/index.html") {
-    db.visits += 1;
-    db.liveViews = Math.max(1, Math.floor(Math.random() * 5) + 1); // Mock live current views
-    saveDB();
+    // Rely on high-accuracy client-side /api/visitor-ping for precise unique visitor checking
+    db.liveViews = Math.max(1, activeSessions.size);
   }
   next();
 });
@@ -438,25 +502,195 @@ const ADMIN_EMAIL = "risatadnan4@gmail.com";
 
 // API Endpoints:
 
+// Unified endpoint for accurate visitor tracking & live presence registration
+app.get("/api/visitor-ping", (req, res) => {
+  try {
+    const visitorId = (req.query.visitorId as string) || "";
+    const sessionId = (req.query.sessionId as string) || "";
+
+    const now = Date.now();
+
+    // Register active heartbeat presence
+    if (sessionId) {
+      activeSessions.set(sessionId, now);
+    } else if (visitorId) {
+      activeSessions.set(visitorId, now);
+    }
+
+    // Handle unique visitor views counting accuracy
+    if (visitorId) {
+      if (!db.countedSessions) {
+        db.countedSessions = [];
+      }
+
+      if (!db.countedSessions.includes(visitorId)) {
+        db.countedSessions.push(visitorId);
+        db.visits = db.countedSessions.length;
+        saveDB();
+      }
+    }
+
+    // Recalculate live count immediately
+    const liveCount = Math.max(1, activeSessions.size);
+    db.liveViews = liveCount;
+
+    res.json({
+      success: true,
+      visits: Number(db.visits || 0),
+      liveViews: liveCount
+    });
+  } catch (err: any) {
+    res.json({
+      success: false,
+      visits: Number(db.visits || 125),
+      liveViews: Math.max(1, activeSessions.size)
+    });
+  }
+});
+
 // Analytics Metrics
 app.get("/api/analytics", (req, res) => {
-  const totalRevenue = db.orders
-    .filter(o => o.status !== "CANCELLED")
-    .reduce((val, order) => val + order.totalAmount, 0);
+  try {
+    const ordersList = Array.isArray(db.orders) ? db.orders : [];
+    const productsList = Array.isArray(db.products) ? db.products : [];
 
-  const totalOrders = db.orders.length;
-  const pendingOrders = db.orders.filter(o => o.status === "PENDING").length;
-  const lowStockProducts = db.products.filter(p => p.stock < 15).length;
+    const totalRevenue = ordersList
+      .filter(o => o && o.status !== "CANCELLED")
+      .reduce((val, order) => val + Number(order.totalAmount || 0), 0);
 
-  res.json({
-    visits: db.visits,
-    liveViews: db.liveViews,
-    totalRevenue,
-    totalOrders,
-    pendingOrders,
-    lowStockStockCount: lowStockProducts,
-    recentOrdersMax: db.orders.slice(-5)
+    const totalOrders = ordersList.length;
+    const pendingOrders = ordersList.filter(o => o && o.status === "PENDING").length;
+    const lowStockProducts = productsList.filter(p => p && Number(p.stock || 0) < 15).length;
+
+    res.json({
+      visits: Number(db.visits || 0),
+      liveViews: Number(db.liveViews || 1),
+      totalRevenue,
+      totalOrders,
+      pendingOrders,
+      lowStockStockCount: lowStockProducts,
+      recentOrdersMax: ordersList.slice(-5)
+    });
+  } catch (error: any) {
+    console.error("❌ Error loading analytics in route handler:", error);
+    res.status(500).json({ 
+      error: "Error reading metrics", 
+      message: error.message,
+      visits: Number(db.visits || 0),
+      liveViews: Number(db.liveViews || 1),
+      totalRevenue: 0,
+      totalOrders: 0,
+      pendingOrders: 0,
+      lowStockStockCount: 0,
+      recentOrdersMax: []
+    });
+  }
+});
+
+// App Settings (Dynamic WhatsApp etc.)
+app.get("/api/settings", (req, res) => {
+  res.json(db.settings || { 
+    whatsappNumber: "8801755104443", 
+    adminEmail: "risatadnan4@gmail.com",
+    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+    logoUrl: "",
+    lotteryDiscountPercentage: 15,
+    lotteryPrizes: [
+      { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
+      { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
+      { text: "৳20 OFF (RISATVIP)", value: "RISATVIP", type: "coupon" },
+      { text: "Limited Edition SX Patch", value: "SX_PATCH", type: "merch" },
+      { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
+      { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
+    ]
   });
+});
+
+// Save client discount request and send dynamic email dispatch
+app.post("/api/discount-request", async (req, res) => {
+  const { whatsappNumber } = req.body;
+  if (!whatsappNumber) {
+    return res.status(400).json({ message: "WhatsApp number is required." });
+  }
+
+  try {
+    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+    const targetEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
+    const dateStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" });
+
+    const payload = {
+      email: targetEmail,
+      recipient: targetEmail,
+      recipientEmail: targetEmail,
+      targetEmail: targetEmail,
+      target_email: targetEmail,
+      adminEmail: targetEmail,
+      storeEmail: targetEmail,
+      toEmail: targetEmail,
+      notifyEmail: targetEmail,
+      name: "Customer Requested Discount Voucher",
+      phone: whatsappNumber,
+      location: "StyleX Discount Request Form",
+      items: `A customer has filled in their WhatsApp number (${whatsappNumber}) requesting a discount voucher coupon code. Complete verification and follow up with them on WhatsApp.`,
+      total: "N/A",
+      payment: "Campaign Voucher Lead",
+      trxid: `STX-DSC-${Math.floor(100000 + Math.random() * 900000)}`,
+      date: dateStr
+    };
+
+    fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(r => console.log(`✉️ Discount request Apps Script invoked! Status: ${r.status}`))
+    .catch(ex => console.error(`⚠️ Discount prompt email dispatch failure:`, ex.message));
+
+    return res.json({ success: true, message: "Discount request successfully submitted!" });
+  } catch (error: any) {
+    console.error("⚠️ Discount Email API trigger failed:", error.message);
+    return res.status(500).json({ message: "Failed to dispatch email request. Please try again." });
+  }
+});
+
+app.post("/api/settings", async (req, res) => {
+  try {
+    const { whatsappNumber, adminEmail, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, paymentBadgeTitle, paymentBadgeDescription } = req.body;
+    
+    db.settings = {
+      whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
+      adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
+      appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
+      logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || ""),
+      lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
+      paymentBadgeTitle: paymentBadgeTitle !== undefined ? paymentBadgeTitle.trim() : (db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"),
+      paymentBadgeDescription: paymentBadgeDescription !== undefined ? paymentBadgeDescription.trim() : (db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."),
+      lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || [])
+    };
+    saveDB();
+
+    // Mirror to Supabase 'settings' table if table matches
+    try {
+      if (whatsappNumber) {
+        await supabase.from("settings").upsert({ key: "whatsappNumber", value: whatsappNumber.trim() });
+      }
+      if (adminEmail) {
+        await supabase.from("settings").upsert({ key: "adminEmail", value: adminEmail.trim() });
+      }
+      if (appsScriptUrl) {
+        await supabase.from("settings").upsert({ key: "appsScriptUrl", value: appsScriptUrl.trim() });
+      }
+      if (logoUrl !== undefined) {
+        await supabase.from("settings").upsert({ key: "logoUrl", value: logoUrl.trim() });
+      }
+    } catch (dbErr) {
+      // Safe to ignore if table does not exist
+    }
+
+    return res.json(db.settings);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Products Base API
@@ -516,11 +750,22 @@ app.post("/api/products", async (req, res) => {
   if (!newProduct.code) {
     newProduct.code = `XP-${Math.floor(100 + Math.random() * 900)}`;
   }
+  // Ensure deliveryPrice has a numeric fallback if not provided
+  newProduct.deliveryPrice = newProduct.deliveryPrice !== undefined ? Number(newProduct.deliveryPrice) : 100;
+  newProduct.deliveryPriceDhaka = newProduct.deliveryPriceDhaka !== undefined ? Number(newProduct.deliveryPriceDhaka) : 100;
+  newProduct.deliveryPriceChattogram = newProduct.deliveryPriceChattogram !== undefined ? Number(newProduct.deliveryPriceChattogram) : 150;
+  newProduct.deliveryPriceRajshahi = newProduct.deliveryPriceRajshahi !== undefined ? Number(newProduct.deliveryPriceRajshahi) : 150;
+  newProduct.deliveryPriceKhulna = newProduct.deliveryPriceKhulna !== undefined ? Number(newProduct.deliveryPriceKhulna) : 150;
+  newProduct.deliveryPriceBarishal = newProduct.deliveryPriceBarishal !== undefined ? Number(newProduct.deliveryPriceBarishal) : 150;
+  newProduct.deliveryPriceSylhet = newProduct.deliveryPriceSylhet !== undefined ? Number(newProduct.deliveryPriceSylhet) : 150;
+  newProduct.deliveryPriceRangpur = newProduct.deliveryPriceRangpur !== undefined ? Number(newProduct.deliveryPriceRangpur) : 150;
+  newProduct.deliveryPriceMymensingh = newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150;
+  
   db.products.push(newProduct);
   saveDB();
 
   try {
-    const payload = {
+    const payload: any = {
       id: newProduct.id,
       code: newProduct.code,
       title: newProduct.title,
@@ -533,9 +778,37 @@ app.post("/api/products", async (req, res) => {
       dimensions: newProduct.dimensions,
       whyBuy: newProduct.whyBuy,
       trending: !!newProduct.trending,
-      featured: !!newProduct.featured
+      featured: !!newProduct.featured,
+      deliveryPrice: Number(newProduct.deliveryPrice || 100),
+      deliveryPriceDhaka: Number(newProduct.deliveryPriceDhaka || 100),
+      deliveryPriceChattogram: Number(newProduct.deliveryPriceChattogram || 150),
+      deliveryPriceRajshahi: Number(newProduct.deliveryPriceRajshahi || 150),
+      deliveryPriceKhulna: Number(newProduct.deliveryPriceKhulna || 150),
+      deliveryPriceBarishal: Number(newProduct.deliveryPriceBarishal || 150),
+      deliveryPriceSylhet: Number(newProduct.deliveryPriceSylhet || 150),
+      deliveryPriceRangpur: Number(newProduct.deliveryPriceRangpur || 150),
+      deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150)
     };
-    const { error: upsertError } = await supabase.from("products").upsert(payload);
+    
+    let { error: upsertError } = await supabase.from("products").upsert(payload);
+    
+    // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
+    if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
+      console.warn("⚠️ Custom delivery Price columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
+      delete payload.deliveryPrice;
+      delete payload.deliveryPriceDhaka;
+      delete payload.deliveryPriceOutside;
+      delete payload.deliveryPriceChattogram;
+      delete payload.deliveryPriceRajshahi;
+      delete payload.deliveryPriceKhulna;
+      delete payload.deliveryPriceBarishal;
+      delete payload.deliveryPriceSylhet;
+      delete payload.deliveryPriceRangpur;
+      delete payload.deliveryPriceMymensingh;
+      const retryResult = await supabase.from("products").upsert(payload);
+      upsertError = retryResult.error;
+    }
+
     if (upsertError) {
       console.error("⚠️ Failed to mirror product creation to Supabase: ", upsertError.message);
       if (process.env.VERCEL) {
@@ -557,12 +830,40 @@ app.post("/api/products", async (req, res) => {
 app.put("/api/products/:id", async (req, res) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx !== -1) {
-    db.products[idx] = { ...db.products[idx], ...req.body };
+    const updatedBody = { ...req.body };
+    if (updatedBody.deliveryPrice !== undefined) {
+      updatedBody.deliveryPrice = Number(updatedBody.deliveryPrice);
+    }
+    if (updatedBody.deliveryPriceDhaka !== undefined) {
+      updatedBody.deliveryPriceDhaka = Number(updatedBody.deliveryPriceDhaka);
+    }
+    if (updatedBody.deliveryPriceChattogram !== undefined) {
+      updatedBody.deliveryPriceChattogram = Number(updatedBody.deliveryPriceChattogram);
+    }
+    if (updatedBody.deliveryPriceRajshahi !== undefined) {
+      updatedBody.deliveryPriceRajshahi = Number(updatedBody.deliveryPriceRajshahi);
+    }
+    if (updatedBody.deliveryPriceKhulna !== undefined) {
+      updatedBody.deliveryPriceKhulna = Number(updatedBody.deliveryPriceKhulna);
+    }
+    if (updatedBody.deliveryPriceBarishal !== undefined) {
+      updatedBody.deliveryPriceBarishal = Number(updatedBody.deliveryPriceBarishal);
+    }
+    if (updatedBody.deliveryPriceSylhet !== undefined) {
+      updatedBody.deliveryPriceSylhet = Number(updatedBody.deliveryPriceSylhet);
+    }
+    if (updatedBody.deliveryPriceRangpur !== undefined) {
+      updatedBody.deliveryPriceRangpur = Number(updatedBody.deliveryPriceRangpur);
+    }
+    if (updatedBody.deliveryPriceMymensingh !== undefined) {
+      updatedBody.deliveryPriceMymensingh = Number(updatedBody.deliveryPriceMymensingh);
+    }
+    db.products[idx] = { ...db.products[idx], ...updatedBody };
     saveDB();
 
     const target = db.products[idx];
     try {
-      const payload = {
+      const payload: any = {
         id: target.id,
         code: target.code,
         title: target.title,
@@ -575,9 +876,37 @@ app.put("/api/products/:id", async (req, res) => {
         dimensions: target.dimensions,
         whyBuy: target.whyBuy,
         trending: !!target.trending,
-        featured: !!target.featured
+        featured: !!target.featured,
+        deliveryPrice: Number(target.deliveryPrice || 100),
+        deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
+        deliveryPriceChattogram: Number(target.deliveryPriceChattogram || 150),
+        deliveryPriceRajshahi: Number(target.deliveryPriceRajshahi || 150),
+        deliveryPriceKhulna: Number(target.deliveryPriceKhulna || 150),
+        deliveryPriceBarishal: Number(target.deliveryPriceBarishal || 150),
+        deliveryPriceSylhet: Number(target.deliveryPriceSylhet || 150),
+        deliveryPriceRangpur: Number(target.deliveryPriceRangpur || 150),
+        deliveryPriceMymensingh: Number(target.deliveryPriceMymensingh || 150)
       };
-      const { error: upsertError } = await supabase.from("products").upsert(payload);
+
+      let { error: upsertError } = await supabase.from("products").upsert(payload);
+
+      // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
+      if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
+        console.warn("⚠️ Custom delivery Price columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
+        delete payload.deliveryPrice;
+        delete payload.deliveryPriceDhaka;
+        delete payload.deliveryPriceOutside;
+        delete payload.deliveryPriceChattogram;
+        delete payload.deliveryPriceRajshahi;
+        delete payload.deliveryPriceKhulna;
+        delete payload.deliveryPriceBarishal;
+        delete payload.deliveryPriceSylhet;
+        delete payload.deliveryPriceRangpur;
+        delete payload.deliveryPriceMymensingh;
+        const retryResult = await supabase.from("products").upsert(payload);
+        upsertError = retryResult.error;
+      }
+
       if (upsertError) {
         console.error("⚠️ Failed to mirror product update to Supabase: ", upsertError.message);
         if (process.env.VERCEL) {
@@ -797,11 +1126,61 @@ app.post("/api/orders", async (req, res) => {
     console.error("⚠️ Failed to mirror order creation to Supabase: ", err.message);
   }
 
+  // Trigger Google Apps Script email notification hook (Non-blocking async call)
+  try {
+    const subtotal = items.reduce((sum: number, i: any) => sum + (Number(i.price) * Number(i.quantity)), 0);
+    const shipping = Number(totalAmount) - subtotal;
+    const shippingValue = shipping > 0 ? shipping : 0;
+    const shippingText = shippingValue > 0 ? `৳${shippingValue}` : "FREE";
+
+    // Adding an explicit breakdown table to keep email templates extremely transparent and premium
+    const itemsFormatted = items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n") +
+      `\n\n-----------------------------\n💵 Product Subtotal: ৳${subtotal}\n📦 VIP Secure Courier Delivery: ${shippingText}\n👑 Grand Invoice Total: ৳${totalAmount}`;
+
+    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+
+    const targetEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
+
+    fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // Google Apps Script POST requests often prefer text/plain to avoid preflight issues 
+      body: JSON.stringify({
+        email: targetEmail,
+        recipient: targetEmail,
+        recipientEmail: targetEmail,
+        targetEmail: targetEmail,
+        target_email: targetEmail,
+        adminEmail: targetEmail,
+        storeEmail: targetEmail,
+        toEmail: targetEmail,
+        notifyEmail: targetEmail,
+        name: customerName,
+        phone: customerPhone,
+        location: `${customerAddress}, ${customerCity}${customerNotes ? ` (Notes: ${customerNotes})` : ""}`,
+        items: itemsFormatted,
+        total: `৳${totalAmount} (৳${subtotal} Products + ৳${shippingValue} Courier Delivery)`,
+        payment: "Cash on Delivery",
+        trxid: `STX-TRX-${trackingId.split("-")[1]}`,
+        date: new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
+      })
+    })
+    .then(async (r) => {
+      console.log(`✉️ Google Apps Script hook invoked! Status: ${r.status}`);
+    })
+    .catch((err) => {
+      console.error("⚠️ Google Apps Script webhook integration error: ", err.message);
+    });
+  } catch (gasErr: any) {
+    console.error("⚠️ Failed to initiate email notification trigger: ", gasErr.message);
+  }
+
   // Generate beautiful message for WhatsApp Redirect
   const itemsText = items.map((i: any) => `- ${i.title} (${i.selectedSize}) x${i.quantity} @ ৳${i.price}`).join("\n");
   const wsMessage = `👑 *STYLE X LUXURY CONFIRMATION* 👑\n\nHello Style X Team, I would like to confirm my luxury collection:\n\n*Order Tracking ID:* ${trackingId}\n\n*Item Details:*\n${itemsText}\n\n*Total Order Value:* ৳${totalAmount}\n\n*Delivery Credentials:*\nName: ${customerName}\nPhone: ${customerPhone}\nAddress: ${customerAddress}, ${customerCity}\nNotes: ${customerNotes || 'None'}\n\nThank you!`;
   const encodedMsg = encodeURIComponent(wsMessage);
-  const whatsappUrl = `https://wa.me/8801755104443?text=${encodedMsg}`; // Style X Direct Support
+  
+  const activeWhatsappNumber = db.settings?.whatsappNumber || "8801755104443";
+  const whatsappUrl = `https://wa.me/${activeWhatsappNumber}?text=${encodedMsg}`; // Style X Direct Support
 
   res.status(201).json({ order: newOrder, whatsappUrl });
 });

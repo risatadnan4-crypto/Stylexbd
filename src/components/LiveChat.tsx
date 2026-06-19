@@ -99,12 +99,18 @@ export default function LiveChat() {
             setIsOpen(true);
             if (roomId) fetchRoom(roomId);
           }}
-          className="relative w-14 h-14 bg-gradient-to-tr from-luxury-gold-dark to-luxury-gold text-luxury-black rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none border border-luxury-gold cursor-pointer"
+          className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.4),0_0_20px_rgba(154,77,255,0.3),0_0_26px_rgba(59,130,246,0.25),0_0_32px_rgba(34,197,94,0.2)] hover:scale-105 active:scale-95 transition-all outline-none cursor-pointer group"
           title="Digital Concierge Help"
         >
+          {/* Animated running glow border (Gold + Purple + Blue + Green) */}
+          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin" />
+            <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+          </div>
+
           {/* Pulsing visual halo rings */}
-          <span className="absolute inset-0 rounded-full border border-luxury-gold opacity-40 scale-125 animate-ping"></span>
-          <MessageSquare size={22} className="stroke-[2.5]" />
+          <span className="absolute inset-0 rounded-full border border-luxury-gold opacity-40 scale-125 animate-ping pointer-events-none z-0"></span>
+          <MessageSquare className="relative z-10 w-4.5 h-4.5 sm:w-[22px] sm:h-[22px] stroke-[2] text-white group-hover:text-luxury-gold transition-colors" />
         </button>
       )}
 

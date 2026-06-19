@@ -11,6 +11,7 @@ interface ProductDetailModalProps {
   onOrderNow: (p: Product, size: string) => void;
   isWishlisted: boolean;
   onToggleWishlist: (p: Product) => void;
+  whatsappNumber?: string;
 }
 
 export default function ProductDetailModal({
@@ -20,7 +21,8 @@ export default function ProductDetailModal({
   onAddToCart,
   onOrderNow,
   isWishlisted,
-  onToggleWishlist
+  onToggleWishlist,
+  whatsappNumber = "8801755104443"
 }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
 
@@ -28,7 +30,7 @@ export default function ProductDetailModal({
 
   const handleWhatsAppDirect = () => {
     const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I am looking to acquire:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${product.price}\n*Size Choice:* ${selectedSize}\n\nCould you guide me regarding active courier times?\nThank you!`;
-    const finalUrl = `https://wa.me/8801755104443?text=${encodeURIComponent(wsMessage)}`;
+    const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
     window.open(finalUrl, '_blank');
   };
 
@@ -142,9 +144,9 @@ export default function ProductDetailModal({
                     onClose();
                   }}
                   disabled={product.stock === 0}
-                  className="w-full border border-white/10 hover:border-luxury-gold/50 bg-luxury-charcoal hover:bg-luxury-black text-white text-xs font-display font-medium uppercase tracking-[0.1em] py-3.5 rounded flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  className="w-full border border-[#9A4DFF]/40 hover:border-luxury-purple-glowing bg-black/60 hover:bg-black/80 text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.25)] relative overflow-hidden luxury-reflection cursor-pointer"
                 >
-                  <ShoppingBag size={14} className="text-luxury-gold" />
+                  <ShoppingBag size={13} className="text-[#9A4DFF]" />
                   Add to Bag
                 </button>
 
@@ -154,17 +156,18 @@ export default function ProductDetailModal({
                     onClose();
                   }}
                   disabled={product.stock === 0}
-                  className="w-full bg-gradient-to-r from-luxury-gold-dark to-luxury-gold text-luxury-black font-display font-extrabold text-xs uppercase tracking-[0.15em] py-3.5 rounded hover:brightness-110 transition-all disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-[#d4af37] via-[#fdf6d4] to-[#aa7c11] text-[#05010c] hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 disabled:opacity-40 shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.65)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
                 >
-                  Acquire / Order
+                  <span>👑</span>
+                  <span>Buy Now</span>
                 </button>
               </div>
 
               <button
                 onClick={handleWhatsAppDirect}
-                className="w-full border border-green-500/20 hover:border-green-500/50 bg-green-500/5 hover:bg-green-500/15 text-green-400 text-xs font-display font-bold uppercase tracking-[0.15em] py-3.5 rounded flex items-center justify-center gap-2 transition-all"
+                className="w-full border border-green-500/30 hover:border-green-500/60 bg-green-950/15 hover:bg-green-950/40 text-green-400 text-[10.5px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer"
               >
-                <Send size={13} />
+                <Send size={13} className="animate-pulse" />
                 Order via WhatsApp Direct
               </button>
             </div>

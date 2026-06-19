@@ -108,3 +108,17 @@
 .animate-gold-particles {
   animation: gold-particles-float 12s infinite linear;
 }
+
+@keyframes luxury-glow-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.animate-luxury-glow-spin {
+  animation: luxury-glow-spin 4s linear infinite;
+}
+

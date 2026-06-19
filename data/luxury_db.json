@@ -1,0 +1,217 @@
+{
+  "products": [
+    {
+      "id": "3d43a6d9",
+      "code": "XP-001",
+      "title": "Risat Adnan Signature Sneaker",
+      "description": "An avant-garde exploration of minimalist form, custom stitched premium leather with gold foil accents.",
+      "price": 122,
+      "category": "MEN",
+      "stock": 321,
+      "imageUrl": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600&auto=format&fit=crop",
+      "sizes": [
+        "S",
+        "XS",
+        "M",
+        "L"
+      ],
+      "dimensions": "Regular Fit (39 - 44)",
+      "whyBuy": "এটি একটি অত্যন্ত স্টাইলিশ এবং প্রিমিয়াম কোয়ালিটির ফেব্রিক দিয়ে তৈরি এক্সক্লুসিভ পিস, যা আপনার ব্যক্তিত্বকে অনেক ফুটিয়ে তুলবে। এটি অত্যন্ত কমফোর্টেবল এবং প্রিমিয়াম ফিটিং নিশ্চিত করে।",
+      "trending": true,
+      "featured": true
+    },
+    {
+      "id": "27d4b9b1",
+      "code": "XP-002",
+      "title": "Hello Luxury Minimalist Tee",
+      "description": "Supima cotton luxury oversize fit block knitted in deep black charcoal colors with modern structural hems.",
+      "price": 100,
+      "category": "MEN",
+      "stock": 112,
+      "imageUrl": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop",
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "dimensions": "Oversized Silhouette",
+      "whyBuy": "আমাদের প্রতিটি পিস তৈরি করা হয় অত্যন্ত যত্নের সাথে। এই প্রিমিয়াম টি-শার্টটি শতভাগ সুপিমা কটন দ্বারা প্রস্তুত, যা পরতে চমৎকার আরামদায়ক এবং দীর্ঘস্থায়ী উজ্জ্বলতা দেয়।",
+      "trending": true,
+      "featured": false
+    },
+    {
+      "id": "85d4d654",
+      "code": "XP-003",
+      "title": "Risat Royal Gold Chronometer",
+      "description": "Handcrafted 18k gold physical aesthetics frame, displaying dual time matrix systems under high-reflection sapphire crystal.",
+      "price": 100,
+      "category": "MEN",
+      "stock": 50,
+      "imageUrl": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=600&auto=format&fit=crop",
+      "sizes": [
+        "Unisex Standard"
+      ],
+      "dimensions": "40mm Bezel, Fully Adjustable",
+      "whyBuy": "অভিজাত ব্যক্তিত্বের অন্যতম প্রতীক এই ক্রনোমিটারটি আপনাকে যেকোনো রাজকীয় অনুষ্ঠানে অনন্য গৌরব অর্জনে সহায়তা করবে। এটি কেবল একটি ঘড়ি নয়, এটি আপনার রুচিশীলতার স্মারক।",
+      "trending": false,
+      "featured": true
+    },
+    {
+      "id": "843df0ba",
+      "code": "XP-004",
+      "title": "Hi Avant-Garde Sunglasses",
+      "description": "Deep charcoal carbon fiber frames with luxury yellow protection layers, sculpted specifically for fashion visionaries.",
+      "price": 122,
+      "category": "UNISEX",
+      "stock": 12,
+      "imageUrl": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?q=80&w=600&auto=format&fit=crop",
+      "sizes": [
+        "One Size"
+      ],
+      "dimensions": "Full UV400 Protection",
+      "whyBuy": "ক্ষতিকর রোদ থেকে আপনার চোখকে রক্ষা করার পাশাপাশি আপনাকে ফ্যাশন জগতের এক অনন্য মাত্রায় নিয়ে যেতে এই সানগ্লাসটির কোনো বিকল্প নেই। এর কার্বন ফাইবার ফ্রেম অত্যন্ত মজবুত।",
+      "trending": true,
+      "featured": true
+    },
+    {
+      "id": "f28e01ec",
+      "code": "XP-005",
+      "title": "Welcome Imperial Bomber Jacket",
+      "description": "Wind-resistant high-performance premium outer lining, featuring luxury gold zippers and a fully insulated soft interior.",
+      "price": 100,
+      "category": "MEN",
+      "stock": 12,
+      "imageUrl": "https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=600&auto=format&fit=crop",
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "dimensions": "Tailored Premium Fitting",
+      "whyBuy": "শীতকালে আপনার চমৎকার স্টাইল ধরে রাখতে চাইলে আমাদের এই বিশেষ বম্বার জ্যাকেটটি আপনার কালেকশনে অবশ্যই রাখা উচিত। এটি একই সাথে আপনাকে চমৎকার উষ্ণতা ও আধুনিক লুক দেবে।",
+      "trending": false,
+      "featured": false
+    }
+  ],
+  "orders": [
+    {
+      "id": "STX-632131",
+      "customerName": "ddfdd",
+      "customerPhone": "2322323232",
+      "customerAddress": "cxc",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "3d43a6d9",
+          "title": "Risat Adnan Signature Sneaker",
+          "price": 122,
+          "selectedSize": "S",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 222,
+      "status": "PENDING",
+      "date": "2026-06-18T12:34:15.318Z"
+    }
+  ],
+  "banners": [
+    {
+      "id": "banner-1",
+      "title": "STYLE X COLLECTIVE",
+      "subtitle": "A meticulous exploration of minimalist form and avant-garde structure. Curated exclusively by Risat Adnan for the modern visionary.",
+      "imageUrl": "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop",
+      "active": true
+    }
+  ],
+  "reviews": [],
+  "coupons": [
+    {
+      "code": "STYLEGOLD",
+      "type": "PERCENTAGE",
+      "value": 15,
+      "active": true
+    },
+    {
+      "code": "RISATVIP",
+      "type": "FIXED",
+      "value": 20,
+      "active": true
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "camp-1",
+      "title": "MONARCHY DROPS",
+      "description": "Get 15% off using premium coupon STYLEGOLD on all limited luxury pieces.",
+      "discountCode": "STYLEGOLD",
+      "active": true
+    }
+  ],
+  "chats": [
+    {
+      "id": "room-wfdsuy6g",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-06-18T12:21:17.282Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-06-18T12:21:17.282Z"
+    }
+  ],
+  "visits": 1,
+  "liveViews": 1,
+  "countedSessions": [
+    "visitor_nibk51q4b7k_1781692298133"
+  ],
+  "settings": {
+    "whatsappNumber": "8801755104443",
+    "adminEmail": "risatadnan4@gmail.com",
+    "appsScriptUrl": "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+    "logoUrl": "",
+    "lotteryDiscountPercentage": 15,
+    "paymentBadgeTitle": "SECURE CASH ON DELIVERY GUARANTEED",
+    "paymentBadgeDescription": "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
+    "lotteryPrizes": [
+      {
+        "text": "15% OFF (STYLEGOLD)",
+        "value": "STYLEGOLD",
+        "type": "coupon"
+      },
+      {
+        "text": "VIP Free Carriage",
+        "value": "FREE_SHIPPING",
+        "type": "shipping"
+      },
+      {
+        "text": "৳20 OFF (RISATVIP)",
+        "value": "RISATVIP",
+        "type": "coupon"
+      },
+      {
+        "text": "Limited Edition SX Patch",
+        "value": "SX_PATCH",
+        "type": "merch"
+      },
+      {
+        "text": "Exclusive Concierge Pass",
+        "value": "MEMBER_PASS",
+        "type": "pass"
+      },
+      {
+        "text": "Royal Golden Keychain",
+        "value": "KEYCHAIN",
+        "type": "merch"
+      }
+    ]
+  }
+}
