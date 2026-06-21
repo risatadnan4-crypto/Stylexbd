@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trophy, Sparkles, Copy, Check, Gift, Crown, Star } from 'lucide-react';
+import { X, Trophy, Sparkles, Copy, Check, Gift, Crown, Star, Lock } from 'lucide-react';
 
 export interface LotteryPrize {
   text: string;
@@ -12,11 +12,13 @@ interface LotteryModalProps {
   onClose: () => void;
   prizes?: LotteryPrize[];
   discountPercentage?: number;
+  isLotteryDeactivated?: boolean;
 }
 
-export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 }: LotteryModalProps) {
+export default function LotteryModal({ isOpen, onClose, discountPercentage = 15, isLotteryDeactivated = false }: LotteryModalProps) {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [hasUsedLottery, setHasUsedLottery] = useState(false);
 
   // Auto load claimed state from localStorage to persist voucher for returning users
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
       if (isClaimed === 'true') {
         setRevealed(true);
       }
+      const isUsed = localStorage.getItem('has_used_lottery_code') === 'true';
+      setHasUsedLottery(isUsed);
     }
   }, [isOpen]);
 
@@ -61,15 +65,17 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
       <div 
         className="relative w-full max-w-md bg-gradient-to-b from-[#0b0a0f] to-[#040007] border-2 border-luxury-gold/30 rounded-2xl p-6 text-center shadow-[0_0_50px_rgba(212,175,55,0.15)] z-10 overflow-hidden animate-fade-in transition-all duration-500"
         style={{
-          boxShadow: revealed 
-            ? "0 0 60px rgba(212,175,55,0.25), inset 0 0 20px rgba(212,175,55,0.05)" 
-            : "0 0 40px rgba(154,77,255,0.15)"
+          boxShadow: isLotteryDeactivated
+            ? "0 0 40px rgba(239,68,68,0.15)"
+            : revealed 
+              ? "0 0 60px rgba(212,175,55,0.25), inset 0 0 20px rgba(212,175,55,0.05)" 
+              : "0 0 40px rgba(154,77,255,0.15)"
         }}
       >
         
         {/* Background ambient accents */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-luxury-gold/5 blur-3xl rounded-full pointer-events-none"></div>
-        {revealed && (
+        {revealed && !isLotteryDeactivated && (
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-luxury-purple/10 blur-3xl rounded-full pointer-events-none"></div>
         )}
 
@@ -82,7 +88,75 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
           <X size={18} />
         </button>
 
-        {!revealed ? (
+        {isLotteryDeactivated ? (
+          /* SYSTEM CURRENTLY OFF SCREEN */
+          <div className="space-y-6 py-6 animate-fade-in">
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/40 rounded-full flex items-center justify-center text-red-400 relative shadow-xl animate-pulse">
+                <Lock size={26} />
+              </div>
+              
+              <h3 className="font-serif text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-red-200 to-white tracking-widest mt-5 uppercase">
+                SYSTEM OFFLINE
+              </h3>
+              <p className="text-[9px] text-[#ff8080] font-mono tracking-widest uppercase mt-1 flex items-center gap-1.5 font-bold">
+                <span>IMPERIAL LOTTERY CURRENTLY OFF</span>
+              </p>
+            </div>
+
+            <div className="border border-white/5 bg-[#090312]/60 p-5 rounded-xl space-y-3.5 shadow-inner backdrop-blur-sm relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500/50"></div>
+              <p className="text-xs text-zinc-300 leading-relaxed font-sans font-light tracking-wide">
+                The exclusive Imperial Fortune Wheel is currently deactivated by the administrator for seasonal curation and system updates.
+              </p>
+              <div className="border-t border-white/5 my-2.5"></div>
+              <p className="text-[10px] text-white/35 font-mono tracking-widest uppercase">
+                Please check back later or contact live support.
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full bg-[#1c0808] border border-red-500/30 hover:border-red-500 text-[#ff8080] font-sans font-black text-[10.5px] uppercase tracking-widest py-3.5 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+            >
+              Close Window
+            </button>
+          </div>
+        ) : hasUsedLottery ? (
+          /* EXCLUSIVE ONE-TIME OFFER ALREADY REDEEMED SCREEN */
+          <div className="space-y-6 py-6 animate-fade-in">
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-luxury-gold/5 border-2 border-luxury-gold/40 rounded-full flex items-center justify-center text-luxury-gold relative shadow-xl">
+                <Check size={26} className="text-luxury-gold" />
+              </div>
+              
+              <h3 className="font-serif text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold tracking-widest mt-5 uppercase">
+                OFFER REDEEMED
+              </h3>
+              <p className="text-[9px] text-luxury-gold font-mono tracking-widest uppercase mt-1 flex items-center gap-1.5 font-bold">
+                <span>VOUCHER USED SUCCESSFULLY</span>
+              </p>
+            </div>
+
+            <div className="border border-white/5 bg-[#090312]/60 p-5 rounded-xl space-y-3.5 shadow-inner backdrop-blur-sm relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-luxury-gold"></div>
+              <p className="text-xs text-zinc-300 leading-relaxed font-sans font-light tracking-wide">
+                You have already played your Imperial Fortune Wheel and successfully redeemed your one-time luxury discount voucher code at checkout.
+              </p>
+              <div className="border-t border-white/5 my-2.5"></div>
+              <p className="text-[10px] text-white/35 font-mono tracking-widest uppercase">
+                Limit of 1 claim per customer.
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full bg-[#10031f]/60 hover:bg-[#180530]/80 border border-luxury-gold/50 hover:border-luxury-gold text-white font-display font-black text-[10.5px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 active:scale-95 cursor-pointer"
+            >
+              Back to Showroom
+            </button>
+          </div>
+        ) : !revealed ? (
           /* SECTION A: THE LOCKED VIP EXCLUSIVE ENVELOPE */
           <div className="space-y-6 py-4 animate-fade-in">
             {/* Top crown emblem */}
@@ -205,19 +279,12 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
               Copy the code above and paste it on checkout to receive your <strong>{discountPercent}% immediate price deduction</strong> today!
             </p>
 
-            <div className="flex items-center justify-between gap-4 pt-2">
-              <button
-                onClick={handleResetVoucher}
-                className="text-[9px] text-[#ff8080] hover:text-red-400 font-mono uppercase tracking-widest underline decoration-dashed cursor-pointer"
-              >
-                Reset & claim again
-              </button>
-
+            <div className="pt-4">
               <button
                 onClick={onClose}
-                className="bg-zinc-900 border border-white/10 hover:border-luxury-gold hover:text-white text-zinc-400 font-display font-black text-[10px] uppercase tracking-widest px-6 py-2.5 rounded-xl transition-all cursor-pointer"
+                className="w-full bg-[#10031f]/60 hover:bg-[#180530]/80 border border-luxury-gold/50 hover:border-luxury-gold text-white font-display font-black text-[10.5px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:scale-[1.01] active:scale-95"
               >
-                Close & Shop Now
+                Let's Shop Now
               </button>
             </div>
           </div>

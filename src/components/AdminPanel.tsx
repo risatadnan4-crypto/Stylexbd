@@ -320,6 +320,9 @@ export default function AdminPanel({
   const [formDimensions, setFormDimensions] = useState('Bespoke Fit');
   const [formWhyBuy, setFormWhyBuy] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
+  const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
+  const [formCouponCode, setFormCouponCode] = useState<string>('');
+  const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -589,7 +592,10 @@ export default function AdminPanel({
       whyBuy: formWhyBuy || "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
       imageUrl: formImageUrl,
       trending: true,
-      featured: true
+      featured: true,
+      lotteryEligible: formLotteryEligible,
+      couponCode: formCouponCode,
+      couponDiscountPercent: Number(formCouponDiscountPercent)
     };
 
     try {
@@ -620,6 +626,9 @@ export default function AdminPanel({
         setFormDeliveryPriceMymensingh(150);
         setFormStock(50);
         setFormWhyBuy('');
+        setFormLotteryEligible(true);
+        setFormCouponCode('');
+        setFormCouponDiscountPercent(15);
         setUploadProgress('');
         setFormError('');
 
@@ -659,6 +668,9 @@ export default function AdminPanel({
     setFormDimensions(prod.dimensions);
     setFormWhyBuy(prod.whyBuy);
     setFormImageUrl(prod.imageUrl);
+    setFormLotteryEligible(prod.lotteryEligible !== false);
+    setFormCouponCode(prod.couponCode || '');
+    setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
     setShowProductForm(true);
   };
 
@@ -1257,7 +1269,10 @@ CREATE TABLE IF NOT EXISTS public.products (
     dimensions TEXT,
     "whyBuy" TEXT,
     trending BOOLEAN DEFAULT true,
-    featured BOOLEAN DEFAULT true
+    featured BOOLEAN DEFAULT true,
+    "lotteryEligible" BOOLEAN DEFAULT true,
+    "couponCode" TEXT DEFAULT '',
+    "couponDiscountPercent" NUMERIC DEFAULT 15
 );
 
 -- 2. Create Banners Table
@@ -1376,7 +1391,10 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
     dimensions TEXT,
     "whyBuy" TEXT,
     trending BOOLEAN DEFAULT true,
-    featured BOOLEAN DEFAULT true
+    featured BOOLEAN DEFAULT true,
+    "lotteryEligible" BOOLEAN DEFAULT true,
+    "couponCode" TEXT DEFAULT '',
+    "couponDiscountPercent" NUMERIC DEFAULT 15
 );`}
                     </pre>
                   </div>
@@ -1580,6 +1598,61 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                     />
                   </div>
 
+                  {/* LOTTERY & EXCLUSIVE PRODUCT COUPON SETTINGS */}
+                  <div className="md:col-span-2 border border-white/5 bg-white/[0.02] p-4 rounded-xl space-y-4">
+                    <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5 border-b border-white/5 pb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
+                      Campaign & Coupon Integration
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Lottery Toggle */}
+                      <div className="flex items-start space-x-3 bg-[#0d0917]/70 p-3 rounded-lg border border-white/[0.03]">
+                        <input
+                          type="checkbox"
+                          id="formLotteryEligible"
+                          checked={formLotteryEligible}
+                          onChange={(e) => setFormLotteryEligible(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#d4af37] bg-luxury-charcoal border-white/10 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#d4af37] mt-1"
+                        />
+                        <label htmlFor="formLotteryEligible" className="text-xs text-zinc-300 font-sans cursor-pointer select-none">
+                          <span className="block text-[11px] font-bold text-white uppercase tracking-wider">Lottery Voucher Eligible</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-relaxed">Allow the Imperial Fortune Wheel discount code to apply to this product at checkout.</span>
+                        </label>
+                      </div>
+
+                      {/* Product Specific Coupon */}
+                      <div className="space-y-2 bg-[#0d0917]/70 p-3 rounded-lg border border-white/[0.03]">
+                        <span className="block text-[11px] font-bold text-white uppercase tracking-wider">Single Product Promo Code</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[8px] uppercase font-mono text-zinc-400 mb-1">Coupon Code</label>
+                            <input 
+                              type="text" 
+                              value={formCouponCode} 
+                              onChange={(e) => setFormCouponCode(e.target.value.trim().toUpperCase())}
+                              placeholder="e.g. VIPCODELUX"
+                              className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold uppercase font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[8px] uppercase font-mono text-zinc-400 mb-1">Discount %</label>
+                            <input 
+                              type="number" 
+                              value={formCouponDiscountPercent} 
+                              onChange={(e) => setFormCouponDiscountPercent(Number(e.target.value))}
+                              placeholder="e.g. 20"
+                              min={1}
+                              max={100}
+                              className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
+                            />
+                          </div>
+                        </div>
+                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">If set, customers can checkout this exact product with this coupon code.</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Image link & local storage uploader (Supreme replicas) */}
                   <div className="md:col-span-2 border border-dashed border-white/10 p-4 rounded bg-luxury-black/35 space-y-3.5">
                     <div>
@@ -1668,6 +1741,18 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                               {p.title}
                             </div>
                             <span className="text-[10px] text-white/35 font-mono">{p.id} ({p.code})</span>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1 font-mono text-[8.5px]">
+                              {p.lotteryEligible !== false ? (
+                                <span className="bg-emerald-500/10 text-emerald-400 px-1 py-0.5 rounded border border-emerald-500/10">🎟️ Lottery OK</span>
+                              ) : (
+                                <span className="bg-rose-500/15 text-rose-400 px-1 py-0.5 rounded border border-rose-500/10">🔒 No Lottery</span>
+                              )}
+                              {p.couponCode && (
+                                <span className="bg-[#d4af37]/15 text-[#d4af37] font-extrabold px-1.5 py-0.5 rounded border border-[#d4af37]/25">
+                                  🏷️ {p.couponCode} (-{p.couponDiscountPercent || 15}%)
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
 

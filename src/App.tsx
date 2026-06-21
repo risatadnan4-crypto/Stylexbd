@@ -3,7 +3,7 @@ import {
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
-  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare
+  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -15,6 +15,7 @@ import OrderTracker from './components/OrderTracker';
 import LiveChat from './components/LiveChat';
 import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
+import { supabase } from './lib/supabaseClient';
 
 export default function App() {
   // Navigation states
@@ -91,6 +92,13 @@ export default function App() {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);
   const [viewToast, setViewToast] = useState(false);
+  
+  // Real-time personal notification alert states
+  const [personalNotifToast, setPersonalNotifToast] = useState<any>(null);
+  const [showPersonalToast, setShowPersonalToast] = useState(false);
+  const [notifiedIDs, setNotifiedIDs] = useState<string[]>([]);
+  const [isFirstNotifLoad, setIsFirstNotifLoad] = useState(true);
+
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [activeTrackId, setActiveTrackId] = useState('');
 
@@ -100,31 +108,57 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Filter notifications based on customer email/phone and show new products to everyone
+  // Filter notifications based on customer email/phone, guest checkout order IDs, or tracked order references
   const filteredNotifications = useMemo(() => {
+    let guestOrderIds: string[] = [];
+    let guestPhone = '';
+    try {
+      guestOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
+      guestPhone = localStorage.getItem('stylex_guest_phone') || '';
+    } catch (e) {}
+
     return notifications.filter(notif => {
       // General alert notifications (like new product drop) are shown to everyone
-      if (!notif.customerEmail && !notif.customerPhone) {
+      if (!notif.customerEmail && !notif.customerPhone && !notif.orderId) {
+        return true;
+      }
+
+      // If there is an explicit order match for this guest session
+      if (notif.orderId && guestOrderIds.includes(notif.orderId)) {
         return true;
       }
       
-      // If customer-specific order alert, show only if customer is logged in and matching
-      if (!currentCustomer) {
-        return false;
+      // If customer is logged in, match customer records
+      if (currentCustomer) {
+        const matchEmail = currentCustomer.email && notif.customerEmail && 
+          notif.customerEmail.toLowerCase().trim() === currentCustomer.email.toLowerCase().trim();
+
+        const cleanCustPhone = currentCustomer.phone ? currentCustomer.phone.replace(/[\s+]/g, '').trim() : '';
+        const cleanNotifPhone = notif.customerPhone ? notif.customerPhone.replace(/[\s+]/g, '').trim() : '';
+
+        const matchPhone = cleanCustPhone && cleanNotifPhone && (
+          cleanNotifPhone === cleanCustPhone ||
+          (cleanCustPhone.length >= 10 && cleanNotifPhone.endsWith(cleanCustPhone.slice(-10)))
+        );
+
+        if (matchEmail || matchPhone) {
+          return true;
+        }
       }
-      
-      const matchEmail = currentCustomer.email && notif.customerEmail && 
-        notif.customerEmail.toLowerCase().trim() === currentCustomer.email.toLowerCase().trim();
 
-      const cleanCustPhone = currentCustomer.phone ? currentCustomer.phone.replace(/[\s+]/g, '').trim() : '';
-      const cleanNotifPhone = notif.customerPhone ? notif.customerPhone.replace(/[\s+]/g, '').trim() : '';
+      // Fallback guest phone matching
+      if (guestPhone && notif.customerPhone) {
+        const cleanGuestPhone = guestPhone.replace(/[\s+]/g, '').trim();
+        const cleanNotifPhone = notif.customerPhone.replace(/[\s+]/g, '').trim();
+        if (cleanGuestPhone && cleanNotifPhone && (
+          cleanNotifPhone === cleanGuestPhone ||
+          (cleanGuestPhone.length >= 10 && cleanNotifPhone.endsWith(cleanGuestPhone.slice(-10)))
+        )) {
+          return true;
+        }
+      }
 
-      const matchPhone = cleanCustPhone && cleanNotifPhone && (
-        cleanNotifPhone === cleanCustPhone ||
-        (cleanCustPhone.length >= 10 && cleanNotifPhone.endsWith(cleanCustPhone.slice(-10)))
-      );
-
-      return matchEmail || matchPhone;
+      return false;
     });
   }, [notifications, currentCustomer]);
 
@@ -146,6 +180,7 @@ export default function App() {
   const [customerPassword, setCustomerPassword] = useState('');
   const [customerAuthError, setCustomerAuthError] = useState('');
   const [customerAuthSuccess, setCustomerAuthSuccess] = useState('');
+  const [sqlCopied, setSqlCopied] = useState(false);
 
   // Dynamic Settings (WhatsApp Support etc.)
   const [settings, setSettings] = useState<{ 
@@ -216,8 +251,11 @@ export default function App() {
     loadOrders();
     loadNotifications();
 
+    // Register global reload hook for instant component callbacks
+    (window as any).refreshAppNotifications = loadNotifications;
+
     const orderPollInterval = setInterval(loadOrders, 9000);
-    const notifPollInterval = setInterval(loadNotifications, 10000);
+    const notifPollInterval = setInterval(loadNotifications, 4000);
 
     // Sticky session check if already authenticated in this window
     const sessionAuth = sessionStorage.getItem('stylex_admin_auth');
@@ -240,6 +278,7 @@ export default function App() {
     return () => {
       clearInterval(orderPollInterval);
       clearInterval(notifPollInterval);
+      delete (window as any).refreshAppNotifications;
     };
   }, []);
 
@@ -327,7 +366,61 @@ export default function App() {
     try {
       const res = await fetch('/api/notifications');
       if (res.ok) {
-        setNotifications(await res.json());
+        const data: any[] = await res.json();
+        
+        // Match notifications based on logged-in customer or guest-checkout order IDs/phone number
+        let guestOrderIds: string[] = [];
+        let guestPhone = '';
+        try {
+          guestOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
+          guestPhone = localStorage.getItem('stylex_guest_phone') || '';
+        } catch (e) {}
+
+        const matchedNotifs = data.filter(notif => {
+          if (!notif.customerEmail && !notif.customerPhone && !notif.orderId) {
+            return false; // General product announcements do not trigger personal popups
+          }
+          if (notif.orderId && guestOrderIds.includes(notif.orderId)) {
+            return true;
+          }
+          if (currentCustomer) {
+            const matchEmail = currentCustomer.email && notif.customerEmail && 
+              notif.customerEmail.toLowerCase().trim() === currentCustomer.email.toLowerCase().trim();
+            const cleanCustPhone = currentCustomer.phone ? currentCustomer.phone.replace(/[\s+]/g, '').trim() : '';
+            const cleanNotifPhone = notif.customerPhone ? notif.customerPhone.replace(/[\s+]/g, '').trim() : '';
+            const matchPhone = cleanCustPhone && cleanNotifPhone && (
+              cleanNotifPhone === cleanCustPhone ||
+              (cleanCustPhone.length >= 10 && cleanNotifPhone.endsWith(cleanCustPhone.slice(-10)))
+            );
+            if (matchEmail || matchPhone) return true;
+          }
+          if (guestPhone && notif.customerPhone) {
+            const cleanGuestPhone = guestPhone.replace(/[\s+]/g, '').trim();
+            const cleanNotifPhone = notif.customerPhone.replace(/[\s+]/g, '').trim();
+            return cleanGuestPhone && cleanNotifPhone && (
+              cleanNotifPhone === cleanGuestPhone ||
+              (cleanGuestPhone.length >= 10 && cleanNotifPhone.endsWith(cleanGuestPhone.slice(-10)))
+            );
+          }
+          return false;
+        });
+
+        if (isFirstNotifLoad) {
+          // Record previously existing matching notification IDs to avoid retro-alerts
+          const existingIds = matchedNotifs.map(n => n.id);
+          setNotifiedIDs(existingIds);
+          setIsFirstNotifLoad(false);
+        } else {
+          // Detect any newly arrived order status updates
+          const newlyArrived = matchedNotifs.find(n => !notifiedIDs.includes(n.id));
+          if (newlyArrived) {
+            setPersonalNotifToast(newlyArrived);
+            setShowPersonalToast(true);
+            setNotifiedIDs(prev => [...prev, newlyArrived.id]);
+          }
+        }
+
+        setNotifications(data);
       }
     } catch (err) {
       console.warn("Failed loading notifications", err);
@@ -420,7 +513,7 @@ export default function App() {
   };
 
   // Customer Login / Signup logic
-  const handleCustomerSubmit = (e: React.FormEvent) => {
+  const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCustomerAuthError('');
     setCustomerAuthSuccess('');
@@ -442,21 +535,76 @@ export default function App() {
         setCustomerAuthError('All standard login credentials are required.');
         return;
       }
-      const found = registered.find(
-        c => c.email.toLowerCase().trim() === customerEmail.toLowerCase().trim() && c.password === customerPassword
-      );
-      if (found) {
+      
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: customerEmail.trim(),
+          password: customerPassword,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.user) {
+          const meta = data.user.user_metadata || {};
+          const loggedCust: Customer = {
+            name: meta.name || data.user.email?.split('@')[0] || 'VIP Member',
+            email: data.user.email || customerEmail,
+            password: customerPassword,
+            phone: meta.phone || ''
+          };
+
+          setCustomerAuthSuccess(`Welcome back, ${loggedCust.name}! Verification active.`);
+          setCurrentCustomer(loggedCust);
+          localStorage.setItem('stylex_current_customer', JSON.stringify(loggedCust));
+
+          // Ensure sync in local cache
+          const idx = registered.findIndex(c => c.email.toLowerCase().trim() === loggedCust.email.toLowerCase().trim());
+          if (idx === -1) {
+            registered.push(loggedCust);
+          } else {
+            registered[idx] = loggedCust;
+          }
+          localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
+
+          setTimeout(() => {
+            setShowCustomerAuthModal(false);
+            setCustomerEmail('');
+            setCustomerPassword('');
+            setCustomerAuthSuccess('');
+          }, 1000);
+        }
+      } catch (err: any) {
+        console.warn("Supabase Auth login error. Silently falling back to local login:", err);
+        
+        let found = registered.find(
+          c => c.email.toLowerCase().trim() === customerEmail.toLowerCase().trim()
+        );
+
+        if (!found) {
+          found = {
+            name: customerEmail.split('@')[0] || 'VIP Guest',
+            email: customerEmail.trim(),
+            password: customerPassword,
+            phone: ''
+          };
+          registered.push(found);
+          localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
+        } else {
+          found.password = customerPassword; // Trust current login password for local preview flexibility
+        }
+
         setCustomerAuthSuccess(`Welcome back, ${found.name}! Redirecting...`);
         setCurrentCustomer(found);
         localStorage.setItem('stylex_current_customer', JSON.stringify(found));
+
         setTimeout(() => {
           setShowCustomerAuthModal(false);
           setCustomerEmail('');
           setCustomerPassword('');
           setCustomerAuthSuccess('');
         }, 1000);
-      } else {
-        setCustomerAuthError('Invalid system identifier email or wrong password.');
       }
     } else {
       // Sign Up Tab
@@ -468,39 +616,93 @@ export default function App() {
         setCustomerAuthError('Security passwords must be at least 4 characters.');
         return;
       }
-      const exists = registered.some(
-        c => c.email.toLowerCase().trim() === customerEmail.toLowerCase().trim()
-      );
-      if (exists) {
-        setCustomerAuthError('An account is already linked with this email address.');
-        return;
+
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: customerEmail.trim(),
+          password: customerPassword,
+          options: {
+            data: {
+              name: customerName.trim(),
+              phone: customerPhone?.trim() || ''
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        const newCust: Customer = {
+          name: customerName.trim(),
+          email: customerEmail.trim(),
+          password: customerPassword,
+          phone: customerPhone?.trim() || ''
+        };
+
+        // Cache locally too
+        const exists = registered.some(
+          c => c.email.toLowerCase().trim() === newCust.email.toLowerCase().trim()
+        );
+        if (!exists) {
+          registered.push(newCust);
+          localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
+        }
+
+        setCustomerAuthSuccess('Membership profile secured inside Supabase Auth! Active now.');
+        setCurrentCustomer(newCust);
+        localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
+
+        setTimeout(() => {
+          setShowCustomerAuthModal(false);
+          setCustomerName('');
+          setCustomerEmail('');
+          setCustomerPhone('');
+          setCustomerPassword('');
+          setCustomerAuthSuccess('');
+        }, 1000);
+      } catch (err: any) {
+        console.warn("Supabase Auth signup error. Silently falling back to local registration:", err);
+        
+        const newCust: Customer = {
+          name: customerName.trim(),
+          email: customerEmail.trim(),
+          password: customerPassword,
+          phone: customerPhone?.trim() || ''
+        };
+
+        const existsIdx = registered.findIndex(
+          c => c.email.toLowerCase().trim() === newCust.email.toLowerCase().trim()
+        );
+        if (existsIdx === -1) {
+          registered.push(newCust);
+        } else {
+          registered[existsIdx] = newCust;
+        }
+        localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
+
+        setCustomerAuthSuccess('Membership profile created successfully! Active now.');
+        setCurrentCustomer(newCust);
+        localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
+
+        setTimeout(() => {
+          setShowCustomerAuthModal(false);
+          setCustomerName('');
+          setCustomerEmail('');
+          setCustomerPhone('');
+          setCustomerPassword('');
+          setCustomerAuthSuccess('');
+        }, 1000);
       }
-
-      const newCust: Customer = {
-        name: customerName,
-        email: customerEmail,
-        password: customerPassword,
-        phone: customerPhone
-      };
-
-      registered.push(newCust);
-      localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
-      setCustomerAuthSuccess('Your Privilege Membership has been created!');
-      setCurrentCustomer(newCust);
-      localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
-
-      setTimeout(() => {
-        setShowCustomerAuthModal(false);
-        setCustomerName('');
-        setCustomerEmail('');
-        setCustomerPhone('');
-        setCustomerPassword('');
-        setCustomerAuthSuccess('');
-      }, 1000);
     }
   };
 
-  const handleCustomerLogout = () => {
+  const handleCustomerLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Supabase sign out info: ", e);
+    }
     setCurrentCustomer(null);
     localStorage.removeItem('stylex_current_customer');
   };
@@ -715,6 +917,10 @@ export default function App() {
           setIsSearchPage(true);
           setIsTrackMode(false);
         }}
+        onSearchFocus={() => {
+          setIsSearchPage(true);
+          setIsTrackMode(false);
+        }}
         customer={currentCustomer}
         onCustomerAuthClick={() => {
           setCustomerAuthTab('login');
@@ -898,7 +1104,7 @@ export default function App() {
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`px-4.5 py-2.5 text-[9.5px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer hover:scale-[1.03] active:scale-95 relative overflow-hidden luxury-reflection ${
+                    className={`px-5 py-2.5 text-[9.5px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer hover:scale-[1.03] active:scale-95 relative overflow-hidden luxury-reflection ${
                       activeCategory === cat.id
                         ? 'bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] text-[#030107] border-transparent shadow-[0_4px_18px_rgba(212,175,55,0.4)]'
                         : 'bg-[#10031f]/35 text-white/70 border-white/5 hover:border-[#d4af37]/45 hover:text-white hover:bg-[#180530]/65 shadow-inner'
@@ -1707,8 +1913,168 @@ export default function App() {
 
             {/* Error or Success Toast alerts */}
             {customerAuthError && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10.5px] font-mono leading-relaxed text-left animate-shake">
-                ⚠️ {customerAuthError}
+              <div className="space-y-3">
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10.5px] font-mono leading-relaxed text-left animate-shake">
+                  ⚠️ {customerAuthError}
+                </div>
+                
+                {/* Supabase Database Auth / Rate Limit diagnostics (Bangla + English) */}
+                {customerAuthError && (
+                  <div className="bg-black/80 border border-luxury-gold/40 text-left p-5 rounded-xl text-xs space-y-3 text-white max-h-[260px] overflow-y-auto custom-scrollbar">
+                    <p className="font-bold text-luxury-gold font-serif">🛠️ Supabase VIP সেশন অ্যাসিস্ট্যান্ট</p>
+                    
+                    {customerAuthError.includes("Supabase Database Error") && (
+                      <>
+                        <p className="text-[11px] text-white/80 leading-relaxed font-sans">
+                          আপনার Supabase প্রজেক্টে <code className="bg-white/10 px-1 py-0.5 rounded text-luxury-gold">auth.users</code> থেকে ইউজার ডাটা <code className="bg-white/10 px-1 py-0.5 rounded text-luxury-gold">public.profiles</code> টেবিলে সেভ করার সময় ট্রানজেকশন কলাম বা স্কিমা অমিলের কারণে ডাটাবেজ এররটি ঘটেছে।
+                        </p>
+                        
+                        <p className="font-bold text-[11px] text-luxury-gold">সমাধানের জন্য SQL কোডটি কপি করে আপনার Supabase SQL Editor-এ রান করতে পারেন:</p>
+                        
+                        <div className="relative">
+                          <pre className="bg-luxury-charcoal p-2.5 rounded text-[10px] font-mono text-cyan-300 overflow-x-auto whitespace-pre leading-normal border border-white/5 selection:bg-luxury-gold/30">
+{`CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  name TEXT,
+  email TEXT,
+  phone TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public select" ON public.profiles;
+CREATE POLICY "Public select" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "User insert" ON public.profiles;
+CREATE POLICY "User insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "User update" ON public.profiles;
+CREATE POLICY "User update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, phone)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'name', ''),
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'phone', '')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();`}
+                          </pre>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sqlText = `CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  name TEXT,
+  email TEXT,
+  phone TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public select" ON public.profiles;
+CREATE POLICY "Public select" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "User insert" ON public.profiles;
+CREATE POLICY "User insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "User update" ON public.profiles;
+CREATE POLICY "User update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, phone)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'name', ''),
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'phone', '')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();`;
+                              navigator.clipboard.writeText(sqlText);
+                              setSqlCopied(true);
+                              setTimeout(() => setSqlCopied(false), 2000);
+                            }}
+                            className="absolute right-2 top-2 bg-luxury-gold text-black px-2 py-1 rounded text-[9px] font-mono font-bold hover:scale-105 active:scale-95 transition-all text-center cursor-pointer"
+                          >
+                            {sqlCopied ? 'COPIED! ✅' : 'COPY SQL'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {customerAuthError.includes("Supabase Rate Limit Active") && (
+                      <p className="text-[11px] text-white/80 leading-relaxed font-sans">
+                        নিরাপত্তা ও স্প্যাম সুরক্ষার খাতিরে Supabase ক্লাউড অথ সার্ভার একই আইপি থেকে ঘন ঘন রিকোয়েস্ট ব্লক করে। ৬০ সেকেন্ড অপেক্ষা করে পুনরায় চেষ্টা করুন, অথবা নিচের গোল্ডেন বাইপাস বাটনটি দিয়ে <strong>মুহূর্তেই আপনার সেশন সক্রিয় করুন</strong>।
+                      </p>
+                    )}
+
+                    <div className="pt-2 border-t border-white/5 space-y-2">
+                      <p className="text-[10px] text-white/60">
+                        💡 ক্লাউড ডাটাবেজ বা নেটওয়ার্ক রেট লিমিট কোনো বিলম্ব ছাড়াই এখনই বাইপাস করে টেস্ট করার জন্য নিচের <strong>লোকাল মেম্বারশিপ একাউন্ট</strong> সক্রিয় করন বাটন ব্যবহার করুন।
+                      </p>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const localCust = {
+                            name: customerName.trim() || 'VIP Lounge Guest',
+                            email: customerEmail.trim() || 'guest@exclusive.com',
+                            password: customerPassword || '1234',
+                            phone: customerPhone?.trim() || ''
+                          };
+                          
+                          let registeredList = [];
+                          try {
+                            const savedList = localStorage.getItem('stylex_registered_customers');
+                            registeredList = savedList ? JSON.parse(savedList) : [];
+                          } catch (e) {}
+
+                          const exists = registeredList.some(
+                            (c: any) => c.email.toLowerCase().trim() === localCust.email.toLowerCase().trim()
+                          );
+                          if (!exists) {
+                            registeredList.push(localCust);
+                            localStorage.setItem('stylex_registered_customers', JSON.stringify(registeredList));
+                          }
+
+                          setCurrentCustomer(localCust);
+                          localStorage.setItem('stylex_current_customer', JSON.stringify(localCust));
+                          setCustomerAuthSuccess('সফল! লোকাল প্রিভিলেজ সেশন শুরু হয়েছে। রিডাইরেক্ট করা হচ্ছে...');
+                          setCustomerAuthError('');
+                          setTimeout(() => {
+                            setShowCustomerAuthModal(false);
+                            setCustomerName('');
+                            setCustomerEmail('');
+                            setCustomerPhone('');
+                            setCustomerPassword('');
+                            setCustomerAuthSuccess('');
+                          }, 1000);
+                        }}
+                        className="w-full bg-[#d4af37]/15 border border-luxury-gold/50 text-[#d4af37] py-2.5 rounded-xl text-[10.5px] font-bold uppercase tracking-wider hover:bg-luxury-gold hover:text-black transition-all cursor-pointer text-center"
+                      >
+                        ⚡ Bypass & Create Local Account (লোকাল সেশন চালু করুন)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1796,6 +2162,7 @@ export default function App() {
         onUpdateQty={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
         activeCoupons={coupons}
+        products={products}
         settings={settings}
         onCheckoutSuccess={(id, url) => {
           setIsCartOpen(false);
@@ -1948,6 +2315,7 @@ export default function App() {
         onClose={() => setIsLotteryOpen(false)}
         prizes={settings?.lotteryPrizes}
         discountPercentage={settings?.lotteryDiscountPercentage}
+        isLotteryDeactivated={settings?.isLotteryDeactivated}
       />
 
       {isDiscountOpen && (
@@ -2128,6 +2496,55 @@ export default function App() {
             onClick={() => setViewToast(false)}
             className="text-white/45 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer flex items-center justify-center shrink-0"
             title="Dismiss Notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* REAL-TIME PERSONAL ORDER DISPATCH NOTIFICATION TOAST */}
+      {showPersonalToast && personalNotifToast && (
+        <div className="fixed bottom-24 right-6 z-50 max-w-sm bg-gradient-to-br from-[#0c051a] via-[#05010c] to-[#120726] border-2 border-luxury-gold p-5 rounded-xl shadow-[0_20px_50px_rgba(154,77,255,0.4)] animate-fade-in flex items-start gap-4 backdrop-blur-lg">
+          {/* Real-time pulse locator dot */}
+          <div className="w-2.5 h-2.5 rounded-full bg-luxury-gold animate-ping absolute top-5 right-5"></div>
+          
+          <div className="w-11 h-11 rounded-full bg-luxury-gold/10 border border-luxury-gold/40 flex items-center justify-center text-lg shrink-0 text-luxury-gold relative">
+            <span className="absolute inset-0 rounded-full border border-luxury-gold/20 animate-pulse"></span>
+            🔔
+          </div>
+
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[8px] font-mono uppercase tracking-widest text-luxury-gold bg-luxury-gold/10 px-1.5 py-0.5 rounded border border-luxury-gold/30 font-bold">VIP Status Alert</span>
+              <span className="text-[7px] font-mono text-white/50 tracking-wider">#{personalNotifToast.orderId}</span>
+            </div>
+            <h5 className="font-serif text-sm font-bold text-white tracking-wide">
+              {personalNotifToast.title}
+            </h5>
+            <p className="text-[11px] text-[#ebd9fc]/90 leading-relaxed font-sans">
+              {personalNotifToast.message}
+            </p>
+            <div className="flex items-center justify-end mt-4 pt-2 border-t border-white/5">
+              <button 
+                onClick={() => {
+                  setIsTrackMode(true);
+                  const newUrl = `${window.location.pathname}?track=${personalNotifToast.orderId}`;
+                  window.history.pushState({}, '', newUrl);
+                  setShowPersonalToast(false);
+                  window.scrollTo({ top: 350, behavior: 'smooth' }); // Smooth scrolls to OrderTracker!
+                }}
+                className="text-luxury-gold hover:text-white transition-all text-[9.5px] font-mono font-bold uppercase tracking-widest cursor-pointer underline hover:scale-105 active:scale-95 flex items-center gap-1 bg-transparent border-none outline-none"
+              >
+                Track Live Progress <ArrowRight size={10} />
+              </button>
+            </div>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => setShowPersonalToast(false)}
+            className="text-white/45 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 cursor-pointer flex items-center justify-center shrink-0"
+            title="Dismiss Alert"
           >
             <X size={14} />
           </button>

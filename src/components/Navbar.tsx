@@ -17,6 +17,7 @@ interface NavbarProps {
   setSearchQuery: (q: string) => void;
   logoUrl?: string;
   onSearchSubmit?: (q: string) => void;
+  onSearchFocus?: () => void;
   
   // Premium Customer Authentication System
   customer: Customer | null;
@@ -37,6 +38,7 @@ export default function Navbar({
   setSearchQuery,
   logoUrl,
   onSearchSubmit,
+  onSearchFocus,
   customer,
   onCustomerAuthClick,
   onCustomerLogout,
@@ -47,9 +49,12 @@ export default function Navbar({
   const [showPortalMenu, setShowPortalMenu] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-40 bg-luxury-black/95 backdrop-blur-md border-b-2 border-gradient-to-r from-luxury-purple via-luxury-gold/50 to-luxury-purple px-4 py-3 md:px-8 shadow-[0_4px_30px_rgba(106,13,173,0.15)] select-none">
-      {/* Premium glowing top highlight bar */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-luxury-purple via-luxury-gold to-luxury-purple animate-shimmer"></div>
+    <nav className="sticky top-0 z-40 bg-luxury-black/95 backdrop-blur-md px-4 py-3 md:px-8 shadow-[0_4px_30px_rgba(106,13,173,0.15)] select-none">
+      {/* Premium running laser glow top border */}
+      <div className="absolute top-0 left-0 right-0 h-[3.5px] luxury-navbar-running-glow-top"></div>
+      
+      {/* Premium running laser glow bottom border */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2.5px] luxury-navbar-running-glow-bottom"></div>
       
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-1">
         
@@ -110,7 +115,7 @@ export default function Navbar({
             </button>
 
             {showPortalMenu && customer && (
-              <div className="absolute right-0 top-12 w-64 bg-[#0a0512] border-2 border-luxury-gold/40 rounded-2xl p-4.5 shadow-[0_15px_45px_rgba(0,0,0,0.95)] z-50 animate-fade-in space-y-3 font-display">
+              <div className="absolute right-0 top-12 w-64 bg-[#0a0512] border-2 border-luxury-gold/40 rounded-2xl p-5 shadow-[0_15px_45px_rgba(0,0,0,0.95)] z-50 animate-fade-in space-y-3 font-display">
                 <div className="border-b border-white/[0.06] pb-2.5">
                   <span className="text-[8px] tracking-[0.25em] text-[#d4af37] font-black block uppercase">
                     VIP PRIVILEGED MEMBER
@@ -219,6 +224,12 @@ export default function Navbar({
               placeholder={isCatalogDeactivated ? "CATALOG OFFLINE" : "SEARCH PRODUCTS..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (onSearchFocus) onSearchFocus();
+              }}
+              onClick={() => {
+                if (onSearchFocus) onSearchFocus();
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && onSearchSubmit && !isCatalogDeactivated) {
                   onSearchSubmit(searchQuery);
@@ -284,7 +295,7 @@ export default function Navbar({
                   </button>
 
                   {showPortalMenu && (
-                    <div className="absolute right-0 mt-2.5 w-64 bg-[#0a0512] border-2 border-luxury-gold/30 rounded-2xl p-4.5 shadow-[0_15px_45px_rgba(0,0,0,0.85)] z-50 animate-fade-in space-y-3 font-display">
+                    <div className="absolute right-0 mt-2.5 w-64 bg-[#0a0512] border-2 border-luxury-gold/30 rounded-2xl p-5 shadow-[0_15px_45px_rgba(0,0,0,0.85)] z-50 animate-fade-in space-y-3 font-display">
                       <div className="border-b border-white/[0.06] pb-2.5">
                         <span className="text-[8px] tracking-[0.25em] text-[#d4af37] font-black block uppercase">
                           VIP PRIVILEGED MEMBER
@@ -327,7 +338,7 @@ export default function Navbar({
               ) : (
                 <button 
                   onClick={onCustomerAuthClick}
-                  className="flex items-center gap-2 bg-[#090212] border border-[#d4af37]/40 hover:border-[#d4af37] px-4.5 py-2 rounded-full text-[10px] font-display uppercase tracking-[0.18em] text-white hover:text-[#ffd700] hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:scale-[1.02] active:scale-95 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer font-black"
+                  className="flex items-center gap-2 bg-[#090212] border border-[#d4af37]/40 hover:border-[#d4af37] px-5 py-2 rounded-full text-[10px] font-display uppercase tracking-[0.18em] text-white hover:text-[#ffd700] hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:scale-[1.02] active:scale-95 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer font-black"
                 >
                   <LogIn size={12} className="text-[#d4af37]" />
                   <span>Log In / Sign Up</span>

@@ -21,6 +21,9 @@ export interface Product {
   deliveryPriceSylhet?: number;
   deliveryPriceRangpur?: number;
   deliveryPriceMymensingh?: number;
+  lotteryEligible?: boolean;
+  couponCode?: string;
+  couponDiscountPercent?: number;
 }
 
 export interface CartItem {

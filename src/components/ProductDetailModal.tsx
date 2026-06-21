@@ -71,44 +71,45 @@ export default function ProductDetailModal({
           {/* Right Column: Detailed Product Specs */}
           <div className="flex flex-col justify-between space-y-5">
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono tracking-widest text-luxury-gold uppercase bg-luxury-gold/10 px-2.5 py-1 rounded">
+                <span className="text-[9px] font-mono tracking-[0.2em] text-luxury-gold uppercase bg-luxury-gold/10 border border-luxury-gold/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.1)]">
                   {product.category} COLLECTION
                 </span>
-                <span className="text-[11px] font-mono text-white/40">{product.code}</span>
+                <span className="text-[10px] font-mono text-white/35 tracking-widest">{product.code}</span>
               </div>
 
-              <h2 className="font-serif text-2xl lg:text-3.5xl font-bold text-white tracking-wide">
+              <h2 className="font-serif text-2xl lg:text-3.5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 tracking-wider leading-snug uppercase">
                 {product.title}
               </h2>
 
-              <p className="font-serif text-xl font-bold text-luxury-gold">
+              <p className="font-serif text-2xl font-black tracking-widest text-luxury-gold">
                 {formatPrice(product.price)}
               </p>
 
               {/* Stock check progress visual */}
-              <div className="border border-white/5 bg-luxury-black p-3 rounded">
-                <div className="flex items-center justify-between text-[10px] uppercase font-mono text-white/50 mb-1.5">
+              <div className="border border-white/5 bg-[#090312]/60 p-4 rounded-xl shadow-inner backdrop-blur-sm">
+                <div className="flex items-center justify-between text-[9px] uppercase font-mono text-white/50 tracking-widest mb-2">
                   <span>Stock availability:</span>
-                  <span className={product.stock === 0 ? "text-red-400 font-bold" : product.stock < 15 ? "text-yellow-400 font-bold" : "text-green-400 font-bold"}>
-                    {product.stock === 0 ? "ARCHIVED / OUT" : `${product.stock} units left`}
+                  <span className={product.stock === 0 ? "text-red-400 font-bold animate-pulse" : product.stock < 15 ? "text-yellow-400 font-bold" : "text-emerald-400 font-black"}>
+                    {product.stock === 0 ? "ARCHIVED / SOLD OUT" : `${product.stock} units left`}
                   </span>
                 </div>
                 {product.stock > 0 && (
-                  <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-luxury-gold"
+                      className={`h-full ${product.stock < 10 ? 'bg-yellow-400' : 'bg-gradient-to-r from-luxury-purple via-luxury-gold to-emerald-400'}`}
                       style={{ width: `${Math.min(100, (product.stock / 350) * 100)}%` }}
                     ></div>
                   </div>
                 )}
               </div>
 
-              <div className="text-xs text-white/70 space-y-2 leading-relaxed">
-                <h4 className="font-display text-[9.5px] uppercase font-mono tracking-widest text-white/50">Collection description</h4>
-                <p className="font-light italic">{product.description}</p>
-                <div className="text-[11px] text-white/40 font-mono mt-1">
+              <div className="text-xs space-y-2.5 leading-relaxed border-t border-white/5 pt-4">
+                <h4 className="font-display text-[9px] uppercase font-mono tracking-[0.25em] text-white/40 font-bold">Collection description</h4>
+                <p className="font-serif italic font-light text-zinc-300 text-sm tracking-wide leading-relaxed">{product.description}</p>
+                <div className="text-[10px] text-white/30 font-mono mt-1.5 tracking-wider uppercase flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold/50"></span>
                   <span>DIMENSIONS SPECIFIER: {product.dimensions || 'Dynamic Custom Fit'}</span>
                 </div>
               </div>
@@ -116,17 +117,17 @@ export default function ProductDetailModal({
 
             {/* Sizes selector box */}
             {product.sizes && product.sizes.length > 0 && (
-              <div>
-                <p className="text-[10px] text-white/50 uppercase font-mono tracking-wider mb-2">CHOOSE DIMENSIONS FIT</p>
-                <div className="flex flex-wrap gap-2">
+              <div className="space-y-2.5 border-t border-white/5 pt-4">
+                <p className="text-[9px] text-white/40 uppercase font-mono tracking-[0.25em] font-semibold">CHOOSE DIMENSIONS FIT</p>
+                <div className="flex flex-wrap gap-2.5">
                   {product.sizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`h-9 min-w-9 px-3 rounded text-xs font-display border uppercase tracking-widest flex items-center justify-center transition-all ${
+                      className={`h-10 min-w-10 px-5 rounded-xl text-xs font-display border uppercase tracking-[0.2em] flex items-center justify-center transition-all duration-300 cursor-pointer ${
                         selectedSize === size
-                          ? 'bg-luxury-gold text-luxury-black font-extrabold border-luxury-gold shadow-md'
-                          : 'bg-luxury-charcoal/50 text-white/75 border-white/5 hover:border-white/20'
+                          ? 'bg-gradient-to-r from-luxury-purple-glowing via-[#7b2cbf] to-[#5a189a] text-white font-black border-[#9a4dff] shadow-[0_0_20px_rgba(154,77,255,0.6)] scale-105'
+                          : 'bg-luxury-charcoal/30 text-white/60 border-white/5 hover:border-[#9a4dff]/40 hover:text-white hover:bg-[#100325]'
                       }`}
                     >
                       {size}

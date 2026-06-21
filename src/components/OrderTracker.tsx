@@ -106,6 +106,27 @@ export default function OrderTracker({
       }
       const data = await res.json();
       setOrder(data);
+
+      // Store tracked order ID and phone in localStorage for notification integration
+      try {
+        const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
+        if (!prevOrderIds.includes(data.id)) {
+          prevOrderIds.push(data.id);
+          localStorage.setItem('stylex_placed_order_ids', JSON.stringify(prevOrderIds));
+        }
+        if (data.customerPhone) {
+          localStorage.setItem('stylex_guest_phone', data.customerPhone);
+        }
+        if (data.customerEmail) {
+          localStorage.setItem('stylex_guest_email', data.customerEmail);
+        }
+        // Trigger app notifications reload
+        if (typeof (window as any).refreshAppNotifications === 'function') {
+          (window as any).refreshAppNotifications();
+        }
+      } catch (err) {
+        console.warn('Error saving tracked order context: ', err);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Error tracing tracking logs');
     } finally {

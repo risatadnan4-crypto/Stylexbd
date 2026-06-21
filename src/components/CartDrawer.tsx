@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, Tag, ChevronDown, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
-import { CartItem, Coupon, Customer } from '../types';
+import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
 
 interface CartDrawerProps {
@@ -10,6 +10,7 @@ interface CartDrawerProps {
   onUpdateQty: (idx: number, qty: number) => void;
   onRemoveItem: (idx: number) => void;
   activeCoupons: Coupon[];
+  products?: Product[];
   settings?: {
     whatsappNumber: string;
     paymentBadgeTitle?: string;
@@ -28,6 +29,7 @@ export default function CartDrawer({
   onUpdateQty,
   onRemoveItem,
   activeCoupons,
+  products = [],
   settings,
   onCheckoutSuccess,
   initialShowCheckout = false,
@@ -71,11 +73,33 @@ export default function CartDrawer({
   const itemsTotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   
   let discountAmount = 0;
+  let couponDetailsNote = "";
+
   if (appliedCoupon) {
-    if (appliedCoupon.type === 'PERCENTAGE') {
-      discountAmount = Math.round((itemsTotal * appliedCoupon.value) / 100);
+    if (appliedCoupon.code.toUpperCase().startsWith('RISAT')) {
+      // Lottery coupon - applies only to items where lotteryEligible is true
+      const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
+        return sum + (item.product.lotteryEligible !== false ? item.product.price * item.quantity : 0);
+      }, 0);
+      discountAmount = Math.round((lotteryEligibleTotal * appliedCoupon.value) / 100);
+      couponDetailsNote = `(-${appliedCoupon.value}% on eligible items)`;
     } else {
-      discountAmount = appliedCoupon.value;
+      // Find if we have a matching product-specific coupon active in the store
+      const specificProd = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === appliedCoupon.code.toUpperCase());
+      if (specificProd) {
+        const matchingCartItems = cartItems.filter(item => item.product.id === specificProd.id);
+        const specificTotal = matchingCartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        const discountVal = appliedCoupon.type === 'PERCENTAGE' ? appliedCoupon.value : 15;
+        discountAmount = Math.round((specificTotal * discountVal) / 100);
+        couponDetailsNote = `(-${discountVal}% on ${specificProd.title})`;
+      } else {
+        // Global coupon
+        if (appliedCoupon.type === 'PERCENTAGE') {
+          discountAmount = Math.round((itemsTotal * appliedCoupon.value) / 100);
+        } else {
+          discountAmount = appliedCoupon.value;
+        }
+      }
     }
   }
 
@@ -132,7 +156,61 @@ export default function CartDrawer({
       setCouponCode(codeUpper);
     }
 
-    const matched = activeCoupons.find(c => c.code === codeUpper && c.active);
+    let matched = activeCoupons.find(c => c.code === codeUpper && c.active);
+    
+    // Dynamic support for RISAT codes (one-time lottery offer)
+    if (!matched && codeUpper.startsWith('RISAT')) {
+      if (localStorage.getItem('has_used_lottery_code') === 'true') {
+        setCouponError('YOU HAVE ALREADY USED THIS ONE-TIME EXCLUSIVE LOTTERY VOUCHER');
+        setAppliedCoupon(null);
+        return;
+      }
+      
+      const pctStr = codeUpper.replace('RISAT', '');
+      const pctVal = Number(pctStr);
+      if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
+        // Enforce that at least one product in the shopping bag is lottery-eligible
+        const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
+          return sum + (item.product.lotteryEligible !== false ? item.product.price * item.quantity : 0);
+        }, 0);
+
+        if (lotteryEligibleTotal === 0) {
+          setCouponError('NONE OF THE PRODUCTS IN YOUR SHOPPING BAG ARE ELIGIBLE FOR DISCOUNTS WITH THIS WHEEL CODE');
+          setAppliedCoupon(null);
+          return;
+        }
+
+        matched = {
+          id: 'dynamic-lottery',
+          code: codeUpper,
+          type: 'PERCENTAGE',
+          value: pctVal,
+          active: true
+        } as any;
+      }
+    }
+
+    // Dynamic support for single product custom coupon code configurations
+    if (!matched) {
+      const matchProductCoupon = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === codeUpper);
+      if (matchProductCoupon) {
+        const isInCart = cartItems.some(i => i.product.id === matchProductCoupon.id);
+        if (!isInCart) {
+          setCouponError(`THIS COUPON (${codeUpper}) CAN ONLY BE USED FOR "${matchProductCoupon.title.toUpperCase()}". ADD IT TO YOUR SHOPPING BAG FIRST!`);
+          setAppliedCoupon(null);
+          return;
+        }
+
+        matched = {
+          id: `product-coupon-${matchProductCoupon.id}`,
+          code: codeUpper,
+          type: 'PERCENTAGE',
+          value: matchProductCoupon.couponDiscountPercent || 15,
+          active: true
+        } as any;
+      }
+    }
+
     if (matched) {
       setAppliedCoupon(matched);
       setCouponSuccess(`EXCLUSIVE CODE APPLIED (-${matched.type === 'PERCENTAGE' ? matched.value + '%' : '৳' + matched.value})`);
@@ -195,8 +273,33 @@ export default function CartDrawer({
       }
 
       // Success
+      if (appliedCoupon && appliedCoupon.code.startsWith('RISAT')) {
+        localStorage.setItem('has_used_lottery_code', 'true');
+      }
       setAppliedCoupon(null);
       setCouponCode('');
+      
+      // Store guest checkout details in localStorage so notifications can match them for status updates
+      try {
+        const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
+        if (!prevOrderIds.includes(data.order.id)) {
+          prevOrderIds.push(data.order.id);
+          localStorage.setItem('stylex_placed_order_ids', JSON.stringify(prevOrderIds));
+        }
+        if (customerPhone) {
+          localStorage.setItem('stylex_guest_phone', customerPhone);
+        }
+        if (customer?.email) {
+          localStorage.setItem('stylex_guest_email', customer.email);
+        }
+        // Instantly reload app notifications
+        if (typeof (window as any).refreshAppNotifications === 'function') {
+          (window as any).refreshAppNotifications();
+        }
+      } catch (err) {
+        console.warn('Error saving guest order context: ', err);
+      }
+
       // Open Whatsapp link & show success
       onCheckoutSuccess(data.order.id, data.whatsappUrl);
     } catch (err: any) {
@@ -414,9 +517,16 @@ export default function CartDrawer({
                   <span className="font-mono">{formatPrice(itemsTotal)}</span>
                 </div>
                 {appliedCoupon && (
-                  <div className="flex justify-between text-xs text-green-400 font-semibold animate-fade-in">
-                    <span>🎟️ VIP Discount Applied</span>
-                    <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                  <div>
+                    <div className="flex justify-between text-xs text-green-400 font-semibold animate-fade-in">
+                      <span>🎟️ VIP Discount Applied ({appliedCoupon.code})</span>
+                      <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                    </div>
+                    {couponDetailsNote && (
+                      <div className="text-[10px] text-emerald-400/60 font-mono text-right italic mt-0.5">
+                        {couponDetailsNote}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="flex justify-between text-sm text-white font-black border-t border-white/5 pt-3">
@@ -450,7 +560,7 @@ export default function CartDrawer({
                 <span>Return to Shopping Bag</span>
               </button>
 
-              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-4.5 rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
+              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-5 rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
                 <div className="flex items-center justify-between pb-3 border-b border-white/5">
                   <h4 className="font-serif text-[13.5px] text-white/95 uppercase tracking-wider flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
@@ -706,9 +816,16 @@ export default function CartDrawer({
                     <span className="font-mono">{formatPrice(itemsTotal)}</span>
                   </div>
                   {appliedCoupon && (
-                    <div className="flex justify-between text-[11.5px] text-green-400 font-semibold animate-fade-in">
-                      <span className="flex items-center gap-1">🎟️ VIP Code ({appliedCoupon.code})</span>
-                      <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                    <div>
+                      <div className="flex justify-between text-[11.5px] text-green-400 font-semibold animate-fade-in">
+                        <span className="flex items-center gap-1">🎟️ VIP Code ({appliedCoupon.code})</span>
+                        <span className="font-mono">-{formatPrice(discountAmount)}</span>
+                      </div>
+                      {couponDetailsNote && (
+                        <div className="text-[9.5px] text-emerald-400/60 font-mono text-right italic mt-0.5">
+                          {couponDetailsNote}
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex justify-between text-[11.5px] text-zinc-400">

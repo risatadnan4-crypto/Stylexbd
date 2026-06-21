@@ -775,7 +775,10 @@ app.get("/api/products", async (req, res) => {
         trending: p.trending !== undefined ? !!p.trending : true,
         featured: p.featured !== undefined ? !!p.featured : true,
         price: Number(p.price || 0),
-        stock: Number(p.stock || 0)
+        stock: Number(p.stock || 0),
+        lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
+        couponCode: p.couponCode || "",
+        couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined
       }));
       db.products = products;
       saveDB();
@@ -797,7 +800,10 @@ app.get("/api/products/:id", async (req, res) => {
         trending: data.trending !== undefined ? !!data.trending : true,
         featured: data.featured !== undefined ? !!data.featured : true,
         price: Number(data.price || 0),
-        stock: Number(data.stock || 0)
+        stock: Number(data.stock || 0),
+        lotteryEligible: data.lotteryEligible !== undefined ? !!data.lotteryEligible : true,
+        couponCode: data.couponCode || "",
+        couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined
       };
       return res.json(prod);
     }
@@ -873,14 +879,17 @@ app.post("/api/products", async (req, res) => {
       deliveryPriceBarishal: Number(newProduct.deliveryPriceBarishal || 150),
       deliveryPriceSylhet: Number(newProduct.deliveryPriceSylhet || 150),
       deliveryPriceRangpur: Number(newProduct.deliveryPriceRangpur || 150),
-      deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150)
+      deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150),
+      lotteryEligible: newProduct.lotteryEligible !== undefined ? !!newProduct.lotteryEligible : true,
+      couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
+      couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
     
     // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
     if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-      console.warn("⚠️ Custom delivery Price columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
+      console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
       delete payload.deliveryPrice;
       delete payload.deliveryPriceDhaka;
       delete payload.deliveryPriceOutside;
@@ -891,6 +900,9 @@ app.post("/api/products", async (req, res) => {
       delete payload.deliveryPriceSylhet;
       delete payload.deliveryPriceRangpur;
       delete payload.deliveryPriceMymensingh;
+      delete payload.lotteryEligible;
+      delete payload.couponCode;
+      delete payload.couponDiscountPercent;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -971,14 +983,17 @@ app.put("/api/products/:id", async (req, res) => {
         deliveryPriceBarishal: Number(target.deliveryPriceBarishal || 150),
         deliveryPriceSylhet: Number(target.deliveryPriceSylhet || 150),
         deliveryPriceRangpur: Number(target.deliveryPriceRangpur || 150),
-        deliveryPriceMymensingh: Number(target.deliveryPriceMymensingh || 150)
+        deliveryPriceMymensingh: Number(target.deliveryPriceMymensingh || 150),
+        lotteryEligible: target.lotteryEligible !== undefined ? !!target.lotteryEligible : true,
+        couponCode: target.couponCode ? target.couponCode.trim() : "",
+        couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
 
       // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
       if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-        console.warn("⚠️ Custom delivery Price columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
+        console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
         delete payload.deliveryPrice;
         delete payload.deliveryPriceDhaka;
         delete payload.deliveryPriceOutside;
@@ -989,6 +1004,9 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.deliveryPriceSylhet;
         delete payload.deliveryPriceRangpur;
         delete payload.deliveryPriceMymensingh;
+        delete payload.lotteryEligible;
+        delete payload.couponCode;
+        delete payload.couponDiscountPercent;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }
