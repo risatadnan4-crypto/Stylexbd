@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -12,6 +12,7 @@ interface ProductCardProps {
   isWishlisted: boolean;
   onToggleWishlist: (p: Product) => void;
   whatsappNumber?: string;
+  isNotifyMeDeactivated?: boolean;
 }
 
 export default function ProductCard({
@@ -21,10 +22,52 @@ export default function ProductCard({
   onProductClick,
   isWishlisted,
   onToggleWishlist,
-  whatsappNumber = "8801755104443"
+  whatsappNumber = "8801755104443",
+  isNotifyMeDeactivated = false
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showWhyBuy, setShowWhyBuy] = useState(false);
+  const [showNotifyForm, setShowNotifyForm] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifySuccess, setNotifySuccess] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
+  const [submittingNotify, setSubmittingNotify] = useState(false);
+
+  const handleNotifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifyEmail || !notifyEmail.includes('@')) {
+      setNotifyError("Please enter a valid email address.");
+      return;
+    }
+
+    setSubmittingNotify(true);
+    setNotifyError("");
+    try {
+      const response = await fetch("/api/notify-me", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: notifyEmail,
+          productId: product.id,
+          productTitle: product.title
+        })
+      });
+
+      if (response.ok) {
+        setNotifySuccess(true);
+        setNotifyEmail('');
+      } else {
+        const errData = await response.json();
+        setNotifyError(errData.error || "An error occurred. Please try again.");
+      }
+    } catch (err) {
+      setNotifyError("Failed to register alert. Please try again.");
+    } finally {
+      setSubmittingNotify(false);
+    }
+  };
 
   // Generate WhatsApp Direct link for this exact product
   const handleWhatsAppDirect = () => {
@@ -137,30 +180,50 @@ export default function ProductCard({
       {/* Order Actions and Collapsible Explain Panels */}
       <div className="space-y-2 mt-auto z-10 w-full">
         <div className="grid grid-cols-2 gap-[10px]">
-          {/* Add to Cart */}
-          <button
-            onClick={() => onAddToCart(product, selectedSize)}
-            disabled={product.stock === 0}
-            className="w-full h-[40px] border border-luxury-purple-glowing/30 hover:border-luxury-purple-glowing/80 bg-[#0e051c] hover:bg-[#190a33] text-[#cdaaff] hover:text-white text-[11px] sm:text-[12px] font-display font-semibold uppercase tracking-[0.1em] rounded-[14px] flex items-center justify-center gap-1.5 transition-all duration-200 ease-out disabled:opacity-45 hover:shadow-[0_0_15px_rgba(154,77,255,0.3)] active:scale-[0.98] cursor-pointer"
-          >
-            <ShoppingBag size={13.5} className="opacity-90 text-luxury-purple-glowing" />
-            <span>Add to Cart</span>
-          </button>
+          {/* Add to Cart replaced with Notify Me if out of stock */}
+          {product.stock === 0 ? (
+            isNotifyMeDeactivated ? (
+              <button
+                disabled
+                className="relative w-full h-[40px] bg-neutral-950/60 border-2 border-neutral-800/80 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
+              >
+                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Out of</span>
+                <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Stock</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
+                className="relative w-full h-[40px] bg-gradient-to-r from-amber-950 to-[#221005] border-2 border-amber-500/40 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1"
+              >
+                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-amber-400/80 uppercase font-black">Notify</span>
+                <span className="relative z-10 tracking-[0.12em] text-amber-100 font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] mt-[1px]">Me</span>
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => onAddToCart(product, selectedSize)}
+              disabled={product.stock === 0}
+              className="relative w-full h-[40px] bg-gradient-to-r from-[#170b2e] to-[#0a0318] border-2 border-luxury-purple/60 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_20px_rgba(154,77,255,0.4)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1"
+            >
+              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-purple-300/80 uppercase font-black">Add To</span>
+              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.7)] mt-[1px]">Cart</span>
+            </button>
+          )}
           
           {/* Buy Now Premium Button */}
           <button
             onClick={() => onOrderNow(product, selectedSize)}
             disabled={product.stock === 0}
-            className="w-full h-[40px] bg-gradient-to-r from-luxury-gold-dark via-[#ffe79c] to-luxury-gold hover:from-[#eec849] hover:to-[#bc901a] text-[#0a0515] font-display font-extrabold text-[11px] sm:text-[12px] uppercase tracking-[0.1em] rounded-[14px] transition-all duration-200 ease-out disabled:opacity-40 shadow-[0_4px_12px_rgba(212,175,55,0.22)] hover:shadow-[0_6px_22px_rgba(212,175,55,0.45)] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden"
+            className="running-glow-gold-filled w-full h-[40px] text-white font-display font-black text-[11px] sm:text-[12px] uppercase tracking-[0.1em] rounded-[14px] transition-all duration-200 ease-out disabled:opacity-40 shadow-[0_4px_12px_rgba(154,77,255,0.25)] hover:shadow-[0_6px_22px_rgba(154,77,255,0.55)] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5"
           >
-            <span>Buy Now</span>
+            <span className="relative z-10">{product.stock === 0 ? "Sold Out" : "Buy Now"}</span>
           </button>
         </div>
 
         {/* WhatsApp Direct Order */}
         <button
           onClick={handleWhatsAppDirect}
-          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[10.5px] sm:text-[11.5px] font-display font-extrabold uppercase tracking-[0.15em] py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
+          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[9.5px] sm:text-[11.5px] font-display font-extrabold uppercase tracking-[0.12em] py-1.5 sm:py-3 rounded-lg sm:rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
         >
           <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
           <Send size={13.5} className="text-emerald-400 group-hover/wa:translate-x-0.5 group-hover/wa:-translate-y-0.5 transition-transform" />
@@ -187,6 +250,70 @@ export default function ProductCard({
           )}
         </div>
       </div>
+
+      {/* Restock Notification Form Slide-up Overlay */}
+      {showNotifyForm && (
+        <div className="absolute inset-x-0 bottom-0 bg-[#0c0516] border-t-2 border-purple-500/30 p-3.5 rounded-b-xl z-20 transition-all duration-300 flex flex-col gap-2 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-300">
+          <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+            <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[9px] uppercase tracking-wider font-extrabold">
+              <Bell size={11} className="animate-bounce text-amber-500" />
+              <span>Restock Intel Alert</span>
+            </div>
+            <button
+              onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
+              className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-all cursor-pointer"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          {notifySuccess ? (
+            <div className="flex flex-col items-center justify-center py-5 text-center space-y-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
+                <Check size={16} />
+              </div>
+              <p className="text-[11px] text-emerald-300 font-mono font-semibold uppercase tracking-wider">ALERT LOCKED IN!</p>
+              <p className="text-[9.5px] text-white/70 max-w-[190px] leading-tight">We'll alert your secure private email channel the second restock lands.</p>
+              <button
+                onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); }}
+                className="text-[9px] uppercase font-mono tracking-widest text-luxury-purple-glowing hover:text-white pt-1 bg-transparent border-0 cursor-pointer"
+              >
+                DISMISS
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleNotifySubmit} className="space-y-2.5">
+              <p className="text-[10px] text-purple-200/80 leading-relaxed font-sans">
+                Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
+              </p>
+              
+              <div className="relative">
+                <Mail size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-purple-400/70" />
+                <input
+                  type="email"
+                  required
+                  placeholder="Enter your VIP email address"
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  className="w-full bg-[#150a24] border border-purple-500/30 rounded-lg pl-8 pr-2 py-1.5 text-[10.5px] text-white placeholder-purple-400/30 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all font-mono"
+                />
+              </div>
+
+              {notifyError && (
+                <p className="text-[9px] text-red-400 font-mono leading-tight">{notifyError}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={submittingNotify}
+                className="w-full h-[32px] bg-gradient-to-r from-purple-600 to-luxury-purple-glowing hover:from-purple-500 hover:to-purple-400 text-white font-mono font-black text-[9.5px] uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(168,85,247,0.35)] hover:shadow-[0_2px_15px_rgba(168,85,247,0.6)] hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+              >
+                {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
     </div>
   );

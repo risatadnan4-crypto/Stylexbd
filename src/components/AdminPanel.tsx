@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
-  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift
+  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
@@ -13,7 +13,7 @@ interface AdminPanelProps {
   onBackToStore: () => void;
   products: Product[];
   onRefreshProducts: () => void;
-  settings?: { whatsappNumber: string; adminEmail?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; paymentBadgeTitle?: string; paymentBadgeDescription?: string };
+  settings?: { whatsappNumber: string; adminEmail?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean };
   onRefreshSettings?: () => void;
 }
 
@@ -24,7 +24,7 @@ export default function AdminPanel({
   settings,
   onRefreshSettings
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts'>('dashboard');
 
   // Admin Data states
   const [analytics, setAnalytics] = useState<any>(null);
@@ -34,6 +34,7 @@ export default function AdminPanel({
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [chats, setChats] = useState<ChatRoom[]>([]);
+  const [backInStockAlerts, setBackInStockAlerts] = useState<any[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
 
@@ -46,8 +47,14 @@ export default function AdminPanel({
   const [lotteryDiscountPercentageInput, setLotteryDiscountPercentageInput] = useState(settings?.lotteryDiscountPercentage || 15);
   const [paymentBadgeTitleInput, setPaymentBadgeTitleInput] = useState(settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED");
   const [paymentBadgeDescriptionInput, setPaymentBadgeDescriptionInput] = useState(settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.");
+  const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
+  const [deactivatedMessageInput, setDeactivatedMessageInput] = useState(settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.");
+  const [isLotteryDeactivatedInput, setIsLotteryDeactivatedInput] = useState(settings?.isLotteryDeactivated || false);
+  const [isNotifyMeDeactivatedInput, setIsNotifyMeDeactivatedInput] = useState(settings?.isNotifyMeDeactivated || false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadProgress, setLogoUploadProgress] = useState('');
 
   useEffect(() => {
     if (settings?.whatsappNumber) {
@@ -74,6 +81,18 @@ export default function AdminPanel({
     if (settings?.paymentBadgeDescription !== undefined) {
       setPaymentBadgeDescriptionInput(settings.paymentBadgeDescription);
     }
+    if (settings?.isCatalogDeactivated !== undefined) {
+      setIsCatalogDeactivatedInput(settings.isCatalogDeactivated);
+    }
+    if (settings?.deactivatedMessage !== undefined) {
+      setDeactivatedMessageInput(settings.deactivatedMessage);
+    }
+    if (settings?.isLotteryDeactivated !== undefined) {
+      setIsLotteryDeactivatedInput(settings.isLotteryDeactivated);
+    }
+    if (settings?.isNotifyMeDeactivated !== undefined) {
+      setIsNotifyMeDeactivatedInput(settings.isNotifyMeDeactivated);
+    }
   }, [settings]);
 
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -92,7 +111,11 @@ export default function AdminPanel({
           lotteryPrizes: lotteryPrizesInput,
           lotteryDiscountPercentage: lotteryDiscountPercentageInput,
           paymentBadgeTitle: paymentBadgeTitleInput,
-          paymentBadgeDescription: paymentBadgeDescriptionInput
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
         })
       });
       if (res.ok) {
@@ -109,6 +132,143 @@ export default function AdminPanel({
       alert("Error saving settings: " + err.message);
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    setLogoUploadProgress("Preparing luxury logo asset...");
+
+    try {
+      // 1. Client-Side Image Compression & Resizing
+      const compressed = await new Promise<{ base64: string; blob: Blob }>((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDimension = 600;
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve({ base64: event.target?.result as string, blob: file });
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64 = canvas.toDataURL('image/png', 0.9);
+            canvas.toBlob((blob) => {
+              resolve({ base64, blob: blob || file });
+            }, 'image/png', 0.9);
+          };
+          img.onerror = () => {
+            resolve({ base64: event.target?.result as string, blob: file });
+          };
+        };
+        reader.onerror = () => {
+          resolve({ base64: '', blob: file });
+        };
+      });
+
+      const fileNameClean = `logo_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+      // ATTEMPT 1: Try direct upload to Supabase bucket 'products' using SDK
+      setLogoUploadProgress("Uploading logo to storage...");
+      try {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(fileNameClean, compressed.blob, {
+            contentType: file.type || 'image/png',
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(fileNameClean);
+
+          if (publicUrlData?.publicUrl) {
+            setLogoUrlInput(publicUrlData.publicUrl);
+            setLogoUploadProgress("Logo uploaded successfully!");
+            await handleAutoSaveSettings(publicUrlData.publicUrl);
+            setLogoUploading(false);
+            return;
+          }
+        }
+      } catch (directErr) {
+        console.warn("Direct storage upload failed for logo, cascading to server:", directErr);
+      }
+
+      // ATTEMPT 2: Fallback to server-side /api/upload endpoint
+      setLogoUploadProgress("Finalizing server-side upload...");
+      if (!compressed.base64) {
+        throw new Error("Could not prepare logo binary data.");
+      }
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, base64Data: compressed.base64 })
+      });
+
+      const resultData = await res.json();
+      if (res.ok && resultData.fileUrl) {
+        setLogoUrlInput(resultData.fileUrl);
+        setLogoUploadProgress("Logo registered on servers successfully!");
+        await handleAutoSaveSettings(resultData.fileUrl);
+      } else {
+        throw new Error(resultData.message || "Failed to process logo upload.");
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      setLogoUploadProgress(`Upload error: ${err.message || 'Verification failed'}`);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleAutoSaveSettings = async (url: string) => {
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          whatsappNumber: whatsappNumberInput,
+          adminEmail: adminEmailInput,
+          appsScriptUrl: appsScriptUrlInput,
+          logoUrl: url,
+          lotteryPrizes: lotteryPrizesInput,
+          lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          paymentBadgeTitle: paymentBadgeTitleInput,
+          paymentBadgeDescription: paymentBadgeDescriptionInput
+        })
+      });
+      if (onRefreshSettings) {
+        onRefreshSettings();
+      }
+    } catch (e) {
+      console.error("Auto-save logo settings error:", e);
     }
   };
 
@@ -190,11 +350,13 @@ export default function AdminPanel({
     fetchCoupons();
     fetchCampaigns();
     fetchChats();
+    fetchAlerts();
 
     const interval = setInterval(() => {
       // Periodic poll for dynamic admin updates (e.g. Chat alerts)
       fetchAnalytics();
       fetchChats();
+      fetchAlerts();
     }, 8000);
 
     return () => clearInterval(interval);
@@ -255,6 +417,28 @@ export default function AdminPanel({
         }
       }
     } catch (e) {}
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch('/api/back-in-stock-alerts');
+      if (res.ok) {
+        setBackInStockAlerts(await res.json());
+      }
+    } catch (e) {
+      console.error("Error reading restock alerts:", e);
+    }
+  };
+
+  const handleDeleteAlert = async (id: string) => {
+    try {
+      const res = await fetch(`/api/back-in-stock-alerts/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchAlerts();
+      }
+    } catch (e) {
+      console.error("Error archiving restock alert:", e);
+    }
   };
 
   // Dual-path authenticated upload with automatic client-side image compression
@@ -769,6 +953,21 @@ export default function AdminPanel({
             </button>
 
             <button 
+              onClick={() => { setActiveTab('alerts'); setSelectedChat(null); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'alerts' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Bell size={13} className={activeTab === 'alerts' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              Restock Alerts
+              {backInStockAlerts.length > 0 && (
+                <span className="ml-auto bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold">
+                  {backInStockAlerts.length}
+                </span>
+              )}
+            </button>
+
+            <button 
               onClick={() => { setActiveTab('settings'); setSelectedChat(null); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
                 activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -808,6 +1007,7 @@ export default function AdminPanel({
               {activeTab === 'chat' && "Presence Concierge Help"}
               {activeTab === 'seo' && "Search Optimizations"}
               {activeTab === 'settings' && "VIP System Settings"}
+              {activeTab === 'alerts' && "Restock Intel Alert Hub"}
             </h1>
             <p className="text-xs text-white/40 mt-0.5">Welcome, Risat Adnan. (Admin Account)</p>
           </div>
@@ -1204,7 +1404,8 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                       setShowProductForm(false);
                       setFormError('');
                     }}
-                    className="text-white/50 hover:text-white"
+                    className="text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer"
+                    title="Dismiss Form"
                   >
                     <X size={16} />
                   </button>
@@ -2035,6 +2236,121 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
           </div>
         )}
 
+        {activeTab === 'alerts' && (
+          <div className="space-y-6 max-w-5xl animate-fade-in text-white">
+            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
+                  <Bell size={18} className="text-luxury-gold" />
+                  Restock Alerts Hub
+                </h2>
+                <p className="text-xs text-white/50 mt-1 font-sans">
+                  Monitor boutique back-in-stock alert registrations. View interested collectors and easily send notification lists.
+                </p>
+              </div>
+              <button 
+                onClick={fetchAlerts}
+                className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer self-start sm:self-auto"
+              >
+                🔄 Refresh Registry
+              </button>
+            </div>
+
+            {backInStockAlerts.length === 0 ? (
+              <div className="border border-white/5 bg-[#0a0a0a] p-12 rounded-lg text-center space-y-4 shadow-xl">
+                <div className="w-12 h-12 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mx-auto text-white/20">
+                  <Bell size={24} />
+                </div>
+                <div>
+                  <h4 className="text-xs uppercase font-mono tracking-widest text-zinc-400">Zero Registrations</h4>
+                  <p className="text-[11px] text-white/40 mt-1 font-sans">No VIP collectors have requested notification for out-of-stock items yet.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-white/5 bg-[#0a0a0a] rounded-lg overflow-hidden shadow-xl">
+                <div className="p-4 bg-[#111] border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">VIP Alert Registry ({backInStockAlerts.length})</span>
+                  <button
+                    onClick={() => {
+                      const emails = backInStockAlerts.map(a => a.email).join(', ');
+                      navigator.clipboard.writeText(emails);
+                      alert("All collector email addresses copied to clipboard!");
+                    }}
+                    className="bg-purple-950/40 hover:bg-purple-900 border border-purple-500/20 text-purple-300 hover:text-white px-3 py-1.5 text-[9px] font-mono uppercase rounded transition-all cursor-pointer"
+                  >
+                    📋 Copy All Emails List
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-[11.5px] whitespace-nowrap min-w-[700px]">
+                    <thead className="bg-[#050505] text-zinc-500 uppercase text-[9px] tracking-wider border-b border-white/5">
+                      <tr>
+                        <th className="p-4 font-bold">Date Registered</th>
+                        <th className="p-4 font-bold">Collector Email</th>
+                        <th className="p-4 font-bold">Luxury product</th>
+                        <th className="p-4 font-bold">Product code</th>
+                        <th className="p-4 font-bold text-center">Current stock status</th>
+                        <th className="p-4 font-bold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {backInStockAlerts.map((alertItem: any) => {
+                        const originalProduct = products.find(p => p.id === alertItem.productId);
+                        const isInStock = originalProduct?.stock && originalProduct.stock > 0;
+                        return (
+                          <tr key={alertItem.id} className="hover:bg-white/[0.01] transition-all">
+                            <td className="p-4 text-white/55">
+                              {new Date(alertItem.requestedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </td>
+                            <td className="p-4 text-white font-sans font-medium hover:text-luxury-gold transition-colors">
+                              <a href={`mailto:${alertItem.email}`} className="underline tracking-wide">{alertItem.email}</a>
+                            </td>
+                            <td className="p-4 text-luxury-gold/90 uppercase font-sans font-semibold">
+                              {alertItem.productTitle}
+                            </td>
+                            <td className="p-4 text-zinc-400">
+                              {originalProduct?.code || "SKU-" + alertItem.productId.substring(0, 5).toUpperCase()}
+                            </td>
+                            <td className="p-4 text-center">
+                              {isInStock ? (
+                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
+                                  IN STOCK ({originalProduct?.stock})
+                                </span>
+                              ) : (
+                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
+                                  OUT OF STOCK
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              {isInStock && (
+                                <button
+                                  onClick={() => {
+                                    window.open(`mailto:${alertItem.email}?subject=${encodeURIComponent(`Luxury restock update: ${alertItem.productTitle} is back!`)}&body=${encodeURIComponent(`Dear Collector,\n\nWe are pleased to inform you that "${alertItem.productTitle}" is officially back in stock and ready to order!\n\nView and order here: ${window.location.origin}\n\nWarm regards,\nStyle X VIP Team`)}`);
+                                  }}
+                                  className="border border-emerald-500/25 hover:border-emerald-400 text-emerald-400 hover:text-white bg-emerald-950/40 px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
+                                >
+                                  📨 Ping Collector
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteAlert(alertItem.id)}
+                                className="border border-red-500/25 hover:border-red-400 hover:bg-red-950/20 text-red-400 hover:text-white px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
+                              >
+                                Archive
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="space-y-8 max-w-4xl animate-fade-in text-white">
             
@@ -2074,14 +2390,43 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                       <span>Brand Custom Logo URL:</span>
                       <span className="text-[8px] bg-luxury-purple/80 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">PREMIUM</span>
                     </label>
-                    <input 
-                      type="text"
-                      value={logoUrlInput}
-                      onChange={(e) => setLogoUrlInput(e.target.value)}
-                      placeholder="e.g. https://domain.com/my-logo.png"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL to replace the default typography brand monogram inside the elite header.</p>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={logoUrlInput}
+                        onChange={(e) => setLogoUrlInput(e.target.value)}
+                        placeholder="e.g. https://domain.com/my-logo.png"
+                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      />
+                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
+                        <Upload size={12} />
+                        <span>{logoUploading ? "Uploading..." : "Upload File"}</span>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={logoUploading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {logoUploadProgress && (
+                      <p className="text-[9px] text-luxury-gold font-mono tracking-wide mt-1 animate-pulse">
+                        ⚜️ {logoUploadProgress}
+                      </p>
+                    )}
+                    {logoUrlInput && (
+                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
+                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Monogram:</span>
+                        <img 
+                          src={logoUrlInput} 
+                          alt="Bespoke Logo Preview" 
+                          className="h-6 object-contain filter max-w-[120px]"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default typography brand monogram inside the elite header.</p>
                   </div>
 
                   {/* WHATSAPP INPUT */}
@@ -2124,6 +2469,100 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                       required
                     />
                     <p className="text-[9px] text-zinc-500 font-mono">Input your deployed Google Apps Script Web App URL ending in /exec.</p>
+                  </div>
+
+                  {/* CATALOG DEACTIVATION SECTION */}
+                  <div className="border border-red-500/20 bg-[#0c050b]/60 p-5 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-red-400 uppercase tracking-widest font-bold">🚨 Catalog Status &amp; Deactivation</span>
+                        <span className="text-[8px] bg-red-500/10 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">CRITICAL</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isCatalogDeactivatedInput}
+                          onChange={(e) => setIsCatalogDeactivatedInput(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      <div className="space-y-1">
+                        <label className="block text-[9.5px] font-mono text-zinc-400 uppercase tracking-widest font-semibold">Store Deactivation Message:</label>
+                        <textarea 
+                          rows={3}
+                          value={deactivatedMessageInput}
+                          onChange={(e) => setDeactivatedMessageInput(e.target.value)}
+                          placeholder="The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops."
+                          className="w-full bg-[#101010] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded-xl text-xs px-3.5 py-2.5 font-sans text-zinc-300 transition-all resize-none"
+                          disabled={!isCatalogDeactivatedInput}
+                        />
+                        <p className="text-[8.5px] text-zinc-500 font-mono">This message will be showcased to customers in premium styling instead of the product grid if deactivated.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LOTTERY DEACTIVATION SECTION */}
+                  <div className="border border-amber-500/20 bg-[#0b0906]/60 p-5 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">🎡 Fortuna Wheel &amp; Lottery Status</span>
+                        <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">GAME MODE</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isLotteryDeactivatedInput}
+                          onChange={(e) => setIsLotteryDeactivatedInput(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-300 font-sans leading-relaxed">
+                        {isLotteryDeactivatedInput ? (
+                          <span className="text-red-400 font-bold uppercase tracking-wide">⚠️ Lottery Wheel Deactivated:</span>
+                        ) : (
+                          <span className="text-emerald-400 font-bold uppercase tracking-wide">✅ Lottery Wheel Active:</span>
+                        )}{" "}
+                        Disabling this switch will hide all Fortune Wheel games, gift buttons, launcher overlays, and floating fortune vouchers from the store view.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* RESTOCK NOTIFICATION DEACTIVATION SECTION */}
+                  <div className="border border-purple-500/20 bg-[#09060b]/60 p-5 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold">🔔 Product Restock Notify Me Status</span>
+                        <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">COLLECTOR HUB</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isNotifyMeDeactivatedInput}
+                          onChange={(e) => setIsNotifyMeDeactivatedInput(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-zinc-300 font-sans leading-relaxed">
+                        {isNotifyMeDeactivatedInput ? (
+                          <span className="text-red-400 font-bold uppercase tracking-wide">⚠️ Notify Me System Deactivated:</span>
+                        ) : (
+                          <span className="text-emerald-400 font-bold uppercase tracking-wide">✅ Notify Me System Active:</span>
+                        )}{" "}
+                        When deactivated, out-of-stock items will display a disabled "Out of Stock" button instead of allowing collectors to register for back-in-stock notifications.
+                      </p>
+                    </div>
                   </div>
 
                   {/* CUSTOM ORDER/PAYMENT BADGE SECTION (WRITE YOUR OWN IDEA!) */}

@@ -76,7 +76,8 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
         {/* Closing trigger */}
         <button 
           onClick={onClose}
-          className="absolute right-4 top-4 text-white/40 hover:text-luxury-gold hover:scale-110 transition-all z-20 cursor-pointer"
+          className="absolute right-4 top-4 text-white/40 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 z-20 cursor-pointer p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)]"
+          title="Dismiss Lottery"
         >
           <X size={18} />
         </button>
@@ -122,10 +123,10 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15 
             {/* Interactive Reveal Button */}
             <button
               onClick={handleReveal}
-              className="w-full bg-gradient-to-r from-luxury-gold-dark via-luxury-gold to-[#fcf0cc] hover:brightness-110 text-luxury-black font-display font-black text-xs uppercase tracking-[0.2em] py-4 rounded-xl transition-all shadow-xl shadow-luxury-gold/10 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2"
+              className="running-glow-gold-filled w-full text-luxury-black font-display font-black text-xs uppercase tracking-[0.2em] py-4 rounded-xl transition-all shadow-xl shadow-luxury-gold/10 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2"
             >
-              <Sparkles size={14} className="animate-spin" />
-              REVEAL INSTANT VIP DISCOUNT
+              <Sparkles size={14} className="animate-spin relative z-10" />
+              <span className="relative z-10">REVEAL INSTANT VIP DISCOUNT</span>
             </button>
 
             <p className="text-[9px] text-white/30 font-mono tracking-wider">

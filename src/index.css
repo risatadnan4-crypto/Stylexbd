@@ -122,3 +122,198 @@
   animation: luxury-glow-spin 4s linear infinite;
 }
 
+/* Animated Multi-layered Halo Elite Gold & Purple Glow of Search Button */
+@keyframes elite-search-pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4), 0 0 20px rgba(154, 77, 255, 0.3), inset 0 0 5px rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.8), 0 0 45px rgba(154, 77, 255, 0.7), 0 0 10px rgba(212, 175, 55, 0.5), inset 0 0 12px rgba(212, 175, 55, 0.5);
+    border-color: rgba(212, 175, 55, 1);
+  }
+  105% {
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.4), 0 0 20px rgba(154, 77, 255, 0.3), inset 0 0 5px rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.6);
+  }
+}
+
+.elite-search-glowing-button {
+  animation: elite-search-pulse 2s infinite ease-in-out;
+  border: 1.5px solid rgba(212, 175, 55, 0.6);
+}
+
+.elite-search-glowing-button:hover {
+  animation: none;
+  box-shadow: 0 0 35px rgba(212, 175, 55, 1), 0 0 60px rgba(154, 77, 255, 0.9), 0 0 15px rgba(212, 175, 55, 0.8), inset 0 0 15px rgba(212, 175, 55, 0.6);
+  border-color: #ffffff;
+}
+
+/* Premium Continuous Running Glowing Laser Borders */
+@keyframes running-border-track {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  105% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.running-glow-button {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(154, 77, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180%;
+  height: 180%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(from 0deg, #9a4dff, #cdaaff 25%, #6d28d9 50%, #cdaaff 75%, #9a4dff);
+  animation: running-border-track 3.5s linear infinite;
+  z-index: -2;
+  border-radius: inherit;
+  opacity: 0.75;
+  filter: blur(0.5px);
+  will-change: transform;
+}
+
+.running-glow-button::after {
+  content: '';
+  position: absolute;
+  inset: 1.25px;
+  background: #090312; /* Match deep luxury obsidian */
+  z-index: -1;
+  border-radius: inherit;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-button:hover {
+  box-shadow: 0 0 25px rgba(154, 77, 255, 0.45), 0 0 5px rgba(154, 77, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.running-glow-button:hover::before {
+  opacity: 1;
+  animation-duration: 2s;
+  filter: blur(1px);
+}
+
+.running-glow-button:hover::after {
+  background: #110624; /* Shift to gorgeous deep indigo-purple on hover */
+}
+
+/* Purple filled premium button with glowing neon purple / violet laser running around the perimeter */
+.running-glow-gold-filled {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(154, 77, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-gold-filled::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180%;
+  height: 180%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(from 0deg, #ffffff, #9a4dff, #ff00ff, #cdaaff, #ffffff);
+  animation: running-border-track 3s linear infinite;
+  z-index: -2;
+  border-radius: inherit;
+  opacity: 0.85;
+  filter: blur(0.5px);
+  will-change: transform;
+}
+
+.running-glow-gold-filled::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  background: linear-gradient(135deg, #6d28d9, #4c1d95); /* Royal gradient */
+  z-index: -1;
+  border-radius: inherit;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-gold-filled:hover {
+  box-shadow: 0 0 30px rgba(154, 77, 255, 0.65), 0 0 10px rgba(255, 0, 255, 0.3);
+  transform: translateY(-1.5px);
+}
+
+.running-glow-gold-filled:hover::before {
+  opacity: 1;
+  animation-duration: 1.5s;
+  filter: blur(1px);
+}
+
+.running-glow-gold-filled:hover::after {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6); /* Brighter on hover */
+}
+
+/* Luxurious Pure Gold running laser border animation style */
+.running-glow-gold-green {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15), 0 4px 15px rgba(212, 175, 55, 0.08);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-gold-green::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180%;
+  height: 180%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(from 0deg, #ffd700, #ffeaa7, #d4af37, #b5891a, #ffd700);
+  animation: running-border-track 3s linear infinite;
+  z-index: -2;
+  border-radius: inherit;
+  opacity: 0.85;
+  filter: blur(0.5px);
+  will-change: transform;
+}
+
+.running-glow-gold-green::after {
+  content: '';
+  position: absolute;
+  inset: 1.25px;
+  background: #090501; /* Very deep luxury obsidian gold background */
+  z-index: -1;
+  border-radius: inherit;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.running-glow-gold-green:hover {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.45), 0 0 15px rgba(212, 175, 55, 0.25);
+  transform: translateY(-1px);
+}
+
+.running-glow-gold-green:hover::before {
+  opacity: 1;
+  animation-duration: 1.8s;
+  filter: blur(1.2px);
+}
+
+.running-glow-gold-green:hover::after {
+  background: #110802; /* Slightly lighter deep obsidian gold core on hover */
+}
+
+
+

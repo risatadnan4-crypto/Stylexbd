@@ -236,7 +236,8 @@ export default function CartDrawer({
           </div>
           <button 
             onClick={onClose}
-            className="text-white/60 hover:text-luxury-gold transition-colors p-1 hover:rotate-90 duration-300 cursor-pointer"
+            className="text-white/60 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer"
+            title="Close Drawer"
           >
             <X size={18} />
           </button>
@@ -449,24 +450,31 @@ export default function CartDrawer({
                 <span>Return to Shopping Bag</span>
               </button>
 
-              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                  <h4 className="font-serif text-[13px] text-white/95 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-ping"></span>
-                    Delivery Credentials
+              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-4.5 rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <h4 className="font-serif text-[13.5px] text-white/95 uppercase tracking-wider flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#9a4dff] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#d4af37]"></span>
+                    </span>
+                    <span className="bg-gradient-to-r from-[#ffd700] via-[#cdaaff] to-[#10b981] bg-clip-text text-transparent font-black font-display tracking-widest text-[11px] sm:text-xs">
+                      Delivery Credentials
+                    </span>
                   </h4>
-                  <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
-                    VIP Secure Dispatch
+                  <span className="text-[8px] font-mono text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                    VIP SECURE DISPATCH
                   </span>
                 </div>
 
                 {/* Recipient Full Name */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
-                    Recipient Full Name <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold flex items-center justify-between">
+                    <span>Recipient Full Name</span>
+                    <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-400/70 group-focus-within:text-[#d4af37] transition-colors duration-300">
                       <User size={14} />
                     </div>
                     <input 
@@ -475,9 +483,9 @@ export default function CartDrawer({
                       placeholder="Enter recipient's complete name"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                      className="w-full bg-[#130724]/40 text-white font-sans text-xs border border-purple-500/20 hover:border-purple-500/40 focus:border-luxury-gold/90 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-600/25 transition-all duration-300 placeholder-white/20"
                     />
-                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-purple-400/20 group-focus-within:text-[#d4af37]/40 transition-colors">
                       FULL NAME
                     </div>
                   </div>
@@ -485,11 +493,12 @@ export default function CartDrawer({
 
                 {/* Contact Mobile Number */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
-                    Contact Mobile Number <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#10b981] font-bold flex items-center justify-between">
+                    <span>Contact Mobile Number</span>
+                    <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-500/70 group-focus-within:text-emerald-400 transition-colors duration-300">
                       <Phone size={14} />
                     </div>
                     <input 
@@ -498,9 +507,9 @@ export default function CartDrawer({
                       placeholder="e.g. +88017XXXXXXXX"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                      className="w-full bg-[#0a1811]/40 text-white font-sans text-xs border border-emerald-500/20 hover:border-emerald-500/40 focus:border-[#10b981]/90 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-600/25 transition-all duration-300 placeholder-white/20"
                     />
-                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-emerald-400/20 group-focus-within:text-[#10b981]/40 transition-colors">
                       TELEPHONE
                     </div>
                   </div>
@@ -510,23 +519,24 @@ export default function CartDrawer({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Shipping City select */}
                   <div className="space-y-1">
-                    <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
-                      Shipping City <span className="text-white/40 font-normal">• REQUIRED</span>
+                    <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold flex items-center justify-between">
+                      <span>Shipping City</span>
+                      <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
                     </label>
                     <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-400/70 group-focus-within:text-[#d4af37] transition-colors duration-300">
                         <MapPin size={14} />
                       </div>
                       <select
                         value={customerCity}
                         onChange={(e) => setCustomerCity(e.target.value)}
-                        className="w-full bg-[#100a16]/55 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-10 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 appearance-none cursor-pointer"
+                        className="w-full bg-[#130724]/55 text-white font-sans text-xs border border-purple-500/20 hover:border-purple-500/45 focus:border-[#d4af37]/90 rounded-xl py-3 pl-10 pr-10 focus:outline-none focus:ring-2 focus:ring-purple-600/25 transition-all duration-300 appearance-none cursor-pointer"
                       >
                         {CITIES_LIST.map(city => (
                           <option key={city} value={city} className="bg-[#0b0611] text-white font-sans">{city}</option>
                         ))}
                       </select>
-                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40 group-focus-within:text-luxury-gold transition-colors duration-300">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40 group-focus-within:text-[#d4af37] transition-colors duration-300">
                         <ChevronDown size={14} />
                       </div>
                     </div>
@@ -537,30 +547,31 @@ export default function CartDrawer({
                     <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
                       Delivery Courier Type
                     </label>
-                    <div className="bg-[#1a0a25]/20 border border-luxury-gold/20 text-[#ffd700] text-[10.5px] px-4 py-3 rounded-xl font-mono flex items-center justify-between shadow-inner h-[42px] mt-0.5">
-                      <span className="font-semibold tracking-wide justify-self-center">VIP HANDPICKED</span>
-                      <span className="text-[8px] bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.5 rounded font-black tracking-widest">SECURE</span>
+                    <div className="bg-gradient-to-r from-[#170a2b] via-[#041c0f] to-[#241a05] border border-[#d4af37]/25 text-[#ffd700] text-[10px] px-4 py-3 rounded-xl font-mono flex items-center justify-between shadow-[0_0_15px_rgba(154,77,255,0.08)] h-[42px] mt-0.5">
+                      <span className="font-extrabold tracking-widest justify-self-center text-[10px]">VIP HANDPICKED</span>
+                      <span className="text-[7.5px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black tracking-widest">SECURE</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Complete Address Textarea */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold">
-                    Complete Address <span className="text-white/40 font-normal">• REQUIRED BOUNDS</span>
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold flex items-center justify-between">
+                    <span>Complete Address</span>
+                    <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
                   </label>
                   <div className="relative group">
-                    <div className="absolute top-3.5 left-0 pl-3.5 flex items-start pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
-                      <MapPin size={14} />
+                    <div className="absolute top-3.5 left-0 pl-3.5 flex items-start pointer-events-none text-purple-400/70 group-focus-within:text-[#d4af37] transition-colors duration-300">
+                      <MapPin size={14} className="mt-0.5" />
                     </div>
                     <textarea 
                       required
                       placeholder="Provide apartment, floor, building details and street bounds"
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
-                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25 resize-none h-16"
+                      className="w-full bg-[#130724]/40 text-white font-sans text-xs border border-purple-500/20 hover:border-purple-500/40 focus:border-[#d4af37]/90 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-600/25 transition-all duration-300 placeholder-white/20 resize-none h-16"
                     />
-                    <div className="absolute top-3 right-3 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors">
+                    <div className="absolute top-3 right-3 flex items-center pointer-events-none text-[8.5px] font-mono text-purple-400/20 group-focus-within:text-[#d4af37]/30 transition-colors">
                       LOCATOR
                     </div>
                   </div>
@@ -568,11 +579,12 @@ export default function CartDrawer({
 
                 {/* Bespoke Optional Notes */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
-                    Bespoke Notes <span className="text-zinc-500 font-normal">• OPTIONAL DISCRETION</span>
+                  <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold flex items-center justify-between">
+                    <span>Bespoke Notes</span>
+                    <span className="text-zinc-500 font-normal text-[8px]">• OPTIONAL</span>
                   </label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30 group-focus-within:text-luxury-gold transition-colors duration-300">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#d4af37]/60 group-focus-within:text-purple-400 transition-colors duration-300">
                       <MessageSquare size={14} className="scale-95" />
                     </div>
                     <input 
@@ -580,9 +592,9 @@ export default function CartDrawer({
                       placeholder="E.g. Place inside the black parcel drop box"
                       value={customerNotes}
                       onChange={(e) => setCustomerNotes(e.target.value)}
-                      className="w-full bg-[#100a16]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-luxury-gold/50 transition-all duration-300 placeholder-white/25"
+                      className="w-full bg-[#1c1304]/30 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-purple-500/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-600/20 transition-all duration-300 placeholder-white/20"
                     />
-                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-white/40 transition-colors pointer-events-none">
+                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-purple-400/40 transition-colors pointer-events-none">
                       MEMORANDUM
                     </div>
                   </div>
@@ -712,15 +724,15 @@ export default function CartDrawer({
                   <button
                     type="submit"
                     disabled={isCheckingOut}
-                    className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] hover:brightness-110 text-black font-display font-black uppercase text-xs tracking-[0.25em] py-4.5 rounded-xl shadow-[0_5px_25px_rgba(212,175,55,0.2)] hover:shadow-[0_8px_35px_rgba(212,175,55,0.5)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 relative overflow-hidden luxury-reflection"
+                    className="running-glow-gold-filled w-full text-white font-display font-black uppercase text-xs tracking-[0.25em] py-4.5 rounded-xl shadow-[0_5px_25px_rgba(154,77,255,0.25)] hover:shadow-[0_8px_35px_rgba(154,77,255,0.55)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isCheckingOut ? (
                       <>
-                        <span className="w-3.5 h-3.5 rounded-full border-2 border-black border-t-transparent animate-spin"></span>
-                        SECURELY CONFIRMING VIP ALLOTMENT...
+                        <span className="relative z-10 w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                        <span className="relative z-10">SECURELY CONFIRMING VIP ALLOTMENT...</span>
                       </>
                     ) : (
-                      "⚜️ CONFIRM OFFICIAL LUXURY ORDER"
+                      <span className="relative z-10">⚜️ CONFIRM OFFICIAL LUXURY ORDER</span>
                     )}
                   </button>
                 </div>

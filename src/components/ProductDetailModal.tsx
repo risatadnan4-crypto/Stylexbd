@@ -48,7 +48,8 @@ export default function ProductDetailModal({
         {/* Close Button top-right */}
         <button 
           onClick={onClose}
-          className="absolute right-5 top-5 text-white/50 hover:text-luxury-gold transition-colors p-1"
+          className="absolute right-5 top-5 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-10"
+          title="Close Details"
         >
           <X size={18} />
         </button>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, ShoppingCart, User, Gift, Trophy, ClipboardList, LogOut, UserPlus, LogIn, History } from 'lucide-react';
+import { Search, ShoppingCart, User, Gift, Trophy, ClipboardList, LogOut, UserPlus, LogIn, History, X } from 'lucide-react';
 
 interface Customer {
   name: string;
@@ -16,12 +16,15 @@ interface NavbarProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   logoUrl?: string;
+  onSearchSubmit?: (q: string) => void;
   
   // Premium Customer Authentication System
   customer: Customer | null;
   onCustomerAuthClick: () => void;
   onCustomerLogout: () => void;
   onViewMyOrdersClick?: () => void;
+  isCatalogDeactivated?: boolean;
+  isLotteryDeactivated?: boolean;
 }
 
 export default function Navbar({
@@ -33,10 +36,13 @@ export default function Navbar({
   searchQuery,
   setSearchQuery,
   logoUrl,
+  onSearchSubmit,
   customer,
   onCustomerAuthClick,
   onCustomerLogout,
-  onViewMyOrdersClick
+  onViewMyOrdersClick,
+  isCatalogDeactivated,
+  isLotteryDeactivated
 }: NavbarProps) {
   const [showPortalMenu, setShowPortalMenu] = useState(false);
 
@@ -94,24 +100,77 @@ export default function Navbar({
           </div>
 
           {/* Mobile Access Buttons */}
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex items-center gap-3 md:hidden relative">
             <button
               onClick={customer ? () => setShowPortalMenu(!showPortalMenu) : onCustomerAuthClick}
-              className="text-[#d4af37] p-2 relative bg-luxury-charcoal/50 border border-[#d4af37]/20 rounded-lg cursor-pointer"
+              className="text-[#d4af37] p-2 relative bg-luxury-charcoal/50 border border-[#d4af37]/20 rounded-lg cursor-pointer hover:border-[#d4af37] transition-all hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] active:scale-95 duration-200"
               title={customer ? "My Profile" : "Log In / Sign Up"}
             >
               <User size={18} className={customer ? "text-emerald-400" : "text-[#d4af37]"} />
             </button>
-            <button 
-              onClick={onLotteryClick}
-              className="text-luxury-gold hover:text-white p-2 relative bg-luxury-charcoal/50 rounded-lg border border-luxury-gold/20"
-              title="Imperial Lottery"
-            >
-              <Gift size={18} className="animate-pulse" />
-            </button>
+
+            {showPortalMenu && customer && (
+              <div className="absolute right-0 top-12 w-64 bg-[#0a0512] border-2 border-luxury-gold/40 rounded-2xl p-4.5 shadow-[0_15px_45px_rgba(0,0,0,0.95)] z-50 animate-fade-in space-y-3 font-display">
+                <div className="border-b border-white/[0.06] pb-2.5">
+                  <span className="text-[8px] tracking-[0.25em] text-[#d4af37] font-black block uppercase">
+                    VIP PRIVILEGED MEMBER
+                  </span>
+                  <div className="flex items-center justify-between mt-1 gap-1">
+                    <p className="text-xs font-black text-white/95 truncate">
+                      {customer.name}
+                    </p>
+                    <button 
+                      onClick={() => setShowPortalMenu(false)}
+                      className="text-white/40 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full bg-white/5 border border-white/10"
+                      title="Close Portal"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                  <p className="text-[9.5px] font-mono text-white/40 truncate">
+                    {customer.email}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  {onViewMyOrdersClick && (
+                    <button 
+                      onClick={() => {
+                        setShowPortalMenu(false);
+                        onViewMyOrdersClick();
+                      }}
+                      className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                    >
+                      <History size={13} className="text-luxury-gold" />
+                      My Order History
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => {
+                      setShowPortalMenu(false);
+                      onCustomerLogout();
+                    }}
+                    className="w-full flex items-center gap-2.5 text-[10.5px] text-red-400 hover:text-red-300 py-2 px-2.5 rounded-xl hover:bg-red-500/10 transition-all uppercase tracking-[0.12em] font-bold"
+                  >
+                    <LogOut size={13} />
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isLotteryDeactivated && (
+              <button 
+                onClick={onLotteryClick}
+                className="text-luxury-gold hover:text-white p-2 relative bg-luxury-charcoal/50 rounded-lg border border-luxury-gold/25 hover:border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.05)] hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] transition-all active:scale-95 duration-200"
+                title="Imperial Lottery"
+              >
+                <Gift size={18} className="animate-pulse" />
+              </button>
+            )}
             <button 
               onClick={onCartClick}
-              className="text-white hover:text-luxury-gold p-2 relative bg-luxury-gold/10 border border-luxury-gold/20 rounded-lg"
+              className="text-white hover:text-luxury-gold p-2 relative bg-luxury-gold/10 border border-luxury-gold/25 hover:border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.05)] hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] rounded-lg transition-all active:scale-95 duration-200"
             >
               <ShoppingCart size={18} />
               {cartCount > 0 && (
@@ -154,27 +213,63 @@ export default function Navbar({
         {/* Search, Lottery, Auth & Cart actions */}
         <div className="flex items-center gap-4 w-full md:w-auto">
           {/* Instant Search Bar */}
-          <div className="relative flex-1 md:w-64 max-w-sm">
+          <div className="relative flex-1 md:w-72 max-w-sm flex items-center gap-2">
             <input 
               type="text" 
-              placeholder="SEARCH PRODUCTS..."
+              placeholder={isCatalogDeactivated ? "CATALOG OFFLINE" : "SEARCH PRODUCTS..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-luxury-charcoal/80 text-white font-sans text-xs border border-luxury-gold/20 rounded-full py-2.5 pl-4 pr-10 focus:outline-none focus:ring-1 focus:ring-luxury-gold transition-all duration-300 uppercase tracking-wider placeholder-white/30"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && onSearchSubmit && !isCatalogDeactivated) {
+                  onSearchSubmit(searchQuery);
+                }
+              }}
+              disabled={isCatalogDeactivated}
+              className={`w-full text-white font-sans text-xs border rounded-full py-2.5 pl-4 pr-10 focus:outline-none transition-all duration-300 uppercase tracking-wider ${
+                isCatalogDeactivated 
+                  ? 'bg-zinc-900 border-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 placeholder-zinc-600'
+                  : 'bg-luxury-charcoal/80 border-luxury-gold/50 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/70 focus:shadow-[0_0_20px_rgba(212,175,55,0.45)] placeholder-white/30'
+              }`}
             />
-            <Search size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-luxury-gold" />
+            
+            {/* Highly Glowing Interactive Search Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onSearchSubmit && !isCatalogDeactivated) onSearchSubmit(searchQuery);
+              }}
+              disabled={isCatalogDeactivated}
+              id="glowing-search-button"
+              className={`elite-search-glowing-button relative p-2.5 rounded-full font-display font-black text-xs uppercase tracking-wider outline-none transition-all outline-none shrink-0 ${
+                isCatalogDeactivated 
+                  ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50' 
+                  : 'bg-luxury-gold text-luxury-black hover:brightness-110 active:scale-95 group cursor-pointer'
+              }`}
+              title={isCatalogDeactivated ? "Catalog is Temporarily Offline" : "Search Archive"}
+            >
+              {/* Spinning color gradient for continuous neon halo glow */}
+              {!isCatalogDeactivated && (
+                <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220%] h-[220%] bg-[conic-gradient(from_0deg,#d4af37,#9a4dff,#ef4444,#3b82f6,#d4af37)] animate-[spin_1.5s_linear_infinite] blur-[1px] opacity-90 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300" />
+                  <div className="absolute inset-[1px] rounded-full bg-luxury-gold" />
+                </div>
+              )}
+              <Search size={14} className={`relative z-10 ${isCatalogDeactivated ? 'text-zinc-600' : 'text-luxury-black group-hover:scale-110 transition-transform duration-300'}`} />
+            </button>
           </div>
 
           {/* Desktop controls */}
           <div className="hidden md:flex items-center gap-4">
             {/* Draw button */}
-            <button 
-              onClick={onLotteryClick}
-              className="text-luxury-gold hover:text-white p-2.5 relative bg-luxury-charcoal border border-luxury-gold/30 rounded-full hover:border-luxury-gold transition-all"
-              title="Imperial Fortune Wheel"
-            >
-              <Gift size={16} />
-            </button>
+            {!isLotteryDeactivated && (
+              <button 
+                onClick={onLotteryClick}
+                className="text-luxury-gold hover:text-white p-2.5 relative bg-luxury-charcoal border border-luxury-gold/30 rounded-full hover:border-luxury-gold transition-all"
+                title="Imperial Fortune Wheel"
+              >
+                <Gift size={16} />
+              </button>
+            )}
 
             {/* Customer Account Access Portal */}
             <div className="relative">

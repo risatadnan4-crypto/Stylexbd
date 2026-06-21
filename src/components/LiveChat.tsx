@@ -2,8 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, User, Headset, CheckCheck } from 'lucide-react';
 import { ChatRoom, ChatMessage } from '../types';
 
-export default function LiveChat() {
-  const [isOpen, setIsOpen] = useState(false);
+interface LiveChatProps {
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+}
+
+export default function LiveChat({
+  isOpen: propIsOpen,
+  onOpenChange,
+  showTrigger = true
+}: LiveChatProps = {}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
+
+  const setIsOpen = (val: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(val);
+    } else {
+      setInternalIsOpen(val);
+    }
+  };
   const [roomId, setRoomId] = useState('');
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [newMsg, setNewMsg] = useState('');
@@ -89,28 +108,33 @@ export default function LiveChat() {
     }
   };
 
+  if (!showTrigger && !isOpen) return null;
+
   return (
     <div className="fixed bottom-6 right-6 z-40 font-sans">
       
       {/* Floating launcher Button with luxury pulse circles */}
-      {!isOpen && (
+       {showTrigger && !isOpen && (
         <button
           onClick={() => {
             setIsOpen(true);
             if (roomId) fetchRoom(roomId);
           }}
-          className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_0_12px_rgba(212,175,55,0.4),0_0_20px_rgba(154,77,255,0.3),0_0_26px_rgba(59,130,246,0.25),0_0_32px_rgba(34,197,94,0.2)] hover:scale-105 active:scale-95 transition-all outline-none cursor-pointer group"
+          className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer group"
           title="Digital Concierge Help"
         >
-          {/* Animated running glow border (Gold + Purple + Blue + Green) */}
+          {/* Animated multi-layered running glow border (Gold + Purple + Blue + Green) around the button */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin" />
+            {/* Soft splash backdrop glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+            {/* Sharp crisp running line */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
             <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
           </div>
 
           {/* Pulsing visual halo rings */}
-          <span className="absolute inset-0 rounded-full border border-luxury-gold opacity-40 scale-125 animate-ping pointer-events-none z-0"></span>
-          <MessageSquare className="relative z-10 w-4.5 h-4.5 sm:w-[22px] sm:h-[22px] stroke-[2] text-white group-hover:text-luxury-gold transition-colors" />
+          <span className="absolute inset-0 rounded-full border border-luxury-gold/45 opacity-35 scale-125 animate-ping pointer-events-none z-0"></span>
+          <MessageSquare className="relative z-10 w-4.5 h-4.5 sm:w-[22px] sm:h-[22px] stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
         </button>
       )}
 
@@ -135,7 +159,8 @@ export default function LiveChat() {
             
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-white/40 hover:text-white transition-colors p-1"
+              className="text-white/40 hover:text-[#d4af37] hover:rotate-90 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] active:scale-90 cursor-pointer"
+              title="Close Concierge"
             >
               <X size={15} />
             </button>

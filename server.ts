@@ -141,6 +141,7 @@ const initialCampaigns: Campaign[] = [
 let db = {
   products: initialProducts,
   orders: [] as Order[],
+  backInStockAlerts: [] as any[],
   banners: initialBanners,
   reviews: [] as Review[],
   coupons: initialCoupons,
@@ -150,6 +151,11 @@ let db = {
   liveViews: 3,
   countedSessions: [] as string[],
   notifications: [] as any[],
+  seededCoupons: false,
+  seededCampaigns: false,
+  seededBanners: false,
+  seededProducts: false,
+  seededReviews: false,
   settings: {
     whatsappNumber: "8801755104443",
     adminEmail: "risatadnan4@gmail.com",
@@ -158,6 +164,10 @@ let db = {
     lotteryDiscountPercentage: 15,
     paymentBadgeTitle: "SECURE CASH ON DELIVERY GUARANTEED",
     paymentBadgeDescription: "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
+    isCatalogDeactivated: false,
+    deactivatedMessage: "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
+    isLotteryDeactivated: false,
+    isNotifyMeDeactivated: false,
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
       { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -180,6 +190,12 @@ if (fs.existsSync(DB_FILE)) {
     db = { ...db, ...parsedData };
     db.countedSessions = db.countedSessions || [];
     db.notifications = db.notifications || [];
+    db.backInStockAlerts = db.backInStockAlerts || [];
+    db.seededCoupons = parsedData.seededCoupons !== undefined ? !!parsedData.seededCoupons : false;
+    db.seededCampaigns = parsedData.seededCampaigns !== undefined ? !!parsedData.seededCampaigns : false;
+    db.seededBanners = parsedData.seededBanners !== undefined ? !!parsedData.seededBanners : false;
+    db.seededProducts = parsedData.seededProducts !== undefined ? !!parsedData.seededProducts : false;
+    db.seededReviews = parsedData.seededReviews !== undefined ? !!parsedData.seededReviews : false;
     
     // Always migrate old default script URLs to the newly provided script URL
     const oldDefaultUrls = [
@@ -198,6 +214,10 @@ if (fs.existsSync(DB_FILE)) {
       lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
       paymentBadgeTitle: db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED",
       paymentBadgeDescription: db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
+      isCatalogDeactivated: db.settings?.isCatalogDeactivated !== undefined ? !!db.settings.isCatalogDeactivated : false,
+      deactivatedMessage: db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
+      isLotteryDeactivated: db.settings?.isLotteryDeactivated !== undefined ? !!db.settings.isLotteryDeactivated : false,
+      isNotifyMeDeactivated: db.settings?.isNotifyMeDeactivated !== undefined ? !!db.settings.isNotifyMeDeactivated : false,
       lotteryPrizes: db.settings?.lotteryPrizes || [
         { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
         { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -259,25 +279,34 @@ async function syncFromSupabase() {
             price: Number(p.price || 0),
             stock: Number(p.stock || 0)
           }));
+          db.seededProducts = true;
+          saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          console.log("🌱 Supabase 'products' table is empty. Uploading default seeds...");
-          for (const prod of db.products) {
-            await supabase.from("products").upsert({
-              id: prod.id,
-              code: prod.code,
-              title: prod.title,
-              description: prod.description,
-              price: prod.price,
-              category: prod.category,
-              stock: prod.stock,
-              imageUrl: prod.imageUrl,
-              sizes: JSON.stringify(prod.sizes),
-              dimensions: prod.dimensions,
-              whyBuy: prod.whyBuy,
-              trending: prod.trending,
-              featured: prod.featured
-            });
+          if (!db.seededProducts) {
+            console.log("🌱 Supabase 'products' table is empty. Uploading default seeds...");
+            for (const prod of db.products) {
+              await supabase.from("products").upsert({
+                id: prod.id,
+                code: prod.code,
+                title: prod.title,
+                description: prod.description,
+                price: prod.price,
+                category: prod.category,
+                stock: prod.stock,
+                imageUrl: prod.imageUrl,
+                sizes: JSON.stringify(prod.sizes),
+                dimensions: prod.dimensions,
+                whyBuy: prod.whyBuy,
+                trending: prod.trending,
+                featured: prod.featured
+              });
+            }
+            db.seededProducts = true;
+            saveDB();
+          } else {
+            db.products = [];
+            saveDB();
           }
         }
       } else if (productsResult.error) {
@@ -296,10 +325,19 @@ async function syncFromSupabase() {
             ...b,
             active: !!b.active
           }));
+          db.seededBanners = true;
+          saveDB();
           console.log(`✅ Synced ${db.banners.length} banners from Supabase.`);
         } else {
-          for (const b of db.banners) {
-            await supabase.from("banners").upsert(b);
+          if (!db.seededBanners) {
+            for (const b of db.banners) {
+              await supabase.from("banners").upsert(b);
+            }
+            db.seededBanners = true;
+            saveDB();
+          } else {
+            db.banners = [];
+            saveDB();
           }
         }
       }
@@ -315,10 +353,19 @@ async function syncFromSupabase() {
             active: !!c.active,
             value: Number(c.value)
           }));
+          db.seededCoupons = true;
+          saveDB();
           console.log(`✅ Synced ${db.coupons.length} coupons from Supabase.`);
         } else {
-          for (const c of db.coupons) {
-            await supabase.from("coupons").upsert(c);
+          if (!db.seededCoupons) {
+            for (const c of db.coupons) {
+              await supabase.from("coupons").upsert(c);
+            }
+            db.seededCoupons = true;
+            saveDB();
+          } else {
+            db.coupons = [];
+            saveDB();
           }
         }
       }
@@ -333,10 +380,19 @@ async function syncFromSupabase() {
             ...c,
             active: !!c.active
           }));
+          db.seededCampaigns = true;
+          saveDB();
           console.log(`✅ Synced ${db.campaigns.length} campaigns from Supabase.`);
         } else {
-          for (const c of db.campaigns) {
-            await supabase.from("campaigns").upsert(c);
+          if (!db.seededCampaigns) {
+            for (const c of db.campaigns) {
+              await supabase.from("campaigns").upsert(c);
+            }
+            db.seededCampaigns = true;
+            saveDB();
+          } else {
+            db.campaigns = [];
+            saveDB();
           }
         }
       }
@@ -352,10 +408,19 @@ async function syncFromSupabase() {
             rating: Number(r.rating),
             isApproved: !!r.isApproved
           }));
+          db.seededReviews = true;
+          saveDB();
           console.log(`✅ Synced ${db.reviews.length} reviews from Supabase.`);
         } else {
-          for (const r of db.reviews) {
-            await supabase.from("reviews").upsert(r);
+          if (!db.seededReviews) {
+            for (const r of db.reviews) {
+              await supabase.from("reviews").upsert(r);
+            }
+            db.seededReviews = true;
+            saveDB();
+          } else {
+            db.reviews = [];
+            saveDB();
           }
         }
       }
@@ -657,7 +722,7 @@ app.post("/api/discount-request", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { whatsappNumber, adminEmail, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, paymentBadgeTitle, paymentBadgeDescription } = req.body;
+    const { whatsappNumber, adminEmail, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated } = req.body;
     
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
@@ -667,6 +732,10 @@ app.post("/api/settings", async (req, res) => {
       lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
       paymentBadgeTitle: paymentBadgeTitle !== undefined ? paymentBadgeTitle.trim() : (db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"),
       paymentBadgeDescription: paymentBadgeDescription !== undefined ? paymentBadgeDescription.trim() : (db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."),
+      isCatalogDeactivated: isCatalogDeactivated !== undefined ? !!isCatalogDeactivated : (db.settings?.isCatalogDeactivated || false),
+      deactivatedMessage: deactivatedMessage !== undefined ? deactivatedMessage.trim() : (db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops."),
+      isLotteryDeactivated: isLotteryDeactivated !== undefined ? !!isLotteryDeactivated : (db.settings?.isLotteryDeactivated || false),
+      isNotifyMeDeactivated: isNotifyMeDeactivated !== undefined ? !!isNotifyMeDeactivated : (db.settings?.isNotifyMeDeactivated || false),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || [])
     };
     saveDB();
@@ -973,12 +1042,13 @@ app.delete("/api/products/:id", async (req, res) => {
 app.get("/api/banners", async (req, res) => {
   try {
     const { data, error } = await supabase.from("banners").select("*");
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const banners = data.map((b: any) => ({
         ...b,
         active: !!b.active
       }));
       db.banners = banners;
+      db.seededBanners = true;
       saveDB();
       return res.json(banners);
     }
@@ -1331,13 +1401,14 @@ app.delete("/api/reviews/:id", async (req, res) => {
 app.get("/api/coupons", async (req, res) => {
   try {
     const { data, error } = await supabase.from("coupons").select("*");
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const coupons = data.map((c: any) => ({
         ...c,
         active: !!c.active,
         value: Number(c.value)
       }));
       db.coupons = coupons;
+      db.seededCoupons = true;
       saveDB();
       return res.json(coupons);
     }
@@ -1345,6 +1416,56 @@ app.get("/api/coupons", async (req, res) => {
     console.warn("⚠️ Direct coupons fetch fallback:", err.message);
   }
   res.json(db.coupons);
+});
+
+// Back in stock alerts endpoints
+app.post("/api/notify-me", (req, res) => {
+  const { email, productId, productTitle } = req.body;
+  if (!email || !productId) {
+    return res.status(400).json({ error: "Email and Product ID are required." });
+  }
+
+  if (!db.backInStockAlerts) {
+    db.backInStockAlerts = [];
+  }
+
+  const emailLower = String(email).trim().toLowerCase();
+  const exists = db.backInStockAlerts.find(
+    (alert: any) => alert.email.toLowerCase() === emailLower && alert.productId === productId
+  );
+
+  if (exists) {
+    return res.status(200).json({ message: "You are already registered for alerts on this item!" });
+  }
+
+  const alertId = Math.random().toString(36).substring(2, 11);
+  const newAlert = {
+    id: alertId,
+    email: email.trim(),
+    productId: productId,
+    productTitle: productTitle || "Premium Wardrobe Curation",
+    requestedAt: new Date().toISOString(),
+    status: "pending"
+  };
+
+  db.backInStockAlerts.push(newAlert);
+  saveDB();
+
+  res.status(201).json({ message: "Notification alert saved!", alert: newAlert });
+});
+
+app.get("/api/back-in-stock-alerts", (req, res) => {
+  res.json(db.backInStockAlerts || []);
+});
+
+app.delete("/api/back-in-stock-alerts/:id", (req, res) => {
+  const { id } = req.params;
+  if (!db.backInStockAlerts) {
+    db.backInStockAlerts = [];
+  }
+  db.backInStockAlerts = db.backInStockAlerts.filter((alert: any) => alert.id !== id);
+  saveDB();
+  res.json({ success: true, message: "Notification alert archived successfully." });
 });
 
 app.post("/api/coupons", async (req, res) => {
@@ -1386,12 +1507,13 @@ app.delete("/api/coupons/:code", async (req, res) => {
 app.get("/api/campaigns", async (req, res) => {
   try {
     const { data, error } = await supabase.from("campaigns").select("*");
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const campaigns = data.map((c: any) => ({
         ...c,
         active: !!c.active
       }));
       db.campaigns = campaigns;
+      db.seededCampaigns = true;
       saveDB();
       return res.json(campaigns);
     }
