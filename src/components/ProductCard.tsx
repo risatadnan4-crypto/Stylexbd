@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -26,6 +26,7 @@ export default function ProductCard({
   isNotifyMeDeactivated = false
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
+  const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
   const [showNotifyForm, setShowNotifyForm] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState('');
@@ -80,19 +81,56 @@ export default function ProductCard({
     <div className="group relative bg-[#07010e] border-2 border-white/5 hover:border-luxury-purple-glowing/60 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between transition-all duration-500 shadow-xl hover:shadow-[0_12px_45px_rgba(154,77,255,0.2)] hover:-translate-y-1 select-none overflow-hidden">
       {/* Premium glowing hover accent card background */}
       <div className="absolute inset-0 bg-gradient-to-tr from-luxury-purple/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+      {/* Automatic QR Code overlay */}
+      {showQRCode && (
+        <div className="absolute inset-0 bg-[#07010e]/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-3 transition-all duration-300">
+          <button 
+            onClick={() => setShowQRCode(false)}
+            className="absolute top-3 right-3 text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all p-1 rounded-full hover:bg-white/5"
+            title="Close QR Scan Gateway"
+          >
+            <X size={16} />
+          </button>
+          <div className="bg-black p-2.5 rounded-xl border border-luxury-purple-glowing shadow-[0_0_20px_rgba(154,77,255,0.45)] mb-3">
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
+              alt={`${product.title} QR`}
+              className="w-[110px] h-[110px] object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <h4 className="text-[9px] font-mono uppercase tracking-[0.2em] text-luxury-gold font-bold mb-1">IMPERIAL SCAN</h4>
+          <p className="text-[10px] text-zinc-300 text-center px-1 line-clamp-2 italic leading-normal">
+            Deep Link for <span className="font-semibold text-white">{product.title}</span>
+          </p>
+          <p className="text-[8px] text-[#9A4DFF] font-mono mt-2.5 bg-[#15032a] border border-[#9d4edd]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
+            {product.code}
+          </p>
+        </div>
+      )}
       
       {/* Upper blueprint markings */}
       <div className="flex items-center justify-between text-[8px] sm:text-[10px] font-mono text-white/40 mb-1.5 sm:mb-2 gap-1 z-10">
         <span className="tracking-wider">{product.code}</span>
-        <button 
-          onClick={() => onToggleWishlist(product)}
-          className={`p-1 sm:p-1.5 rounded-full bg-[#15032a]/80 hover:bg-luxury-purple/20 border border-white/5 hover:border-luxury-gold/30 transition-all cursor-pointer ${
-            isWishlisted ? 'text-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-white/60'
-          }`}
-          title="Wishlist piece"
-        >
-          <Heart size={11} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => setShowQRCode(true)}
+            className="p-1 sm:p-1.5 rounded-full bg-[#15032a]/80 hover:bg-luxury-purple/20 border border-white/5 hover:border-luxury-purple/30 text-purple-300 hover:text-white transition-all cursor-pointer hover:scale-105"
+            title="Scan Product QR Code"
+          >
+            <QrCode size={11} />
+          </button>
+          <button 
+            onClick={() => onToggleWishlist(product)}
+            className={`p-1 sm:p-1.5 rounded-full bg-[#15032a]/80 hover:bg-luxury-purple/20 border border-white/5 hover:border-luxury-gold/30 transition-all cursor-pointer ${
+              isWishlisted ? 'text-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-white/60'
+            }`}
+            title="Wishlist piece"
+          >
+            <Heart size={11} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Image frame */}
@@ -185,7 +223,7 @@ export default function ProductCard({
             isNotifyMeDeactivated ? (
               <button
                 disabled
-                className="relative w-full h-[40px] bg-neutral-950/60 border-2 border-neutral-800/80 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
+                className="relative w-full h-[40px] bg-neutral-950 border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
               >
                 <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Out of</span>
                 <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Stock</span>
@@ -193,31 +231,43 @@ export default function ProductCard({
             ) : (
               <button
                 onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
-                className="relative w-full h-[40px] bg-gradient-to-r from-amber-950 to-[#221005] border-2 border-amber-500/40 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1"
+                className="relative w-full h-[40px] bg-gradient-to-r from-amber-950 via-[#271302] to-[#120801] border border-amber-500/50 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group"
               >
-                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-amber-400/80 uppercase font-black">Notify</span>
-                <span className="relative z-10 tracking-[0.12em] text-amber-100 font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] mt-[1px]">Me</span>
+                <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-amber-400/80 uppercase font-black group-hover:text-amber-300 transition-colors">Notify</span>
+                <span className="relative z-10 tracking-[0.12em] text-amber-100 font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] mt-[1px] group-hover:text-white transition-colors">Me</span>
               </button>
             )
           ) : (
             <button
               onClick={() => onAddToCart(product, selectedSize)}
               disabled={product.stock === 0}
-              className="relative w-full h-[40px] bg-gradient-to-r from-[#170b2e] to-[#0a0318] border-2 border-luxury-purple/60 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_20px_rgba(154,77,255,0.4)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1"
+              className="relative w-full h-[40px] bg-gradient-to-r from-[#17083b] via-[#090317] to-[#12052c] border border-luxury-purple/70 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.2)] hover:shadow-[0_0_22px_rgba(154,77,255,0.55)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
             >
-              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-purple-300/80 uppercase font-black">Add To</span>
-              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.7)] mt-[1px]">Cart</span>
+              <div className="absolute inset-0 bg-luxury-purple/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-purple-300/80 uppercase font-black group-hover/btn:text-purple-200 transition-colors">Add To</span>
+              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.7)] mt-[1px] group-hover/btn:scale-105 transition-transform">Cart</span>
             </button>
           )}
           
           {/* Buy Now Premium Button */}
-          <button
-            onClick={() => onOrderNow(product, selectedSize)}
-            disabled={product.stock === 0}
-            className="running-glow-gold-filled w-full h-[40px] text-white font-display font-black text-[11px] sm:text-[12px] uppercase tracking-[0.1em] rounded-[14px] transition-all duration-200 ease-out disabled:opacity-40 shadow-[0_4px_12px_rgba(154,77,255,0.25)] hover:shadow-[0_6px_22px_rgba(154,77,255,0.55)] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <span className="relative z-10">{product.stock === 0 ? "Sold Out" : "Buy Now"}</span>
-          </button>
+          {product.stock === 0 ? (
+            <button
+              disabled
+              className="relative w-full h-[40px] bg-[#111] border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
+            >
+              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Unavailable</span>
+              <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Sold Out</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onOrderNow(product, selectedSize)}
+              className="relative w-full h-[40px] bg-gradient-to-br from-luxury-purple to-luxury-purple-glowing border border-luxury-purple/80 hover:border-luxury-purple-glowing rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
+            >
+              <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/buy:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10 tracking-[0.15em] text-white font-display font-black text-[11px] uppercase">Order Now</span>
+            </button>
+          )}
         </div>
 
         {/* WhatsApp Direct Order */}

@@ -13,9 +13,10 @@ interface LotteryModalProps {
   prizes?: LotteryPrize[];
   discountPercentage?: number;
   isLotteryDeactivated?: boolean;
+  lotteryCouponPrefix?: string;
 }
 
-export default function LotteryModal({ isOpen, onClose, discountPercentage = 15, isLotteryDeactivated = false }: LotteryModalProps) {
+export default function LotteryModal({ isOpen, onClose, discountPercentage = 15, isLotteryDeactivated = false, lotteryCouponPrefix = 'RISAT' }: LotteryModalProps) {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hasUsedLottery, setHasUsedLottery] = useState(false);
@@ -35,7 +36,7 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15,
   if (!isOpen) return null;
 
   const discountPercent = Number(discountPercentage) || 15;
-  const voucherCode = `RISAT${discountPercent}`;
+  const voucherCode = `${(lotteryCouponPrefix || 'RISAT').toUpperCase()}${discountPercent}`;
 
   const handleReveal = () => {
     setRevealed(true);

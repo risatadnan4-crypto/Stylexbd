@@ -159,9 +159,13 @@ let db = {
   settings: {
     whatsappNumber: "8801755104443",
     adminEmail: "risatadnan4@gmail.com",
+    adminPassword: "risat123",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
     logoUrl: "",
     lotteryDiscountPercentage: 15,
+    lotteryCouponPrefix: "RISAT",
+    facebookUrl: "https://facebook.com/stylexcollection",
+    instagramUrl: "https://instagram.com/stylexcollection",
     paymentBadgeTitle: "SECURE CASH ON DELIVERY GUARANTEED",
     paymentBadgeDescription: "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
     isCatalogDeactivated: false,
@@ -207,11 +211,15 @@ if (fs.existsSync(DB_FILE)) {
     db.settings = {
       whatsappNumber: db.settings?.whatsappNumber || "8801755104443",
       adminEmail: db.settings?.adminEmail || "risatadnan4@gmail.com",
+      adminPassword: db.settings?.adminPassword || "risat123",
       appsScriptUrl: oldDefaultUrls.includes(currentScriptUrl)
         ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
         : currentScriptUrl,
       logoUrl: db.settings?.logoUrl || "",
       lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
+      lotteryCouponPrefix: db.settings?.lotteryCouponPrefix !== undefined ? db.settings.lotteryCouponPrefix : "RISAT",
+      facebookUrl: db.settings?.facebookUrl !== undefined ? db.settings.facebookUrl : "https://facebook.com/stylexcollection",
+      instagramUrl: db.settings?.instagramUrl !== undefined ? db.settings.instagramUrl : "https://instagram.com/stylexcollection",
       paymentBadgeTitle: db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED",
       paymentBadgeDescription: db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
       isCatalogDeactivated: db.settings?.isCatalogDeactivated !== undefined ? !!db.settings.isCatalogDeactivated : false,
@@ -255,7 +263,8 @@ async function syncFromSupabase() {
       campaignsResult,
       reviewsResult,
       ordersResult,
-      chatsResult
+      chatsResult,
+      settingsResult
     ] = await Promise.all([
       supabase.from("products").select("*"),
       supabase.from("banners").select("*"),
@@ -263,7 +272,8 @@ async function syncFromSupabase() {
       supabase.from("campaigns").select("*"),
       supabase.from("reviews").select("*"),
       supabase.from("orders").select("*"),
-      supabase.from("chats").select("*")
+      supabase.from("chats").select("*"),
+      supabase.from("settings").select("*")
     ]);
 
     // 1. Sync Products
@@ -473,6 +483,53 @@ async function syncFromSupabase() {
       }
     } catch (e: any) {}
 
+    // 8. Sync Settings & Persistent Views
+    try {
+      if (!settingsResult.error && settingsResult.data) {
+        const settingsData = settingsResult.data;
+        if (settingsData && settingsData.length > 0) {
+          const map: Record<string, string> = {};
+          settingsData.forEach((row: any) => {
+            if (row && row.key) {
+              map[row.key] = row.value || "";
+            }
+          });
+
+          // Restore normal settings if present
+          if (map.whatsappNumber) db.settings.whatsappNumber = map.whatsappNumber;
+          if (map.adminEmail) db.settings.adminEmail = map.adminEmail;
+          if (map.adminPassword) db.settings.adminPassword = map.adminPassword;
+          if (map.appsScriptUrl) db.settings.appsScriptUrl = map.appsScriptUrl;
+          if (map.logoUrl) db.settings.logoUrl = map.logoUrl;
+          if (map.facebookUrl) db.settings.facebookUrl = map.facebookUrl;
+          if (map.instagramUrl) db.settings.instagramUrl = map.instagramUrl;
+
+          // Restore persistent count and counted sessions
+          if (map.visits_count) {
+            const parsedVisits = Number(map.visits_count);
+            if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
+              db.visits = parsedVisits;
+            }
+          }
+          if (map.counted_sessions) {
+            try {
+              const sessions = JSON.parse(map.counted_sessions);
+              if (Array.isArray(sessions)) {
+                // Merge unique sessions and make sure we don't lose any
+                const combined = Array.from(new Set([...(db.countedSessions || []), ...sessions]));
+                db.countedSessions = combined;
+                db.visits = Math.max(db.visits, db.countedSessions.length);
+              }
+            } catch (jsonErr) {
+              console.error("Error parsing counted_sessions from Supabase settings:", jsonErr);
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn("⚠️ Failed syncing settings: ", e.message);
+    }
+
     // Save final state locally as hot cache
     saveDB();
   } catch (error: any) {
@@ -594,6 +651,14 @@ app.get("/api/visitor-ping", (req, res) => {
         db.countedSessions.push(visitorId);
         db.visits = db.countedSessions.length;
         saveDB();
+
+        // Asynchronously back up the visitor metrics to Supabase
+        Promise.all([
+          supabase.from("settings").upsert({ key: "visits_count", value: String(db.visits) }),
+          supabase.from("settings").upsert({ key: "counted_sessions", value: JSON.stringify(db.countedSessions) })
+        ]).catch((err) => {
+          console.error("⚠️ Background backup of visitor count to Supabase failed:", err.message);
+        });
       }
     }
 
@@ -722,14 +787,18 @@ app.post("/api/discount-request", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { whatsappNumber, adminEmail, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated } = req.body;
+    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated } = req.body;
     
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
       adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
+      adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
       appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || ""),
       lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
+      lotteryCouponPrefix: lotteryCouponPrefix !== undefined ? lotteryCouponPrefix.trim().toUpperCase() : (db.settings?.lotteryCouponPrefix || "RISAT"),
+      facebookUrl: facebookUrl !== undefined ? facebookUrl.trim() : (db.settings?.facebookUrl || "https://facebook.com/stylexcollection"),
+      instagramUrl: instagramUrl !== undefined ? instagramUrl.trim() : (db.settings?.instagramUrl || "https://instagram.com/stylexcollection"),
       paymentBadgeTitle: paymentBadgeTitle !== undefined ? paymentBadgeTitle.trim() : (db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"),
       paymentBadgeDescription: paymentBadgeDescription !== undefined ? paymentBadgeDescription.trim() : (db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."),
       isCatalogDeactivated: isCatalogDeactivated !== undefined ? !!isCatalogDeactivated : (db.settings?.isCatalogDeactivated || false),
@@ -748,11 +817,20 @@ app.post("/api/settings", async (req, res) => {
       if (adminEmail) {
         await supabase.from("settings").upsert({ key: "adminEmail", value: adminEmail.trim() });
       }
+      if (adminPassword !== undefined) {
+        await supabase.from("settings").upsert({ key: "adminPassword", value: adminPassword.trim() });
+      }
       if (appsScriptUrl) {
         await supabase.from("settings").upsert({ key: "appsScriptUrl", value: appsScriptUrl.trim() });
       }
       if (logoUrl !== undefined) {
         await supabase.from("settings").upsert({ key: "logoUrl", value: logoUrl.trim() });
+      }
+      if (facebookUrl !== undefined) {
+        await supabase.from("settings").upsert({ key: "facebookUrl", value: facebookUrl.trim() });
+      }
+      if (instagramUrl !== undefined) {
+        await supabase.from("settings").upsert({ key: "instagramUrl", value: instagramUrl.trim() });
       }
     } catch (dbErr) {
       // Safe to ignore if table does not exist

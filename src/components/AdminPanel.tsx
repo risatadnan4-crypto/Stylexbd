@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
-  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell
+  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
+  Facebook, Instagram
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
@@ -13,8 +14,9 @@ interface AdminPanelProps {
   onBackToStore: () => void;
   products: Product[];
   onRefreshProducts: () => void;
-  settings?: { whatsappNumber: string; adminEmail?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean };
+  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean };
   onRefreshSettings?: () => void;
+  onRefreshCoupons?: () => void;
 }
 
 export default function AdminPanel({
@@ -22,7 +24,8 @@ export default function AdminPanel({
   products,
   onRefreshProducts,
   settings,
-  onRefreshSettings
+  onRefreshSettings,
+  onRefreshCoupons
 }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts'>('dashboard');
 
@@ -41,10 +44,14 @@ export default function AdminPanel({
   // Settings State Management
   const [whatsappNumberInput, setWhatsappNumberInput] = useState(settings?.whatsappNumber || "8801755104443");
   const [adminEmailInput, setAdminEmailInput] = useState(settings?.adminEmail || "risatadnan4@gmail.com");
+  const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
   const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec");
   const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "");
   const [lotteryPrizesInput, setLotteryPrizesInput] = useState<LotteryPrize[]>([]);
   const [lotteryDiscountPercentageInput, setLotteryDiscountPercentageInput] = useState(settings?.lotteryDiscountPercentage || 15);
+  const [lotteryCouponPrefixInput, setLotteryCouponPrefixInput] = useState(settings?.lotteryCouponPrefix || "RISAT");
+  const [facebookUrlInput, setFacebookUrlInput] = useState(settings?.facebookUrl || "https://facebook.com/stylexcollection");
+  const [instagramUrlInput, setInstagramUrlInput] = useState(settings?.instagramUrl || "https://instagram.com/stylexcollection");
   const [paymentBadgeTitleInput, setPaymentBadgeTitleInput] = useState(settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED");
   const [paymentBadgeDescriptionInput, setPaymentBadgeDescriptionInput] = useState(settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.");
   const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
@@ -63,6 +70,9 @@ export default function AdminPanel({
     if (settings?.adminEmail) {
       setAdminEmailInput(settings.adminEmail);
     }
+    if (settings?.adminPassword) {
+      setAdminPasswordInput(settings.adminPassword);
+    }
     if (settings?.appsScriptUrl) {
       setAppsScriptUrlInput(settings.appsScriptUrl);
     }
@@ -74,6 +84,15 @@ export default function AdminPanel({
     }
     if (settings?.lotteryDiscountPercentage !== undefined) {
       setLotteryDiscountPercentageInput(settings.lotteryDiscountPercentage);
+    }
+    if (settings?.lotteryCouponPrefix !== undefined) {
+      setLotteryCouponPrefixInput(settings.lotteryCouponPrefix);
+    }
+    if (settings?.facebookUrl !== undefined) {
+      setFacebookUrlInput(settings.facebookUrl);
+    }
+    if (settings?.instagramUrl !== undefined) {
+      setInstagramUrlInput(settings.instagramUrl);
     }
     if (settings?.paymentBadgeTitle !== undefined) {
       setPaymentBadgeTitleInput(settings.paymentBadgeTitle);
@@ -106,10 +125,14 @@ export default function AdminPanel({
         body: JSON.stringify({ 
           whatsappNumber: whatsappNumberInput,
           adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
           appsScriptUrl: appsScriptUrlInput,
           logoUrl: logoUrlInput,
           lotteryPrizes: lotteryPrizesInput,
           lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
           paymentBadgeTitle: paymentBadgeTitleInput,
           paymentBadgeDescription: paymentBadgeDescriptionInput,
           isCatalogDeactivated: isCatalogDeactivatedInput,
@@ -256,6 +279,7 @@ export default function AdminPanel({
         body: JSON.stringify({ 
           whatsappNumber: whatsappNumberInput,
           adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
           appsScriptUrl: appsScriptUrlInput,
           logoUrl: url,
           lotteryPrizes: lotteryPrizesInput,
@@ -714,6 +738,7 @@ export default function AdminPanel({
       if (res.ok) {
         setNewCouponCode('');
         fetchCoupons();
+        onRefreshCoupons?.();
       } else {
         const err = await res.json();
         alert(err.message || "Failed creating discount code");
@@ -724,7 +749,10 @@ export default function AdminPanel({
   const handleDeleteCoupon = async (code: string) => {
     try {
       const res = await fetch(`/api/coupons/${code}`, { method: 'DELETE' });
-      if (res.ok) fetchCoupons();
+      if (res.ok) {
+        fetchCoupons();
+        onRefreshCoupons?.();
+      }
     } catch (e) {}
   };
 
@@ -992,6 +1020,50 @@ export default function AdminPanel({
         </div>
 
         <div className="pt-6 border-t border-white/5 space-y-3">
+          {/* Quick Social Setup */}
+          <div className="bg-[#0e0e0e] border border-white/5 p-3 rounded-lg space-y-2.5">
+            <div className="flex items-center gap-1.5 pb-1 border-b border-white/5">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-luxury-gold flex items-center gap-1">
+                🔗 Quick Social Links
+              </span>
+            </div>
+            
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded border border-white/5">
+                <Facebook className="w-3.5 h-3.5 text-[#1877F2] shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="Facebook URL" 
+                  value={facebookUrlInput}
+                  onChange={(e) => setFacebookUrlInput(e.target.value)}
+                  className="bg-transparent border-none text-[10px] w-full text-zinc-300 focus:outline-none focus:ring-0 font-mono py-0.5" 
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-black/40 px-2 py-1 rounded border border-white/5">
+                <Instagram className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="Instagram URL" 
+                  value={instagramUrlInput}
+                  onChange={(e) => setInstagramUrlInput(e.target.value)}
+                  className="bg-transparent border-none text-[10px] w-full text-zinc-300 focus:outline-none focus:ring-0 font-mono py-0.5" 
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleSaveSettings()}
+              disabled={savingSettings}
+              className="w-full text-center bg-luxury-gold hover:bg-white text-luxury-black font-extrabold uppercase py-1 px-2 text-[8px] tracking-widest rounded transition-all duration-200 cursor-pointer flex items-center justify-center gap-1"
+            >
+              {savingSettings ? "Saving..." : "✓ Save Links"}
+            </button>
+            {settingsSuccess && (
+              <p className="text-[7.5px] text-emerald-400 font-mono text-center animate-pulse">✓ Saved Successfully!</p>
+            )}
+          </div>
+
           <button 
             onClick={onBackToStore}
             className="w-full text-center border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black text-[9.5px] font-display font-extrabold uppercase py-2 tracking-widest rounded transition-all cursor-pointer"
@@ -2542,6 +2614,20 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                     <p className="text-[9px] text-zinc-500 font-mono">Order confirmation alerts will be dispatched directly to this inbox.</p>
                   </div>
 
+                  {/* ADMIN SECURITY PASSWORD INPUT */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Admin Security Passcode:</label>
+                    <input 
+                      type="text"
+                      value={adminPasswordInput}
+                      onChange={(e) => setAdminPasswordInput(e.target.value)}
+                      placeholder="e.g. risat123"
+                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      required
+                    />
+                    <p className="text-[9px] text-zinc-500 font-mono">Verify and change the secure owner admin login password passcode.</p>
+                  </div>
+
                   {/* APPS SCRIPT WEBHOOK URL INPUT */}
                   <div className="space-y-1">
                     <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Apps Script Webhook URL:</label>
@@ -2554,6 +2640,34 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                       required
                     />
                     <p className="text-[9px] text-zinc-500 font-mono">Input your deployed Google Apps Script Web App URL ending in /exec.</p>
+                  </div>
+
+                  {/* FACEBOOK PAGE URL INPUT */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Official Facebook Page URL:</label>
+                    <input 
+                      type="url"
+                      value={facebookUrlInput}
+                      onChange={(e) => setFacebookUrlInput(e.target.value)}
+                      placeholder="e.g. https://facebook.com/yourpage"
+                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      required
+                    />
+                    <p className="text-[9px] text-zinc-500 font-mono">Input your store's Facebook Page link for direct footer and floating menu connections.</p>
+                  </div>
+
+                  {/* INSTAGRAM PROFILE URL INPUT */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Official Instagram URL:</label>
+                    <input 
+                      type="url"
+                      value={instagramUrlInput}
+                      onChange={(e) => setInstagramUrlInput(e.target.value)}
+                      placeholder="e.g. https://instagram.com/yourprofile"
+                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      required
+                    />
+                    <p className="text-[9px] text-zinc-500 font-mono">Input your store's Instagram Profile link for direct footer and floating menu connections.</p>
                   </div>
 
                   {/* CATALOG DEACTIVATION SECTION */}
@@ -2893,6 +3007,28 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
 
                     </div>
 
+                    {/* Voucher Code Prefix Field */}
+                    <div className="border-t border-white/5 pt-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold block">
+                            🎡 Customize Voucher Code Prefix:
+                          </span>
+                          <span className="text-[8.5px] text-zinc-500 font-mono block">Change this code prefix to instantly invalidate old codes.</span>
+                        </div>
+                        <div className="relative w-full sm:w-48">
+                          <input 
+                            type="text"
+                            value={lotteryCouponPrefixInput}
+                            onChange={(e) => setLotteryCouponPrefixInput(e.target.value.trim().toUpperCase())}
+                            placeholder="e.g. RISAT"
+                            className="w-full text-center bg-[#141414] border-2 border-luxury-gold/20 focus:border-luxury-gold focus:outline-none rounded-xl text-xs font-bold py-2.5 text-white tracking-widest font-mono uppercase"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
 
                 </div>
@@ -2938,7 +3074,7 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                           </span>
                           <div className="bg-[#121212] border border-white/10 px-3 py-1.5 rounded-lg w-full max-w-[180px] text-center">
                             <span className="text-xs font-mono font-bold tracking-widest text-[#ffd700]">
-                              RISAT{lotteryDiscountPercentageInput}
+                              {lotteryCouponPrefixInput || "RISAT"}{lotteryDiscountPercentageInput}
                             </span>
                           </div>
                         </div>

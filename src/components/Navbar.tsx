@@ -188,30 +188,19 @@ export default function Navbar({
         </div>
 
         {/* Navigation Menus */}
-        <div className="flex items-center justify-between md:justify-start gap-4 md:gap-8 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+        <div className="flex items-center justify-between md:justify-start gap-4 md:gap-6 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <button 
             onClick={onHomeClick}
-            className="text-xs text-white/70 hover:text-luxury-gold transition-colors uppercase font-display tracking-widest whitespace-nowrap py-1 relative group"
+            className="text-xs text-white/80 hover:text-luxury-gold hover:bg-luxury-gold/5 transition-all duration-300 uppercase font-display tracking-widest whitespace-nowrap py-1.5 px-3.5 rounded-full border border-luxury-gold/[0.3] hover:border-luxury-gold hover:shadow-[0_0_10px_rgba(212,175,55,0.15)] cursor-pointer relative group flex items-center justify-center"
           >
             Shop Collective
-            <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-luxury-gold transition-all duration-300 group-hover:w-full"></span>
           </button>
           
           <button 
             onClick={onTrackOrderClick}
-            className="text-xs text-white/70 hover:text-luxury-gold transition-colors uppercase font-display tracking-widest whitespace-nowrap py-1 relative group"
+            className="text-xs text-white/80 hover:text-luxury-gold hover:bg-luxury-gold/5 transition-all duration-300 uppercase font-display tracking-widest whitespace-nowrap py-1.5 px-3.5 rounded-full border border-luxury-gold/[0.3] hover:border-luxury-gold hover:shadow-[0_0_10px_rgba(212,175,55,0.15)] cursor-pointer relative group flex items-center justify-center"
           >
             Track Order
-            <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-luxury-gold transition-all duration-300 group-hover:w-full"></span>
-          </button>
-
-          <button 
-            onClick={onLotteryClick}
-            className="text-xs text-white/70 hover:text-luxury-gold transition-colors uppercase font-display tracking-widest whitespace-nowrap py-1 relative group flex items-center gap-1.5"
-          >
-            <Trophy size={12} className="text-luxury-gold" />
-            Imperial Draw
-            <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-luxury-gold transition-all duration-300 group-hover:w-full"></span>
           </button>
         </div>
 

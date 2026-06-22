@@ -16,6 +16,7 @@ interface CartDrawerProps {
     paymentBadgeTitle?: string;
     paymentBadgeDescription?: string;
     lotteryDiscountPercentage?: number;
+    lotteryCouponPrefix?: string;
   };
   onCheckoutSuccess: (orderId: string, whatsappUrl: string) => void;
   initialShowCheckout?: boolean;
@@ -74,9 +75,10 @@ export default function CartDrawer({
   
   let discountAmount = 0;
   let couponDetailsNote = "";
+  const lotteryPrefix = (settings?.lotteryCouponPrefix || 'RISAT').trim().toUpperCase();
 
   if (appliedCoupon) {
-    if (appliedCoupon.code.toUpperCase().startsWith('RISAT')) {
+    if (appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
       // Lottery coupon - applies only to items where lotteryEligible is true
       const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
         return sum + (item.product.lotteryEligible !== false ? item.product.price * item.quantity : 0);
@@ -158,15 +160,15 @@ export default function CartDrawer({
 
     let matched = activeCoupons.find(c => c.code === codeUpper && c.active);
     
-    // Dynamic support for RISAT codes (one-time lottery offer)
-    if (!matched && codeUpper.startsWith('RISAT')) {
+    // Dynamic support for lottery codes (one-time lottery offer)
+    if (!matched && codeUpper.startsWith(lotteryPrefix)) {
       if (localStorage.getItem('has_used_lottery_code') === 'true') {
         setCouponError('YOU HAVE ALREADY USED THIS ONE-TIME EXCLUSIVE LOTTERY VOUCHER');
         setAppliedCoupon(null);
         return;
       }
       
-      const pctStr = codeUpper.replace('RISAT', '');
+      const pctStr = codeUpper.replace(lotteryPrefix, '');
       const pctVal = Number(pctStr);
       if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
         // Enforce that at least one product in the shopping bag is lottery-eligible
@@ -273,7 +275,7 @@ export default function CartDrawer({
       }
 
       // Success
-      if (appliedCoupon && appliedCoupon.code.startsWith('RISAT')) {
+      if (appliedCoupon && appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
         localStorage.setItem('has_used_lottery_code', 'true');
       }
       setAppliedCoupon(null);

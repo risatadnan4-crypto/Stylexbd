@@ -175,6 +175,29 @@ export default function ProductDetailModal({
               </button>
             </div>
 
+            {/* Automatic QR Code Share Section */}
+            <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center gap-4 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+              <div className="bg-black p-2 rounded-lg border border-luxury-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.15)] flex-shrink-0">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
+                  alt="Product QR code"
+                  className="w-[110px] h-[110px] object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="space-y-1 text-center sm:text-left">
+                <h5 className="text-[10px] font-mono uppercase tracking-[0.2em] text-luxury-gold font-bold flex items-center justify-center sm:justify-start gap-1">
+                  🔳 Scan to instant order
+                </h5>
+                <p className="text-xs text-white/70 font-sans font-light leading-relaxed">
+                  Scan this automatically generated QR code with any mobile scanner to instantly access or share the private deep link for this item.
+                </p>
+                <div className="text-[9px] font-mono text-[#9A4DFF] select-all break-all bg-black/40 px-2 py-1 rounded border border-white/5 inline-block">
+                  {window.location.origin}/?productCode={product.code}
+                </div>
+              </div>
+            </div>
+
             {/* Security Badge tags */}
             <div className="border-t border-white/5 pt-3.5 flex items-center justify-center gap-2.5 text-[10px] text-white/40 uppercase tracking-widest font-mono text-center">
               <span>⚜️ CASH ON DELIVERY AVAILABLE</span>

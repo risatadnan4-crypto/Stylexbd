@@ -3,7 +3,8 @@ import {
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
-  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight
+  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight,
+  Facebook, Instagram, MessageCircle
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -190,6 +191,9 @@ export default function App() {
     logoUrl?: string; 
     lotteryPrizes?: LotteryPrize[]; 
     lotteryDiscountPercentage?: number;
+    lotteryCouponPrefix?: string;
+    facebookUrl?: string;
+    instagramUrl?: string;
     paymentBadgeTitle?: string;
     paymentBadgeDescription?: string;
     isCatalogDeactivated?: boolean;
@@ -316,6 +320,23 @@ export default function App() {
       clearInterval(interval);
     };
   }, []);
+
+  // Automatically open product if deep-linked via QR Code on load
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('product') || urlParams.get('productCode');
+      if (code) {
+        const found = products.find(p => 
+          (p.code && p.code.toLowerCase() === code.toLowerCase()) || 
+          String(p.id) === code
+        );
+        if (found) {
+          setSelectedProduct(found);
+        }
+      }
+    }
+  }, [products]);
 
   const loadStoreCollections = async () => {
     try {
@@ -489,8 +510,9 @@ export default function App() {
     setLoginError('');
 
     // Predefined secure administrator credentials matching useremail
-    const userEmail = "risatadnan4@gmail.com";
-    if (loginEmail.trim() === userEmail && loginPassword === "risat123") {
+    const userEmail = settings?.adminEmail || "risatadnan4@gmail.com";
+    const activeAdminPassword = settings?.adminPassword || "risat123";
+    if (loginEmail.trim() === userEmail && loginPassword === activeAdminPassword) {
       setIsAuthAdmin(true);
       sessionStorage.setItem('stylex_admin_auth', 'true');
       setShowLoginModal(false);
@@ -813,6 +835,7 @@ export default function App() {
         }}
         settings={settings}
         onRefreshSettings={loadSettings}
+        onRefreshCoupons={loadCoupons}
       />
     );
   }
@@ -1459,10 +1482,9 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
+                  {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-6 right-6 flex items-center gap-1.5 sm:gap-2.5 z-40 p-1.5 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.85)] border border-white/5 transition-all">
+        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 flex flex-nowrap items-center justify-end gap-1 sm:gap-2.5 z-40 p-1 sm:p-1.5 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.85)] border border-white/5 transition-all">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -1476,12 +1498,12 @@ export default function App() {
           {/* VIP Notification Alerts Hub */}
           <button 
             onClick={() => { 
-              setIsNotificationOpen(true); 
-              const now = Date.now();
-              setLastReadTimestamp(now);
-              localStorage.setItem('stylex_notif_last_read_ts', String(now));
+                setIsNotificationOpen(true); 
+                const now = Date.now();
+                setLastReadTimestamp(now);
+                localStorage.setItem('stylex_notif_last_read_ts', String(now));
             }}
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
             title="VIP Dispatch & Product Alerts Hub"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1493,7 +1515,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Bell className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
             {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -1510,7 +1532,7 @@ export default function App() {
           {/* Claim Discount Option */}
           <button 
             onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
             title="Request Campaign Discount Coupon"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1522,7 +1544,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Percent className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors" />
+            <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               GET DISCOUNT
             </span>
@@ -1532,7 +1554,7 @@ export default function App() {
           {!settings?.isLotteryDeactivated && (
             <button 
               onClick={() => setIsLotteryOpen(true)}
-              className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+              className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
               title="Imperial Fortune Game"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -1544,7 +1566,7 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Gift className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-pulse" />
+              <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-pulse" />
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
@@ -1558,7 +1580,7 @@ export default function App() {
           {/* Track Existing Receipts */}
           <button 
             onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
             title="Track Existing Receipts"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1570,7 +1592,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Ticket className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               TRACK RECEIPT
             </span>
@@ -1579,7 +1601,7 @@ export default function App() {
           {/* View Current Bag */}
           <button 
             onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
             title="View Current Luxury Bag"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1591,9 +1613,9 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <ShoppingBag className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <ShoppingBag className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
             {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-1.5 border-black shadow z-20">
+              <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce">
                 {cart.reduce((sum, item) => sum + item.quantity, 0)}
               </span>
             )}
@@ -1602,32 +1624,72 @@ export default function App() {
             </span>
           </button>
 
-          {/* AI Assistance Controllable Launcher Group */}
-          {!isChatOpen && (
-            <button 
-              onClick={() => {
-                setIsChatOpen(true);
-              }}
-              className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
-              title="Digital Concierge Help"
-            >
-              {/* Animated multi-layered running glow border around the button */}
-              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-                {/* Soft splash backdrop glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-                {/* Sharp crisp running line */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-                <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-              </div>
-              
-              {/* Pulsing visual halo rings */}
-              <span className="absolute inset-0 rounded-full border border-luxury-gold/45 opacity-35 scale-125 animate-ping pointer-events-none z-0"></span>
-              <MessageSquare className="relative z-10 w-4 h-4 sm:w-[22px] sm:h-[22px] stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-                ASSISTANT
-              </span>
-            </button>
-          )}
+          {/* WhatsApp Live Concierge */}
+          <a 
+            href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            title="WhatsApp Live Concierge"
+          >
+            {/* Animated multi-layered running glow border around the button */}
+            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+              {/* Soft splash backdrop glow */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[4px] opacity-65 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+              {/* Sharp crisp running line */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+              <div className="absolute inset-[1.5px] rounded-full bg-[#0a1204]" />
+            </div>
+            
+            {/* Pulsing visual halo rings */}
+            <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
+            <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-pulse" />
+            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              WHATSAPP
+            </span>
+          </a>
+
+          {/* Facebook Official Page */}
+          <a 
+            href={settings?.facebookUrl || "https://facebook.com/stylexcollection"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            title="Facebook Official Collection"
+          >
+            {/* Animated border */}
+            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+              <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
+            </div>
+            
+            <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors" />
+            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              FACEBOOK
+            </span>
+          </a>
+
+          {/* Instagram Official Page */}
+          <a 
+            href={settings?.instagramUrl || "https://instagram.com/stylexcollection"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            title="Instagram Gallery Reel"
+          >
+            {/* Animated border */}
+            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+            </div>
+            
+            <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors" />
+            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              INSTAGRAM
+            </span>
+          </a>
         </div>
       )}
 
@@ -1675,6 +1737,27 @@ export default function App() {
                 SX
               </div>
               <p className="text-[10px] font-mono tracking-widest uppercase">STYLE X SEQUENCE</p>
+            </div>
+            {/* Real social links */}
+            <div className="flex items-center gap-3 pt-1">
+              <a 
+                href={settings?.facebookUrl || "https://facebook.com/stylexcollection"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 hover:border-luxury-gold text-white hover:text-[#1877F2] transition-all"
+                title="Facebook Official"
+              >
+                <Facebook className="w-3.5 h-3.5" />
+              </a>
+              <a 
+                href={settings?.instagramUrl || "https://instagram.com/stylexcollection"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold transition-all"
+                title="Instagram Official"
+              >
+                <Instagram className="w-3.5 h-3.5" />
+              </a>
             </div>
             <p className="text-[10px] font-light leading-relaxed italic">
               Empowering the modern visionary since 2026. Designed exclusively by Risat Adnan. All rights reserved.
@@ -1769,7 +1852,7 @@ export default function App() {
                 />
               </div>
               
-              <p className="text-[9px] text-white/40 italic leading-relaxed">
+              <p className="text-[9px] text-white/40 italic leading-relaxed opacity-0 select-none pointer-events-none">
                 Test credentials: use <strong className="text-luxury-gold font-mono">risatadnan4@gmail.com</strong> with security password <strong className="text-luxury-gold font-mono">risat123</strong> to login as owner Admin!
               </p>
             </div>
@@ -2316,6 +2399,7 @@ CREATE TRIGGER on_auth_user_created
         prizes={settings?.lotteryPrizes}
         discountPercentage={settings?.lotteryDiscountPercentage}
         isLotteryDeactivated={settings?.isLotteryDeactivated}
+        lotteryCouponPrefix={settings?.lotteryCouponPrefix}
       />
 
       {isDiscountOpen && (
