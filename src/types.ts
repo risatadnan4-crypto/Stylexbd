@@ -7,6 +7,7 @@ export interface Product {
   category: 'MEN' | 'WOMEN' | 'UNISEX' | 'ACCESSORIES';
   stock: number;
   imageUrl: string;
+  images?: string[]; // Support for multiple images
   sizes: string[]; // e.g. ['S', 'XS', 'M', 'L']
   dimensions: string; // e.g. 'Standard Fitting'
   whyBuy: string; // Explaining why they should buy this piece in "আপনি কেন কিনবেন?"
@@ -59,6 +60,7 @@ export interface Banner {
   title: string;
   subtitle: string;
   imageUrl: string;
+  isVideo?: boolean;
   active: boolean;
 }
 

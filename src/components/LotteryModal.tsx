@@ -44,9 +44,52 @@ export default function LotteryModal({ isOpen, onClose, discountPercentage = 15,
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(voucherCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(voucherCode).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }).catch((err) => {
+          console.warn("Clipboard copy promise failed, attempting fallback:", err);
+          fallbackCopyText(voucherCode);
+        });
+      } else {
+        fallbackCopyText(voucherCode);
+      }
+    } catch (e) {
+      console.warn("Clipboard API copy failed, attempting fallback:", e);
+      fallbackCopyText(voucherCode);
+    }
+  };
+
+  const fallbackCopyText = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed"; // Avoid scrolling/focus jumps
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.width = "2em";
+      textArea.style.height = "2em";
+      textArea.style.padding = "0";
+      textArea.style.border = "none";
+      textArea.style.outline = "none";
+      textArea.style.boxShadow = "none";
+      textArea.style.background = "transparent";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        console.warn("Fallback execCommand copy returned false.");
+      }
+    } catch (err) {
+      console.error("Fallback execCommand copy crashed:", err);
+    }
   };
 
   const handleResetVoucher = () => {

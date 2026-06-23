@@ -25,8 +25,18 @@ export default function ProductDetailModal({
   whatsappNumber = "8801755104443"
 }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
+  const [activeImgUrl, setActiveImgUrl] = useState<string | null>(null);
+  const [prevProductId, setPrevProductId] = useState<string | null>(null);
+
+  if (product && product.id !== prevProductId) {
+    setPrevProductId(product.id);
+    setActiveImgUrl(product.imageUrl);
+  }
 
   if (!isOpen) return null;
+
+  const displayImage = activeImgUrl || product.imageUrl;
+  const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
 
   const handleWhatsAppDirect = () => {
     const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I am looking to acquire:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${product.price}\n*Size Choice:* ${selectedSize}\n\nCould you guide me regarding active courier times?\nThank you!`;
@@ -56,16 +66,38 @@ export default function ProductDetailModal({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
           
-          {/* Left Column: Premium Zoom Image */}
-          <div className="w-full relative aspect-square bg-luxury-charcoal rounded overflow-hidden border border-white/5 flex items-center justify-center">
-            <img 
-              src={product.imageUrl} 
-              alt={product.title} 
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
-            {/* Visual gradient filter */}
-            <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent"></div>
+          {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
+          <div className="space-y-4">
+            <div className="w-full relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center">
+              <img 
+                src={displayImage} 
+                alt={product.title} 
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover transition-all duration-500 animate-fade-in"
+              />
+              {/* Visual gradient filter */}
+              <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/50 via-transparent to-transparent pointer-events-none"></div>
+            </div>
+
+            {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
+            {allImages.length > 1 && (
+              <div className="flex gap-2.5 p-1 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-2">
+                {allImages.map((img, i) => (
+                  <button
+                    key={img + i}
+                    type="button"
+                    onClick={() => setActiveImgUrl(img)}
+                    className={`w-14 h-14 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
+                      img === displayImage 
+                        ? 'border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105' 
+                        : 'border-white/5 hover:border-white/20 hover:scale-105'
+                    }`}
+                  >
+                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Detailed Product Specs */}
@@ -158,7 +190,7 @@ export default function ProductDetailModal({
                     onClose();
                   }}
                   disabled={product.stock === 0}
-                  className="w-full bg-gradient-to-r from-[#d4af37] via-[#fdf6d4] to-[#aa7c11] text-[#05010c] hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 disabled:opacity-40 shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.65)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
+                  className="w-full bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#059669] text-black hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 disabled:opacity-40 shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
                 >
                   <span>👑</span>
                   <span>Buy Now</span>

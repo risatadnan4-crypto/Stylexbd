@@ -214,20 +214,35 @@ export default function AdminPanel({
 
       const fileNameClean = `logo_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
 
-      // ATTEMPT 1: Try direct upload to Supabase bucket 'products' using SDK
+      // ATTEMPT 1: Try direct upload to Supabase bucket 'media' (falls back to 'products' if missing)
       setLogoUploadProgress("Uploading logo to storage...");
       try {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('products')
+        let activeBucket = 'media';
+        let { data: uploadData, error: uploadError } = await supabase.storage
+          .from(activeBucket)
           .upload(fileNameClean, compressed.blob, {
             contentType: file.type || 'image/png',
             cacheControl: '3600',
             upsert: true
           });
 
+        if (uploadError) {
+          console.warn(`Direct storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, uploadError.message);
+          activeBucket = 'products';
+          const fallbackRes = await supabase.storage
+            .from(activeBucket)
+            .upload(fileNameClean, compressed.blob, {
+              contentType: file.type || 'image/png',
+              cacheControl: '3600',
+              upsert: true
+            });
+          uploadData = fallbackRes.data;
+          uploadError = fallbackRes.error;
+        }
+
         if (!uploadError && uploadData) {
           const { data: publicUrlData } = supabase.storage
-            .from('products')
+            .from(activeBucket)
             .getPublicUrl(fileNameClean);
 
           if (publicUrlData?.publicUrl) {
@@ -284,8 +299,15 @@ export default function AdminPanel({
           logoUrl: url,
           lotteryPrizes: lotteryPrizesInput,
           lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
           paymentBadgeTitle: paymentBadgeTitleInput,
-          paymentBadgeDescription: paymentBadgeDescriptionInput
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
         })
       });
       if (onRefreshSettings) {
@@ -344,6 +366,8 @@ export default function AdminPanel({
   const [formDimensions, setFormDimensions] = useState('Bespoke Fit');
   const [formWhyBuy, setFormWhyBuy] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
+  const [formImages, setFormImages] = useState<string[]>([]);
+  const [secondaryUrlInput, setSecondaryUrlInput] = useState('');
   const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
@@ -358,6 +382,9 @@ export default function AdminPanel({
   const [newBannerTitle, setNewBannerTitle] = useState('');
   const [newBannerSubtitle, setNewBannerSubtitle] = useState('');
   const [newBannerImg, setNewBannerImg] = useState('');
+  const [newBannerIsVideo, setNewBannerIsVideo] = useState(false);
+  const [bannerUploadProgress, setBannerUploadProgress] = useState('');
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
 
   const [newCampaignTitle, setNewCampaignTitle] = useState('');
   const [newCampaignDesc, setNewCampaignDesc] = useState('');
@@ -468,115 +495,178 @@ export default function AdminPanel({
     }
   };
 
-  // Dual-path authenticated upload with automatic client-side image compression
+  // Reusable multi-attempt single file upload helper containing optimization & compression
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const isVideoFile = file.type.startsWith('video/') ||
+                        file.name.toLowerCase().endsWith('.mp4') ||
+                        file.name.toLowerCase().endsWith('.webm') ||
+                        file.name.toLowerCase().endsWith('.mov') ||
+                        file.name.toLowerCase().endsWith('.ogg') ||
+                        file.name.toLowerCase().endsWith('.m4v');
+
+    // 1. Client-Side Image Compression & Resizing to satisfy size limits
+    const compressed = await new Promise<{ base64: string; blob: Blob }>((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        if (isVideoFile) {
+          resolve({ base64: event.target?.result as string, blob: file });
+          return;
+        }
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = 1200;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve({ base64: event.target?.result as string, blob: file });
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const base64 = canvas.toDataURL('image/jpeg', 0.85);
+          canvas.toBlob((blob) => {
+            resolve({ base64, blob: blob || file });
+          }, 'image/jpeg', 0.85);
+        };
+        img.onerror = () => {
+          resolve({ base64: event.target?.result as string, blob: file });
+        };
+      };
+      reader.onerror = () => {
+        resolve({ base64: '', blob: file });
+      };
+    });
+
+    const fileNameClean = `uploaded_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+    // ATTEMPT 1: Try direct upload to Supabase bucket 'media' (falls back to 'products' if missing)
+    try {
+      let activeBucket = 'media';
+      let { data: uploadData, error: uploadError } = await supabase.storage
+        .from(activeBucket)
+        .upload(fileNameClean, compressed.blob, {
+          contentType: file.type || (isVideoFile ? 'video/mp4' : 'image/jpeg'),
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.warn(`Direct storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, uploadError.message);
+        activeBucket = 'products';
+        const fallbackRes = await supabase.storage
+          .from(activeBucket)
+          .upload(fileNameClean, compressed.blob, {
+            contentType: file.type || (isVideoFile ? 'video/mp4' : 'image/jpeg'),
+            cacheControl: '3600',
+            upsert: true
+          });
+        uploadData = fallbackRes.data;
+        uploadError = fallbackRes.error;
+      }
+
+      if (!uploadError && uploadData) {
+        const { data: publicUrlData } = supabase.storage
+          .from(activeBucket)
+          .getPublicUrl(fileNameClean);
+
+        if (publicUrlData?.publicUrl) {
+          return publicUrlData.publicUrl;
+        }
+      } else {
+        console.warn("Direct storage upload failed, cascading to server-side endpoint:", uploadError?.message);
+      }
+    } catch (directErr: any) {
+      console.warn("Direct storage connection error, cascading to server-side:", directErr.message);
+    }
+
+    // ATTEMPT 2: Fallback to server-side /api/upload endpoint
+    if (!compressed.base64) {
+      throw new Error("Could not prepare image binary data.");
+    }
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, base64Data: compressed.base64 })
+    });
+
+    const resultData = await res.json();
+    if (res.ok && resultData.fileUrl) {
+      return resultData.fileUrl;
+    } else {
+      throw new Error(resultData.message || "Failed to parse API upload response.");
+    }
+  };
+
+  // Primary image file change uploader
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFormError('');
-    setUploadProgress("Optimizing image and preparing upload...");
+    setUploadProgress("Optimizing primary image and preparing upload...");
 
     try {
-      // 1. Client-Side Image Compression & Resizing to satisfy Vercel limits (<4.5MB)
-      const compressed = await new Promise<{ base64: string; blob: Blob }>((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target?.result as string;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            const maxDimension = 1200;
-
-            if (width > maxDimension || height > maxDimension) {
-              if (width > height) {
-                height = Math.round((height * maxDimension) / width);
-                width = maxDimension;
-              } else {
-                width = Math.round((width * maxDimension) / height);
-                height = maxDimension;
-              }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              resolve({ base64: event.target?.result as string, blob: file });
-              return;
-            }
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const base64 = canvas.toDataURL('image/jpeg', 0.85);
-            canvas.toBlob((blob) => {
-              resolve({ base64, blob: blob || file });
-            }, 'image/jpeg', 0.85);
-          };
-          img.onerror = () => {
-            resolve({ base64: event.target?.result as string, blob: file });
-          };
-        };
-        reader.onerror = () => {
-          resolve({ base64: '', blob: file });
-        };
-      });
-
-      const fileNameClean = `uploaded_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-
-      // ATTEMPT 1: Try direct upload to Supabase bucket 'products' using SDK (which handles auth headers automatically)
-      setUploadProgress("Attempting direct client-side storage upload to 'products'...");
-      try {
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(fileNameClean, compressed.blob, {
-            contentType: file.type || 'image/jpeg',
-            cacheControl: '3600',
-            upsert: true
-          });
-
-        if (!uploadError && uploadData) {
-          const { data: publicUrlData } = supabase.storage
-            .from('products')
-            .getPublicUrl(fileNameClean);
-
-          if (publicUrlData?.publicUrl) {
-            setFormImageUrl(publicUrlData.publicUrl);
-            setUploadProgress("Uploaded directly to Supabase storage 'products' successfully!");
-            return;
-          }
-        } else {
-          console.warn("Direct storage upload failed, cascading to server-side endpoint:", uploadError?.message);
-        }
-      } catch (directErr: any) {
-        console.warn("Direct storage connection error, cascading to server-side:", directErr.message);
-      }
-
-      // ATTEMPT 2: Fallback to server-side /api/upload endpoint
-      setUploadProgress("Cascading to secure server-side upload endpoint...");
-      if (!compressed.base64) {
-        throw new Error("Could not prepare image binary data.");
-      }
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, base64Data: compressed.base64 })
-      });
-
-      const resultData = await res.json();
-      if (res.ok) {
-        setFormImageUrl(resultData.fileUrl);
-        setUploadProgress("Digitalized to backend storage successfully via server-side bridge!");
-      } else {
-        throw new Error(resultData.message || "Failed to parse API upload response.");
-      }
-
+      const url = await uploadSingleFile(file);
+      setFormImageUrl(url);
+      setUploadProgress("Primary catalog image uploaded successfully!");
     } catch (err: any) {
       console.error("Upload process encountered error:", err);
-      setUploadProgress(`Upload error: ${err.message || "Unable to contact asset storage server. Please make sure the 'products' storage bucket exists in Supabase and is public."}`);
+      setUploadProgress(`Base64/API Upload fallback status: ${err.message || "Unable to contact asset storage server."}`);
     }
+  };
+
+  // Secondary multiple images file change uploader
+  const handleMultiFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setFormError('');
+    setUploadProgress("Optimizing and uploading multiple secondary files...");
+
+    let uploadedCount = 0;
+    const newUploads: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        setUploadProgress(`Uploading secondary image ${i + 1} of ${files.length}...`);
+        const url = await uploadSingleFile(file);
+        newUploads.push(url);
+        uploadedCount++;
+      } catch (err: any) {
+        console.error("Error uploading secondary file:", file.name, err);
+        setFormError(`Failed to upload secondary ${file.name}: ${err.message || "Error"}`);
+      }
+    }
+
+    if (newUploads.length > 0) {
+      setFormImages((prev) => [...prev, ...newUploads]);
+      setUploadProgress(`Successfully uploaded ${uploadedCount} secondary brand images!`);
+    } else {
+      setUploadProgress("");
+    }
+  };
+
+  const handleRemoveSecondaryImage = (index: number) => {
+    setFormImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Submit Product Add/Update
@@ -615,6 +705,7 @@ export default function AdminPanel({
       dimensions: formDimensions,
       whyBuy: formWhyBuy || "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
       imageUrl: formImageUrl,
+      images: formImages,
       trending: true,
       featured: true,
       lotteryEligible: formLotteryEligible,
@@ -650,6 +741,8 @@ export default function AdminPanel({
         setFormDeliveryPriceMymensingh(150);
         setFormStock(50);
         setFormWhyBuy('');
+        setFormImages([]);
+        setSecondaryUrlInput('');
         setFormLotteryEligible(true);
         setFormCouponCode('');
         setFormCouponDiscountPercent(15);
@@ -692,6 +785,8 @@ export default function AdminPanel({
     setFormDimensions(prod.dimensions);
     setFormWhyBuy(prod.whyBuy);
     setFormImageUrl(prod.imageUrl);
+    setFormImages(prod.images || []);
+    setSecondaryUrlInput('');
     setFormLotteryEligible(prod.lotteryEligible !== false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
@@ -757,20 +852,122 @@ export default function AdminPanel({
   };
 
   // Create Banner
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setBannerUploadProgress("Uploading and preparing high-fidelity banner asset...");
+    try {
+      const url = await uploadSingleFile(file);
+      
+      // Auto-identify if file is a video by mime type or file extension
+      const isVideoType = file.type.startsWith('video/') || 
+                          file.name.toLowerCase().endsWith('.mp4') || 
+                          file.name.toLowerCase().endsWith('.webm') || 
+                          file.name.toLowerCase().endsWith('.mov') ||
+                          file.name.toLowerCase().endsWith('.ogg') ||
+                          file.name.toLowerCase().endsWith('.m4v');
+      
+      const resolvedUrl = isVideoType && !url.includes('is_video=true')
+        ? (url.includes('#') ? `${url}&is_video=true` : `${url}#is_video=true`)
+        : url;
+
+      setNewBannerImg(resolvedUrl);
+      setNewBannerIsVideo(isVideoType);
+      setBannerUploadProgress(`Banner asset uploaded successfully! ${isVideoType ? "(Detected Cinematic Video)" : "(Detected Image)"}`);
+    } catch (err: any) {
+      console.error("Banner asset upload error:", err);
+      setBannerUploadProgress(`Upload configuration failed: ${err.message || "Unknown error"}`);
+    }
+  };
+
+  const handleActivateBanner = async (id: string) => {
+    try {
+      const res = await fetch(`/api/banners/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: true })
+      });
+      if (res.ok) {
+        fetchBanners();
+      }
+    } catch (err) {
+      console.error("Activate banner error:", err);
+    }
+  };
+
+  const handleEditBannerClick = (b: Banner) => {
+    setEditingBannerId(b.id);
+    setNewBannerTitle(b.title);
+    setNewBannerSubtitle(b.subtitle || '');
+    
+    // Clean query parameters or anchors for pristine raw preview if needed, but let's keep it safe
+    setNewBannerImg(b.imageUrl);
+    
+    const isVideoType = b.isVideo || 
+                        b.imageUrl.includes('is_video=true') ||
+                        b.imageUrl.includes('#video') ||
+                        b.imageUrl.includes('#is_video') ||
+                        b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mp4') || 
+                        b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.webm') || 
+                        b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mov') ||
+                        b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.ogg') ||
+                        b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.m4v');
+    setNewBannerIsVideo(!!isVideoType);
+    setBannerUploadProgress("Editing existing banner asset. You can upload a new media file or change text details below.");
+  };
+
+  const handleCancelEditBanner = () => {
+    setNewBannerTitle('');
+    setNewBannerSubtitle('');
+    setNewBannerImg('');
+    setNewBannerIsVideo(false);
+    setBannerUploadProgress('');
+    setEditingBannerId(null);
+  };
+
   const handleCreateBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBannerTitle || !newBannerImg) return;
     try {
-      const res = await fetch('/api/banners', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newBannerTitle, subtitle: newBannerSubtitle, imageUrl: newBannerImg, active: true })
-      });
-      if (res.ok) {
-        setNewBannerTitle('');
-        setNewBannerSubtitle('');
-        setNewBannerImg('');
-        fetchBanners();
+      let resolvedUrl = newBannerImg;
+      if (newBannerIsVideo && !resolvedUrl.includes('is_video=true')) {
+        resolvedUrl = resolvedUrl.includes('#') 
+          ? `${resolvedUrl}&is_video=true` 
+          : `${resolvedUrl}#is_video=true`;
+      }
+
+      if (editingBannerId) {
+        const res = await fetch(`/api/banners/${editingBannerId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            title: newBannerTitle, 
+            subtitle: newBannerSubtitle, 
+            imageUrl: resolvedUrl, 
+            isVideo: newBannerIsVideo
+          })
+        });
+        if (res.ok) {
+          handleCancelEditBanner();
+          fetchBanners();
+        }
+      } else {
+        const res = await fetch('/api/banners', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            title: newBannerTitle, 
+            subtitle: newBannerSubtitle, 
+            imageUrl: resolvedUrl, 
+            isVideo: newBannerIsVideo, 
+            active: true 
+          })
+        });
+        if (res.ok) {
+          handleCancelEditBanner();
+          fetchBanners();
+        }
       }
     } catch (e) {}
   };
@@ -778,7 +975,12 @@ export default function AdminPanel({
   const handleDeleteBanner = async (id: string) => {
     try {
       const res = await fetch(`/api/banners/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchBanners();
+      if (res.ok) {
+        if (editingBannerId === id) {
+          handleCancelEditBanner();
+        }
+        fetchBanners();
+      }
     } catch (e) {}
   };
 
@@ -1286,6 +1488,8 @@ export default function AdminPanel({
                   setFormStock(30);
                   setFormSizes('S, M, L, XL');
                   setFormImageUrl('');
+                  setFormImages([]);
+                  setSecondaryUrlInput('');
                   setFormWhyBuy('');
                   setUploadProgress('');
                   setShowProductForm(!showProductForm);
@@ -1440,8 +1644,33 @@ CREATE POLICY insert_all_coupons ON public.coupons FOR ALL USING (true) WITH CHE
 CREATE POLICY insert_all_campaigns ON public.campaigns FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_reviews ON public.reviews FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_orders ON public.orders FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (true);`;
-                          navigator.clipboard.writeText(sql);
+CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (true);
+
+-- 8. Create and Configure 'media' & 'products' Storage Buckets (if they don't exist yet)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true), ('products', 'products', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allows open read/write access to storage.objects in the buckets for seamless anonymous uploads
+CREATE POLICY "Allow public select on buckets" ON storage.objects FOR SELECT TO public USING (bucket_id IN ('media', 'products'));
+CREATE POLICY "Allow public insert on buckets" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id IN ('media', 'products'));
+CREATE POLICY "Allow public update on buckets" ON storage.objects FOR UPDATE TO public USING (bucket_id IN ('media', 'products'));
+CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO public USING (bucket_id IN ('media', 'products'));`;
+                          try {
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                              navigator.clipboard.writeText(sql);
+                            } else {
+                              const t = document.createElement("textarea");
+                              t.value = sql;
+                              t.style.position = "fixed";
+                              document.body.appendChild(t);
+                              t.select();
+                              document.execCommand("copy");
+                              document.body.removeChild(t);
+                            }
+                          } catch (err) {
+                            console.warn("Fallback copy executed:", err);
+                          }
                           alert("Schema bootstrap SQL copied to clipboard! Paste it inside your Supabase dashboard SQL Editor directly.");
                         }}
                         className="text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer"
@@ -1472,9 +1701,9 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                   </div>
 
                   <div className="pt-2">
-                    <strong className="text-luxury-gold">Step 2: Setup Public Storage Bucket for Images</strong>
+                    <strong className="text-luxury-gold">Step 2: Setup Unified Public Storage Bucket for Media</strong>
                     <p className="text-white/60 mt-0.5 leading-relaxed">
-                      Go to "Storage" in your Supabase admin dashboard, click <strong>"New Bucket"</strong>, name the bucket exactly <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">products</code>, and turn ON the <strong>"Public Bucket"</strong> toggle. Under "RLS Policies", add a Policy that grants all/write access to everyone (SELECT/INSERT/UPDATE) on the products bucket for anonymous users as well.
+                      Go to "Storage" in your Supabase admin dashboard, click <strong>"New Bucket"</strong>, name the bucket exactly <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">media</code> (or <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-300">products</code> if you already have it), and turn ON the <strong>"Public Bucket"</strong> toggle. Under "RLS Policies", add a Policy that grants all/write access to everyone (SELECT/INSERT/UPDATE/DELETE) on the bucket for anonymous users. This single unified bucket will store your logos, product images, and banner assets.
                     </p>
                   </div>
                 </div>
@@ -1728,7 +1957,7 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                   {/* Image link & local storage uploader (Supreme replicas) */}
                   <div className="md:col-span-2 border border-dashed border-white/10 p-4 rounded bg-luxury-black/35 space-y-3.5">
                     <div>
-                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-white/60 mb-2">Configure Digital Image File</h4>
+                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-white/60 mb-2">Configure Digital Image File (Primary Cover)</h4>
                       <input 
                         type="text" value={formImageUrl} onChange={(e) => setFormImageUrl(e.target.value)}
                         placeholder="Or input direct splash image URL..."
@@ -1738,7 +1967,7 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
 
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                       <div className="flex-1 w-full">
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Upload File (Simulated Cloud Replica)</label>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Upload Primary Cover File (Simulated Cloud Replica)</label>
                         <input 
                           type="file" accept="image/*" onChange={handleFileChange}
                           className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
@@ -1752,6 +1981,78 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Multiple Secondary Images Configuration */}
+                  <div className="md:col-span-2 border border-dashed border-luxury-gold/15 p-4 rounded bg-luxury-black/35 space-y-4">
+                    <div>
+                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold mb-1 flex items-center gap-1.5">
+                        <span>⚜️</span> Secondary Product Images (Upload 2, 3 or more than image)
+                      </h4>
+                      <p className="text-[9px] text-zinc-400">Specify multiple product angles, variants, styles, or detailed macro shots of the materials.</p>
+                    </div>
+
+                    {/* Add Secondary Image by direct URL */}
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Add Image by Direct URL</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={secondaryUrlInput} 
+                          onChange={(e) => setSecondaryUrlInput(e.target.value)}
+                          placeholder="Paste direct secondary image URL (e.g. from Unsplash)..."
+                          className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (secondaryUrlInput.trim()) {
+                              setFormImages(prev => [...prev, secondaryUrlInput.trim()]);
+                              setSecondaryUrlInput('');
+                            }
+                          }}
+                          className="bg-[#121212] hover:bg-luxury-gold hover:text-luxury-black text-luxury-gold border border-luxury-gold/30 font-mono text-[9px] px-4 rounded transition-all duration-300"
+                        >
+                          ADD URL
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Upload Multiple Files */}
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Upload Multiple Brand Photos (Select 2, 3 or more files at once)</label>
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*" 
+                        onChange={handleMultiFileChange}
+                        className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Image Gallery Lists */}
+                    {formImages.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-white/5">
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-[#d4af37] font-semibold">Active Secondary Gallery ({formImages.length} images)</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                          {formImages.map((imgUrl, index) => (
+                            <div key={index} className="relative group/img aspect-square bg-[#0c0c0c] border border-white/10 rounded overflow-hidden">
+                              <img src={imgUrl} alt={`Gallery index ${index}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              <div className="absolute inset-0 bg-black/75 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 gap-2">
+                                <span className="text-[10px] text-white/80 font-mono">#{index + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSecondaryImage(index)}
+                                  className="bg-red-950/85 hover:bg-red-900 border border-red-500/30 text-red-300 hover:text-white text-[10px] font-bold py-0.5 px-2 rounded transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {uploadProgress && <p className="text-[10px] text-luxury-gold font-mono tracking-wide">{uploadProgress}</p>}
                   </div>
 
@@ -1975,7 +2276,10 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
         {activeTab === 'banners' && (
           <div className="space-y-6 animate-fade-in">
             <form onSubmit={handleCreateBanner} className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg space-y-4">
-              <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2">Add cinematic promotional banner</h3>
+              <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2">
+                {editingBannerId ? "Edit cinematic promotional banner" : "Add cinematic promotional banner"}
+              </h3>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Banner Large Title</label>
@@ -1986,13 +2290,52 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Banner Image URL</label>
+                  <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Banner Media Aspect/Url</label>
                   <input 
                     type="text" required value={newBannerImg} onChange={(e) => setNewBannerImg(e.target.value)}
-                    placeholder="e.g. https://images.unsplash.com/..."
+                    placeholder="Input URL or upload below..."
                     className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
                   />
                 </div>
+                
+                {/* File Uploader for Banner Background (Images & Videos allowed!) */}
+                <div className="md:col-span-2 border border-dashed border-luxury-gold/20 p-4 rounded bg-[#0b0b0b] space-y-3">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="flex-1 w-full">
+                      <label className="block text-[9px] uppercase font-mono tracking-wider text-luxury-gold font-semibold mb-1">
+                        Upload Screen Banner Assets (Images or MP4 Videos)
+                      </label>
+                      <input 
+                        type="file" 
+                        accept="image/*,video/*" 
+                        onChange={handleBannerFileChange}
+                        className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
+                      />
+                      <p className="text-[9px] text-[#888] mt-1.5">
+                        💡 Choose an image or video file. Videos (.mp4 / .webm) will run and auto-loop beautifully in the background of your home header.
+                      </p>
+                    </div>
+
+                    {/* Manual option to specify if the asset is a Video */}
+                    <div className="flex items-center gap-2 self-end sm:self-center bg-[#151515] p-3 rounded border border-white/10">
+                      <input 
+                        type="checkbox" 
+                        id="isBannerVideo" 
+                        checked={newBannerIsVideo}
+                        onChange={(e) => setNewBannerIsVideo(e.target.checked)}
+                        className="rounded border-white/20 bg-luxury-charcoal text-luxury-gold focus:ring-0 w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="isBannerVideo" className="text-[10px] font-mono tracking-wider text-white/80 cursor-pointer select-none">
+                        🎥 This is a Video Banner
+                      </label>
+                    </div>
+                  </div>
+
+                  {bannerUploadProgress && (
+                    <p className="text-[10px] text-luxury-gold font-mono tracking-wide">{bannerUploadProgress}</p>
+                  )}
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Subtle descriptions story narrative</label>
                   <input 
@@ -2002,34 +2345,115 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                   />
                 </div>
               </div>
-              <button 
-                type="submit"
-                className="bg-luxury-gold text-luxury-black font-display font-medium text-[10px] uppercase tracking-widest py-2 px-4 rounded hover:brightness-110 cursor-pointer"
-              >
-                Launch Banner
-              </button>
+              <div className="flex items-center gap-3 pt-2">
+                <button 
+                  type="submit"
+                  className="bg-luxury-gold text-luxury-black font-display font-medium text-[10px] uppercase tracking-widest py-2.5 px-5 rounded hover:brightness-110 transition-all cursor-pointer"
+                >
+                  {editingBannerId ? "Save Banner Changes" : "Launch Banner"}
+                </button>
+                {editingBannerId && (
+                  <button 
+                    type="button"
+                    onClick={handleCancelEditBanner}
+                    className="bg-luxury-charcoal hover:bg-neutral-800 text-white/80 font-display font-medium text-[10px] uppercase tracking-widest py-2.5 px-5 rounded transition-all cursor-pointer border border-white/10"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
             </form>
 
             <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
-              <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4">Active Banners</h4>
+              <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4 flex items-center justify-between">
+                <span>Active Banners Archives</span>
+                <span className="text-[9px] font-mono text-white/40 tracking-wider">Configure showcase active presentation</span>
+              </h4>
               <div className="grid grid-cols-1 gap-4">
-                {banners.map(b => (
-                  <div key={b.id} className="flex gap-4 border border-white/5 p-4 rounded items-center bg-[#0d0d0d]">
-                    <img src={b.imageUrl} alt={b.title} className="w-24 h-16 object-cover rounded border border-white/10" />
-                    <div className="flex-1">
-                      <h5 className="font-serif font-bold text-white text-sm">{b.title}</h5>
-                      <p className="text-[11px] text-white/50 line-clamp-1 italic">{b.subtitle}</p>
+                {banners.map(b => {
+                  const isVideo = !!(b.isVideo || (
+                    b.imageUrl && typeof b.imageUrl === 'string' && (
+                      b.imageUrl.includes('is_video=true') ||
+                      b.imageUrl.includes('#video') ||
+                      b.imageUrl.includes('#is_video') ||
+                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mp4') ||
+                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.webm') ||
+                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mov') ||
+                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.ogg') ||
+                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.m4v') ||
+                      b.imageUrl.startsWith('data:video/')
+                    )
+                  ));
+
+                  return (
+                    <div key={b.id} className="flex flex-col sm:flex-row gap-4 border border-white/5 p-4 rounded items-start sm:items-center bg-[#0d0d0d] hover:border-white/10 transition-colors">
+                      {/* Media preview block */}
+                      <div className="w-28 aspect-[16/10] bg-[#0c0c0c] rounded border border-white/10 overflow-hidden relative flex items-center justify-center">
+                        {isVideo ? (
+                          <div className="relative w-full h-full flex items-center justify-center">
+                            <video src={b.imageUrl} muted className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 right-1 bg-black/80 font-mono text-[8px] text-[#e0a96d] px-1 rounded uppercase tracking-wider border border-[#e0a96d]/20">
+                              Video
+                            </span>
+                          </div>
+                        ) : (
+                          <img src={b.imageUrl} alt={b.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        )}
+                      </div>
+
+                      {/* Title information */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h5 className="font-serif font-bold text-white text-sm truncate">{b.title}</h5>
+                          {b.active && (
+                            <span className="bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 rounded px-1.5 py-0.5 text-[8px] font-bold tracking-widest uppercase font-mono">
+                              ⚜️ Active Showcase
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-white/50 line-clamp-2 italic leading-relaxed">{b.subtitle}</p>
+                      </div>
+
+                      {/* Action buttons (activation & delete) */}
+                      <div className="flex sm:flex-col md:flex-row items-center gap-2 self-stretch sm:self-center justify-end">
+                        {/* Only offer Activate click option if not already active */}
+                        {!b.active ? (
+                          <button
+                            type="button"
+                            onClick={() => handleActivateBanner(b.id)}
+                            className="bg-luxury-charcoal hover:bg-luxury-gold hover:text-luxury-black text-white/80 hover:text-luxury-black text-[9px] font-mono uppercase tracking-wider py-1.5 px-3 rounded border border-white/5 hover:border-transparent transition-all duration-300 whitespace-nowrap cursor-pointer"
+                          >
+                            Set Active
+                          </button>
+                        ) : (
+                          <span className="text-[9px] tracking-wider text-luxury-gold font-mono select-none px-3 py-1.5">
+                            LIVE
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleEditBannerClick(b)}
+                          className="text-white/60 hover:text-luxury-gold p-2 border border-white/5 hover:border-luxury-gold/25 rounded transition-all cursor-pointer"
+                          title="Edit banner"
+                        >
+                          <Edit size={13} />
+                        </button>
+
+                        {b.id !== 'banner-1' && (
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteBanner(b.id)}
+                            className="text-white/40 hover:text-red-400 p-2 border border-white/5 hover:border-red-500/25 rounded transition-all cursor-pointer"
+                            title="Delete banner"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    {b.id !== 'banner-1' && (
-                      <button 
-                        onClick={() => handleDeleteBanner(b.id)}
-                        className="text-white/40 hover:text-red-400 p-2 border border-white/5 hover:border-red-500/25 rounded"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -2430,7 +2854,21 @@ CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (
                   <button
                     onClick={() => {
                       const emails = backInStockAlerts.map(a => a.email).join(', ');
-                      navigator.clipboard.writeText(emails);
+                      try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(emails);
+                        } else {
+                          const t = document.createElement("textarea");
+                          t.value = emails;
+                          t.style.position = "fixed";
+                          document.body.appendChild(t);
+                          t.select();
+                          document.execCommand("copy");
+                          document.body.removeChild(t);
+                        }
+                      } catch (err) {
+                        console.warn("Emails copy failed with navigator, fell back:", err);
+                      }
                       alert("All collector email addresses copied to clipboard!");
                     }}
                     className="bg-purple-950/40 hover:bg-purple-900 border border-purple-500/20 text-purple-300 hover:text-white px-3 py-1.5 text-[9px] font-mono uppercase rounded transition-all cursor-pointer"

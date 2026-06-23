@@ -105,8 +105,13 @@ export default function App() {
 
   // Customer states (Log In / Sign Up)
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(() => {
-    const saved = localStorage.getItem('stylex_current_customer');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('stylex_current_customer');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.warn("Corrupted stylex_current_customer in localStorage removed gracefully:", e);
+      return null;
+    }
   });
 
   // Filter notifications based on customer email/phone, guest checkout order IDs, or tracked order references
@@ -187,6 +192,7 @@ export default function App() {
   const [settings, setSettings] = useState<{ 
     whatsappNumber: string; 
     adminEmail?: string; 
+    adminPassword?: string;
     appsScriptUrl?: string; 
     logoUrl?: string; 
     lotteryPrizes?: LotteryPrize[]; 
@@ -199,6 +205,7 @@ export default function App() {
     isCatalogDeactivated?: boolean;
     deactivatedMessage?: string;
     isLotteryDeactivated?: boolean;
+    isNotifyMeDeactivated?: boolean;
   }>({ whatsappNumber: "8801755104443" });
 
   const loadSettings = async () => {
@@ -541,7 +548,12 @@ export default function App() {
     setCustomerAuthSuccess('');
 
     const registeredRaw = localStorage.getItem('stylex_registered_customers');
-    let registered: Customer[] = registeredRaw ? JSON.parse(registeredRaw) : [];
+    let registered: Customer[] = [];
+    try {
+      registered = registeredRaw ? JSON.parse(registeredRaw) : [];
+    } catch (e) {
+      console.warn("Corrupted stylex_registered_customers in localStorage:", e);
+    }
 
     // Pre-seed some default accounts for immediate user testing convenience
     if (registered.length === 0) {
@@ -844,7 +856,8 @@ export default function App() {
   const activePromoBanner = banners.find(b => b.active) || {
     title: "STYLE X COLLECTIVE",
     subtitle: "A meticulous exploration of minimalist form and avant-garde structure. Curated exclusively by Risat Adnan for the modern visionary.",
-    imageUrl: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop"
+    imageUrl: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop",
+    isVideo: false
   };
 
   const getRelativeTimeString = (dateStr: string) => {
@@ -963,6 +976,7 @@ export default function App() {
           bannerTitle={activePromoBanner.title}
           bannerSubtitle={activePromoBanner.subtitle}
           bannerImage={activePromoBanner.imageUrl}
+          bannerIsVideo={activePromoBanner.isVideo}
         />
       )}
 
@@ -1402,50 +1416,71 @@ export default function App() {
 
               {/* Right write form Column */}
               <div className="lg:col-span-1">
-                <form onSubmit={handleReviewFormSubmit} className="bg-[#080808] border border-white/10 rounded-lg p-5 space-y-3.5 shadow-xl">
-                  <h4 className="font-serif text-sm font-bold uppercase text-white tracking-widest border-b border-white/5 pb-2">Submit Experience review</h4>
+                <form 
+                  onSubmit={handleReviewFormSubmit} 
+                  className="bg-gradient-to-tr from-[#090312] via-[#0d051a] to-[#040108] border-2 border-[#d4af37]/40 hover:border-[#d4af37]/75 rounded-2xl p-6 space-y-4 shadow-[0_15px_40px_rgba(212,175,55,0.12)] transition-all duration-500 relative overflow-hidden group/form text-white"
+                >
+                  {/* Visual ambient element inside the form */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-3xl pointer-events-none transition-all group-hover/form:bg-[#d4af37]/10 duration-700"></div>
+
+                  <div className="border-b border-white/[0.08] pb-3">
+                    <h4 className="font-serif text-base font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffd700] to-white tracking-widest flex items-center gap-1.5 leading-snug">
+                      <span>⚜️</span> Submit Experience
+                    </h4>
+                    <p className="text-[9.5px] text-white/50 uppercase font-mono tracking-widest mt-1">SHARE YOUR BRAND LEGACY REVIEW</p>
+                  </div>
                   
                   {/* Select product */}
                   <div>
-                    <label className="block text-[9px] uppercase font-mono tracking-widest text-white/50 mb-1">Curated Piece Choice</label>
-                    <select
-                      required
-                      value={newReviewProdId}
-                      onChange={(e) => setNewReviewProdId(e.target.value)}
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
-                    >
-                      <option value="">SELECT PIECE...</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.title} ({p.code})</option>
-                      ))}
-                    </select>
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Curated Piece Choice</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                      <select
+                        required
+                        value={newReviewProdId}
+                        onChange={(e) => setNewReviewProdId(e.target.value)}
+                        className="w-full bg-[#100624] text-white text-xs border border-transparent rounded-lg py-3 px-3 focus:outline-none font-mono cursor-pointer transition-all uppercase tracking-normal"
+                      >
+                        <option value="" className="bg-[#100624] text-white/40">SELECT AN ARTICLE...</option>
+                        {products.map(p => (
+                          <option key={p.id} value={p.id} className="bg-[#100624] text-white">{p.title} ({p.code})</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Name */}
                   <div>
-                    <label className="block text-[9px] uppercase font-mono tracking-widest text-white/50 mb-1">Your Name / Title</label>
-                    <input 
-                      type="text" required placeholder="e.g. Adnan R."
-                      value={newReviewName}
-                      onChange={(e) => setNewReviewName(e.target.value)}
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/15"
-                    />
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Your Name / Title</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="e.g. Adnan R."
+                        value={newReviewName}
+                        onChange={(e) => setNewReviewName(e.target.value)}
+                        className="w-full bg-[#100624] text-white text-xs border border-transparent rounded-lg py-3 px-3 focus:outline-none placeholder-white/20 transition-all font-mono"
+                      />
+                    </div>
                   </div>
 
                   {/* Rating */}
                   <div>
-                    <label className="block text-[9px] uppercase font-mono tracking-widest text-white/50 mb-1">Strate rating weight</label>
-                    <div className="flex gap-1">
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Rating Weight</label>
+                    <div className="flex gap-2.5 bg-black/40 border border-white/5 py-2 px-3 rounded-lg w-fit">
                       {[1, 2, 3, 4, 5].map((val) => (
                         <button
                           key={val}
                           type="button"
                           onClick={() => setNewReviewRating(val)}
-                          className={`p-1 hover:text-luxury-gold transition-colors ${
-                            newReviewRating >= val ? 'text-luxury-gold' : 'text-white/20'
+                          className={`p-1.5 hover:scale-125 transition-all outline-none ${
+                            newReviewRating >= val ? 'text-[#ffd700]' : 'text-white/20'
                           }`}
                         >
-                          <Star size={18} fill={newReviewRating >= val ? '#D4AF37' : 'none'} />
+                          <Star 
+                            size={20} 
+                            fill={newReviewRating >= val ? '#ffd700' : 'none'} 
+                            className={`${newReviewRating >= val ? 'drop-shadow-[0_0_10px_rgba(255,215,0,0.4)] animate-pulse' : ''} transition-all duration-300`} 
+                          />
                         </button>
                       ))}
                     </div>
@@ -1453,27 +1488,35 @@ export default function App() {
 
                   {/* Comment */}
                   <div>
-                    <label className="block text-[9px] uppercase font-mono tracking-widest text-white/50 mb-1">Exquisite feedback comments</label>
-                    <textarea 
-                      required rows={2} placeholder="Write thoughts regarding aesthetics..."
-                      value={newReviewComment}
-                      onChange={(e) => setNewReviewComment(e.target.value)}
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/15 resize-none"
-                    />
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Exquisite Feedback Comments</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                      <textarea 
+                        required 
+                        rows={2} 
+                        placeholder="Write detailed feedback regarding aesthetic quality..."
+                        value={newReviewComment}
+                        onChange={(e) => setNewReviewComment(e.target.value)}
+                        className="w-full bg-[#100624] text-white text-xs border border-transparent rounded-lg py-3 px-3 focus:outline-none placeholder-white/20 transition-all font-mono resize-none leading-relaxed"
+                      />
+                    </div>
                   </div>
 
                   {revMessage && (
-                    <div className="bg-luxury-gold/[0.04] border border-luxury-gold/20 text-luxury-gold p-2 rounded text-[10px] font-mono leading-relaxed">
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-[#100624] border border-emerald-500/30 text-emerald-400 p-3 rounded-lg text-[10.5px] font-mono leading-relaxed shadow-inner">
                       {revMessage}
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-luxury-gold-dark to-luxury-gold text-luxury-black font-display font-extrabold text-[10px] uppercase tracking-widest py-2.5 rounded transition-all cursor-pointer"
-                  >
-                    Catalog feedback experience
-                  </button>
+                  {/* Submit Button with running effect */}
+                  <div className="relative rounded-xl p-[1.5px] overflow-hidden group/btn">
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#aa7c11] opacity-60 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                    <button
+                      type="submit"
+                      className="relative w-full bg-gradient-to-r from-black via-[#0d041a] to-black hover:text-white text-[#d4af37] font-display font-black text-[11px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <span>⚜️</span> Catalog Experience
+                    </button>
+                  </div>
                 </form>
               </div>
 
@@ -2091,7 +2134,21 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();`;
-                              navigator.clipboard.writeText(sqlText);
+                              try {
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                  navigator.clipboard.writeText(sqlText);
+                                } else {
+                                  const t = document.createElement("textarea");
+                                  t.value = sqlText;
+                                  t.style.position = "fixed";
+                                  document.body.appendChild(t);
+                                  t.select();
+                                  document.execCommand("copy");
+                                  document.body.removeChild(t);
+                                }
+                              } catch (err) {
+                                console.warn("Fallback query copy ran:", err);
+                              }
                               setSqlCopied(true);
                               setTimeout(() => setSqlCopied(false), 2000);
                             }}

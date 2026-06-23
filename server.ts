@@ -503,6 +503,19 @@ async function syncFromSupabase() {
           if (map.logoUrl) db.settings.logoUrl = map.logoUrl;
           if (map.facebookUrl) db.settings.facebookUrl = map.facebookUrl;
           if (map.instagramUrl) db.settings.instagramUrl = map.instagramUrl;
+          if (map.lotteryDiscountPercentage) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
+          if (map.lotteryCouponPrefix) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
+          if (map.paymentBadgeTitle) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
+          if (map.paymentBadgeDescription) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
+          if (map.isCatalogDeactivated) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
+          if (map.deactivatedMessage) db.settings.deactivatedMessage = map.deactivatedMessage;
+          if (map.isLotteryDeactivated) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
+          if (map.isNotifyMeDeactivated) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
+          if (map.lotteryPrizes) {
+            try {
+              db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
+            } catch (err) {}
+          }
 
           // Restore persistent count and counted sessions
           if (map.visits_count) {
@@ -720,7 +733,51 @@ app.get("/api/analytics", (req, res) => {
 });
 
 // App Settings (Dynamic WhatsApp etc.)
-app.get("/api/settings", (req, res) => {
+app.get("/api/settings", async (req, res) => {
+  try {
+    const { data: settingsResult, error } = await supabase.from("settings").select("*");
+    if (!error && settingsResult && settingsResult.length > 0) {
+      const map: Record<string, string> = {};
+      settingsResult.forEach((row: any) => {
+        if (row && row.key) {
+          map[row.key] = row.value || "";
+        }
+      });
+
+      // Update local db.settings from Supabase values
+      if (map.whatsappNumber) db.settings.whatsappNumber = map.whatsappNumber;
+      if (map.adminEmail) db.settings.adminEmail = map.adminEmail;
+      if (map.adminPassword) db.settings.adminPassword = map.adminPassword;
+      if (map.appsScriptUrl) db.settings.appsScriptUrl = map.appsScriptUrl;
+      if (map.logoUrl) db.settings.logoUrl = map.logoUrl;
+      if (map.facebookUrl) db.settings.facebookUrl = map.facebookUrl;
+      if (map.instagramUrl) db.settings.instagramUrl = map.instagramUrl;
+      if (map.lotteryDiscountPercentage) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
+      if (map.lotteryCouponPrefix) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
+      if (map.paymentBadgeTitle) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
+      if (map.paymentBadgeDescription) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
+      if (map.isCatalogDeactivated) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
+      if (map.deactivatedMessage) db.settings.deactivatedMessage = map.deactivatedMessage;
+      if (map.isLotteryDeactivated) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
+      if (map.isNotifyMeDeactivated) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
+      if (map.lotteryPrizes) {
+        try {
+          db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
+        } catch (err) {}
+      }
+
+      // Restore persistent counts
+      if (map.visits_count) {
+        const parsedVisits = Number(map.visits_count);
+        if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
+          db.visits = parsedVisits;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ API dynamically reading settings table bypass:", err);
+  }
+
   res.json(db.settings || { 
     whatsappNumber: "8801755104443", 
     adminEmail: "risatadnan4@gmail.com",
@@ -832,6 +889,33 @@ app.post("/api/settings", async (req, res) => {
       if (instagramUrl !== undefined) {
         await supabase.from("settings").upsert({ key: "instagramUrl", value: instagramUrl.trim() });
       }
+      if (lotteryDiscountPercentage !== undefined) {
+        await supabase.from("settings").upsert({ key: "lotteryDiscountPercentage", value: String(lotteryDiscountPercentage) });
+      }
+      if (lotteryCouponPrefix !== undefined) {
+        await supabase.from("settings").upsert({ key: "lotteryCouponPrefix", value: lotteryCouponPrefix.trim().toUpperCase() });
+      }
+      if (paymentBadgeTitle !== undefined) {
+        await supabase.from("settings").upsert({ key: "paymentBadgeTitle", value: paymentBadgeTitle.trim() });
+      }
+      if (paymentBadgeDescription !== undefined) {
+        await supabase.from("settings").upsert({ key: "paymentBadgeDescription", value: paymentBadgeDescription.trim() });
+      }
+      if (isCatalogDeactivated !== undefined) {
+        await supabase.from("settings").upsert({ key: "isCatalogDeactivated", value: String(!!isCatalogDeactivated) });
+      }
+      if (deactivatedMessage !== undefined) {
+        await supabase.from("settings").upsert({ key: "deactivatedMessage", value: deactivatedMessage.trim() });
+      }
+      if (isLotteryDeactivated !== undefined) {
+        await supabase.from("settings").upsert({ key: "isLotteryDeactivated", value: String(!!isLotteryDeactivated) });
+      }
+      if (isNotifyMeDeactivated !== undefined) {
+        await supabase.from("settings").upsert({ key: "isNotifyMeDeactivated", value: String(!!isNotifyMeDeactivated) });
+      }
+      if (Array.isArray(lotteryPrizes)) {
+        await supabase.from("settings").upsert({ key: "lotteryPrizes", value: JSON.stringify(lotteryPrizes) });
+      }
     } catch (dbErr) {
       // Safe to ignore if table does not exist
     }
@@ -850,6 +934,7 @@ app.get("/api/products", async (req, res) => {
       const products = productsData.map((p: any) => ({
         ...p,
         sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
+        images: typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []),
         trending: p.trending !== undefined ? !!p.trending : true,
         featured: p.featured !== undefined ? !!p.featured : true,
         price: Number(p.price || 0),
@@ -875,6 +960,7 @@ app.get("/api/products/:id", async (req, res) => {
       const prod = {
         ...data,
         sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
+        images: typeof data.images === "string" ? JSON.parse(data.images) : (Array.isArray(data.images) ? data.images : []),
         trending: data.trending !== undefined ? !!data.trending : true,
         featured: data.featured !== undefined ? !!data.featured : true,
         price: Number(data.price || 0),
@@ -944,6 +1030,7 @@ app.post("/api/products", async (req, res) => {
       category: newProduct.category,
       stock: Number(newProduct.stock || 0),
       imageUrl: newProduct.imageUrl,
+      images: Array.isArray(newProduct.images) ? JSON.stringify(newProduct.images) : JSON.stringify([]),
       sizes: JSON.stringify(newProduct.sizes),
       dimensions: newProduct.dimensions,
       whyBuy: newProduct.whyBuy,
@@ -981,6 +1068,7 @@ app.post("/api/products", async (req, res) => {
       delete payload.lotteryEligible;
       delete payload.couponCode;
       delete payload.couponDiscountPercent;
+      delete payload.images;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -1048,6 +1136,7 @@ app.put("/api/products/:id", async (req, res) => {
         category: target.category,
         stock: Number(target.stock || 0),
         imageUrl: target.imageUrl,
+        images: Array.isArray(target.images) ? JSON.stringify(target.images) : JSON.stringify([]),
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
         dimensions: target.dimensions,
         whyBuy: target.whyBuy,
@@ -1085,6 +1174,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.lotteryEligible;
         delete payload.couponCode;
         delete payload.couponDiscountPercent;
+        delete payload.images;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }
@@ -1157,6 +1247,18 @@ app.get("/api/banners", async (req, res) => {
 app.post("/api/banners", async (req, res) => {
   const newBanner: Banner = req.body;
   newBanner.id = newBanner.id || `banner-${Date.now()}`;
+  
+  if (newBanner.active) {
+    db.banners.forEach((b, i) => {
+      db.banners[i].active = false;
+    });
+    try {
+      await supabase.from("banners").update({ active: false });
+    } catch (err: any) {
+      console.error("⚠️ Banners Supabase bulk deactivate error:", err.message);
+    }
+  }
+
   db.banners.push(newBanner);
   saveDB();
   try {
@@ -1170,6 +1272,17 @@ app.post("/api/banners", async (req, res) => {
 app.put("/api/banners/:id", async (req, res) => {
   const idx = db.banners.findIndex(b => b.id === req.params.id);
   if (idx !== -1) {
+    const wasActive = req.body.active;
+    if (wasActive === true) {
+      db.banners.forEach((b, i) => {
+        db.banners[i].active = false;
+      });
+      try {
+        await supabase.from("banners").update({ active: false });
+      } catch (err: any) {
+        console.error("⚠️ Banners Supabase bulk deactivate error:", err.message);
+      }
+    }
     db.banners[idx] = { ...db.banners[idx], ...req.body };
     saveDB();
     try {
@@ -1865,15 +1978,38 @@ app.post("/api/upload", async (req, res) => {
   }
 
   try {
-    // Sanitize base64 string
-    const match = base64Data.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+    // Support all formats (images, videos, etc.) by extracting MIME type and base64 body from Data URI
+    const dataUriMatch = base64Data.match(/^data:([^;]+);base64,(.+)$/);
     let uData = base64Data;
     let ext = ".jpg";
-    if (match) {
-      ext = "." + match[1];
-      uData = match[2];
+    let mimeType = "image/jpeg";
+
+    if (dataUriMatch) {
+      mimeType = dataUriMatch[1]; // e.g. "image/png" or "video/mp4"
+      uData = dataUriMatch[2];
+      
+      // Determine file extension from mimeType
+      if (mimeType.startsWith("video/")) {
+        const sub = mimeType.split("/")[1];
+        if (sub === "quicktime") ext = ".mov";
+        else ext = "." + sub;
+      } else if (mimeType.startsWith("image/")) {
+        const sub = mimeType.split("/")[1];
+        if (sub === "jpeg" || sub === "jpg") ext = ".jpg";
+        else ext = "." + sub;
+      }
     } else if (filename.includes(".")) {
       ext = filename.slice(filename.lastIndexOf("."));
+      const lowExt = ext.toLowerCase();
+      if (lowExt === ".png") mimeType = "image/png";
+      else if (lowExt === ".webp") mimeType = "image/webp";
+      else if (lowExt === ".gif") mimeType = "image/gif";
+      else if (lowExt === ".svg") mimeType = "image/svg+xml";
+      else if (lowExt === ".mp4") mimeType = "video/mp4";
+      else if (lowExt === ".webm") mimeType = "video/webm";
+      else if (lowExt === ".mov") mimeType = "video/quicktime";
+      else if (lowExt === ".m4v") mimeType = "video/x-m4v";
+      else if (lowExt === ".ogg") mimeType = "video/ogg";
     }
 
     const binaryBuffer = Buffer.from(uData, "base64");
@@ -1895,45 +2031,52 @@ app.post("/api/upload", async (req, res) => {
     // Default fallback url if local backup works
     let fileUrl = `/uploads/${safeFilename}`;
 
-    // Compute active MIME type for Supabase Content-Type delivery
-    let mimeType = "image/jpeg";
-    const lowExt = ext.toLowerCase();
-    if (lowExt === ".png") mimeType = "image/png";
-    else if (lowExt === ".webp") mimeType = "image/webp";
-    else if (lowExt === ".gif") mimeType = "image/gif";
-    else if (lowExt === ".svg") mimeType = "image/svg+xml";
-
-    // Attempt to store in Supabase Bucket 'products'
+    // Attempt to store in Supabase Bucket 'media' with fallback to 'products'
     let supabaseUploadSucceeded = false;
     try {
-      const { data, error } = await supabase.storage
-        .from("products")
+      let activeBucket = "media";
+      let { data, error } = await supabase.storage
+        .from(activeBucket)
         .upload(safeFilename, binaryBuffer, {
           contentType: mimeType,
           cacheControl: "3600",
           upsert: true
         });
 
+      if (error) {
+        console.warn(`⚠️ Supabase Storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, error.message);
+        activeBucket = "products";
+        const fallbackRes = await supabase.storage
+          .from(activeBucket)
+          .upload(safeFilename, binaryBuffer, {
+            contentType: mimeType,
+            cacheControl: "3600",
+            upsert: true
+          });
+        data = fallbackRes.data;
+        error = fallbackRes.error;
+      }
+
       if (!error && data) {
         const { data: publicUrlData } = supabase.storage
-          .from("products")
+          .from(activeBucket)
           .getPublicUrl(safeFilename);
         if (publicUrlData && publicUrlData.publicUrl) {
           fileUrl = publicUrlData.publicUrl;
           supabaseUploadSucceeded = true;
-          console.log("☁️ Stored image file on Supabase Storage bucket 'products':", fileUrl);
+          console.log(`☁️ Stored file on Supabase Storage bucket '${activeBucket}':`, fileUrl);
         }
       } else {
         const errorMessage = error?.message || "Unknown Supabase Storage error";
         console.warn("⚠️ Supabase Storage upload error:", errorMessage);
         if (!localWriteSucceeded || process.env.VERCEL) {
-          throw new Error(`Supabase Storage upload error: ${errorMessage}. Please ensure a Public storage bucket named 'products' exists in your Supabase project with proper storage RLS policies.`);
+          throw new Error(`Supabase Storage upload error: ${errorMessage}. Please ensure a Public storage bucket named 'media' (or 'products') exists in your Supabase project with proper storage RLS policies.`);
         }
       }
     } catch (sbErr: any) {
       console.warn("⚠️ Supabase Storage connection or bucket error:", sbErr.message);
       if (!localWriteSucceeded || process.env.VERCEL) {
-        throw new Error(`Unable to complete upload. Supabase storage error: ${sbErr.message}. Make sure your 'products' bucket exists, is set to 'Public', and that your Supabase credentials are valid.`);
+        throw new Error(`Unable to complete upload. Supabase storage error: ${sbErr.message}. Make sure your 'media' (or 'products') bucket exists, is set to 'Public', and that your Supabase credentials are valid.`);
       }
     }
 
