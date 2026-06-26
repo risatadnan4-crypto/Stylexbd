@@ -46,12 +46,12 @@ export default function AdminPanel({
   const [adminEmailInput, setAdminEmailInput] = useState(settings?.adminEmail || "risatadnan4@gmail.com");
   const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
   const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec");
-  const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "");
+  const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "/stylex_logo.jpg");
   const [lotteryPrizesInput, setLotteryPrizesInput] = useState<LotteryPrize[]>([]);
   const [lotteryDiscountPercentageInput, setLotteryDiscountPercentageInput] = useState(settings?.lotteryDiscountPercentage || 15);
   const [lotteryCouponPrefixInput, setLotteryCouponPrefixInput] = useState(settings?.lotteryCouponPrefix || "RISAT");
-  const [facebookUrlInput, setFacebookUrlInput] = useState(settings?.facebookUrl || "https://facebook.com/stylexcollection");
-  const [instagramUrlInput, setInstagramUrlInput] = useState(settings?.instagramUrl || "https://instagram.com/stylexcollection");
+  const [facebookUrlInput, setFacebookUrlInput] = useState(settings?.facebookUrl || "https://www.facebook.com/stylex24/");
+  const [instagramUrlInput, setInstagramUrlInput] = useState(settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en");
   const [paymentBadgeTitleInput, setPaymentBadgeTitleInput] = useState(settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED");
   const [paymentBadgeDescriptionInput, setPaymentBadgeDescriptionInput] = useState(settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.");
   const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
@@ -143,6 +143,29 @@ export default function AdminPanel({
       });
       if (res.ok) {
         setSettingsSuccess(true);
+        try {
+          const savedSettings = {
+            whatsappNumber: whatsappNumberInput,
+            adminEmail: adminEmailInput,
+            adminPassword: adminPasswordInput,
+            appsScriptUrl: appsScriptUrlInput,
+            logoUrl: logoUrlInput,
+            lotteryPrizes: lotteryPrizesInput,
+            lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput),
+            lotteryCouponPrefix: lotteryCouponPrefixInput,
+            facebookUrl: facebookUrlInput,
+            instagramUrl: instagramUrlInput,
+            paymentBadgeTitle: paymentBadgeTitleInput,
+            paymentBadgeDescription: paymentBadgeDescriptionInput,
+            isCatalogDeactivated: isCatalogDeactivatedInput,
+            deactivatedMessage: deactivatedMessageInput,
+            isLotteryDeactivated: isLotteryDeactivatedInput,
+            isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+          };
+          localStorage.setItem("stylex_settings", JSON.stringify(savedSettings));
+        } catch (errLocalStorage) {
+          console.warn("Failed to write updated settings to localStorage directly", errLocalStorage);
+        }
         if (onRefreshSettings) {
           onRefreshSettings();
         }
@@ -310,6 +333,29 @@ export default function AdminPanel({
           isNotifyMeDeactivated: isNotifyMeDeactivatedInput
         })
       });
+      try {
+        const savedSettings = {
+          whatsappNumber: whatsappNumberInput,
+          adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
+          appsScriptUrl: appsScriptUrlInput,
+          logoUrl: url,
+          lotteryPrizes: lotteryPrizesInput,
+          lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput),
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
+          paymentBadgeTitle: paymentBadgeTitleInput,
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+        };
+        localStorage.setItem("stylex_settings", JSON.stringify(savedSettings));
+      } catch (errLocalStorage) {
+        console.warn("Failed to write auto-saved settings to localStorage directly", errLocalStorage);
+      }
       if (onRefreshSettings) {
         onRefreshSettings();
       }
@@ -371,6 +417,9 @@ export default function AdminPanel({
   const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
+  const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
+  const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
+  const [formTimerMessage, setFormTimerMessage] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -378,6 +427,7 @@ export default function AdminPanel({
   const [newCouponCode, setNewCouponCode] = useState('');
   const [newCouponType, setNewCouponType] = useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
   const [newCouponVal, setNewCouponVal] = useState(10);
+  const [newCouponMaxUses, setNewCouponMaxUses] = useState<string>('');
 
   const [newBannerTitle, setNewBannerTitle] = useState('');
   const [newBannerSubtitle, setNewBannerSubtitle] = useState('');
@@ -710,7 +760,10 @@ export default function AdminPanel({
       featured: true,
       lotteryEligible: formLotteryEligible,
       couponCode: formCouponCode,
-      couponDiscountPercent: Number(formCouponDiscountPercent)
+      couponDiscountPercent: Number(formCouponDiscountPercent),
+      offerPrice: formOfferPrice !== '' ? Number(formOfferPrice) : null,
+      timerEndTime: formTimerEndTime || null,
+      timerMessage: formTimerMessage || null
     };
 
     try {
@@ -746,6 +799,9 @@ export default function AdminPanel({
         setFormLotteryEligible(true);
         setFormCouponCode('');
         setFormCouponDiscountPercent(15);
+        setFormOfferPrice('');
+        setFormTimerEndTime('');
+        setFormTimerMessage('');
         setUploadProgress('');
         setFormError('');
 
@@ -790,6 +846,9 @@ export default function AdminPanel({
     setFormLotteryEligible(prod.lotteryEligible !== false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
+    setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
+    setFormTimerEndTime(prod.timerEndTime || '');
+    setFormTimerMessage(prod.timerMessage || '');
     setShowProductForm(true);
   };
 
@@ -828,10 +887,16 @@ export default function AdminPanel({
       const res = await fetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: newCouponCode, type: newCouponType, value: newCouponVal })
+        body: JSON.stringify({ 
+          code: newCouponCode, 
+          type: newCouponType, 
+          value: newCouponVal,
+          maxUses: newCouponMaxUses ? Number(newCouponMaxUses) : undefined
+        })
       });
       if (res.ok) {
         setNewCouponCode('');
+        setNewCouponMaxUses('');
         fetchCoupons();
         onRefreshCoupons?.();
       } else {
@@ -853,46 +918,88 @@ export default function AdminPanel({
 
   // Create Banner
   const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    setBannerUploadProgress("Uploading and preparing high-fidelity banner asset...");
-    try {
-      const url = await uploadSingleFile(file);
-      
-      // Auto-identify if file is a video by mime type or file extension
-      const isVideoType = file.type.startsWith('video/') || 
-                          file.name.toLowerCase().endsWith('.mp4') || 
-                          file.name.toLowerCase().endsWith('.webm') || 
-                          file.name.toLowerCase().endsWith('.mov') ||
-                          file.name.toLowerCase().endsWith('.ogg') ||
-                          file.name.toLowerCase().endsWith('.m4v');
-      
-      const resolvedUrl = isVideoType && !url.includes('is_video=true')
-        ? (url.includes('#') ? `${url}&is_video=true` : `${url}#is_video=true`)
-        : url;
+    if (files.length === 1) {
+      const file = files[0];
+      setBannerUploadProgress("Uploading and preparing high-fidelity banner asset...");
+      try {
+        const url = await uploadSingleFile(file);
+        
+        // Auto-identify if file is a video by mime type or file extension
+        const isVideoType = file.type.startsWith('video/') || 
+                            file.name.toLowerCase().endsWith('.mp4') || 
+                            file.name.toLowerCase().endsWith('.webm') || 
+                            file.name.toLowerCase().endsWith('.mov') ||
+                            file.name.toLowerCase().endsWith('.ogg') ||
+                            file.name.toLowerCase().endsWith('.m4v');
+        
+        const resolvedUrl = isVideoType && !url.includes('is_video=true')
+          ? (url.includes('#') ? `${url}&is_video=true` : `${url}#is_video=true`)
+          : url;
 
-      setNewBannerImg(resolvedUrl);
-      setNewBannerIsVideo(isVideoType);
-      setBannerUploadProgress(`Banner asset uploaded successfully! ${isVideoType ? "(Detected Cinematic Video)" : "(Detected Image)"}`);
-    } catch (err: any) {
-      console.error("Banner asset upload error:", err);
-      setBannerUploadProgress(`Upload configuration failed: ${err.message || "Unknown error"}`);
+        setNewBannerImg(resolvedUrl);
+        setNewBannerIsVideo(isVideoType);
+        setBannerUploadProgress(`Banner asset uploaded successfully! ${isVideoType ? "(Detected Cinematic Video)" : "(Detected Image)"}`);
+      } catch (err: any) {
+        console.error("Banner asset upload error:", err);
+        setBannerUploadProgress(`Upload configuration failed: ${err.message || "Unknown error"}`);
+      }
+    } else {
+      setBannerUploadProgress(`Uploading and processing ${files.length} banners sequentially...`);
+      let successCount = 0;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          setBannerUploadProgress(`Uploading file ${i + 1} of ${files.length}: ${file.name}...`);
+          const url = await uploadSingleFile(file);
+          const isVideoType = file.type.startsWith('video/') || 
+                              file.name.toLowerCase().endsWith('.mp4') || 
+                              file.name.toLowerCase().endsWith('.webm') || 
+                              file.name.toLowerCase().endsWith('.mov') ||
+                              file.name.toLowerCase().endsWith('.ogg') ||
+                              file.name.toLowerCase().endsWith('.m4v');
+          const resolvedUrl = isVideoType && !url.includes('is_video=true')
+            ? (url.includes('#') ? `${url}&is_video=true` : `${url}#is_video=true`)
+            : url;
+
+          const title = file.name.split('.')[0].replace(/[-_]/g, ' ').toUpperCase();
+          const res = await fetch('/api/banners', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              title: title || "EXCLUSIVE COLLECTION", 
+              subtitle: "A meticulous exploration of luxury form.", 
+              imageUrl: resolvedUrl, 
+              isVideo: isVideoType, 
+              active: true 
+            })
+          });
+          if (res.ok) {
+            successCount++;
+          }
+        } catch (uploadErr: any) {
+          console.error("Error uploading multiple banners:", uploadErr);
+        }
+      }
+      setBannerUploadProgress(`Successfully uploaded and launched ${successCount} banners!`);
+      fetchBanners();
     }
   };
 
-  const handleActivateBanner = async (id: string) => {
+  const handleToggleBannerActive = async (id: string, currentActive: boolean) => {
     try {
       const res = await fetch(`/api/banners/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: true })
+        body: JSON.stringify({ active: !currentActive })
       });
       if (res.ok) {
         fetchBanners();
       }
     } catch (err) {
-      console.error("Activate banner error:", err);
+      console.error("Toggle banner active error:", err);
     }
   };
 
@@ -1491,6 +1598,9 @@ export default function AdminPanel({
                   setFormImages([]);
                   setSecondaryUrlInput('');
                   setFormWhyBuy('');
+                  setFormOfferPrice('');
+                  setFormTimerEndTime('');
+                  setFormTimerMessage('');
                   setUploadProgress('');
                   setShowProductForm(!showProductForm);
                 }}
@@ -1618,6 +1728,12 @@ CREATE TABLE IF NOT EXISTS public.chats (
     "updatedAt" TEXT
 );
 
+-- 8. Create Settings Table
+CREATE TABLE IF NOT EXISTS public.settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
+
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
@@ -1625,6 +1741,7 @@ ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY select_all_products ON public.products FOR SELECT USING (true);
 CREATE POLICY select_all_banners ON public.banners FOR SELECT USING (true);
@@ -1633,6 +1750,7 @@ CREATE POLICY select_all_campaigns ON public.campaigns FOR SELECT USING (true);
 CREATE POLICY select_all_reviews ON public.reviews FOR SELECT USING (true);
 CREATE POLICY select_all_orders ON public.orders FOR SELECT USING (true);
 CREATE POLICY select_all_chats ON public.chats FOR SELECT USING (true);
+CREATE POLICY select_all_settings ON public.settings FOR SELECT USING (true);
 
 CREATE POLICY insert_orders ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY insert_reviews ON public.reviews FOR INSERT WITH CHECK (true);
@@ -1645,6 +1763,7 @@ CREATE POLICY insert_all_campaigns ON public.campaigns FOR ALL USING (true) WITH
 CREATE POLICY insert_all_reviews ON public.reviews FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_orders ON public.orders FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY insert_all_settings ON public.settings FOR ALL USING (true) WITH CHECK (true);
 
 -- 8. Create and Configure 'media' & 'products' Storage Buckets (if they don't exist yet)
 INSERT INTO storage.buckets (id, name, public)
@@ -1954,6 +2073,56 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                     </div>
                   </div>
 
+                  {/* Flash Sale & Countdown Timer Configuration */}
+                  <div className="md:col-span-2 border border-luxury-gold/30 p-4 rounded-xl bg-[#090514]/65 space-y-4 shadow-[0_0_15px_rgba(212,175,55,0.05)] gold-glow-border">
+                    <div className="flex items-center justify-between border-b border-luxury-gold/25 pb-2">
+                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5">
+                        <span>⚡ FLASH SALE & COUNTDOWN TIMER CONFIGURATION</span>
+                      </h4>
+                      <span className="text-[9px] text-[#a78bfa] font-mono animate-pulse">EXCLUSIVE PROMO</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Offer Price */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Offer / Discount Price (৳ BD Taka)</label>
+                        <input 
+                          type="number" 
+                          value={formOfferPrice} 
+                          onChange={(e) => setFormOfferPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="e.g. 850 (Leave blank for none)"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">Active price during the timer period. Restores to normal price when timer expires.</span>
+                      </div>
+
+                      {/* Timer End Time */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Timer Expiration Date &amp; Time</label>
+                        <input 
+                          type="datetime-local" 
+                          value={formTimerEndTime} 
+                          onChange={(e) => setFormTimerEndTime(e.target.value)}
+                          className="w-full bg-[#120e21] text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">Select countdown end time. If blank, no countdown banner will show.</span>
+                      </div>
+
+                      {/* Timer Custom Message */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Timer Banner Message / Label</label>
+                        <input 
+                          type="text" 
+                          value={formTimerMessage} 
+                          onChange={(e) => setFormTimerMessage(e.target.value)}
+                          placeholder="e.g. LIMITED EID SPECIAL OFFER! GET NOW!"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">A catchy title shown beside the running countdown banner.</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Image link & local storage uploader (Supreme replicas) */}
                   <div className="md:col-span-2 border border-dashed border-white/10 p-4 rounded bg-luxury-black/35 space-y-3.5">
                     <div>
@@ -2095,12 +2264,39 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                         {/* Piece details cell */}
                         <td className="py-3.5 flex items-center gap-3">
                           {/* QR Image API */}
-                          <div className="bg-white p-0.5 rounded border border-white/10 flex-shrink-0">
+                          <div className="bg-white p-0.5 rounded border border-white/10 flex-shrink-0 relative flex items-center justify-center">
                             <img 
                               src={generateQrUrl(p.id)} 
                               alt="Item QR" 
                               className="w-10 h-10"
                             />
+                            {(() => {
+                              let currentLogoUrl = "/stylex_logo.jpg";
+                              try {
+                                const saved = localStorage.getItem("stylex_settings");
+                                if (saved) {
+                                  const parsed = JSON.parse(saved);
+                                  if (parsed.logoUrl) {
+                                    currentLogoUrl = parsed.logoUrl;
+                                  }
+                                }
+                              } catch (e) {
+                                // Ignore
+                              }
+                              return (
+                                <div className="absolute w-[10px] h-[10px] bg-black rounded-[2px] p-[1px] border border-luxury-gold/50 flex items-center justify-center overflow-hidden">
+                                  <img 
+                                    src={currentLogoUrl} 
+                                    alt="Logo" 
+                                    className="w-full h-full object-contain rounded-[1px]"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "/stylex_logo.jpg";
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })()}
                           </div>
                           
                           <img 
@@ -2303,16 +2499,17 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     <div className="flex-1 w-full">
                       <label className="block text-[9px] uppercase font-mono tracking-wider text-luxury-gold font-semibold mb-1">
-                        Upload Screen Banner Assets (Images or MP4 Videos)
+                        Upload Screen Banner Assets (Select one or multiple images/videos)
                       </label>
                       <input 
                         type="file" 
                         accept="image/*,video/*" 
+                        multiple
                         onChange={handleBannerFileChange}
                         className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
                       />
                       <p className="text-[9px] text-[#888] mt-1.5">
-                        💡 Choose an image or video file. Videos (.mp4 / .webm) will run and auto-loop beautifully in the background of your home header.
+                        💡 Choose one or multiple files. Multiple files will automatically create separate banners instantly. Videos (.mp4 / .webm) run and loop beautifully.
                       </p>
                     </div>
 
@@ -2370,20 +2567,21 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                 <span className="text-[9px] font-mono text-white/40 tracking-wider">Configure showcase active presentation</span>
               </h4>
               <div className="grid grid-cols-1 gap-4">
-                {banners.map(b => {
-                  const isVideo = !!(b.isVideo || (
-                    b.imageUrl && typeof b.imageUrl === 'string' && (
-                      b.imageUrl.includes('is_video=true') ||
-                      b.imageUrl.includes('#video') ||
-                      b.imageUrl.includes('#is_video') ||
-                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mp4') ||
-                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.webm') ||
-                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.mov') ||
-                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.ogg') ||
-                      b.imageUrl.split(/[?#]/)[0].toLowerCase().endsWith('.m4v') ||
-                      b.imageUrl.startsWith('data:video/')
-                    )
-                  ));
+                 {banners.map(b => {
+                   const isVideo = !!(b.isVideo || (
+                     b.imageUrl && typeof b.imageUrl === 'string' && (
+                       b.imageUrl.toLowerCase().includes('is_video=true') ||
+                       b.imageUrl.toLowerCase().includes('#video') ||
+                       b.imageUrl.toLowerCase().includes('#is_video') ||
+                       b.imageUrl.toLowerCase().includes('.mp4') ||
+                       b.imageUrl.toLowerCase().includes('.webm') ||
+                       b.imageUrl.toLowerCase().includes('.mov') ||
+                       b.imageUrl.toLowerCase().includes('.ogg') ||
+                       b.imageUrl.toLowerCase().includes('.m4v') ||
+                       b.imageUrl.toLowerCase().includes('video/') ||
+                       b.imageUrl.toLowerCase().startsWith('data:video/')
+                     )
+                   ));
 
                   return (
                     <div key={b.id} className="flex flex-col sm:flex-row gap-4 border border-white/5 p-4 rounded items-start sm:items-center bg-[#0d0d0d] hover:border-white/10 transition-colors">
@@ -2417,19 +2615,17 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                       {/* Action buttons (activation & delete) */}
                       <div className="flex sm:flex-col md:flex-row items-center gap-2 self-stretch sm:self-center justify-end">
                         {/* Only offer Activate click option if not already active */}
-                        {!b.active ? (
-                          <button
-                            type="button"
-                            onClick={() => handleActivateBanner(b.id)}
-                            className="bg-luxury-charcoal hover:bg-luxury-gold hover:text-luxury-black text-white/80 hover:text-luxury-black text-[9px] font-mono uppercase tracking-wider py-1.5 px-3 rounded border border-white/5 hover:border-transparent transition-all duration-300 whitespace-nowrap cursor-pointer"
-                          >
-                            Set Active
-                          </button>
-                        ) : (
-                          <span className="text-[9px] tracking-wider text-luxury-gold font-mono select-none px-3 py-1.5">
-                            LIVE
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBannerActive(b.id, !!b.active)}
+                          className={`text-[9.5px] font-mono uppercase tracking-wider py-1.5 px-3 rounded border whitespace-nowrap cursor-pointer transition-all duration-300 ${
+                            b.active 
+                              ? 'bg-luxury-gold/20 hover:bg-red-500/20 text-luxury-gold hover:text-red-400 border-luxury-gold/30 hover:border-red-500/30 font-bold' 
+                              : 'bg-luxury-charcoal hover:bg-luxury-gold hover:text-luxury-black text-white/80 hover:text-luxury-black border-white/5 hover:border-transparent'
+                          }`}
+                        >
+                          {b.active ? '⚜️ Active (Deactivate)' : 'Set Active'}
+                        </button>
 
                         <button
                           type="button"
@@ -2512,7 +2708,7 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
           <div className="space-y-6 animate-fade-in">
             <form onSubmit={handleCreateCoupon} className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg space-y-4">
               <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2 font-bold">Generate coupon discount</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Coupon Code (Unique UPPERCASE)</label>
                   <input 
@@ -2538,6 +2734,14 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                     className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
                   />
                 </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Max Usage Limit (Optional)</label>
+                  <input 
+                    type="number" value={newCouponMaxUses} onChange={(e) => setNewCouponMaxUses(e.target.value)}
+                    placeholder="Unlimited"
+                    className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                  />
+                </div>
               </div>
               <button 
                 type="submit"
@@ -2551,14 +2755,27 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
               <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4">Manage active VIP key codes</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coupons.map(c => (
-                  <div key={c.code} className="flex justify-between items-center bg-[#0d0d0d] border border-white/5 p-4 rounded">
-                    <div>
+                  <div key={c.code} className="flex justify-between items-center bg-[#0d0d0d] border border-white/5 p-4 rounded animate-fade-in">
+                    <div className="space-y-2">
                       <span className="font-mono text-white text-sm font-bold tracking-widest bg-luxury-charcoal border border-white/5 px-2.5 py-1 rounded">
                         {c.code}
                       </span>
-                      <p className="text-xs text-luxury-gold mt-2">
+                      <p className="text-xs text-luxury-gold">
                         {c.type === 'PERCENTAGE' ? `${c.value}% discount benefit` : `Flat ৳${c.value} discount value`}
                       </p>
+                      {c.maxUses !== undefined && c.maxUses > 0 ? (
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                          <span className="text-white/40">USAGES:</span>
+                          <span className={`px-1.5 py-0.5 rounded font-bold ${ (c.usedCount || 0) >= c.maxUses ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-[#12052a] text-purple-300 border border-purple-500/20' }`}>
+                            {c.usedCount || 0} / {c.maxUses}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/40">
+                          <span>USAGES:</span>
+                          <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 border border-emerald-500/20 rounded">UNLIMITED ({c.usedCount || 0} USED)</span>
+                        </div>
+                      )}
                     </div>
                     <button 
                       onClick={() => handleDeleteCoupon(c.code)}

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
@@ -28,6 +29,50 @@ export default function ProductCard({
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
+
+  // Real-time flash sale countdown timer ticking logic
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
+  const [timerExpired, setTimerExpired] = useState(false);
+
+  useEffect(() => {
+    if (!product.timerEndTime) {
+      setTimeLeft(null);
+      setTimerExpired(false);
+      return;
+    }
+
+    const calculateTimeLeft = () => {
+      const end = new Date(product.timerEndTime!).getTime();
+      const now = new Date().getTime();
+      const difference = end - now;
+
+      if (difference <= 0) {
+        setTimeLeft(null);
+        setTimerExpired(true);
+        return true; // indicates expired
+      } else {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        setTimeLeft({ days, hours, minutes, seconds });
+        setTimerExpired(false);
+        return false;
+      }
+    };
+
+    const isExpired = calculateTimeLeft();
+    if (isExpired) return;
+
+    const interval = setInterval(() => {
+      const expired = calculateTimeLeft();
+      if (expired) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [product.timerEndTime]);
   const [showNotifyForm, setShowNotifyForm] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState('');
   const [notifySuccess, setNotifySuccess] = useState(false);
@@ -57,6 +102,25 @@ export default function ProductCard({
       });
 
       if (response.ok) {
+        // Save to localStorage as requested
+        try {
+          const localKey = "style_x_restock_notifications";
+          const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
+          const duplicate = existing.some((n: any) => n.email === notifyEmail && n.productId === product.id);
+          if (!duplicate) {
+            existing.push({
+              email: notifyEmail,
+              productId: product.id,
+              productTitle: product.title,
+              productCode: product.code,
+              requestedAt: new Date().toISOString()
+            });
+            localStorage.setItem(localKey, JSON.stringify(existing));
+          }
+        } catch (storageErr) {
+          console.error("Failed to write to localStorage:", storageErr);
+        }
+
         setNotifySuccess(true);
         setNotifyEmail('');
       } else {
@@ -78,37 +142,74 @@ export default function ProductCard({
   };
 
   return (
-    <div className="group relative bg-[#07010e] border-2 border-white/5 hover:border-luxury-purple-glowing/60 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between transition-all duration-500 shadow-xl hover:shadow-[0_12px_45px_rgba(154,77,255,0.2)] hover:-translate-y-1 select-none overflow-hidden">
+    <div className="group luxury-glowing-card p-3.5 sm:p-3.5 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible">
+      {/* Radiant inside-out glow waves emerging outwards on hover */}
+      <div className="glowing-wave-out-1" />
+      <div className="glowing-wave-out-2" />
+      <div className="glowing-wave-out-3" />
+
+      {/* Laser chasing border edge line */}
+      <div className="glowing-laser-line" />
+
+      {/* Radiant inside-out glow beam helper */}
+      <div className="glowing-inner-beam" />
+
       {/* Premium glowing hover accent card background */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-purple/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-purple/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"></div>
 
       {/* Automatic QR Code overlay */}
-      {showQRCode && (
-        <div className="absolute inset-0 bg-[#07010e]/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-3 transition-all duration-300">
-          <button 
-            onClick={() => setShowQRCode(false)}
-            className="absolute top-3 right-3 text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all p-1 rounded-full hover:bg-white/5"
-            title="Close QR Scan Gateway"
-          >
-            <X size={16} />
-          </button>
-          <div className="bg-black p-2.5 rounded-xl border border-luxury-purple-glowing shadow-[0_0_20px_rgba(154,77,255,0.45)] mb-3">
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
-              alt={`${product.title} QR`}
-              className="w-[110px] h-[110px] object-contain"
-              referrerPolicy="no-referrer"
-            />
+      {showQRCode && (() => {
+        let currentLogoUrl = "/stylex_logo.jpg";
+        try {
+          const saved = localStorage.getItem("stylex_settings");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.logoUrl) {
+              currentLogoUrl = parsed.logoUrl;
+            }
+          }
+        } catch (e) {
+          // Ignore
+        }
+
+        return (
+          <div className="absolute inset-0 bg-[#07010e]/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-3 transition-all duration-300">
+            <button 
+              onClick={() => setShowQRCode(false)}
+              className="absolute top-3 right-3 text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all p-1 rounded-full hover:bg-white/5"
+              title="Close QR Scan Gateway"
+            >
+              <X size={16} />
+            </button>
+            <div className="bg-black p-2.5 rounded-xl border border-luxury-purple-glowing shadow-[0_0_20px_rgba(154,77,255,0.45)] mb-3 relative flex items-center justify-center">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
+                alt={`${product.title} QR`}
+                className="w-[110px] h-[110px] object-contain"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute w-[24px] h-[24px] bg-black rounded-md p-0.5 border border-luxury-gold/50 flex items-center justify-center overflow-hidden">
+                <img 
+                  src={currentLogoUrl} 
+                  alt="SX Logo" 
+                  className="w-full h-full object-contain rounded"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/stylex_logo.jpg";
+                  }}
+                />
+              </div>
+            </div>
+            <h4 className="text-[9px] font-mono uppercase tracking-[0.2em] text-luxury-gold font-bold mb-1">IMPERIAL SCAN</h4>
+            <p className="text-[10px] text-zinc-300 text-center px-1 line-clamp-2 italic leading-normal">
+              Deep Link for <span className="font-semibold text-white">{product.title}</span>
+            </p>
+            <p className="text-[8px] text-[#9A4DFF] font-mono mt-2.5 bg-[#15032a] border border-[#9d4edd]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
+              {product.code}
+            </p>
           </div>
-          <h4 className="text-[9px] font-mono uppercase tracking-[0.2em] text-luxury-gold font-bold mb-1">IMPERIAL SCAN</h4>
-          <p className="text-[10px] text-zinc-300 text-center px-1 line-clamp-2 italic leading-normal">
-            Deep Link for <span className="font-semibold text-white">{product.title}</span>
-          </p>
-          <p className="text-[8px] text-[#9A4DFF] font-mono mt-2.5 bg-[#15032a] border border-[#9d4edd]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
-            {product.code}
-          </p>
-        </div>
-      )}
+        );
+      })()}
       
       {/* Upper blueprint markings */}
       <div className="flex items-center justify-between text-[8px] sm:text-[10px] font-mono text-white/40 mb-1.5 sm:mb-2 gap-1 z-10">
@@ -136,7 +237,7 @@ export default function ProductCard({
       {/* Image frame */}
       <div 
         onClick={() => onProductClick(product)}
-        className="relative aspect-[1.4] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#110121] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-purple/45 group mb-1.5 sm:mb-2.5"
+        className="relative aspect-[1.15] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#110121] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-purple/45 group mb-1.5 sm:mb-2.5"
       >
         <img 
           src={product.imageUrl} 
@@ -174,21 +275,108 @@ export default function ProductCard({
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-1 mb-1">
           <h3 
             onClick={() => onProductClick(product)}
-            className="font-serif text-[11px] sm:text-base md:text-lg font-bold text-white hover:text-luxury-purple-glowing transition-colors duration-300 cursor-pointer line-clamp-1"
+            className="font-serif text-[13px] sm:text-base md:text-lg font-bold text-white hover:text-luxury-purple-glowing transition-colors duration-300 cursor-pointer line-clamp-1"
           >
             {product.title}
           </h3>
-          <span className="font-serif text-[11px] sm:text-base font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-luxury-gold via-white to-luxury-gold flex-shrink-0">
-            {formatPrice(product.price)}
-          </span>
+          {timeLeft && !timerExpired ? (
+            <div className="flex flex-col items-end flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-nowrap">
+                {/* Micro Ticking Timer Badge directly next to the price */}
+                <span className="inline-flex items-center gap-1 bg-red-950/60 border border-red-500/30 px-1 py-0.5 rounded text-[8.5px] font-mono text-red-400 font-bold animate-pulse flex-shrink-0">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-ping" />
+                  <span>
+                    {timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}
+                    {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                  </span>
+                </span>
+                
+                {product.offerPrice !== undefined && product.offerPrice !== null ? (
+                  <AnimatePresence mode="popLayout">
+                    <motion.span 
+                      key={product.offerPrice}
+                      initial={{ opacity: 0, y: -4, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
+                    >
+                      {formatPrice(product.offerPrice)}
+                    </motion.span>
+                  </AnimatePresence>
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    <motion.span 
+                      key={product.price}
+                      initial={{ opacity: 0, y: -4, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
+                    >
+                      {formatPrice(product.price)}
+                    </motion.span>
+                  </AnimatePresence>
+                )}
+              </div>
+              {product.offerPrice !== undefined && product.offerPrice !== null && (
+                <span className="text-[9px] sm:text-[10px] text-white/40 line-through">
+                  {formatPrice(product.price)}
+                </span>
+              )}
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              <motion.span 
+                key={product.price}
+                initial={{ opacity: 0, y: -4, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
+              >
+                {formatPrice(product.price)}
+              </motion.span>
+            </AnimatePresence>
+          )}
         </div>
-        <p className="text-[7.5px] sm:text-[9px] text-luxury-purple uppercase font-mono tracking-widest mb-1 sm:mb-1.5 flex items-center gap-1">
+
+        {/* Real-time Ticking Countdown Timer with Animated elements */}
+        {timeLeft && !timerExpired && (
+          <div className="my-2 p-2 bg-[#120a21]/80 border border-luxury-gold/30 rounded-lg flex flex-col gap-1.5 text-center shadow-[0_0_15px_rgba(212,175,55,0.15)] relative overflow-hidden animate-fade-in gold-glow-border">
+            {/* Ambient neon sweeping scanline overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
+            
+            {product.timerMessage && (
+              <div className="text-[9px] uppercase font-mono tracking-wider text-luxury-gold font-black flex items-center justify-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                <span>{product.timerMessage}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-white select-none">
+              {timeLeft.days > 0 && (
+                <>
+                  <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{timeLeft.days}d</span>
+                  <span className="text-luxury-gold/50 animate-pulse">:</span>
+                </>
+              )}
+              <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.hours).padStart(2, '0')}h</span>
+              <span className="text-luxury-gold/50 animate-pulse">:</span>
+              <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+              <span className="text-luxury-gold/50 animate-pulse">:</span>
+              <span className="bg-luxury-black/90 border border-red-500/50 px-1.5 py-0.5 rounded text-red-400 font-extrabold animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+            </div>
+          </div>
+        )}
+
+        <p className="text-[8px] sm:text-[9px] text-luxury-purple uppercase font-mono tracking-widest mb-1 sm:mb-1.5 flex items-center gap-1">
           <span>CURATED PIECE</span>
           <span>•</span>
           <span className="text-white/40">PREMIUM</span>
         </p>
         
-        <p className="text-[10px] sm:text-xs text-white/60 line-clamp-1 sm:line-clamp-2 italic mb-1 sm:mb-2 font-light">
+        <p className="text-[11px] sm:text-xs text-white/60 line-clamp-1 sm:line-clamp-2 italic mb-1 sm:mb-2 font-light">
           {product.description}
         </p>
 

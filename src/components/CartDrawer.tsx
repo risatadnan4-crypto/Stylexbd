@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, Tag, ChevronDown, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
@@ -68,10 +69,19 @@ export default function CartDrawer({
     }
   }, [isOpen, initialShowCheckout]);
 
-  if (!isOpen) return null;
+  const getProductActivePrice = (product: Product) => {
+    if (product.offerPrice !== undefined && product.offerPrice !== null && product.timerEndTime) {
+      const end = new Date(product.timerEndTime).getTime();
+      const now = new Date().getTime();
+      if (end > now) {
+        return product.offerPrice;
+      }
+    }
+    return product.price;
+  };
 
   // Compute values
-  const itemsTotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const itemsTotal = cartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
   
   let discountAmount = 0;
   let couponDetailsNote = "";
@@ -81,7 +91,7 @@ export default function CartDrawer({
     if (appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
       // Lottery coupon - applies only to items where lotteryEligible is true
       const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
-        return sum + (item.product.lotteryEligible !== false ? item.product.price * item.quantity : 0);
+        return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
       }, 0);
       discountAmount = Math.round((lotteryEligibleTotal * appliedCoupon.value) / 100);
       couponDetailsNote = `(-${appliedCoupon.value}% on eligible items)`;
@@ -90,7 +100,7 @@ export default function CartDrawer({
       const specificProd = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === appliedCoupon.code.toUpperCase());
       if (specificProd) {
         const matchingCartItems = cartItems.filter(item => item.product.id === specificProd.id);
-        const specificTotal = matchingCartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        const specificTotal = matchingCartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
         const discountVal = appliedCoupon.type === 'PERCENTAGE' ? appliedCoupon.value : 15;
         discountAmount = Math.round((specificTotal * discountVal) / 100);
         couponDetailsNote = `(-${discountVal}% on ${specificProd.title})`;
@@ -173,7 +183,7 @@ export default function CartDrawer({
       if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
         // Enforce that at least one product in the shopping bag is lottery-eligible
         const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
-          return sum + (item.product.lotteryEligible !== false ? item.product.price * item.quantity : 0);
+          return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
         }, 0);
 
         if (lotteryEligibleTotal === 0) {
@@ -214,6 +224,14 @@ export default function CartDrawer({
     }
 
     if (matched) {
+      if (matched.maxUses !== undefined && matched.maxUses > 0) {
+        const used = matched.usedCount || 0;
+        if (used >= matched.maxUses) {
+          setCouponError(`THIS VIP CODE HAS REACHED ITS MAXIMUM USAGE LIMIT (${matched.maxUses} USES)`);
+          setAppliedCoupon(null);
+          return;
+        }
+      }
       setAppliedCoupon(matched);
       setCouponSuccess(`EXCLUSIVE CODE APPLIED (-${matched.type === 'PERCENTAGE' ? matched.value + '%' : '৳' + matched.value})`);
     } else {
@@ -249,7 +267,7 @@ export default function CartDrawer({
       const dbFormatItems = cartItems.map(item => ({
         productId: item.product.id,
         title: item.product.title,
-        price: item.product.price,
+        price: getProductActivePrice(item.product),
         selectedSize: item.selectedSize,
         quantity: item.quantity
       }));
@@ -265,7 +283,8 @@ export default function CartDrawer({
           customerNotes,
           customerEmail: customer?.email,
           items: dbFormatItems,
-          totalAmount: grandTotal
+          totalAmount: grandTotal,
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined
         })
       });
 
@@ -312,19 +331,31 @@ export default function CartDrawer({
   };
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-500 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
-      {/* Absolute dim backdrop */}
-      <div 
-        onClick={onClose}
-        className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md transition-opacity duration-300"
-      ></div>
+    <AnimatePresence>
+      {isOpen && (
+        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-500 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
+          {/* Absolute dim backdrop */}
+          <motion.div 
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md cursor-pointer"
+          ></motion.div>
 
-      {/* Cart Drawer Panel */}
-      <div className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
-        showCheckoutForm 
-          ? 'max-w-2xl border-luxury-gold/30 rounded-2xl max-h-[92vh] md:max-h-[85vh] shadow-[0_0_60px_rgba(212,175,55,0.25)]' 
-          : 'max-w-lg border-l border-luxury-gold/15 h-full'
-      }`}>
+          {/* Cart Drawer Panel */}
+          <motion.div 
+            initial={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            animate={showCheckoutForm ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
+            exit={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden ${
+              showCheckoutForm 
+                ? 'max-w-2xl border-luxury-gold/30 rounded-2xl max-h-[92vh] md:max-h-[85vh] shadow-[0_0_60px_rgba(212,175,55,0.25)]' 
+                : 'max-w-lg border-l border-luxury-gold/15 h-full'
+            }`}
+          >
         
         {/* Header Title */}
         <div className="flex items-center justify-between border-b border-white/5 p-5">
@@ -387,9 +418,25 @@ export default function CartDrawer({
                       <div>
                         <div className="flex justify-between items-start gap-1">
                           <h4 className="font-serif text-[13px] text-white font-medium line-clamp-1">{item.product.title}</h4>
-                          <span className="font-serif text-xs font-semibold text-luxury-gold">
-                            {formatPrice(item.product.price * item.quantity)}
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <AnimatePresence mode="popLayout">
+                              <motion.span 
+                                key={getProductActivePrice(item.product) * item.quantity}
+                                initial={{ opacity: 0, scale: 0.85, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.85, y: 4 }}
+                                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                                className="luxury-animated-price-purple text-[13px] font-bold"
+                              >
+                                {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                              </motion.span>
+                            </AnimatePresence>
+                            {getProductActivePrice(item.product) !== item.product.price && (
+                              <span className="text-[9px] text-white/40 line-through">
+                                {formatPrice(item.product.price * item.quantity)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-2 text-[9px] text-white/40 font-mono mt-0.5">
                           <span>SIZE: {item.selectedSize}</span>
@@ -533,7 +580,7 @@ export default function CartDrawer({
                 )}
                 <div className="flex justify-between text-sm text-white font-black border-t border-white/5 pt-3">
                   <span className="uppercase tracking-[0.14em]">Items Total</span>
-                  <span className="text-luxury-gold text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
+                  <span className="luxury-animated-price text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
                 </div>
               </div>
 
@@ -837,7 +884,7 @@ export default function CartDrawer({
                   
                   <div className="flex justify-between text-sm text-white font-extrabold border-t border-white/10 pt-3.5 mb-4">
                     <span className="uppercase tracking-[0.14em]">Grand Invoice Total</span>
-                    <span className="text-luxury-gold text-base font-mono">{formatPrice(grandTotal)}</span>
+                    <span className="luxury-animated-price text-base font-mono">{formatPrice(grandTotal)}</span>
                   </div>
 
                   <button
@@ -861,7 +908,9 @@ export default function CartDrawer({
           </div>
         )}
 
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

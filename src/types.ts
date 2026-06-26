@@ -25,6 +25,9 @@ export interface Product {
   lotteryEligible?: boolean;
   couponCode?: string;
   couponDiscountPercent?: number;
+  offerPrice?: number;
+  timerEndTime?: string;
+  timerMessage?: string;
 }
 
 export interface CartItem {
@@ -80,6 +83,8 @@ export interface Coupon {
   type: 'PERCENTAGE' | 'FIXED';
   value: number;
   active: boolean;
+  maxUses?: number;
+  usedCount?: number;
 }
 
 export interface ChatMessage {

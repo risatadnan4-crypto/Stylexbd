@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import { 
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
@@ -101,7 +102,14 @@ export default function App() {
   const [isFirstNotifLoad, setIsFirstNotifLoad] = useState(true);
 
   const [showTopBanner, setShowTopBanner] = useState(true);
-  const [activeTrackId, setActiveTrackId] = useState('');
+  const [activeTrackId, setActiveTrackId] = useState(() => {
+    try {
+      const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
+      return prevOrderIds.length > 0 ? prevOrderIds[prevOrderIds.length - 1] : '';
+    } catch (e) {
+      return '';
+    }
+  });
 
   // Customer states (Log In / Sign Up)
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(() => {
@@ -206,14 +214,59 @@ export default function App() {
     deactivatedMessage?: string;
     isLotteryDeactivated?: boolean;
     isNotifyMeDeactivated?: boolean;
-  }>({ whatsappNumber: "8801755104443" });
+  }>(() => {
+    try {
+      const saved = localStorage.getItem("stylex_settings");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn("Failed to load settings from localStorage", e);
+    }
+    return {
+      whatsappNumber: "8801755104443",
+      facebookUrl: "https://www.facebook.com/stylex24/",
+      instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
+      logoUrl: "/stylex_logo.jpg"
+    };
+  });
+
+  // Synchronize settings state with localStorage
+  useEffect(() => {
+    if (settings) {
+      try {
+        localStorage.setItem("stylex_settings", JSON.stringify(settings));
+      } catch (e) {
+        console.error("Failed to save settings to localStorage", e);
+      }
+    }
+  }, [settings]);
 
   const loadSettings = async () => {
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
-        setSettings(data);
+        setSettings(prev => {
+          const defaultLogo = "/stylex_logo.jpg";
+          const defaultFb = "https://www.facebook.com/stylex24/";
+          const defaultIg = "https://www.instagram.com/style_x25/?hl=en";
+
+          const merged = { ...prev, ...data };
+
+          // If the incoming server setting has the default value, but our local state has a custom value, keep the custom local value.
+          if (prev && prev.logoUrl && prev.logoUrl !== defaultLogo && data.logoUrl === defaultLogo) {
+            merged.logoUrl = prev.logoUrl;
+          }
+          if (prev && prev.facebookUrl && prev.facebookUrl !== defaultFb && data.facebookUrl === defaultFb) {
+            merged.facebookUrl = prev.facebookUrl;
+          }
+          if (prev && prev.instagramUrl && prev.instagramUrl !== defaultIg && data.instagramUrl === defaultIg) {
+            merged.instagramUrl = prev.instagramUrl;
+          }
+
+          return merged;
+        });
       }
     } catch (err) {
       console.error("Failed loading settings", err);
@@ -973,6 +1026,7 @@ export default function App() {
       {/* Hero Header Banners */}
       {!isTrackMode && !isSearchPage && !settings?.isCatalogDeactivated && (
         <Hero 
+          banners={banners}
           bannerTitle={activePromoBanner.title}
           bannerSubtitle={activePromoBanner.subtitle}
           bannerImage={activePromoBanner.imageUrl}
@@ -1344,7 +1398,7 @@ export default function App() {
               </div>
             ) : (
               /* Core Grid */
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 animate-fade-in">
                 {filteredProducts.map((prod) => (
                   <ProductCard 
                     key={prod.id}
@@ -1546,7 +1600,7 @@ export default function App() {
                 setLastReadTimestamp(now);
                 localStorage.setItem('stylex_notif_last_read_ts', String(now));
             }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-1"
             title="VIP Dispatch & Product Alerts Hub"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1558,7 +1612,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
             {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -1575,7 +1629,7 @@ export default function App() {
           {/* Claim Discount Option */}
           <button 
             onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-2"
             title="Request Campaign Discount Coupon"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1587,7 +1641,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors" />
+            <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               GET DISCOUNT
             </span>
@@ -1597,7 +1651,7 @@ export default function App() {
           {!settings?.isLotteryDeactivated && (
             <button 
               onClick={() => setIsLotteryOpen(true)}
-              className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+              className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-3"
               title="Imperial Fortune Game"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -1609,7 +1663,7 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-pulse" />
+              <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
@@ -1623,7 +1677,7 @@ export default function App() {
           {/* Track Existing Receipts */}
           <button 
             onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-4"
             title="Track Existing Receipts"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1635,7 +1689,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               TRACK RECEIPT
             </span>
@@ -1644,7 +1698,7 @@ export default function App() {
           {/* View Current Bag */}
           <button 
             onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-1"
             title="View Current Luxury Bag"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1656,7 +1710,17 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <ShoppingBag className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors" />
+            <motion.div
+              key={cart.reduce((sum, item) => sum + item.quantity, 0)}
+              animate={cart.length > 0 ? {
+                scale: [1, 1.35, 0.95, 1.05, 1],
+                rotate: [0, -8, 8, -4, 0]
+              } : {}}
+              transition={{ duration: 0.55, ease: "easeInOut" }}
+              className="relative z-10 flex items-center justify-center"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+            </motion.div>
             {cart.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce">
                 {cart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -1672,7 +1736,7 @@ export default function App() {
             href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-2"
             title="WhatsApp Live Concierge"
           >
             {/* Animated multi-layered running glow border around the button */}
@@ -1686,7 +1750,7 @@ export default function App() {
             
             {/* Pulsing visual halo rings */}
             <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
-            <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-pulse" />
+            <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               WHATSAPP
             </span>
@@ -1694,10 +1758,10 @@ export default function App() {
 
           {/* Facebook Official Page */}
           <a 
-            href={settings?.facebookUrl || "https://facebook.com/stylexcollection"}
+            href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-3"
             title="Facebook Official Collection"
           >
             {/* Animated border */}
@@ -1707,7 +1771,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
             </div>
             
-            <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors" />
+            <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               FACEBOOK
             </span>
@@ -1715,10 +1779,10 @@ export default function App() {
 
           {/* Instagram Official Page */}
           <a 
-            href={settings?.instagramUrl || "https://instagram.com/stylexcollection"}
+            href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group"
+            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-4"
             title="Instagram Gallery Reel"
           >
             {/* Animated border */}
@@ -1728,7 +1792,7 @@ export default function App() {
               <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
             </div>
             
-            <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors" />
+            <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
             <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
               INSTAGRAM
             </span>
@@ -1776,15 +1840,23 @@ export default function App() {
           <div className="space-y-4">
             <h5 className="font-serif text-sm font-semibold text-white tracking-widest uppercase">Style X Signature</h5>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-xs font-bold text-luxury-gold">
-                SX
+              <div className="w-8 h-8 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-0.5 overflow-hidden">
+                <img 
+                  src={settings?.logoUrl || "/stylex_logo.jpg"} 
+                  alt="Style X Logo" 
+                  className="w-full h-full object-contain rounded"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/stylex_logo.jpg";
+                  }}
+                />
               </div>
               <p className="text-[10px] font-mono tracking-widest uppercase">STYLE X SEQUENCE</p>
             </div>
             {/* Real social links */}
             <div className="flex items-center gap-3 pt-1">
               <a 
-                href={settings?.facebookUrl || "https://facebook.com/stylexcollection"} 
+                href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 hover:border-luxury-gold text-white hover:text-[#1877F2] transition-all"
@@ -1793,7 +1865,7 @@ export default function App() {
                 <Facebook className="w-3.5 h-3.5" />
               </a>
               <a 
-                href={settings?.instagramUrl || "https://instagram.com/stylexcollection"} 
+                href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold transition-all"
@@ -2265,7 +2337,7 @@ CREATE TRIGGER on_auth_user_created
             </div>
 
             {/* Confirm WhatsApp redirect trigger */}
-            <div className="space-y-3pt-2">
+            <div className="space-y-3 pt-2">
               <a
                 href={confirmedWhatsAppUrl}
                 target="_blank"
@@ -2278,6 +2350,27 @@ CREATE TRIGGER on_auth_user_created
               >
                 Launch WhatsApp verification
               </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTrackMode(true);
+                  setIsSearchPage(false);
+                  setActiveTrackId(confirmedOrderId);
+                  setConfirmedOrderId('');
+                  setCart([]);
+                  setTimeout(() => {
+                    const el = document.getElementById('glowing-search-button');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                      window.scrollTo({ top: 350, behavior: 'smooth' });
+                    }
+                  }, 150);
+                }}
+                className="block text-center w-full bg-transparent border border-luxury-gold text-luxury-gold hover:bg-luxury-gold/10 font-display font-extrabold text-[11px] uppercase tracking-[0.2em] py-3.5 rounded transition-all"
+              >
+                Track Order Live Status
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -2308,6 +2401,7 @@ CREATE TRIGGER on_auth_user_created
           setIsCartOpen(false);
           setConfirmedOrderId(id);
           setConfirmedWhatsAppUrl(url);
+          setActiveTrackId(id);
           loadStoreCollections(); // Refresh stock units logs on checkout success!
           loadOrders(); // Refresh public order ticker instantly!
         }}
@@ -2447,6 +2541,7 @@ CREATE TRIGGER on_auth_user_created
           isWishlisted={wishlist.includes(selectedProduct.id)}
           onToggleWishlist={handleToggleWishlist}
           whatsappNumber={settings.whatsappNumber}
+          isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
         />
       )}
 

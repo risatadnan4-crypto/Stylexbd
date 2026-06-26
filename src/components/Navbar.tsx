@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import { Search, ShoppingCart, User, Gift, Trophy, ClipboardList, LogOut, UserPlus, LogIn, History, X } from 'lucide-react';
 
 interface Customer {
@@ -72,9 +73,9 @@ export default function Navbar({
               {/* Metallic shimmering sheen swipe effect across logo */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none z-20"></div>
               
-              {logoUrl ? (
+              {logoUrl || "/stylex_logo.jpg" ? (
                 <img 
-                  src={logoUrl} 
+                  src={logoUrl || "/stylex_logo.jpg"} 
                   alt="Brand Logo" 
                   className="w-full h-full object-contain rounded-lg z-10 transition-transform duration-700 ease-out group-hover:scale-115 group-hover:rotate-[-3deg]"
                   referrerPolicy="no-referrer"
@@ -177,7 +178,17 @@ export default function Navbar({
               onClick={onCartClick}
               className="text-white hover:text-luxury-gold p-2 relative bg-luxury-gold/10 border border-luxury-gold/25 hover:border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.05)] hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] rounded-lg transition-all active:scale-95 duration-200"
             >
-              <ShoppingCart size={18} />
+              <motion.div
+                key={cartCount}
+                animate={cartCount > 0 ? {
+                  scale: [1, 1.35, 0.95, 1.05, 1],
+                  rotate: [0, -8, 8, -4, 0]
+                } : {}}
+                transition={{ duration: 0.55, ease: "easeInOut" }}
+                className="flex items-center justify-center"
+              >
+                <ShoppingCart size={18} />
+              </motion.div>
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount}
@@ -340,7 +351,17 @@ export default function Navbar({
               onClick={onCartClick}
               className="flex items-center gap-2.5 bg-gradient-to-r from-luxury-gold/10 to-luxury-gold/5 border border-luxury-gold/30 hover:border-luxury-gold px-4 py-2 rounded-full transition-all text-white font-display text-xs uppercase tracking-widest cursor-pointer shadow-lg"
             >
-              <ShoppingCart size={14} className="text-luxury-gold" />
+              <motion.div
+                key={cartCount}
+                animate={cartCount > 0 ? {
+                  scale: [1, 1.3, 0.95, 1.05, 1],
+                  rotate: [0, -6, 6, -3, 0]
+                } : {}}
+                transition={{ duration: 0.55, ease: "easeInOut" }}
+                className="flex items-center justify-center"
+              >
+                <ShoppingCart size={14} className="text-luxury-gold" />
+              </motion.div>
               <span>Cart</span>
               <span className="bg-luxury-gold text-luxury-black text-[10px] font-bold px-2 py-0.5 rounded-full">
                 {cartCount}

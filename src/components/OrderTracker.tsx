@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Truck, ShieldCheck, CheckCircle, Smartphone, Calendar, Box, Send, Sparkles, Tag, ShoppingBag, ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Search, MapPin, Truck, ShieldCheck, CheckCircle, Smartphone, Calendar, Box, Send, Sparkles, Tag, ShoppingBag, ArrowRight, Copy, Check } from 'lucide-react';
 import { Order, Product, Customer } from '../types';
 import { formatPrice, generateOrderQrUrl, getDivisionForCity } from '../utils';
 
@@ -23,6 +24,127 @@ export default function OrderTracker({
   const [errorMsg, setErrorMsg] = useState('');
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loadingCustomerOrders, setLoadingCustomerOrders] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // SMS status and product alerts preferences state
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsName, setSmsName] = useState('');
+  const [optInSMS, setOptInSMS] = useState(true);
+  const [optInNewProducts, setOptInNewProducts] = useState(true);
+  const [smsSubmitting, setSmsSubmitting] = useState(false);
+  const [smsSuccessMsg, setSmsSuccessMsg] = useState('');
+  const [smsErrorMsgState, setSmsErrorMsgState] = useState('');
+  const [smsLogs, setSmsLogs] = useState<any[]>([]);
+
+  // Fetch SMS logs matching current phone number
+  const fetchSmsLogs = async () => {
+    try {
+      const res = await fetch('/api/sms-logs');
+      if (res.ok) {
+        const data = await res.json();
+        const filtered = data.filter((log: any) => {
+          if (!smsPhone) return true;
+          const cleanLogPhone = log.phone.replace(/[\s+-]/g, '');
+          const cleanSmsPhone = smsPhone.replace(/[\s+-]/g, '');
+          return cleanLogPhone.includes(cleanSmsPhone) || cleanSmsPhone.includes(cleanLogPhone);
+        });
+        setSmsLogs(filtered);
+      }
+    } catch (err) {
+      console.error('Error loading simulated SMS logs:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (smsPhone) {
+      fetchSmsLogs();
+    }
+  }, [smsPhone]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchSmsLogs();
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [smsPhone]);
+
+  useEffect(() => {
+    if (order) {
+      setSmsPhone(order.customerPhone || '');
+      setSmsName(order.customerName || '');
+    }
+  }, [order]);
+
+  const handleSaveSmsPrefs = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smsPhone) {
+      setSmsErrorMsgState('Valid mobile phone number is required.');
+      return;
+    }
+    setSmsSubmitting(true);
+    setSmsSuccessMsg('');
+    setSmsErrorMsgState('');
+
+    try {
+      const res = await fetch('/api/sms-opt-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: smsPhone,
+          name: smsName,
+          orderId: order?.id,
+          optInSMS,
+          optInNewProducts
+        })
+      });
+
+      if (res.ok) {
+        setSmsSuccessMsg('VIP SMS Notification preferences updated and stored successfully!');
+        fetchSmsLogs();
+      } else {
+        const errData = await res.json();
+        setSmsErrorMsgState(errData.error || 'Failed to update preferences.');
+      }
+    } catch (err) {
+      setSmsErrorMsgState('Network error updating subscription.');
+    } finally {
+      setSmsSubmitting(false);
+    }
+  };
+
+  const handleSimulateNewProductSms = async () => {
+    try {
+      const randomId = Math.floor(1000 + Math.random() * 9000);
+      const demoProduct = {
+        title: `Royal Golden Chrono Elite (${randomId})`,
+        price: 24500,
+        description: "A masterwork of horological elegance featuring a precision sweep movement and fully hand-carved celestial moonphase markers.",
+        category: "WATCHES",
+        stock: 5,
+        imageUrl: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=300&auto=format&fit=crop"
+      };
+
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(demoProduct)
+      });
+
+      if (res.ok) {
+        setSmsSuccessMsg('✨ Simulated new custom Product added to catalog! SMS alerts dispatched in background to all subscribers.');
+        fetchSmsLogs();
+      }
+    } catch (err) {
+      console.error('Failed to trigger mock product:', err);
+    }
+  };
+
+  const handleCopyId = () => {
+    if (!order) return;
+    navigator.clipboard.writeText(order.id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Fetch all product records to associate images and rich variables
   useEffect(() => {
@@ -265,17 +387,29 @@ export default function OrderTracker({
                         </p>
                         
                         {/* Ordered products detail breakdown */}
-                        <div className="mt-2 pt-2 border-t border-white/[0.04] space-y-1">
-                          {ord.items?.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-2 text-[10px] text-white/75 bg-white/[0.01] px-1.5 py-0.5 rounded">
-                              <span className="font-medium truncate max-w-[140px] text-white/90">
-                                {item.title}
-                              </span>
-                              <span className="font-mono text-[9px] text-[#ffd700] shrink-0 font-bold">
-                                {item.selectedSize ? `${item.selectedSize} | ` : ''}x{item.quantity}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="mt-2 pt-2 border-t border-white/[0.04] space-y-1.5">
+                          {ord.items?.map((item, idx) => {
+                            const matchedProduct = products.find(p => p.id === item.productId);
+                            const imgUrl = matchedProduct?.imageUrl || "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=300&auto=format&fit=crop";
+                            return (
+                              <div key={idx} className="flex items-center justify-between gap-3 text-[10px] text-white/75 bg-white/[0.01] hover:bg-white/[0.03] p-1 rounded-lg border border-white/[0.03] transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <img 
+                                    src={imgUrl} 
+                                    referrerPolicy="no-referrer"
+                                    alt={item.title}
+                                    className="w-7 h-7 rounded-md object-cover border border-white/10 flex-shrink-0"
+                                  />
+                                  <span className="font-medium truncate text-white/90">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <span className="font-mono text-[9px] text-[#ffd700] shrink-0 font-bold">
+                                  {item.selectedSize ? `${item.selectedSize} | ` : ''}x{item.quantity}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
 
                         <p className="text-xs font-black text-[#ffd700] pt-1">
@@ -312,7 +446,12 @@ export default function OrderTracker({
 
       {/* Tracked Results area */}
       {order && !loading && (
-        <div className="space-y-8 animate-fade-in">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="space-y-8"
+        >
           
           {/* Info and QR status card */}
           <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -321,8 +460,27 @@ export default function OrderTracker({
               <div className="inline-flex items-center gap-1.5 bg-luxury-gold/10 border border-luxury-gold/30 text-luxury-gold px-2.5 py-1 rounded text-[10px] font-mono uppercase">
                 Order Tracking Live
               </div>
-              <h3 className="font-serif text-xl font-bold text-white tracking-wide">
-                Invoice ID: <span className="text-luxury-gold font-mono uppercase">{order.id}</span>
+              <h3 className="font-serif text-xl font-bold text-white tracking-wide flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <span>Invoice ID:</span>
+                <span className="text-luxury-gold font-mono uppercase select-all">{order.id}</span>
+                <button
+                  onClick={handleCopyId}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-sans font-medium text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+                  title="Copy Tracking ID"
+                  id="copy-tracking-id-btn"
+                >
+                  {copied ? (
+                    <>
+                      <Check size={11} className="text-emerald-400" />
+                      <span className="text-emerald-400 font-mono text-[9px] tracking-wider uppercase">COPIED</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={11} className="text-luxury-gold/70" />
+                      <span className="font-mono text-[9px] tracking-wider uppercase text-white/60">COPY ID</span>
+                    </>
+                  )}
+                </button>
               </h3>
               <p className="text-[11px] font-mono text-white/40 uppercase">
                 Order Date: {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString()}
@@ -335,12 +493,41 @@ export default function OrderTracker({
             </div>
 
             {/* Scan QR component */}
-            <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-luxury-gold/20 flex-shrink-0">
-              <img 
-                src={generateOrderQrUrl(order.id)} 
-                alt="Order QR Code" 
-                className="w-24 h-24"
-              />
+            <div className="bg-white p-2 rounded flex flex-col items-center justify-center border border-luxury-gold/20 flex-shrink-0 relative">
+              <div className="relative flex items-center justify-center">
+                <img 
+                  src={generateOrderQrUrl(order.id)} 
+                  alt="Order QR Code" 
+                  className="w-24 h-24"
+                />
+                {(() => {
+                  let currentLogoUrl = "/stylex_logo.jpg";
+                  try {
+                    const saved = localStorage.getItem("stylex_settings");
+                    if (saved) {
+                      const parsed = JSON.parse(saved);
+                      if (parsed.logoUrl) {
+                        currentLogoUrl = parsed.logoUrl;
+                      }
+                    }
+                  } catch (e) {
+                    // Ignore
+                  }
+                  return (
+                    <div className="absolute w-[20px] h-[20px] bg-black rounded p-0.5 border border-luxury-gold/50 flex items-center justify-center overflow-hidden">
+                      <img 
+                        src={currentLogoUrl} 
+                        alt="SX Logo" 
+                        className="w-full h-full object-contain rounded"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/stylex_logo.jpg";
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
               <span className="text-[8px] text-zinc-800 font-mono font-bold mt-1 uppercase tracking-widest">ORDER CONCIERGE QR</span>
             </div>
 
@@ -404,6 +591,209 @@ export default function OrderTracker({
               </div>
             </div>
           )}
+
+          {/* VIP SMS status alerts preferences and simulated mobile inbox */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-gradient-to-br from-[#0c0a0f] via-[#050307] to-[#0a080d] border border-white/5 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+            
+            {/* Form Section */}
+            <div className="lg:col-span-7 space-y-5 flex flex-col justify-between">
+              <div>
+                <div className="inline-flex items-center gap-1.5 bg-luxury-gold/10 border border-luxury-gold/30 text-[10px] text-luxury-gold px-2.5 py-1 rounded font-mono uppercase tracking-wider mb-2">
+                  🔒 Bespoke Integrations Active
+                </div>
+                <h4 className="font-serif text-lg font-bold text-white tracking-wide">
+                  VIP Mobile Notification Center
+                </h4>
+                <p className="text-xs text-white/55 leading-relaxed mt-1 text-left">
+                  Keep in lockstep with our atelier. Choose to receive real-time SMS status changes and instant notifications sent directly to your mobile whenever magnificent new creations are dropped.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveSmsPrefs} className="space-y-4">
+                {/* Inputs Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="text-left">
+                    <label className="block text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1.5">
+                      Recipient Name
+                    </label>
+                    <input
+                      type="text"
+                      value={smsName}
+                      onChange={(e) => setSmsName(e.target.value)}
+                      placeholder="e.g. Lord Byron"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs font-serif text-white focus:outline-none focus:border-luxury-gold/50 transition-colors"
+                    />
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1.5">
+                      Mobile Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={smsPhone}
+                      onChange={(e) => setSmsPhone(e.target.value)}
+                      placeholder="e.g. +8801755104443"
+                      className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-luxury-gold/50 transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Preference Checkboxes */}
+                <div className="space-y-3 bg-white/[0.01] border border-white/[0.03] p-4 rounded-xl">
+                  {/* Pref 1: Order Status SMS */}
+                  <label className="flex items-start gap-3 cursor-pointer select-none group">
+                    <input
+                      type="checkbox"
+                      checked={optInSMS}
+                      onChange={(e) => setOptInSMS(e.target.checked)}
+                      className="mt-0.5 rounded border-white/20 bg-transparent text-luxury-gold focus:ring-0 focus:ring-offset-0"
+                    />
+                    <div className="text-left">
+                      <span className="block text-xs font-bold text-white group-hover:text-luxury-gold transition-colors">
+                        Order Status Tracking SMS
+                      </span>
+                      <span className="block text-[10px] text-white/45 mt-0.5">
+                        Opt-in to automated simulated dispatch, courier allocation, and physical delivery status confirmations.
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Pref 2: New Product Alerts SMS */}
+                  <label className="flex items-start gap-3 cursor-pointer select-none group pt-3 border-t border-white/[0.04]">
+                    <input
+                      type="checkbox"
+                      checked={optInNewProducts}
+                      onChange={(e) => setOptInNewProducts(e.target.checked)}
+                      className="mt-0.5 rounded border-white/20 bg-transparent text-luxury-gold focus:ring-0 focus:ring-offset-0"
+                    />
+                    <div className="text-left">
+                      <span className="block text-xs font-bold text-white group-hover:text-luxury-gold transition-colors">
+                        Catalog Release SMS Notifications
+                      </span>
+                      <span className="block text-[10px] text-white/45 mt-0.5">
+                        Receive dynamic mobile SMS warnings the split-second new bespoke items or rare collections are added to the shop!
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Success / Error Banners */}
+                {smsSuccessMsg && (
+                  <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg flex items-center gap-2 text-left">
+                    <CheckCircle size={14} className="shrink-0" />
+                    <span>{smsSuccessMsg}</span>
+                  </div>
+                )}
+                {smsErrorMsgState && (
+                  <div className="text-[11px] font-mono text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg flex items-center gap-2 text-left">
+                    <span className="font-bold">⚠️</span>
+                    <span>{smsErrorMsgState}</span>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={smsSubmitting}
+                    className="flex-1 bg-luxury-gold hover:bg-[#ffd700] text-luxury-black font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  >
+                    {smsSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <span>Synchronizing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={14} />
+                        <span>Activate VIP Alert Credentials</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSimulateNewProductSms}
+                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-mono text-[10px] py-2.5 px-3.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    title="Simulates adding a brand new product in the admin panel to trigger and test instant customer SMS notifications."
+                  >
+                    <span>⚡ Simulate New Product Drop SMS</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Smartphone Simulated Display */}
+            <div className="lg:col-span-5 flex flex-col bg-[#050505] border border-white/10 rounded-2xl overflow-hidden shadow-inner h-[340px] max-w-[340px] mx-auto w-full">
+              {/* Handset Top Notch / Header */}
+              <div className="bg-black py-1.5 px-4 flex justify-between items-center text-[9px] font-mono text-white/50 border-b border-white/5">
+                <span className="font-bold">VIP-NET</span>
+                <div className="w-16 h-3 bg-zinc-900 rounded-full flex items-center justify-center border border-white/5">
+                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping mr-1" />
+                  <span className="text-[7.5px] text-white/40">SECURE CONNECT</span>
+                </div>
+                <span>100% 🔋</span>
+              </div>
+
+              {/* Chat App Bar */}
+              <div className="bg-[#0b0a0f] p-3 border-b border-white/5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-luxury-gold/15 flex items-center justify-center text-[10px] text-luxury-gold font-bold border border-luxury-gold/30">
+                  SX
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-white tracking-wide">STYLE X CONCIERGE</span>
+                    <span className="text-emerald-400 text-[8px]" title="Official Secure Sender">✓</span>
+                  </div>
+                  <span className="text-[8px] text-emerald-400 font-mono tracking-widest block">SECURE TELEMETRY SMS</span>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#030303] scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-start">
+                {smsLogs.length === 0 ? (
+                  <div className="my-auto flex flex-col items-center justify-center text-center p-4">
+                    <Smartphone size={24} className="text-white/20 mb-2 animate-bounce" />
+                    <p className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+                      Inbox Empty
+                    </p>
+                    <p className="text-[9px] text-white/40 max-w-[180px] mt-1">
+                      Update your phone and select checkboxes to trigger simulated SMS welcomes and status loops!
+                    </p>
+                  </div>
+                ) : (
+                  smsLogs.map((log: any) => (
+                    <div key={log.id} className="space-y-1">
+                      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl rounded-tl-none p-3 max-w-[90%] text-left relative shadow-sm">
+                        <p className="text-[10.5px] text-white/95 leading-relaxed font-sans whitespace-pre-line">
+                          {log.message}
+                        </p>
+                        <span className="text-[7.5px] font-mono text-white/30 block text-right mt-1.5">
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* simulated phone footer */}
+              <div className="bg-[#09090b] py-1 px-3 border-t border-white/5 flex justify-between items-center text-[8px] font-mono text-white/30">
+                <span>SIMULATOR CONSOLE ACTIVE</span>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    fetch('/api/sms-logs', { method: 'DELETE' }).then(() => fetchSmsLogs());
+                  }}
+                  className="hover:text-red-400 uppercase tracking-wider text-[7.5px] cursor-pointer"
+                >
+                  Clear Inbox
+                </button>
+              </div>
+            </div>
+
+          </div>
 
           {/* Summarized Invoice Items table */}
           <div className="bg-[#090510] border border-[#d4af37]/25 rounded-2xl p-6 md:p-8 space-y-6 shadow-[0_10px_35px_rgba(0,0,0,0.6)] relative overflow-hidden">
@@ -568,7 +958,7 @@ export default function OrderTracker({
             </p>
           </div>
 
-        </div>
+        </motion.div>
       )}
 
     </div>

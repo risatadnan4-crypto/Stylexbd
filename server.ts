@@ -142,6 +142,8 @@ let db = {
   products: initialProducts,
   orders: [] as Order[],
   backInStockAlerts: [] as any[],
+  smsSubscriptions: [] as any[],
+  outboundSMSLogs: [] as any[],
   banners: initialBanners,
   reviews: [] as Review[],
   coupons: initialCoupons,
@@ -161,11 +163,11 @@ let db = {
     adminEmail: "risatadnan4@gmail.com",
     adminPassword: "risat123",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
-    logoUrl: "",
+    logoUrl: "/stylex_logo.jpg",
     lotteryDiscountPercentage: 15,
     lotteryCouponPrefix: "RISAT",
-    facebookUrl: "https://facebook.com/stylexcollection",
-    instagramUrl: "https://instagram.com/stylexcollection",
+    facebookUrl: "https://www.facebook.com/stylex24/",
+    instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
     paymentBadgeTitle: "SECURE CASH ON DELIVERY GUARANTEED",
     paymentBadgeDescription: "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
     isCatalogDeactivated: false,
@@ -185,6 +187,7 @@ let db = {
 
 let lastSyncCompletedAt = 0;
 let activeSyncPromise: Promise<void> | null = null;
+let isSettingsTableAvailable = true;
 
 // Load database if exists
 if (fs.existsSync(DB_FILE)) {
@@ -215,11 +218,11 @@ if (fs.existsSync(DB_FILE)) {
       appsScriptUrl: oldDefaultUrls.includes(currentScriptUrl)
         ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
         : currentScriptUrl,
-      logoUrl: db.settings?.logoUrl || "",
+      logoUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
       lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
       lotteryCouponPrefix: db.settings?.lotteryCouponPrefix !== undefined ? db.settings.lotteryCouponPrefix : "RISAT",
-      facebookUrl: db.settings?.facebookUrl !== undefined ? db.settings.facebookUrl : "https://facebook.com/stylexcollection",
-      instagramUrl: db.settings?.instagramUrl !== undefined ? db.settings.instagramUrl : "https://instagram.com/stylexcollection",
+      facebookUrl: db.settings?.facebookUrl !== undefined ? db.settings.facebookUrl : "https://www.facebook.com/stylex24/",
+      instagramUrl: db.settings?.instagramUrl !== undefined ? db.settings.instagramUrl : "https://www.instagram.com/style_x25/?hl=en",
       paymentBadgeTitle: db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED",
       paymentBadgeDescription: db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.",
       isCatalogDeactivated: db.settings?.isCatalogDeactivated !== undefined ? !!db.settings.isCatalogDeactivated : false,
@@ -281,20 +284,29 @@ async function syncFromSupabase() {
       if (!productsResult.error && productsResult.data) {
         const productsData = productsResult.data;
         if (productsData.length > 0) {
-          db.products = productsData.map((p: any) => ({
-            ...p,
-            sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
-            trending: p.trending !== undefined ? !!p.trending : true,
-            featured: p.featured !== undefined ? !!p.featured : true,
-            price: Number(p.price || 0),
-            stock: Number(p.stock || 0)
-          }));
+          db.products = productsData.map((p: any) => {
+            const localProduct = db.products ? db.products.find((lp: any) => lp.id === p.id) : null;
+            return {
+              ...p,
+              sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
+              trending: p.trending !== undefined ? !!p.trending : true,
+              featured: p.featured !== undefined ? !!p.featured : true,
+              price: Number(p.price || 0),
+              stock: Number(p.stock || 0),
+              lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
+              couponCode: p.couponCode || "",
+              couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
+              offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
+              timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
+              timerMessage: p.timerMessage || localProduct?.timerMessage || undefined
+            };
+          });
           db.seededProducts = true;
           saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if (!db.seededProducts) {
-            console.log("🌱 Supabase 'products' table is empty. Uploading default seeds...");
+          if (db.products && db.products.length > 0) {
+            console.log("🌱 Supabase 'products' table is empty. Seeding Supabase from local database backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
                 id: prod.id,
@@ -331,15 +343,47 @@ async function syncFromSupabase() {
       if (!bannersResult.error && bannersResult.data) {
         const bannersData = bannersResult.data;
         if (bannersData.length > 0) {
-          db.banners = bannersData.map((b: any) => ({
+          // Filter out the hidden system settings row from displaying on the UI carousel
+          db.banners = bannersData.filter((b: any) => b.id !== "system_settings_metadata").map((b: any) => ({
             ...b,
             active: !!b.active
           }));
           db.seededBanners = true;
           saveDB();
-          console.log(`✅ Synced ${db.banners.length} banners from Supabase.`);
+          console.log(`✅ Synced ${db.banners.length} public banners from Supabase.`);
+
+          // Extract settings fallback from banners table if it exists
+          const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
+          if (systemSettingsRow && systemSettingsRow.subtitle) {
+            try {
+              const fallbackSettings = JSON.parse(systemSettingsRow.subtitle);
+              console.log("ℹ️ Restored settings backup from Supabase 'banners' metadata row successfully.");
+              
+              if (fallbackSettings.whatsappNumber !== undefined) db.settings.whatsappNumber = fallbackSettings.whatsappNumber;
+              if (fallbackSettings.adminEmail !== undefined) db.settings.adminEmail = fallbackSettings.adminEmail;
+              if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
+              if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
+              if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+              if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
+              if (fallbackSettings.instagramUrl !== undefined) db.settings.instagramUrl = fallbackSettings.instagramUrl;
+              if (fallbackSettings.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(fallbackSettings.lotteryDiscountPercentage);
+              if (fallbackSettings.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = fallbackSettings.lotteryCouponPrefix;
+              if (fallbackSettings.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = fallbackSettings.paymentBadgeTitle;
+              if (fallbackSettings.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = fallbackSettings.paymentBadgeDescription;
+              if (fallbackSettings.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = fallbackSettings.isCatalogDeactivated === true || fallbackSettings.isCatalogDeactivated === "true";
+              if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
+              if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
+              if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+              if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
+              
+              saveDB();
+            } catch (jsonErr: any) {
+              console.warn("⚠️ Failed to parse fallback settings from banners table:", jsonErr.message);
+            }
+          }
         } else {
-          if (!db.seededBanners) {
+          if (db.banners && db.banners.length > 0) {
+            console.log("🌱 Supabase 'banners' table is empty. Seeding from local database backup...");
             for (const b of db.banners) {
               await supabase.from("banners").upsert(b);
             }
@@ -358,16 +402,26 @@ async function syncFromSupabase() {
       if (!couponsResult.error && couponsResult.data) {
         const couponsData = couponsResult.data;
         if (couponsData.length > 0) {
-          db.coupons = couponsData.map((c: any) => ({
-            ...c,
-            active: !!c.active,
-            value: Number(c.value)
-          }));
+          db.coupons = couponsData.map((c: any) => {
+            const existingLocal = db.coupons?.find(localC => localC.code === c.code);
+            const maxUses = (c.maxUses !== undefined && c.maxUses !== null) ? Number(c.maxUses) : ((c.max_uses !== undefined && c.max_uses !== null) ? Number(c.max_uses) : existingLocal?.maxUses);
+            const usedCount = (c.usedCount !== undefined && c.usedCount !== null) ? Number(c.usedCount) : ((c.used_count !== undefined && c.used_count !== null) ? Number(c.used_count) : (existingLocal?.usedCount || 0));
+            const active = !!c.active && (maxUses === undefined || maxUses <= 0 || usedCount < maxUses);
+            return {
+              code: c.code,
+              type: c.type || existingLocal?.type || 'PERCENTAGE',
+              value: Number(c.value),
+              active,
+              maxUses,
+              usedCount
+            };
+          });
           db.seededCoupons = true;
           saveDB();
           console.log(`✅ Synced ${db.coupons.length} coupons from Supabase.`);
         } else {
-          if (!db.seededCoupons) {
+          if (db.coupons && db.coupons.length > 0) {
+            console.log("🌱 Supabase 'coupons' table is empty. Seeding from local database backup...");
             for (const c of db.coupons) {
               await supabase.from("coupons").upsert(c);
             }
@@ -394,7 +448,8 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.campaigns.length} campaigns from Supabase.`);
         } else {
-          if (!db.seededCampaigns) {
+          if (db.campaigns && db.campaigns.length > 0) {
+            console.log("🌱 Supabase 'campaigns' table is empty. Seeding from local database backup...");
             for (const c of db.campaigns) {
               await supabase.from("campaigns").upsert(c);
             }
@@ -422,7 +477,8 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.reviews.length} reviews from Supabase.`);
         } else {
-          if (!db.seededReviews) {
+          if (db.reviews && db.reviews.length > 0) {
+            console.log("🌱 Supabase 'reviews' table is empty. Seeding from local database backup...");
             for (const r of db.reviews) {
               await supabase.from("reviews").upsert(r);
             }
@@ -485,7 +541,19 @@ async function syncFromSupabase() {
 
     // 8. Sync Settings & Persistent Views
     try {
-      if (!settingsResult.error && settingsResult.data) {
+      if (settingsResult.error) {
+        const errMsg = settingsResult.error.message || "";
+        if (errMsg.includes("Could not find the table") || errMsg.includes("does not exist") || settingsResult.error.code === "PGRST116" || settingsResult.error.code === "42P01") {
+          isSettingsTableAvailable = false;
+          console.info("ℹ️ Supabase 'settings' table is not available yet. File-based cache will be used for settings storage.");
+        } else {
+          console.warn("⚠️ Failed syncing settings from Supabase:", settingsResult.error.message);
+        }
+      } else {
+        isSettingsTableAvailable = true;
+      }
+
+      if (isSettingsTableAvailable && settingsResult.data) {
         const settingsData = settingsResult.data;
         if (settingsData && settingsData.length > 0) {
           const map: Record<string, string> = {};
@@ -496,21 +564,21 @@ async function syncFromSupabase() {
           });
 
           // Restore normal settings if present
-          if (map.whatsappNumber) db.settings.whatsappNumber = map.whatsappNumber;
-          if (map.adminEmail) db.settings.adminEmail = map.adminEmail;
-          if (map.adminPassword) db.settings.adminPassword = map.adminPassword;
-          if (map.appsScriptUrl) db.settings.appsScriptUrl = map.appsScriptUrl;
-          if (map.logoUrl) db.settings.logoUrl = map.logoUrl;
-          if (map.facebookUrl) db.settings.facebookUrl = map.facebookUrl;
-          if (map.instagramUrl) db.settings.instagramUrl = map.instagramUrl;
-          if (map.lotteryDiscountPercentage) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
-          if (map.lotteryCouponPrefix) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
-          if (map.paymentBadgeTitle) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
-          if (map.paymentBadgeDescription) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
-          if (map.isCatalogDeactivated) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
-          if (map.deactivatedMessage) db.settings.deactivatedMessage = map.deactivatedMessage;
-          if (map.isLotteryDeactivated) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
-          if (map.isNotifyMeDeactivated) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
+          if (map.whatsappNumber !== undefined) db.settings.whatsappNumber = map.whatsappNumber;
+          if (map.adminEmail !== undefined) db.settings.adminEmail = map.adminEmail;
+          if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
+          if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
+          if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
+          if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
+          if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
+          if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
+          if (map.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
+          if (map.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
+          if (map.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
+          if (map.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
+          if (map.deactivatedMessage !== undefined) db.settings.deactivatedMessage = map.deactivatedMessage;
+          if (map.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
+          if (map.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
           if (map.lotteryPrizes) {
             try {
               db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
@@ -666,12 +734,14 @@ app.get("/api/visitor-ping", (req, res) => {
         saveDB();
 
         // Asynchronously back up the visitor metrics to Supabase
-        Promise.all([
-          supabase.from("settings").upsert({ key: "visits_count", value: String(db.visits) }),
-          supabase.from("settings").upsert({ key: "counted_sessions", value: JSON.stringify(db.countedSessions) })
-        ]).catch((err) => {
-          console.error("⚠️ Background backup of visitor count to Supabase failed:", err.message);
-        });
+        if (isSettingsTableAvailable) {
+          Promise.all([
+            supabase.from("settings").upsert({ key: "visits_count", value: String(db.visits) }, { onConflict: "key" }),
+            supabase.from("settings").upsert({ key: "counted_sessions", value: JSON.stringify(db.countedSessions) }, { onConflict: "key" })
+          ]).catch((err) => {
+            console.error("⚠️ Background backup of visitor count to Supabase failed:", err.message);
+          });
+        }
       }
     }
 
@@ -735,42 +805,79 @@ app.get("/api/analytics", (req, res) => {
 // App Settings (Dynamic WhatsApp etc.)
 app.get("/api/settings", async (req, res) => {
   try {
-    const { data: settingsResult, error } = await supabase.from("settings").select("*");
-    if (!error && settingsResult && settingsResult.length > 0) {
-      const map: Record<string, string> = {};
-      settingsResult.forEach((row: any) => {
-        if (row && row.key) {
-          map[row.key] = row.value || "";
+    if (isSettingsTableAvailable) {
+      const { data: settingsResult, error } = await supabase.from("settings").select("*");
+      if (!error && settingsResult && settingsResult.length > 0) {
+        const map: Record<string, string> = {};
+        settingsResult.forEach((row: any) => {
+          if (row && row.key) {
+            map[row.key] = row.value || "";
+          }
+        });
+
+        // Update local db.settings from Supabase values
+        if (map.whatsappNumber !== undefined) db.settings.whatsappNumber = map.whatsappNumber;
+        if (map.adminEmail !== undefined) db.settings.adminEmail = map.adminEmail;
+        if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
+        if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
+        if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
+        if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
+        if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
+        if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
+        if (map.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
+        if (map.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
+        if (map.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
+        if (map.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
+        if (map.deactivatedMessage !== undefined) db.settings.deactivatedMessage = map.deactivatedMessage;
+        if (map.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
+        if (map.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
+        if (map.lotteryPrizes) {
+          try {
+            db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
+          } catch (err) {}
         }
-      });
 
-      // Update local db.settings from Supabase values
-      if (map.whatsappNumber) db.settings.whatsappNumber = map.whatsappNumber;
-      if (map.adminEmail) db.settings.adminEmail = map.adminEmail;
-      if (map.adminPassword) db.settings.adminPassword = map.adminPassword;
-      if (map.appsScriptUrl) db.settings.appsScriptUrl = map.appsScriptUrl;
-      if (map.logoUrl) db.settings.logoUrl = map.logoUrl;
-      if (map.facebookUrl) db.settings.facebookUrl = map.facebookUrl;
-      if (map.instagramUrl) db.settings.instagramUrl = map.instagramUrl;
-      if (map.lotteryDiscountPercentage) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
-      if (map.lotteryCouponPrefix) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
-      if (map.paymentBadgeTitle) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
-      if (map.paymentBadgeDescription) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
-      if (map.isCatalogDeactivated) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
-      if (map.deactivatedMessage) db.settings.deactivatedMessage = map.deactivatedMessage;
-      if (map.isLotteryDeactivated) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
-      if (map.isNotifyMeDeactivated) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
-      if (map.lotteryPrizes) {
-        try {
-          db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
-        } catch (err) {}
+        // Restore persistent counts
+        if (map.visits_count) {
+          const parsedVisits = Number(map.visits_count);
+          if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
+            db.visits = parsedVisits;
+          }
+        }
+      } else if (error) {
+        const errMsg = error.message || "";
+        if (errMsg.includes("Could not find the table") || errMsg.includes("does not exist") || error.code === "PGRST116" || error.code === "42P01") {
+          isSettingsTableAvailable = false;
+        }
       }
+    }
 
-      // Restore persistent counts
-      if (map.visits_count) {
-        const parsedVisits = Number(map.visits_count);
-        if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
-          db.visits = parsedVisits;
+    if (!isSettingsTableAvailable) {
+      const { data: bannersData, error: bannersError } = await supabase.from("banners").select("*");
+      if (!bannersError && bannersData && bannersData.length > 0) {
+        const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
+        if (systemSettingsRow && systemSettingsRow.subtitle) {
+          try {
+            const fallbackSettings = JSON.parse(systemSettingsRow.subtitle);
+            if (fallbackSettings.whatsappNumber !== undefined) db.settings.whatsappNumber = fallbackSettings.whatsappNumber;
+            if (fallbackSettings.adminEmail !== undefined) db.settings.adminEmail = fallbackSettings.adminEmail;
+            if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
+            if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
+            if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+            if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
+            if (fallbackSettings.instagramUrl !== undefined) db.settings.instagramUrl = fallbackSettings.instagramUrl;
+            if (fallbackSettings.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(fallbackSettings.lotteryDiscountPercentage);
+            if (fallbackSettings.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = fallbackSettings.lotteryCouponPrefix;
+            if (fallbackSettings.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = fallbackSettings.paymentBadgeTitle;
+            if (fallbackSettings.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = fallbackSettings.paymentBadgeDescription;
+            if (fallbackSettings.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = fallbackSettings.isCatalogDeactivated === true || fallbackSettings.isCatalogDeactivated === "true";
+            if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
+            if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
+            if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+            if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
+          } catch (jsonErr: any) {
+            console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
+          }
         }
       }
     }
@@ -782,7 +889,7 @@ app.get("/api/settings", async (req, res) => {
     whatsappNumber: "8801755104443", 
     adminEmail: "risatadnan4@gmail.com",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
-    logoUrl: "",
+    logoUrl: "/stylex_logo.jpg",
     lotteryDiscountPercentage: 15,
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
@@ -851,11 +958,11 @@ app.post("/api/settings", async (req, res) => {
       adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
       adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
       appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
-      logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || ""),
+      logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
       lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
       lotteryCouponPrefix: lotteryCouponPrefix !== undefined ? lotteryCouponPrefix.trim().toUpperCase() : (db.settings?.lotteryCouponPrefix || "RISAT"),
-      facebookUrl: facebookUrl !== undefined ? facebookUrl.trim() : (db.settings?.facebookUrl || "https://facebook.com/stylexcollection"),
-      instagramUrl: instagramUrl !== undefined ? instagramUrl.trim() : (db.settings?.instagramUrl || "https://instagram.com/stylexcollection"),
+      facebookUrl: facebookUrl !== undefined ? facebookUrl.trim() : (db.settings?.facebookUrl || "https://www.facebook.com/stylex24/"),
+      instagramUrl: instagramUrl !== undefined ? instagramUrl.trim() : (db.settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"),
       paymentBadgeTitle: paymentBadgeTitle !== undefined ? paymentBadgeTitle.trim() : (db.settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"),
       paymentBadgeDescription: paymentBadgeDescription !== undefined ? paymentBadgeDescription.trim() : (db.settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."),
       isCatalogDeactivated: isCatalogDeactivated !== undefined ? !!isCatalogDeactivated : (db.settings?.isCatalogDeactivated || false),
@@ -867,57 +974,49 @@ app.post("/api/settings", async (req, res) => {
     saveDB();
 
     // Mirror to Supabase 'settings' table if table matches
+    if (isSettingsTableAvailable) {
+      try {
+        const saveSetting = async (key: string, value: string) => {
+          const { error } = await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
+          if (error) {
+            console.error(`⚠️ Error upserting setting ${key} to Supabase:`, error.message);
+          }
+        };
+
+        if (whatsappNumber) await saveSetting("whatsappNumber", whatsappNumber.trim());
+        if (adminEmail) await saveSetting("adminEmail", adminEmail.trim());
+        if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
+        if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
+        if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
+        if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
+        if (instagramUrl !== undefined) await saveSetting("instagramUrl", instagramUrl.trim());
+        if (lotteryDiscountPercentage !== undefined) await saveSetting("lotteryDiscountPercentage", String(lotteryDiscountPercentage));
+        if (lotteryCouponPrefix !== undefined) await saveSetting("lotteryCouponPrefix", lotteryCouponPrefix.trim().toUpperCase());
+        if (paymentBadgeTitle !== undefined) await saveSetting("paymentBadgeTitle", paymentBadgeTitle.trim());
+        if (paymentBadgeDescription !== undefined) await saveSetting("paymentBadgeDescription", paymentBadgeDescription.trim());
+        if (isCatalogDeactivated !== undefined) await saveSetting("isCatalogDeactivated", String(!!isCatalogDeactivated));
+        if (deactivatedMessage !== undefined) await saveSetting("deactivatedMessage", deactivatedMessage.trim());
+        if (isLotteryDeactivated !== undefined) await saveSetting("isLotteryDeactivated", String(!!isLotteryDeactivated));
+        if (isNotifyMeDeactivated !== undefined) await saveSetting("isNotifyMeDeactivated", String(!!isNotifyMeDeactivated));
+        if (Array.isArray(lotteryPrizes)) await saveSetting("lotteryPrizes", JSON.stringify(lotteryPrizes));
+      } catch (dbErr: any) {
+        console.error("⚠️ Failed to mirror settings to Supabase:", dbErr?.message || dbErr);
+      }
+    }
+
+    // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup
     try {
-      if (whatsappNumber) {
-        await supabase.from("settings").upsert({ key: "whatsappNumber", value: whatsappNumber.trim() });
-      }
-      if (adminEmail) {
-        await supabase.from("settings").upsert({ key: "adminEmail", value: adminEmail.trim() });
-      }
-      if (adminPassword !== undefined) {
-        await supabase.from("settings").upsert({ key: "adminPassword", value: adminPassword.trim() });
-      }
-      if (appsScriptUrl) {
-        await supabase.from("settings").upsert({ key: "appsScriptUrl", value: appsScriptUrl.trim() });
-      }
-      if (logoUrl !== undefined) {
-        await supabase.from("settings").upsert({ key: "logoUrl", value: logoUrl.trim() });
-      }
-      if (facebookUrl !== undefined) {
-        await supabase.from("settings").upsert({ key: "facebookUrl", value: facebookUrl.trim() });
-      }
-      if (instagramUrl !== undefined) {
-        await supabase.from("settings").upsert({ key: "instagramUrl", value: instagramUrl.trim() });
-      }
-      if (lotteryDiscountPercentage !== undefined) {
-        await supabase.from("settings").upsert({ key: "lotteryDiscountPercentage", value: String(lotteryDiscountPercentage) });
-      }
-      if (lotteryCouponPrefix !== undefined) {
-        await supabase.from("settings").upsert({ key: "lotteryCouponPrefix", value: lotteryCouponPrefix.trim().toUpperCase() });
-      }
-      if (paymentBadgeTitle !== undefined) {
-        await supabase.from("settings").upsert({ key: "paymentBadgeTitle", value: paymentBadgeTitle.trim() });
-      }
-      if (paymentBadgeDescription !== undefined) {
-        await supabase.from("settings").upsert({ key: "paymentBadgeDescription", value: paymentBadgeDescription.trim() });
-      }
-      if (isCatalogDeactivated !== undefined) {
-        await supabase.from("settings").upsert({ key: "isCatalogDeactivated", value: String(!!isCatalogDeactivated) });
-      }
-      if (deactivatedMessage !== undefined) {
-        await supabase.from("settings").upsert({ key: "deactivatedMessage", value: deactivatedMessage.trim() });
-      }
-      if (isLotteryDeactivated !== undefined) {
-        await supabase.from("settings").upsert({ key: "isLotteryDeactivated", value: String(!!isLotteryDeactivated) });
-      }
-      if (isNotifyMeDeactivated !== undefined) {
-        await supabase.from("settings").upsert({ key: "isNotifyMeDeactivated", value: String(!!isNotifyMeDeactivated) });
-      }
-      if (Array.isArray(lotteryPrizes)) {
-        await supabase.from("settings").upsert({ key: "lotteryPrizes", value: JSON.stringify(lotteryPrizes) });
-      }
-    } catch (dbErr) {
-      // Safe to ignore if table does not exist
+      await supabase.from("banners").upsert({
+        id: "system_settings_metadata",
+        title: "SYSTEM_SETTINGS_METADATA",
+        subtitle: JSON.stringify(db.settings),
+        imageUrl: db.settings.logoUrl || "/stylex_logo.jpg",
+        active: false,
+        isVideo: false
+      }, { onConflict: "id" });
+      console.log("✅ Backup of settings mirrored to Supabase 'banners' metadata table successfully.");
+    } catch (bannerErr: any) {
+      console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
     }
 
     return res.json(db.settings);
@@ -931,18 +1030,24 @@ app.get("/api/products", async (req, res) => {
   try {
     const { data: productsData, error: pError } = await supabase.from("products").select("*");
     if (!pError && productsData && productsData.length > 0) {
-      const products = productsData.map((p: any) => ({
-        ...p,
-        sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
-        images: typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []),
-        trending: p.trending !== undefined ? !!p.trending : true,
-        featured: p.featured !== undefined ? !!p.featured : true,
-        price: Number(p.price || 0),
-        stock: Number(p.stock || 0),
-        lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
-        couponCode: p.couponCode || "",
-        couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined
-      }));
+      const products = productsData.map((p: any) => {
+        const localProduct = db.products ? db.products.find((lp: any) => lp.id === p.id) : null;
+        return {
+          ...p,
+          sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
+          images: typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []),
+          trending: p.trending !== undefined ? !!p.trending : true,
+          featured: p.featured !== undefined ? !!p.featured : true,
+          price: Number(p.price || 0),
+          stock: Number(p.stock || 0),
+          lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
+          couponCode: p.couponCode || "",
+          couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
+          offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
+          timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
+          timerMessage: p.timerMessage || localProduct?.timerMessage || undefined
+        };
+      });
       db.products = products;
       saveDB();
       return res.json(products);
@@ -957,6 +1062,7 @@ app.get("/api/products/:id", async (req, res) => {
   try {
     const { data, error } = await supabase.from("products").select("*").eq("id", req.params.id).single();
     if (!error && data) {
+      const localProduct = db.products ? db.products.find((lp: any) => lp.id === req.params.id) : null;
       const prod = {
         ...data,
         sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
@@ -967,7 +1073,10 @@ app.get("/api/products/:id", async (req, res) => {
         stock: Number(data.stock || 0),
         lotteryEligible: data.lotteryEligible !== undefined ? !!data.lotteryEligible : true,
         couponCode: data.couponCode || "",
-        couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined
+        couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined,
+        offerPrice: (data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
+        timerEndTime: data.timerEndTime || localProduct?.timerEndTime || undefined,
+        timerMessage: data.timerMessage || localProduct?.timerMessage || undefined
       };
       return res.json(prod);
     }
@@ -1018,6 +1127,23 @@ app.post("/api/products", async (req, res) => {
   }
   db.notifications.unshift(productNotif);
 
+  // Simulate SMS notifications for new product launch to mobile subscribers
+  if (db.smsSubscriptions && db.smsSubscriptions.length > 0) {
+    if (!db.outboundSMSLogs) {
+      db.outboundSMSLogs = [];
+    }
+    const eligibleSubscribers = db.smsSubscriptions.filter((sub: any) => sub.optInNewProducts);
+    for (const sub of eligibleSubscribers) {
+      const smsMessage = `✨ STYLE X Bespoke Alert ✨\nHello ${sub.name || 'Valued VIP Patron'}, we have just launched an exquisite new creation in our custom catalog:\n\n"${newProduct.title}"\nPrice: ৳${newProduct.price}\nSKU: ${newProduct.code}\n\nInspect this masterpiece and coordinate with your concierge to claim yours.`;
+      db.outboundSMSLogs.unshift({
+        id: `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        phone: sub.phone,
+        message: smsMessage,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   saveDB();
 
   try {
@@ -1047,7 +1173,10 @@ app.post("/api/products", async (req, res) => {
       deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150),
       lotteryEligible: newProduct.lotteryEligible !== undefined ? !!newProduct.lotteryEligible : true,
       couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
-      couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null
+      couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
+      offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
+      timerEndTime: newProduct.timerEndTime || null,
+      timerMessage: newProduct.timerMessage || null
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1068,6 +1197,9 @@ app.post("/api/products", async (req, res) => {
       delete payload.lotteryEligible;
       delete payload.couponCode;
       delete payload.couponDiscountPercent;
+      delete payload.offerPrice;
+      delete payload.timerEndTime;
+      delete payload.timerMessage;
       delete payload.images;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
@@ -1153,7 +1285,10 @@ app.put("/api/products/:id", async (req, res) => {
         deliveryPriceMymensingh: Number(target.deliveryPriceMymensingh || 150),
         lotteryEligible: target.lotteryEligible !== undefined ? !!target.lotteryEligible : true,
         couponCode: target.couponCode ? target.couponCode.trim() : "",
-        couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null
+        couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
+        offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
+        timerEndTime: target.timerEndTime || null,
+        timerMessage: target.timerMessage || null
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1174,6 +1309,9 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.lotteryEligible;
         delete payload.couponCode;
         delete payload.couponDiscountPercent;
+        delete payload.offerPrice;
+        delete payload.timerEndTime;
+        delete payload.timerMessage;
         delete payload.images;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
@@ -1229,7 +1367,7 @@ app.get("/api/banners", async (req, res) => {
   try {
     const { data, error } = await supabase.from("banners").select("*");
     if (!error && data) {
-      const banners = data.map((b: any) => ({
+      const banners = data.filter((b: any) => b.id !== "system_settings_metadata").map((b: any) => ({
         ...b,
         active: !!b.active
       }));
@@ -1248,17 +1386,6 @@ app.post("/api/banners", async (req, res) => {
   const newBanner: Banner = req.body;
   newBanner.id = newBanner.id || `banner-${Date.now()}`;
   
-  if (newBanner.active) {
-    db.banners.forEach((b, i) => {
-      db.banners[i].active = false;
-    });
-    try {
-      await supabase.from("banners").update({ active: false });
-    } catch (err: any) {
-      console.error("⚠️ Banners Supabase bulk deactivate error:", err.message);
-    }
-  }
-
   db.banners.push(newBanner);
   saveDB();
   try {
@@ -1272,17 +1399,6 @@ app.post("/api/banners", async (req, res) => {
 app.put("/api/banners/:id", async (req, res) => {
   const idx = db.banners.findIndex(b => b.id === req.params.id);
   if (idx !== -1) {
-    const wasActive = req.body.active;
-    if (wasActive === true) {
-      db.banners.forEach((b, i) => {
-        db.banners[i].active = false;
-      });
-      try {
-        await supabase.from("banners").update({ active: false });
-      } catch (err: any) {
-        console.error("⚠️ Banners Supabase bulk deactivate error:", err.message);
-      }
-    }
     db.banners[idx] = { ...db.banners[idx], ...req.body };
     saveDB();
     try {
@@ -1362,7 +1478,21 @@ app.get("/api/notifications", (req, res) => {
 });
 
 app.post("/api/orders", async (req, res) => {
-  const { customerName, customerPhone, customerAddress, customerCity, customerNotes, customerEmail, items, totalAmount } = req.body;
+  const { customerName, customerPhone, customerAddress, customerCity, customerNotes, customerEmail, items, totalAmount, couponCode } = req.body;
+
+  // Validate Coupon limits first if a coupon is being applied
+  if (couponCode) {
+    const upperCoupon = String(couponCode).toUpperCase().trim();
+    const coupon = db.coupons.find(c => c.code === upperCoupon);
+    if (coupon) {
+      if (coupon.maxUses !== undefined && coupon.maxUses > 0) {
+        const used = coupon.usedCount || 0;
+        if (used >= coupon.maxUses) {
+          return res.status(400).json({ message: `The VIP coupon code "${upperCoupon}" has reached its maximum usage limit.` });
+        }
+      }
+    }
+  }
 
   // Validate Stock & Product Integrity
   for (const item of items) {
@@ -1372,6 +1502,37 @@ app.post("/api/orders", async (req, res) => {
     }
     if (prod.stock < item.quantity) {
       return res.status(400).json({ message: `Insufficient stock for "${prod.title}". Only ${prod.stock} items left.` });
+    }
+  }
+
+  // If validation passes, increment coupon usage
+  if (couponCode) {
+    const upperCoupon = String(couponCode).toUpperCase().trim();
+    const couponIndex = db.coupons.findIndex(c => c.code === upperCoupon);
+    if (couponIndex !== -1) {
+      const coupon = db.coupons[couponIndex];
+      const nextUsedCount = (coupon.usedCount || 0) + 1;
+      coupon.usedCount = nextUsedCount;
+      
+      let shouldDeactivate = false;
+      if (coupon.maxUses !== undefined && coupon.maxUses > 0 && nextUsedCount >= coupon.maxUses) {
+        coupon.active = false;
+        shouldDeactivate = true;
+      }
+      
+      // Update Supabase
+      try {
+        const payload: any = {
+          usedCount: nextUsedCount,
+          used_count: nextUsedCount
+        };
+        if (shouldDeactivate) {
+          payload.active = false;
+        }
+        await supabase.from("coupons").update(payload).eq("code", upperCoupon);
+      } catch (err: any) {
+        console.warn("⚠️ Failed to update coupon in Supabase:", err.message);
+      }
     }
   }
 
@@ -1520,6 +1681,25 @@ app.put("/api/orders/:id/status", async (req, res) => {
     }
     db.notifications.unshift(newNotif);
 
+    // Simulate SMS notification for order status update if opted in
+    if (db.smsSubscriptions) {
+      const isSubscribed = db.smsSubscriptions.some(
+        (sub: any) => sub.optInSMS && (sub.phone === order.customerPhone || sub.orderId === order.id)
+      );
+      if (isSubscribed) {
+        if (!db.outboundSMSLogs) {
+          db.outboundSMSLogs = [];
+        }
+        const smsMsg = `📱 STYLE X Status Update 📱\nOrder ID: ${order.id}\nStatus: ${statusUpper}\n\nMessage: ${notifMsg}`;
+        db.outboundSMSLogs.unshift({
+          id: `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+          phone: order.customerPhone,
+          message: smsMsg,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
     saveDB();
     try {
       await supabase.from("orders").update({ status }).eq("id", req.params.id);
@@ -1611,11 +1791,20 @@ app.get("/api/coupons", async (req, res) => {
   try {
     const { data, error } = await supabase.from("coupons").select("*");
     if (!error && data) {
-      const coupons = data.map((c: any) => ({
-        ...c,
-        active: !!c.active,
-        value: Number(c.value)
-      }));
+      const coupons = data.map((c: any) => {
+        const existingLocal = db.coupons?.find(localC => localC.code === c.code);
+        const maxUses = (c.maxUses !== undefined && c.maxUses !== null) ? Number(c.maxUses) : ((c.max_uses !== undefined && c.max_uses !== null) ? Number(c.max_uses) : existingLocal?.maxUses);
+        const usedCount = (c.usedCount !== undefined && c.usedCount !== null) ? Number(c.usedCount) : ((c.used_count !== undefined && c.used_count !== null) ? Number(c.used_count) : (existingLocal?.usedCount || 0));
+        const active = !!c.active && (maxUses === undefined || maxUses <= 0 || usedCount < maxUses);
+        return {
+          code: c.code,
+          type: c.type || existingLocal?.type || 'PERCENTAGE',
+          value: Number(c.value),
+          active,
+          maxUses,
+          usedCount
+        };
+      });
       db.coupons = coupons;
       db.seededCoupons = true;
       saveDB();
@@ -1677,19 +1866,123 @@ app.delete("/api/back-in-stock-alerts/:id", (req, res) => {
   res.json({ success: true, message: "Notification alert archived successfully." });
 });
 
+// SMS Opt-In and simulated SMS logs endpoints
+app.post("/api/sms-opt-in", (req, res) => {
+  const { phone, name, orderId, optInSMS, optInNewProducts } = req.body;
+  if (!phone) {
+    return res.status(400).json({ error: "Phone number is required." });
+  }
+
+  if (!db.smsSubscriptions) {
+    db.smsSubscriptions = [];
+  }
+
+  const phoneClean = String(phone).trim();
+  const existingIdx = db.smsSubscriptions.findIndex(
+    (sub: any) => sub.phone === phoneClean
+  );
+
+  const subscriptionData = {
+    phone: phoneClean,
+    name: name ? String(name).trim() : undefined,
+    orderId: orderId ? String(orderId).trim() : undefined,
+    optInSMS: !!optInSMS,
+    optInNewProducts: !!optInNewProducts,
+    timestamp: new Date().toISOString()
+  };
+
+  if (existingIdx !== -1) {
+    db.smsSubscriptions[existingIdx] = {
+      ...db.smsSubscriptions[existingIdx],
+      ...subscriptionData
+    };
+  } else {
+    db.smsSubscriptions.push(subscriptionData);
+  }
+
+  // Create an initial confirmation simulated SMS log if opted-in
+  if (!db.outboundSMSLogs) {
+    db.outboundSMSLogs = [];
+  }
+
+  let welcomeMessage = "";
+  if (optInSMS && optInNewProducts) {
+    welcomeMessage = `📱 STYLE X Alert Activated 📱\nHello ${name || 'Patron'}, you have successfully opted-in to receive premium order status SMS updates and instant alerts for new bespoke product drops. Thank you for your subscription.`;
+  } else if (optInSMS) {
+    welcomeMessage = `📱 STYLE X Alert Activated 📱\nHello ${name || 'Patron'}, you have successfully opted-in to receive premium order status SMS updates.`;
+  } else if (optInNewProducts) {
+    welcomeMessage = `📱 STYLE X Alert Activated 📱\nHello ${name || 'Patron'}, you have successfully opted-in to receive instant mobile alerts when new bespoke product drops occur.`;
+  }
+
+  if (welcomeMessage) {
+    db.outboundSMSLogs.unshift({
+      id: `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      phone: phoneClean,
+      message: welcomeMessage,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  saveDB();
+  res.status(200).json({ success: true, message: "SMS subscription updated successfully!", data: subscriptionData });
+});
+
+app.get("/api/sms-subscriptions", (req, res) => {
+  res.json(db.smsSubscriptions || []);
+});
+
+app.get("/api/sms-logs", (req, res) => {
+  res.json(db.outboundSMSLogs || []);
+});
+
+app.delete("/api/sms-logs", (req, res) => {
+  db.outboundSMSLogs = [];
+  saveDB();
+  res.json({ success: true, message: "Logs cleared." });
+});
+
 app.post("/api/coupons", async (req, res) => {
-  const { code, type, value, active } = req.body;
+  const { code, type, value, active, maxUses, usedCount } = req.body;
   // Capitalize coupon codes
   const upperCode = String(code).toUpperCase().trim();
   const existing = db.coupons.find(c => c.code === upperCode);
   if (existing) {
     return res.status(400).json({ message: "Coupon code already exists." });
   }
-  const newCoupon: Coupon = { code: upperCode, type, value: Number(value), active: active ?? true };
+  const newCoupon: Coupon = { 
+    code: upperCode, 
+    type, 
+    value: Number(value), 
+    active: active ?? true,
+    maxUses: maxUses !== undefined && maxUses !== null && maxUses !== "" ? Number(maxUses) : undefined,
+    usedCount: usedCount !== undefined ? Number(usedCount) : 0
+  };
   db.coupons.push(newCoupon);
   saveDB();
   try {
-    await supabase.from("coupons").upsert(newCoupon);
+    const payload: any = { 
+      code: newCoupon.code, 
+      type: newCoupon.type, 
+      value: newCoupon.value, 
+      active: newCoupon.active 
+    };
+    if (newCoupon.maxUses !== undefined) {
+      payload.maxUses = newCoupon.maxUses;
+      payload.max_uses = newCoupon.maxUses;
+    }
+    if (newCoupon.usedCount !== undefined) {
+      payload.usedCount = newCoupon.usedCount;
+      payload.used_count = newCoupon.usedCount;
+    }
+    const { error } = await supabase.from("coupons").upsert(payload);
+    if (error) {
+      await supabase.from("coupons").upsert({ 
+        code: newCoupon.code, 
+        type: newCoupon.type, 
+        value: newCoupon.value, 
+        active: newCoupon.active 
+      });
+    }
   } catch (err: any) {
     console.error("⚠️ Coupons Supabase upsert failed:", err.message);
   }
