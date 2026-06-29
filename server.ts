@@ -1307,6 +1307,7 @@ app.put("/api/products/:id", async (req, res) => {
         whyBuy: target.whyBuy,
         trending: !!target.trending,
         featured: !!target.featured,
+        isPinned: !!target.isPinned,
         deliveryPrice: Number(target.deliveryPrice || 100),
         deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
         deliveryPriceChattogram: Number(target.deliveryPriceChattogram || 150),
@@ -1348,6 +1349,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.deliveryPriceRangpur;
         delete payload.deliveryPriceMymensingh;
         delete payload.lotteryEligible;
+        delete payload.isPinned;
         delete payload.couponCode;
         delete payload.couponDiscountPercent;
         delete payload.offerPrice;
@@ -2832,7 +2834,7 @@ Your personality and language:
 - You behave like an upscale luxury fashion boutique concierge, not a generic, dry chatbot.
 - You are witty, warm, and highly knowledgeable about clothing, fit, styling, and premium trends.
 - Language Constraint: You MUST ALWAYS speak/respond in beautiful, warm, polite, and elite Bengali (বাংলা). All your answers must be written entirely in Bengali.
-- Greeting Constraint: You MUST ALWAYS greet the user with "আসসালামু আলাইকুম!" (Assalamu Alaikum) at the very beginning of your responses or whenever starting a interaction.
+- Greeting Constraint: You MUST ALWAYS greet the user with "👋 আসসালামু আলাইকুম!" (Assalamu Alaikum) at the very beginning of your responses or whenever starting an interaction.
 - You must occasionally drop sophisticated, charming fashion tips (such as: "👕 কালো এবং সাদা রঙের পোশাক কখনো ফ্যাশন থেকে হারিয়ে যায় না।", "⌚ একটি সুন্দর ঘড়ি আপনার লুককে পূর্ণতা দেয়।", "✨ আত্মবিশ্বাসই আপনার সবচেয়ে বড় পোশাক।", or other luxury apparel tips).
 
 Here is the current catalog of exclusive Style X products you can recommend (recommend specific pieces in Bengali, mention their unique codes like XP-001, describe why they should buy them based on 'Why Buy' details, highlight categories, prices, and suggest sizing):

@@ -81,6 +81,11 @@ const makeAvatarBackgroundTransparent = (imageSrc: string): Promise<string> => {
       
       // Helper function to check if a pixel matches background properties (bright, neutral, near-corner color)
       const isMaybeBackgroundPixel = (x: number, y: number): boolean => {
+        // Protect Xoro's belly (পেট) and legs (পা) in the central bottom region from being classified as background (preventing transparency bleeding)
+        if (y > height * 0.35 && x > width * 0.25 && x < width * 0.75) {
+          return false;
+        }
+
         const idx = (y * width + x) * 4;
         const r = data[idx];
         const g = data[idx + 1];
@@ -92,13 +97,12 @@ const makeAvatarBackgroundTransparent = (imageSrc: string): Promise<string> => {
         
         // Stricter background classification:
         // Background in this studio backdrop is very close to white/light-grey.
-        // - distToBg < 60 (close to the sampled white corner color)
-        // - OR distToWhite < 65 (close to absolute white)
-        // - OR a bright, low-saturation neutral color (r > 190, g > 190, b > 190, and chroma < 30)
-        // This guarantees we never classify Xoro's golden (high chroma) or grey/dark metallic body parts (dark or different color profile) as background, preventing any bleeding.
-        const isNearBg = distToBg < 60;
-        const isNearWhite = distToWhite < 65;
-        const isBrightNeutral = r > 190 && g > 190 && b > 190 && chroma < 30;
+        // - distToBg < 35 (close to the sampled white corner color)
+        // - OR distToWhite < 35 (close to absolute white)
+        // - OR a bright, low-saturation neutral color (r > 220, g > 220, b > 220, and chroma < 15)
+        const isNearBg = distToBg < 35;
+        const isNearWhite = distToWhite < 35;
+        const isBrightNeutral = r > 220 && g > 220 && b > 220 && chroma < 15;
         
         return isNearBg || isNearWhite || isBrightNeutral;
       };
@@ -114,8 +118,8 @@ const makeAvatarBackgroundTransparent = (imageSrc: string): Promise<string> => {
           visited[offset] = 1;
           queue.push(offset);
         }
-        // Bottom row
-        if (isMaybeBackgroundPixel(x, height - 1)) {
+        // Bottom row (only near the left and right corners, avoiding the feet in the center)
+        if ((x < width * 0.25 || x > width * 0.75) && isMaybeBackgroundPixel(x, height - 1)) {
           const offset = (height - 1) * width + x;
           visited[offset] = 1;
           queue.push(offset);
@@ -248,6 +252,7 @@ export default function XoroAssistant({
   const biquadFilterRef = useRef<BiquadFilterNode | null>(null);
 
   const hasSpokenWelcomeRef = useRef(false);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Helper to play procedural cute robotic sounds (EMO Go Home style beeps/chirps)
   const playEmoRobotSound = (type: 'greet' | 'think' | 'happy' = 'greet') => {
@@ -356,15 +361,83 @@ export default function XoroAssistant({
 
   // Helper to read aloud text using Web Speech API (Text-to-Speech)
   // plays a cute EMO-style robotic sound and then speaks the text using SpeechSynthesis.
-  // Updated: Disabled browser TTS readout as requested so answers are text-only, but kept the cute EMO sound effects!
+  // Tuned to be extremely soft, calm, beautiful, and soothing.
   const speakText = (text: string) => {
     if (!isSoundEnabled) return;
     try {
-      // Play the cute robotic chirp/beep sound effect like EMO GO HOME
+      // 1. Play the cute robotic chirp/beep sound effect like EMO GO HOME first
       const isShort = text.length < 50;
       playEmoRobotSound(isShort ? 'greet' : 'happy');
+
+      // 2. Speak the actual text using the Web Speech API
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Cancel any pending speech first
+        window.speechSynthesis.cancel();
+
+        // Workaround for Chrome bug where synthesis gets stuck in a "paused" state
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+
+        // Clean up emojis, markdown patterns for clean voice synthesis
+        const cleanText = text
+          .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '') // strip emojis
+          .replace(/[*_#`~৳-]/g, ' ') // strip markdown and special symbols
+          .replace(/XP-/gi, 'style code ')
+          .trim();
+
+        if (!cleanText) return;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        
+        // Smooth, elegant, and professional Alexa-style premium voice profile
+        utterance.rate = 0.95; // Perfectly polished, natural human-like pacing (just like Alexa)
+        utterance.pitch = 1.0; // Warm, natural, balanced mid-frequency human voice (instead of high squeaky robot)
+        utterance.volume = 1.0;
+
+        // Use high-quality female or cute sweet English voices
+        const voices = window.speechSynthesis.getVoices();
+        let selectedVoice = null;
+
+        // Prioritize soft, lovely, sweet female English voices resembling Alexa
+        const softVoiceKeys = ['zira', 'sara', 'samantha', 'aria', 'jenny', 'sonia', 'natural', 'female', 'google us english', 'microsoft'];
+        for (const key of softVoiceKeys) {
+          selectedVoice = voices.find(v => {
+            const lang = v.lang.toLowerCase();
+            const name = v.name.toLowerCase();
+            return lang.startsWith('en') && name.includes(key);
+          });
+          if (selectedVoice) break;
+        }
+
+        if (!selectedVoice) {
+          // Fallback: Any female English voice or any English voice
+          selectedVoice = voices.find(v => {
+            const lang = v.lang.toLowerCase();
+            const name = v.name.toLowerCase();
+            return lang.startsWith('en') && (name.includes('female') || name.includes('girl'));
+          }) || voices.find(v => v.lang.toLowerCase().startsWith('en'));
+        }
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
+        }
+
+        // Retain reference to prevent garbage collection mid-speech (major Chrome bug fix)
+        currentUtteranceRef.current = utterance;
+        utterance.onend = () => {
+          currentUtteranceRef.current = null;
+        };
+        utterance.onerror = (e) => {
+          console.warn("SpeechSynthesisUtterance error:", e);
+          currentUtteranceRef.current = null;
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
     } catch (err) {
-      console.warn("Robotic chirp error:", err);
+      console.warn("Speech synthesis error:", err);
     }
   };
 
@@ -475,7 +548,7 @@ export default function XoroAssistant({
     };
   }, [isSoundEnabled]);
 
-  // Hook up automatic audio context activation and welcome speech on first user interaction with the page
+  // Hook up automatic audio context activation and welcome speech on first user interaction or scroll with the page
   useEffect(() => {
     const handleGesture = () => {
       if (isSoundEnabled) {
@@ -484,42 +557,50 @@ export default function XoroAssistant({
         }
         startHumming();
 
-        // Speak the welcome speech bubble on the very first user interaction if it hasn't spoken yet
+        // Speak the welcome speech bubble greeting on the very first user interaction or scroll if it hasn't spoken yet
         if (!hasSpokenWelcomeRef.current && showSpeechBubble && !isOpen) {
           hasSpokenWelcomeRef.current = true;
-          speakText(speechBubbleText);
+          speakText("Assalamu Alaikum! Welcome to Style X. I am Xoro.");
         }
       }
     };
+
+    // Listen to all potential user inputs and viewport updates to trigger voice greeting immediately on entering the homepage
     window.addEventListener('click', handleGesture);
     window.addEventListener('pointerdown', handleGesture);
     window.addEventListener('keydown', handleGesture);
+    window.addEventListener('scroll', handleGesture);
+    window.addEventListener('touchstart', handleGesture, { passive: true });
+    window.addEventListener('mousemove', handleGesture, { passive: true });
+    window.addEventListener('mouseenter', handleGesture);
+    window.addEventListener('focus', handleGesture);
+
+    // Also attempt to run directly on mount
+    const onMountTimer = setTimeout(handleGesture, 100);
+
     return () => {
+      clearTimeout(onMountTimer);
       window.removeEventListener('click', handleGesture);
       window.removeEventListener('pointerdown', handleGesture);
       window.removeEventListener('keydown', handleGesture);
+      window.removeEventListener('scroll', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+      window.removeEventListener('mousemove', handleGesture);
+      window.removeEventListener('mouseenter', handleGesture);
+      window.removeEventListener('focus', handleGesture);
     };
-  }, [isSoundEnabled, showSpeechBubble, speechBubbleText, isOpen]);
+  }, [isSoundEnabled, showSpeechBubble, isOpen]);
 
-  // Read aloud new messages added by Xoro (or greeting speech bubbles)
+  // Listen for new items added to the cart and speak with a gentle Alexa voice
+  const prevCartLengthRef = useRef(cart.length);
   useEffect(() => {
     if (!isSoundEnabled) return;
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'model') {
-      speakText(lastMessage.text);
+    if (cart.length > prevCartLengthRef.current) {
+      // Speak in English with a soft Alexa voice when something is added to the cart
+      speakText("Wonderful choice! I have added that exquisite item to your selection.");
     }
-  }, [messages, isSoundEnabled]);
-
-  // Read aloud the current message when opening/re-opening the drawer
-  useEffect(() => {
-    if (isOpen && isSoundEnabled) {
-      hasSpokenWelcomeRef.current = true; // prevent duplicate double trigger if they clicked directly to open
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === 'model') {
-        speakText(lastMessage.text);
-      }
-    }
-  }, [isOpen, isSoundEnabled, messages]);
+    prevCartLengthRef.current = cart.length;
+  }, [cart, isSoundEnabled]);
 
 
 
@@ -562,7 +643,7 @@ export default function XoroAssistant({
         const speakTimer = setTimeout(() => {
           if (!hasSpokenWelcomeRef.current) {
             hasSpokenWelcomeRef.current = true;
-            speakText(speechBubbleText);
+            speakText("Assalamu Alaikum! Welcome to Style X. I am Xoro.");
           }
         }, 300);
         return () => {
@@ -725,7 +806,7 @@ export default function XoroAssistant({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.9 }}
               transition={{ type: 'spring', damping: 15 }}
-              className="mb-3 max-w-[240px] bg-black/90 backdrop-blur-md border border-luxury-gold/30 shadow-[0_10px_30px_rgba(212,175,55,0.15)] rounded-2xl p-3.5 text-left relative"
+              className="mb-3 max-w-[240px] bg-zinc-950 border-2 border-luxury-gold/50 shadow-[0_10px_30px_rgba(212,175,55,0.25)] rounded-2xl p-3.5 text-left relative"
             >
               <button 
                 onClick={(e) => {
@@ -741,7 +822,7 @@ export default function XoroAssistant({
                 {speechBubbleText}
               </p>
               {/* Little arrow pointing at button */}
-              <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-black border-r border-b border-luxury-gold/30 rotate-45"></div>
+              <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-zinc-950 border-r border-b border-luxury-gold/50 rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -749,8 +830,12 @@ export default function XoroAssistant({
         {/* FLOATING MASCOT BUTTON */}
         <motion.button
           onClick={() => {
-            setIsOpen(!isOpen);
+            const nextOpen = !isOpen;
+            setIsOpen(nextOpen);
             setShowSpeechBubble(false);
+            if (nextOpen && isSoundEnabled) {
+              speakText("Assalamu Alaikum! Welcome to Style X. I am Xoro.");
+            }
           }}
           onPointerDown={(e) => {
             dragControls.start(e);
@@ -771,7 +856,7 @@ export default function XoroAssistant({
               ? { duration: 1.8, ease: "easeInOut" }
               : { repeat: Infinity, duration: 4, ease: "easeInOut" }
           }
-          className={`relative h-24 w-24 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 bg-transparent border-none shadow-none text-luxury-gold`}
+          className={`relative h-16 w-16 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 bg-transparent border-none shadow-none text-luxury-gold`}
         >
           {/* Glowing Aura backdrop */}
           <span className="absolute inset-4 rounded-full border border-luxury-gold/15 animate-ping opacity-30 animate-pulse"></span>
@@ -792,7 +877,7 @@ export default function XoroAssistant({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ type: 'spring', damping: 20 }}
-              className="absolute bottom-20 left-0 w-[290px] sm:w-[310px] h-[410px] bg-black/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),0_10px_25px_rgba(212,175,55,0.12)] overflow-hidden flex flex-col z-50"
+              className="absolute bottom-20 left-0 w-[290px] sm:w-[310px] h-[410px] bg-zinc-950 border border-luxury-gold/35 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95),0_10px_25px_rgba(212,175,55,0.2)] overflow-hidden flex flex-col z-50"
             >
               {/* DRAWER HEADER */}
               <div className="p-3 bg-gradient-to-r from-luxury-black via-[#0d0d0d] to-luxury-black border-b border-white/5 flex items-center justify-between relative">

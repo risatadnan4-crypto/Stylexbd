@@ -552,6 +552,7 @@ export default function AdminPanel({
   const [formImages, setFormImages] = useState<string[]>([]);
   const [secondaryUrlInput, setSecondaryUrlInput] = useState('');
   const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
+  const [formIsPinned, setFormIsPinned] = useState<boolean>(false);
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
@@ -899,6 +900,7 @@ export default function AdminPanel({
       images: formImages,
       trending: true,
       featured: true,
+      isPinned: formIsPinned,
       lotteryEligible: formLotteryEligible,
       couponCode: formCouponCode,
       couponDiscountPercent: Number(formCouponDiscountPercent),
@@ -942,6 +944,7 @@ export default function AdminPanel({
         setFormImages([]);
         setSecondaryUrlInput('');
         setFormLotteryEligible(true);
+        setFormIsPinned(false);
         setFormCouponCode('');
         setFormCouponDiscountPercent(15);
         setFormOfferPrice('');
@@ -993,6 +996,7 @@ export default function AdminPanel({
     setFormImages(prod.images || []);
     setSecondaryUrlInput('');
     setFormLotteryEligible(prod.lotteryEligible !== false);
+    setFormIsPinned(prod.isPinned || false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
     setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
@@ -1752,6 +1756,7 @@ export default function AdminPanel({
                   setSecondaryUrlInput('');
                   setFormWhyBuy('');
                   setFormOfferPrice('');
+                  setFormIsPinned(false);
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
                   setUploadProgress('');
@@ -2255,6 +2260,21 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                         <label htmlFor="formLotteryEligible" className="text-xs text-zinc-300 font-sans cursor-pointer select-none">
                           <span className="block text-[11px] font-bold text-white uppercase tracking-wider">Lottery Voucher Eligible</span>
                           <span className="text-[9.5px] text-white/50 block mt-0.5 leading-relaxed">Allow the Imperial Fortune Wheel discount code to apply to this product at checkout.</span>
+                        </label>
+                      </div>
+
+                      {/* Pin to Top Toggle */}
+                      <div className="flex items-start space-x-3 bg-luxury-black/60 p-3 rounded-lg border border-luxury-gold/30 shadow-[0_0_10px_rgba(212,175,55,0.05)]">
+                        <input
+                          type="checkbox"
+                          id="formIsPinned"
+                          checked={formIsPinned}
+                          onChange={(e) => setFormIsPinned(e.target.checked)}
+                          className="w-4 h-4 rounded text-luxury-gold bg-luxury-charcoal border-white/10 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#d4af37] mt-1"
+                        />
+                        <label htmlFor="formIsPinned" className="text-xs text-zinc-300 font-sans cursor-pointer select-none">
+                          <span className="block text-[11px] font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1">📌 Pin to Top (সবার উপরে দেখান)</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-relaxed">প্যাভিলিয়ন বা শোরুমের প্রোডাক্ট লিস্টের সবার উপরে এই আইটেমটি পিন করে রাখা হবে।</span>
                         </label>
                       </div>
 

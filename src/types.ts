@@ -13,6 +13,7 @@ export interface Product {
   whyBuy: string; // Explaining why they should buy this piece in "আপনি কেন কিনবেন?"
   trending?: boolean;
   featured?: boolean;
+  isPinned?: boolean;
   deliveryPrice?: number;
   deliveryPriceDhaka?: number;
   deliveryPriceChattogram?: number;

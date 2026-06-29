@@ -47,7 +47,7 @@ export default function CartDrawer({
   const [couponSuccess, setCouponSuccess] = useState('');
 
   // Checkout Form State
-  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(initialShowCheckout);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -432,7 +432,7 @@ export default function CartDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-500 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
+        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
           {/* Absolute dim backdrop */}
           <motion.div 
             onClick={onClose}
@@ -445,13 +445,14 @@ export default function CartDrawer({
 
           {/* Cart Drawer Panel */}
           <motion.div 
+            key={showCheckoutForm ? 'checkout-form-panel' : 'cart-items-panel'}
             initial={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
             animate={showCheckoutForm ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
             exit={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
             className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden ${
               showCheckoutForm 
-                ? 'max-w-2xl border border-luxury-gold/30 rounded-2xl h-[92vh] max-h-[92vh] sm:h-[88vh] sm:max-h-[88vh] shadow-[0_0_60px_rgba(212,175,55,0.25)] mx-2 sm:mx-0' 
+                ? 'max-w-2xl border border-luxury-gold/30 rounded-2xl h-[92vh] max-h-[92vh] sm:h-[88vh] sm:max-h-[88vh] shadow-[0_0_60px_rgba(212,175,55,0.25)] mx-auto' 
                 : 'max-w-lg border-l border-luxury-gold/15 h-full'
             }`}
           >

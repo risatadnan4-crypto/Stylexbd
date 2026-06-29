@@ -874,6 +874,11 @@ export default function App() {
       return matchCategory && matchSearch && matchPriceMin && matchPriceMax && matchSize && matchStock;
     })
     .sort((a, b) => {
+      // 1. Pinned products always come first
+      const aPinned = a.isPinned ? 1 : 0;
+      const bPinned = b.isPinned ? 1 : 0;
+      if (bPinned !== aPinned) return bPinned - aPinned;
+
       if (sortBy === 'PRICE_ASC') return a.price - b.price;
       if (sortBy === 'PRICE_DESC') return b.price - a.price;
       if (sortBy === 'STOCK_DESC') return b.stock - a.stock;
