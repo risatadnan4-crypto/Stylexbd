@@ -34,6 +34,8 @@ export default function ProductCard({
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
 
+  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null && (!product.timerEndTime || !timerExpired);
+
   useEffect(() => {
     if (!product.timerEndTime) {
       setTimeLeft(null);
@@ -143,19 +145,8 @@ export default function ProductCard({
 
   return (
     <div className="group luxury-glowing-card p-3.5 sm:p-3.5 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible">
-      {/* Radiant inside-out glow waves emerging outwards on hover */}
-      <div className="glowing-wave-out-1" />
-      <div className="glowing-wave-out-2" />
-      <div className="glowing-wave-out-3" />
-
-      {/* Laser chasing border edge line */}
-      <div className="glowing-laser-line" />
-
-      {/* Radiant inside-out glow beam helper */}
-      <div className="glowing-inner-beam" />
-
       {/* Premium glowing hover accent card background */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-purple/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"></div>
 
       {/* Automatic QR Code overlay */}
       {showQRCode && (() => {
@@ -181,7 +172,7 @@ export default function ProductCard({
             >
               <X size={16} />
             </button>
-            <div className="bg-black p-2.5 rounded-xl border border-luxury-purple-glowing shadow-[0_0_20px_rgba(154,77,255,0.45)] mb-3 relative flex items-center justify-center">
+            <div className="bg-black p-2.5 rounded-xl border border-luxury-gold shadow-[0_0_20px_rgba(212,175,55,0.45)] mb-3 relative flex items-center justify-center">
               <img 
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
                 alt={`${product.title} QR`}
@@ -204,7 +195,7 @@ export default function ProductCard({
             <p className="text-[10px] text-zinc-300 text-center px-1 line-clamp-2 italic leading-normal">
               Deep Link for <span className="font-semibold text-white">{product.title}</span>
             </p>
-            <p className="text-[8px] text-[#9A4DFF] font-mono mt-2.5 bg-[#15032a] border border-[#9d4edd]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
+            <p className="text-[8px] text-luxury-gold font-mono mt-2.5 bg-black border border-[#d4af37]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
               {product.code}
             </p>
           </div>
@@ -217,14 +208,14 @@ export default function ProductCard({
         <div className="flex items-center gap-1.5">
           <button 
             onClick={() => setShowQRCode(true)}
-            className="p-1 sm:p-1.5 rounded-full bg-[#15032a]/80 hover:bg-luxury-purple/20 border border-white/5 hover:border-luxury-purple/30 text-purple-300 hover:text-white transition-all cursor-pointer hover:scale-105"
+            className="p-1 sm:p-1.5 rounded-full bg-black/60 hover:bg-luxury-gold/10 border border-white/5 hover:border-luxury-gold/30 text-luxury-gold hover:text-white transition-all cursor-pointer hover:scale-105"
             title="Scan Product QR Code"
           >
             <QrCode size={11} />
           </button>
           <button 
             onClick={() => onToggleWishlist(product)}
-            className={`p-1 sm:p-1.5 rounded-full bg-[#15032a]/80 hover:bg-luxury-purple/20 border border-white/5 hover:border-luxury-gold/30 transition-all cursor-pointer ${
+            className={`p-1 sm:p-1.5 rounded-full bg-black/60 hover:bg-luxury-gold/10 border border-white/5 hover:border-luxury-gold/30 transition-all cursor-pointer ${
               isWishlisted ? 'text-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-white/60'
             }`}
             title="Wishlist piece"
@@ -237,7 +228,7 @@ export default function ProductCard({
       {/* Image frame */}
       <div 
         onClick={() => onProductClick(product)}
-        className="relative aspect-[1.15] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#110121] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-purple/45 group mb-1.5 sm:mb-2.5"
+        className="relative aspect-[1.15] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#0a0a0a] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-gold/30 group mb-1.5 sm:mb-2.5"
       >
         <img 
           src={product.imageUrl} 
@@ -247,7 +238,7 @@ export default function ProductCard({
         />
         {/* Dark gold color overlay on photo hovers */}
         <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-transparent to-transparent opacity-60"></div>
-        <div className="absolute inset-0 bg-luxury-purple/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 bg-luxury-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         
         {/* Quick View absolute layer */}
         <div className="absolute inset-0 bg-luxury-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
@@ -264,8 +255,8 @@ export default function ProductCard({
         </div>
 
         {/* Dynamic status badges */}
-        <div className="absolute bottom-1 left-1 bg-luxury-black/95 backdrop-blur-md border border-luxury-purple/30 text-[7px] sm:text-[9px] text-white rounded-md px-1 py-0.5 font-display uppercase tracking-widest font-semibold flex items-center gap-1">
-          <span className={`w-1 h-1 rounded-full ${product.stock === 0 ? "bg-red-500" : product.trending ? "bg-luxury-gold animate-ping" : "bg-luxury-purple-glowing"}`}></span>
+        <div className="absolute bottom-1 left-1 bg-luxury-black/95 backdrop-blur-md border border-luxury-gold/20 text-[7px] sm:text-[9px] text-white rounded-md px-1 py-0.5 font-display uppercase tracking-widest font-semibold flex items-center gap-1">
+          <span className={`w-1 h-1 rounded-full ${product.stock === 0 ? "bg-red-500" : product.trending ? "bg-luxury-gold animate-ping" : "bg-luxury-gold"}`}></span>
           <span>{product.stock === 0 ? "ARCHIVED" : product.trending ? "TRENDING" : "EXCLUSIVE"}</span>
         </div>
       </div>
@@ -279,51 +270,36 @@ export default function ProductCard({
           >
             {product.title}
           </h3>
-          {timeLeft && !timerExpired ? (
+          {hasActiveOffer ? (
             <div className="flex flex-col items-end flex-shrink-0">
               <div className="flex items-center gap-1.5 flex-nowrap">
                 {/* Micro Ticking Timer Badge directly next to the price */}
-                <span className="inline-flex items-center gap-1 bg-red-950/60 border border-red-500/30 px-1 py-0.5 rounded text-[8.5px] font-mono text-red-400 font-bold animate-pulse flex-shrink-0">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-ping" />
-                  <span>
-                    {timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}
-                    {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                {timeLeft && !timerExpired && (
+                  <span className="inline-flex items-center gap-1 bg-red-950/60 border border-red-500/30 px-1 py-0.5 rounded text-[8.5px] font-mono text-red-400 font-bold animate-pulse flex-shrink-0">
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-ping" />
+                    <span>
+                      {timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}
+                      {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                    </span>
                   </span>
-                </span>
-                
-                {product.offerPrice !== undefined && product.offerPrice !== null ? (
-                  <AnimatePresence mode="popLayout">
-                    <motion.span 
-                      key={product.offerPrice}
-                      initial={{ opacity: 0, y: -4, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
-                    >
-                      {formatPrice(product.offerPrice)}
-                    </motion.span>
-                  </AnimatePresence>
-                ) : (
-                  <AnimatePresence mode="popLayout">
-                    <motion.span 
-                      key={product.price}
-                      initial={{ opacity: 0, y: -4, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
-                    >
-                      {formatPrice(product.price)}
-                    </motion.span>
-                  </AnimatePresence>
                 )}
+                
+                <AnimatePresence mode="popLayout">
+                  <motion.span 
+                    key={product.offerPrice!}
+                    initial={{ opacity: 0, y: -4, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="luxury-animated-price text-luxury-gold text-[14px] sm:text-[18px] flex-shrink-0"
+                  >
+                    {formatPrice(product.offerPrice!)}
+                  </motion.span>
+                </AnimatePresence>
               </div>
-              {product.offerPrice !== undefined && product.offerPrice !== null && (
-                <span className="text-[9px] sm:text-[10px] text-white/40 line-through">
-                  {formatPrice(product.price)}
-                </span>
-              )}
+              <span className="text-[9px] sm:text-[10px] text-white/40 line-through">
+                {formatPrice(product.price)}
+              </span>
             </div>
           ) : (
             <AnimatePresence mode="popLayout">
@@ -333,7 +309,7 @@ export default function ProductCard({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 4, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                className="luxury-animated-price-purple text-[14px] sm:text-[18px] flex-shrink-0"
+                className="luxury-animated-price text-luxury-gold text-[14px] sm:text-[18px] flex-shrink-0"
               >
                 {formatPrice(product.price)}
               </motion.span>
@@ -370,12 +346,6 @@ export default function ProductCard({
           </div>
         )}
 
-        <p className="text-[8px] sm:text-[9px] text-luxury-purple uppercase font-mono tracking-widest mb-1 sm:mb-1.5 flex items-center gap-1">
-          <span>CURATED PIECE</span>
-          <span>•</span>
-          <span className="text-white/40">PREMIUM</span>
-        </p>
-        
         <p className="text-[11px] sm:text-xs text-white/60 line-clamp-1 sm:line-clamp-2 italic mb-1 sm:mb-2 font-light">
           {product.description}
         </p>
@@ -391,8 +361,8 @@ export default function ProductCard({
                   onClick={() => setSelectedSize(size)}
                   className={`h-5.5 sm:h-7 min-w-[22px] sm:min-w-[28px] px-1.5 sm:px-2 rounded text-[7.5px] sm:text-[9px] font-display font-semibold border uppercase tracking-wider flex items-center justify-center transition-all ${
                     selectedSize === size
-                      ? 'bg-gradient-to-br from-luxury-purple to-luxury-purple-glowing text-white border-luxury-purple shadow-[0_0_10px_rgba(154,77,255,0.4)]'
-                      : 'bg-[#15032a]/50 text-white/70 border-white/5 hover:border-luxury-purple/30'
+                      ? 'bg-gradient-to-br from-luxury-gold to-[#f0c742] text-luxury-black border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]'
+                      : 'bg-black/40 text-white/70 border-white/5 hover:border-luxury-gold/30'
                   }`}
                 >
                   {size}
@@ -430,11 +400,11 @@ export default function ProductCard({
             <button
               onClick={() => onAddToCart(product, selectedSize)}
               disabled={product.stock === 0}
-              className="relative w-full h-[40px] bg-gradient-to-r from-[#17083b] via-[#090317] to-[#12052c] border border-luxury-purple/70 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.2)] hover:shadow-[0_0_22px_rgba(154,77,255,0.55)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
+              className="relative w-full h-[40px] bg-gradient-to-r from-[#1b0833] via-[#0d041a] to-[#1b0833] border border-luxury-purple-glowing/50 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_22px_rgba(154,77,255,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
             >
-              <div className="absolute inset-0 bg-luxury-purple/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-purple-300/80 uppercase font-black group-hover/btn:text-purple-200 transition-colors">Add To</span>
-              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(168,85,247,0.7)] mt-[1px] group-hover/btn:scale-105 transition-transform">Cart</span>
+              <div className="absolute inset-0 bg-luxury-purple-glowing/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-luxury-purple-glowing uppercase font-black transition-colors">Add To</span>
+              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(154,77,255,0.6)] mt-[1px] group-hover/btn:scale-105 transition-transform">Cart</span>
             </button>
           )}
           
@@ -450,10 +420,10 @@ export default function ProductCard({
           ) : (
             <button
               onClick={() => onOrderNow(product, selectedSize)}
-              className="relative w-full h-[40px] bg-gradient-to-br from-luxury-purple to-luxury-purple-glowing border border-luxury-purple/80 hover:border-luxury-purple-glowing rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
+              className="relative w-full h-[40px] bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] border border-[#9A4DFF] text-white font-display font-black text-[11px] uppercase tracking-[0.15em] rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
             >
-              <div className="absolute inset-0 bg-white/5 opacity-0 group-hover/buy:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10 tracking-[0.15em] text-white font-display font-black text-[11px] uppercase">Order Now</span>
+              <div className="absolute inset-0 bg-white/15 opacity-0 group-hover/buy:opacity-100 transition-opacity duration-300" />
+              <span>Order Now</span>
             </button>
           )}
         </div>
@@ -491,7 +461,7 @@ export default function ProductCard({
 
       {/* Restock Notification Form Slide-up Overlay */}
       {showNotifyForm && (
-        <div className="absolute inset-x-0 bottom-0 bg-[#0c0516] border-t-2 border-purple-500/30 p-3.5 rounded-b-xl z-20 transition-all duration-300 flex flex-col gap-2 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-300">
+        <div className="absolute inset-x-0 bottom-0 bg-[#0a0701] border-t-2 border-luxury-gold/30 p-3.5 rounded-b-xl z-20 transition-all duration-300 flex flex-col gap-2 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-300">
           <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
             <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[9px] uppercase tracking-wider font-extrabold">
               <Bell size={11} className="animate-bounce text-amber-500" />
@@ -514,26 +484,26 @@ export default function ProductCard({
               <p className="text-[9.5px] text-white/70 max-w-[190px] leading-tight">We'll alert your secure private email channel the second restock lands.</p>
               <button
                 onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); }}
-                className="text-[9px] uppercase font-mono tracking-widest text-luxury-purple-glowing hover:text-white pt-1 bg-transparent border-0 cursor-pointer"
+                className="text-[9px] uppercase font-mono tracking-widest text-luxury-gold hover:text-white pt-1 bg-transparent border-0 cursor-pointer"
               >
                 DISMISS
               </button>
             </div>
           ) : (
             <form onSubmit={handleNotifySubmit} className="space-y-2.5">
-              <p className="text-[10px] text-purple-200/80 leading-relaxed font-sans">
+              <p className="text-[10px] text-zinc-300 leading-relaxed font-sans">
                 Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
               </p>
               
               <div className="relative">
-                <Mail size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-purple-400/70" />
+                <Mail size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-luxury-gold/70" />
                 <input
                   type="email"
                   required
                   placeholder="Enter your VIP email address"
                   value={notifyEmail}
                   onChange={(e) => setNotifyEmail(e.target.value)}
-                  className="w-full bg-[#150a24] border border-purple-500/30 rounded-lg pl-8 pr-2 py-1.5 text-[10.5px] text-white placeholder-purple-400/30 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all font-mono"
+                  className="w-full bg-[#120f08] border border-luxury-gold/30 rounded-lg pl-8 pr-2 py-1.5 text-[10.5px] text-white placeholder-amber-500/20 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold transition-all font-mono"
                 />
               </div>
 
@@ -544,7 +514,7 @@ export default function ProductCard({
               <button
                 type="submit"
                 disabled={submittingNotify}
-                className="w-full h-[32px] bg-gradient-to-r from-purple-600 to-luxury-purple-glowing hover:from-purple-500 hover:to-purple-400 text-white font-mono font-black text-[9.5px] uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(168,85,247,0.35)] hover:shadow-[0_2px_15px_rgba(168,85,247,0.6)] hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                className="w-full h-[32px] bg-gradient-to-r from-luxury-gold to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-luxury-black font-mono font-black text-[9.5px] uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(212,175,55,0.25)] hover:shadow-[0_2px_15px_rgba(212,175,55,0.45)] hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
               >
                 {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
               </button>

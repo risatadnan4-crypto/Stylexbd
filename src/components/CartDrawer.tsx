@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, Tag, ChevronDown, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
+import { getValidatedTotal, getProductActivePrice, getAdvancePaymentAmount } from '../utils/totalHelper';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -18,8 +19,10 @@ interface CartDrawerProps {
     paymentBadgeDescription?: string;
     lotteryDiscountPercentage?: number;
     lotteryCouponPrefix?: string;
+    bkashLogoUrl?: string;
+    nagadLogoUrl?: string;
   };
-  onCheckoutSuccess: (orderId: string, whatsappUrl: string) => void;
+  onCheckoutSuccess: (orderId: string, whatsappUrl: string, paymentInfo?: string) => void;
   initialShowCheckout?: boolean;
   customer?: Customer | null;
 }
@@ -49,9 +52,58 @@ export default function CartDrawer({
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerCity, setCustomerCity] = useState('Dhaka');
+  const [customerDistrict, setCustomerDistrict] = useState('Dhaka');
+  const [customerArea, setCustomerArea] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Payment integration state
+  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad'>('bkash');
+  const [transactionId, setTransactionId] = useState('');
+  const [transactionError, setTransactionError] = useState('');
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
+  const [usedTransactionIds, setUsedTransactionIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem('stylex_used_txids') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const validateTransactionId = (txId: string) => {
+    if (!txId) {
+      return 'Transaction ID is required for online verification.';
+    }
+    const cleanId = txId.trim();
+    if (cleanId.length < 8) {
+      return 'Transaction ID must be at least 8 characters long.';
+    }
+    if (cleanId.length > 30) {
+      return 'Transaction ID cannot exceed 30 characters.';
+    }
+    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+    if (!alphanumericRegex.test(cleanId)) {
+      return 'Transaction ID must be alphanumeric (only English letters and numbers, no spaces or special characters).';
+    }
+    if (usedTransactionIds.includes(cleanId.toUpperCase())) {
+      return 'This Transaction ID has already been verified in this session.';
+    }
+    return '';
+  };
+
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotPreview(reader.result as string);
+        setScreenshotBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Auto pre-fill vip credentials
   useEffect(() => {
@@ -64,21 +116,14 @@ export default function CartDrawer({
   }, [customer, isOpen]);
 
   useEffect(() => {
+    setCustomerDistrict(customerCity);
+  }, [customerCity]);
+
+  useEffect(() => {
     if (isOpen) {
       setShowCheckoutForm(initialShowCheckout);
     }
   }, [isOpen, initialShowCheckout]);
-
-  const getProductActivePrice = (product: Product) => {
-    if (product.offerPrice !== undefined && product.offerPrice !== null && product.timerEndTime) {
-      const end = new Date(product.timerEndTime).getTime();
-      const now = new Date().getTime();
-      if (end > now) {
-        return product.offerPrice;
-      }
-    }
-    return product.price;
-  };
 
   // Compute values
   const itemsTotal = cartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
@@ -154,7 +199,25 @@ export default function CartDrawer({
         
         return customPrice > max ? customPrice : max;
       }, 0);
-  const grandTotal = Math.max(0, itemsTotal - discountAmount + deliveryCharge);
+
+  // Resolve governing product settings (prefer any product that requires advance payment)
+  const governingProduct = cartItems.find(item => item.product.paymentType && item.product.paymentType !== 'cod')?.product || cartItems[0]?.product;
+  const paymentType = governingProduct?.paymentType || 'cod';
+  const bkashNumber = governingProduct?.bkashNumber || '';
+  const nagadNumber = governingProduct?.nagadNumber || '';
+  
+  const isDeliveryEnabled = governingProduct?.deliveryCharge !== undefined && governingProduct?.deliveryCharge !== null
+    ? governingProduct.deliveryCharge > 0
+    : true; // Default to enabled if not explicitly specified
+
+  const resolvedDeliveryCharge = isDeliveryEnabled
+    ? (governingProduct?.deliveryCharge !== undefined && governingProduct.deliveryCharge > 0
+        ? governingProduct.deliveryCharge
+        : deliveryCharge)
+    : 0;
+
+  const grandTotal = getValidatedTotal(cartItems, resolvedDeliveryCharge, discountAmount);
+  const advancePaymentAmount = getAdvancePaymentAmount(paymentType, resolvedDeliveryCharge, grandTotal);
 
   // Validate and Apply Coupon
   const handleApplyCoupon = (overrideCode?: string) => {
@@ -261,6 +324,16 @@ export default function CartDrawer({
       return;
     }
 
+    let resolvedPaidAmount = 0;
+    if (paymentType !== 'cod') {
+      const txError = validateTransactionId(transactionId);
+      if (txError) {
+        setErrorMessage(txError);
+        return;
+      }
+      resolvedPaidAmount = advancePaymentAmount;
+    }
+
     setIsCheckingOut(true);
 
     try {
@@ -280,11 +353,18 @@ export default function CartDrawer({
           customerPhone,
           customerAddress,
           customerCity,
+          customerDistrict,
+          customerArea,
           customerNotes,
           customerEmail: customer?.email,
           items: dbFormatItems,
           totalAmount: grandTotal,
-          couponCode: appliedCoupon ? appliedCoupon.code : undefined
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+          paymentType,
+          paymentMethod: paymentType === 'cod' ? 'COD' : paymentMethod,
+          paidAmount: resolvedPaidAmount,
+          transactionId: paymentType === 'cod' ? '' : transactionId.trim().toUpperCase(),
+          paymentScreenshot: screenshotBase64 || undefined
         })
       });
 
@@ -293,12 +373,27 @@ export default function CartDrawer({
         throw new Error(data.message || 'ORDER CREATION FAILED');
       }
 
+      // Record transaction ID in session to prevent duplicates
+      if (paymentType !== 'cod' && transactionId) {
+        const txUpper = transactionId.trim().toUpperCase();
+        const updatedTxIds = [...usedTransactionIds, txUpper];
+        setUsedTransactionIds(updatedTxIds);
+        try {
+          sessionStorage.setItem('stylex_used_txids', JSON.stringify(updatedTxIds));
+        } catch (storageErr) {
+          console.warn('Session storage write error: ', storageErr);
+        }
+      }
+
       // Success
       if (appliedCoupon && appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
         localStorage.setItem('has_used_lottery_code', 'true');
       }
       setAppliedCoupon(null);
       setCouponCode('');
+      setTransactionId('');
+      setScreenshotPreview(null);
+      setScreenshotBase64(null);
       
       // Store guest checkout details in localStorage so notifications can match them for status updates
       try {
@@ -322,7 +417,11 @@ export default function CartDrawer({
       }
 
       // Open Whatsapp link & show success
-      onCheckoutSuccess(data.order.id, data.whatsappUrl);
+      let paymentLabel = 'Cash on Delivery (COD)';
+      if (paymentType !== 'cod') {
+        paymentLabel = `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : 'Full Advance Payment'} (${paymentMethod === 'bkash' ? 'bKash' : 'Nagad'})`;
+      }
+      onCheckoutSuccess(data.order.id, data.whatsappUrl, paymentLabel);
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected database error occurred');
     } finally {
@@ -341,7 +440,7 @@ export default function CartDrawer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md cursor-pointer"
+            className="absolute inset-0 bg-luxury-black/95 backdrop-blur-md cursor-pointer"
           ></motion.div>
 
           {/* Cart Drawer Panel */}
@@ -352,7 +451,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
             className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden ${
               showCheckoutForm 
-                ? 'max-w-2xl border-luxury-gold/30 rounded-2xl max-h-[92vh] md:max-h-[85vh] shadow-[0_0_60px_rgba(212,175,55,0.25)]' 
+                ? 'max-w-2xl border border-luxury-gold/30 rounded-2xl h-[92vh] max-h-[92vh] sm:h-[88vh] sm:max-h-[88vh] shadow-[0_0_60px_rgba(212,175,55,0.25)] mx-2 sm:mx-0' 
                 : 'max-w-lg border-l border-luxury-gold/15 h-full'
             }`}
           >
@@ -426,7 +525,7 @@ export default function CartDrawer({
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.85, y: 4 }}
                                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                                className="luxury-animated-price-purple text-[13px] font-bold"
+                                className="luxury-animated-price text-luxury-gold text-[13px] font-bold"
                               >
                                 {formatPrice(getProductActivePrice(item.product) * item.quantity)}
                               </motion.span>
@@ -580,7 +679,7 @@ export default function CartDrawer({
                 )}
                 <div className="flex justify-between text-sm text-white font-black border-t border-white/5 pt-3">
                   <span className="uppercase tracking-[0.14em]">Items Total</span>
-                  <span className="luxury-animated-price text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
+                  <span className="luxury-animated-price text-luxury-gold text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
                 </div>
               </div>
 
@@ -597,7 +696,7 @@ export default function CartDrawer({
         ) : (
           /* Step 2: The Secure Order Delivery Form */
           <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-6">
               
               {/* Back navigation CTA */}
               <button 
@@ -609,7 +708,7 @@ export default function CartDrawer({
                 <span>Return to Shopping Bag</span>
               </button>
 
-              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-5 rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
+              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
                 <div className="flex items-center justify-between pb-3 border-b border-white/5">
                   <h4 className="font-serif text-[13.5px] text-white/95 uppercase tracking-wider flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
@@ -674,12 +773,11 @@ export default function CartDrawer({
                   </div>
                 </div>
 
-                {/* City Dropdown & Courier Grid */}
+                {/* City select for shipping calculations */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Shipping City select */}
                   <div className="space-y-1">
-                    <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold flex items-center justify-between">
-                      <span>Shipping City</span>
+                    <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold flex items-center justify-between">
+                      <span>Shipping Region (for Courier Cost)</span>
                       <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
                     </label>
                     <div className="relative group">
@@ -701,7 +799,7 @@ export default function CartDrawer({
                     </div>
                   </div>
 
-                  {/* Handpicked Delivery Info Badge */}
+                  {/* Delivery Courier Type */}
                   <div className="space-y-1">
                     <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
                       Delivery Courier Type
@@ -732,29 +830,6 @@ export default function CartDrawer({
                     />
                     <div className="absolute top-3 right-3 flex items-center pointer-events-none text-[8.5px] font-mono text-purple-400/20 group-focus-within:text-[#d4af37]/30 transition-colors">
                       LOCATOR
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bespoke Optional Notes */}
-                <div className="space-y-1">
-                  <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold flex items-center justify-between">
-                    <span>Bespoke Notes</span>
-                    <span className="text-zinc-500 font-normal text-[8px]">• OPTIONAL</span>
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#d4af37]/60 group-focus-within:text-purple-400 transition-colors duration-300">
-                      <MessageSquare size={14} className="scale-95" />
-                    </div>
-                    <input 
-                      type="text" 
-                      placeholder="E.g. Place inside the black parcel drop box"
-                      value={customerNotes}
-                      onChange={(e) => setCustomerNotes(e.target.value)}
-                      className="w-full bg-[#1c1304]/30 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-purple-500/80 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-600/20 transition-all duration-300 placeholder-white/20"
-                    />
-                    <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8.5px] font-mono text-white/15 group-focus-within:text-purple-400/40 transition-colors pointer-events-none">
-                      MEMORANDUM
                     </div>
                   </div>
                 </div>
@@ -834,23 +909,250 @@ export default function CartDrawer({
                   )}
                 </div>
 
-                {/* Secure Cash On Delivery Card Badge with sweeping shine */}
-                <div className="bg-gradient-to-r from-luxury-gold/5 to-[#160b24]/20 border border-luxury-gold/25 rounded-xl p-4 space-y-1 relative overflow-hidden group/card shadow-lg">
-                  <div className="absolute -right-6 -bottom-6 text-luxury-gold/10 pointer-events-none group-hover/card:scale-110 transition-transform duration-500">
-                    <ShieldCheck size={72} />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/card:translate-x-full transition-transform duration-[1500ms] ease-out pointer-events-none"></div>
+                {/* Dynamic Style X Premium Payment Engine */}
+                {paymentType === 'cod' ? (
+                  /* Cash on Delivery (COD) Option */
+                  <div className="bg-gradient-to-r from-luxury-gold/5 to-[#160b24]/20 border border-luxury-gold/25 rounded-xl p-4 space-y-1 relative overflow-hidden group/card shadow-lg">
+                    <div className="absolute -right-6 -bottom-6 text-luxury-gold/10 pointer-events-none group-hover/card:scale-110 transition-transform duration-500">
+                      <ShieldCheck size={72} />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/card:translate-x-full transition-transform duration-[1500ms] ease-out pointer-events-none"></div>
 
-                  <div className="flex items-center gap-2.5 text-luxury-gold">
-                    <ShieldCheck size={18} className="flex-shrink-0 animate-pulse text-luxury-gold" />
-                    <p className="font-display font-black uppercase tracking-widest text-[11px] leading-tight break-words pr-4">
-                      {settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED"}
+                    <div className="flex items-center gap-2.5 text-luxury-gold">
+                      <ShieldCheck size={18} className="flex-shrink-0 animate-pulse text-luxury-gold" />
+                      <p className="font-display font-black uppercase tracking-widest text-[11px] leading-tight break-words pr-4">
+                        SECURE CASH ON DELIVERY GUARANTEED
+                      </p>
+                    </div>
+                    <p className="text-[10.5px] text-zinc-300 font-sans leading-relaxed pl-7 break-words whitespace-pre-wrap">
+                      Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.
                     </p>
                   </div>
-                  <p className="text-[10.5px] text-zinc-300 font-sans leading-relaxed pl-7 break-words whitespace-pre-wrap">
-                    {settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."}
-                  </p>
-                </div>
+                ) : (
+                  /* Online Verification required: Delivery Charge Only or Full Advance Payment */
+                  <div className="bg-gradient-to-b from-[#1c0f30]/65 to-[#0b0414]/90 border border-luxury-gold/20 rounded-xl p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 shadow-xl relative overflow-hidden">
+                    <div className="absolute -right-6 -bottom-6 text-luxury-gold/5 pointer-events-none">
+                      <ShieldCheck size={72} />
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#d4af37]">⚜️</span>
+                        <h4 className="font-serif text-[12px] text-white/90 uppercase tracking-widest font-bold">
+                          {paymentType === 'delivery_charge' ? "Delivery Charge Advance Required" : "Full Advance Payment Required"}
+                        </h4>
+                      </div>
+                      <span className="text-[8px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-wider font-extrabold animate-pulse">
+                        Online Verification
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] text-zinc-300 leading-relaxed font-sans">
+                      To secure your allotment, please complete the {paymentType === 'delivery_charge' ? 'advance delivery charge payment' : 'full advance payment'} of{' '}
+                      <span className="text-[#ffd700] font-black font-mono text-xs">৳{advancePaymentAmount}</span> via bKash or Nagad, then input your transaction receipt credentials below.
+                    </p>
+
+                    {/* bKash / Nagad Toggle segmented control */}
+                    <div className="grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod('bkash');
+                          setTransactionId('');
+                          setTransactionError('');
+                        }}
+                        className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                          paymentMethod === 'bkash'
+                            ? 'bg-[#e2136e]/15 text-[#e2136e] border border-[#e2136e]/40 font-black shadow-[0_0_15px_rgba(226,19,110,0.25)]'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
+                        }`}
+                      >
+                        {settings?.bkashLogoUrl ? (
+                          <img 
+                            src={settings.bkashLogoUrl} 
+                            alt="bKash" 
+                            className="h-5 w-5 rounded object-contain flex-shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <svg 
+                            viewBox="0 0 100 100" 
+                            className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect width="100" height="100" rx="20" fill="#e2136e" />
+                            <g transform="translate(10, 10) scale(0.8)" fill="#ffffff">
+                              <polygon points="50,15 42,28 58,28" />
+                              <polygon points="50,32 38,55 50,75" opacity="0.9" />
+                              <polygon points="50,32 62,55 50,75" />
+                              <polygon points="34,34 15,50 38,50" opacity="0.8" />
+                              <polygon points="66,34 85,50 62,50" opacity="0.95" />
+                              <polygon points="50,78 45,90 55,90" />
+                            </g>
+                          </svg>
+                        )}
+                        <span>bKash</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod('nagad');
+                          setTransactionId('');
+                          setTransactionError('');
+                        }}
+                        className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                          paymentMethod === 'nagad'
+                            ? 'bg-[#f45c24]/15 text-[#f45c24] border border-[#f45c24]/40 font-black shadow-[0_0_15px_rgba(244,92,36,0.25)]'
+                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
+                        }`}
+                      >
+                        {settings?.nagadLogoUrl ? (
+                          <img 
+                            src={settings.nagadLogoUrl} 
+                            alt="Nagad" 
+                            className="h-5 w-5 rounded object-contain flex-shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <svg 
+                            viewBox="0 0 100 100" 
+                            className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect width="100" height="100" rx="20" fill="#f45c24" />
+                            <g transform="translate(15, 15) scale(0.7)">
+                              <path d="M20,60 C40,60 70,40 80,10 C60,40 30,50 20,60 Z" fill="#ffffff" />
+                              <path d="M10,75 C30,75 60,55 70,25 C55,50 25,60 10,75 Z" fill="#a3e635" />
+                              <path d="M35,45 C45,45 60,35 65,15 C55,30 45,35 35,45 Z" fill="#ffffff" opacity="0.8" />
+                            </g>
+                          </svg>
+                        )}
+                        <span>Nagad</span>
+                      </button>
+                    </div>
+
+                    {/* Recipient Account Details with quick copy button */}
+                    <div className="bg-black/60 border border-white/5 rounded-xl p-3.5 space-y-2 relative">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-mono text-zinc-400">Send Money to:</span>
+                        <span className="text-[8px] uppercase font-mono bg-white/5 text-white/60 px-2 py-0.5 rounded">Personal Account</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-mono text-sm font-black text-white tracking-widest">
+                          {paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const num = paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
+                            navigator.clipboard.writeText(num);
+                          }}
+                          className="text-[9px] font-mono text-[#d4af37] hover:text-white hover:underline transition-all cursor-pointer bg-[#d4af37]/5 px-2.5 py-1 rounded border border-[#d4af37]/25"
+                        >
+                          COPY NUMBER
+                        </button>
+                      </div>
+                      <div className="flex justify-between items-center pt-1.5 border-t border-white/5 text-[10px]">
+                        <span className="text-zinc-400 font-sans">Required BD Taka:</span>
+                        <span className="text-luxury-gold font-mono font-black text-xs">
+                          ৳{advancePaymentAmount}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Transaction ID Input */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] uppercase font-mono tracking-widest text-[#d4af37] font-bold flex items-center justify-between">
+                        <span>Transaction ID (TRXID)</span>
+                        <span className="text-white/40 font-normal text-[8px]">• REQUIRED</span>
+                      </label>
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          required
+                          value={transactionId}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\s+/g, ''); // strip spaces automatically
+                            setTransactionId(val);
+                            setTransactionError(validateTransactionId(val));
+                          }}
+                          placeholder="e.g. A1B2C3D4E5"
+                          className={`w-full bg-[#0a0511] text-white font-mono text-xs border rounded-xl py-3 px-4 focus:outline-none transition-all duration-300 placeholder-white/15 uppercase tracking-widest ${
+                            transactionError
+                              ? 'border-red-500/40 focus:border-red-500/80 focus:ring-1 focus:ring-red-500/20'
+                              : 'border-white/10 hover:border-luxury-gold/30 focus:border-luxury-gold'
+                          }`}
+                        />
+                        <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8px] font-mono text-[#d4af37]/30 group-focus-within:text-luxury-gold pointer-events-none">
+                          8-30 ALPHANUMERIC
+                        </div>
+                      </div>
+                      {transactionError && (
+                        <p className="text-[9px] font-mono text-red-400 pl-1 mt-1 animate-pulse">
+                          ⚠️ ERROR: {transactionError}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Screenshot Upload with live preview thumbnail */}
+                    <div className="space-y-2">
+                      <label className="block text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold flex items-center justify-between">
+                        <span>Upload Payment Screenshot</span>
+                        <span className="text-zinc-500 font-normal text-[8px]">• OPTIONAL</span>
+                      </label>
+                      
+                      {screenshotPreview ? (
+                        <div className="relative bg-black/40 border border-white/10 p-3 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={screenshotPreview}
+                              alt="Payment proof screenshot"
+                              referrerPolicy="no-referrer"
+                              className="w-10 h-10 object-cover rounded border border-white/10"
+                            />
+                            <div className="space-y-0.5">
+                              <span className="text-[9.5px] font-mono text-white/80 block uppercase tracking-wider">Screenshot Loaded</span>
+                              <span className="text-[8px] font-mono text-emerald-400 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" /> Ready
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScreenshotPreview(null);
+                              setScreenshotBase64(null);
+                            }}
+                            className="text-[9px] font-mono text-red-400 hover:text-red-300 transition-all cursor-pointer bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded border border-red-500/20"
+                          >
+                            REMOVE
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="border border-dashed border-white/10 hover:border-[#d4af37]/30 bg-black/30 hover:bg-black/50 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScreenshotChange}
+                            className="hidden"
+                          />
+                          <span className="text-[10px] uppercase font-mono text-[#d4af37] font-bold tracking-wider mb-1">
+                            Choose Proof / Screenshot
+                          </span>
+                          <span className="text-[8.5px] font-sans text-zinc-500">
+                            JPG, PNG, WebP up to 5MB
+                          </span>
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Informative warning text if transaction validation fails */}
+                    {(!transactionId || !!transactionError) && (
+                      <div className="bg-amber-500/5 border border-amber-500/15 text-amber-400/90 text-[10px] px-3.5 py-3 rounded-xl leading-relaxed font-sans shadow-sm">
+                        ⚜️ <span className="font-semibold">Please complete your payment</span> and enter your valid Transaction ID before confirming your order.
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {errorMessage && (
                   <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-[11px] font-mono animate-pulse">
@@ -879,17 +1181,17 @@ export default function CartDrawer({
                   )}
                   <div className="flex justify-between text-[11.5px] text-zinc-400">
                     <span>VIP Handpicked delivery ({customerCity})</span>
-                    <span className="font-mono">{formatPrice(deliveryCharge)}</span>
+                    <span className="font-mono">{formatPrice(resolvedDeliveryCharge)}</span>
                   </div>
                   
                   <div className="flex justify-between text-sm text-white font-extrabold border-t border-white/10 pt-3.5 mb-4">
                     <span className="uppercase tracking-[0.14em]">Grand Invoice Total</span>
-                    <span className="luxury-animated-price text-base font-mono">{formatPrice(grandTotal)}</span>
+                    <span className="luxury-animated-price text-luxury-gold text-base font-mono">{formatPrice(grandTotal)}</span>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={isCheckingOut}
+                    disabled={isCheckingOut || (paymentType !== 'cod' && (!transactionId || !!validateTransactionId(transactionId)))}
                     className="running-glow-gold-filled w-full text-white font-display font-black uppercase text-xs tracking-[0.25em] py-4.5 rounded-xl shadow-[0_5px_25px_rgba(154,77,255,0.25)] hover:shadow-[0_8px_35px_rgba(154,77,255,0.55)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
                     {isCheckingOut ? (

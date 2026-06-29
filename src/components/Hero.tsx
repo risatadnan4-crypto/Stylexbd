@@ -113,7 +113,7 @@ export default function Hero({
   };
 
   return (
-    <div className="relative w-full min-h-[60vh] md:h-[80vh] bg-gradient-to-b from-luxury-black via-[#100122] to-luxury-black flex items-center justify-center overflow-hidden border-b-2 border-luxury-gold/20 shadow-[inset_0_0_100px_rgba(106,13,173,0.3)] group/hero">
+    <div className="relative w-full min-h-[50vh] xs:min-h-[55vh] sm:min-h-[60vh] md:h-[80vh] py-8 sm:py-0 bg-gradient-to-b from-luxury-black via-[#100122] to-luxury-black flex items-center justify-center overflow-hidden border-b-2 border-luxury-gold/20 shadow-[inset_0_0_100px_rgba(106,13,173,0.3)] group/hero">
       
       {/* Background Slides Render with Framer Motion (cross-fade) */}
       <div className="absolute inset-0 z-0">
@@ -127,49 +127,71 @@ export default function Hero({
             className="absolute inset-0 w-full h-full"
           >
             {isVideo ? (
-              <video
-                key={currentBanner.imageUrl}
-                ref={(el) => { 
-                  videoRefs.current[currentBanner.id] = el; 
-                  if (el) {
-                    el.defaultMuted = true;
-                    el.muted = true;
-                    el.playsInline = true;
-                    try {
-                      el.play().catch((err) => {
-                        console.warn("Direct autoplay in ref failed:", err);
-                      });
-                    } catch (e) {}
-                  }
-                }}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="auto"
-                className="absolute inset-0 w-full h-full object-cover scale-105"
-                style={{
-                  filter: "none",
-                  opacity: 1
-                }}
-                src={currentBanner.imageUrl}
-              />
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
+                {/* Blurred backdrop for mobile to cover empty margins beautifully */}
+                <video
+                  src={currentBanner.imageUrl}
+                  className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 sm:hidden pointer-events-none"
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                />
+                {/* Fully visible and contained video */}
+                <video
+                  key={currentBanner.imageUrl}
+                  ref={(el) => { 
+                    videoRefs.current[currentBanner.id] = el; 
+                    if (el) {
+                      el.defaultMuted = true;
+                      el.muted = true;
+                      el.playsInline = true;
+                      try {
+                        el.play().catch((err) => {
+                          console.warn("Direct autoplay in ref failed:", err);
+                        });
+                      } catch (e) {}
+                    }
+                  }}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="relative w-full h-full object-cover sm:object-cover max-sm:object-contain sm:scale-105 scale-100 z-10"
+                  style={{
+                    filter: "none",
+                    opacity: 1
+                  }}
+                  src={currentBanner.imageUrl}
+                />
+              </div>
             ) : (
-              <div 
-                className="absolute inset-0 bg-cover bg-center scale-105"
-                style={{ 
-                  backgroundImage: `url(${currentBanner.imageUrl})`,
-                  filter: "none",
-                  opacity: 1
-                }}
-              ></div>
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
+                {/* Blurred backdrop for mobile to cover empty margins beautifully */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40 scale-110 sm:hidden"
+                  style={{ 
+                    backgroundImage: `url(${currentBanner.imageUrl})`
+                  }}
+                ></div>
+                {/* Fully visible and contained image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center sm:bg-cover sm:bg-center max-sm:bg-contain max-sm:bg-no-repeat max-sm:bg-center sm:scale-105 scale-100 z-10"
+                  style={{ 
+                    backgroundImage: `url(${currentBanner.imageUrl})`,
+                    filter: "none",
+                    opacity: 1
+                  }}
+                ></div>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Subtle overlay to ensure premium readability of serif headers over 100% opacity backgrounds */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/70 z-[5] pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/75 z-[5] pointer-events-none"></div>
 
       {/* Luxury Golden and Royal Purple Glimmer Particles system */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
@@ -207,8 +229,8 @@ export default function Hero({
       </div>
 
       {/* Centered Main Story Text Box with Slide Content */}
-      <div className="relative max-w-4xl mx-auto px-6 text-center z-20 flex flex-col items-center select-none">
-        <p className="text-transparent bg-clip-text bg-gradient-to-r from-luxury-gold via-luxury-purple-glowing to-luxury-gold font-display text-[11px] font-bold tracking-[0.4em] uppercase mb-4 animate-pulse">
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center z-20 flex flex-col items-center select-none">
+        <p className="text-transparent bg-clip-text bg-gradient-to-r from-luxury-gold via-luxury-purple-glowing to-luxury-gold font-display text-[8.5px] xs:text-[9.5px] sm:text-[11px] font-bold tracking-[0.3em] xs:tracking-[0.4em] uppercase mb-2.5 sm:mb-4 animate-pulse">
           ARCHIVE 00{currentIndex + 1} // THE EXPANSION SERIES
         </p>
 
@@ -222,22 +244,22 @@ export default function Hero({
             className="flex flex-col items-center"
           >
             {/* Large Playfair Display Headers with sleek serif gradients */}
-            <h2 className="font-serif text-5xl sm:text-7xl md:text-9xl font-semibold tracking-normal leading-[1.05] capitalize mb-8 scale-y-[0.98] drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+            <h2 className="font-serif text-2xl xs:text-3xl sm:text-7xl md:text-9xl font-semibold tracking-normal leading-[1.1] sm:leading-[1.05] capitalize mb-3 sm:mb-8 scale-y-[0.98] drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
               <span className="block text-white transition-all duration-300">Style <span className="font-serif italic font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-luxury-purple-glowing via-luxury-gold to-white">.X</span></span>
-              <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-luxury-purple-glowing tracking-[0.15em] font-light text-2xl sm:text-4xl md:text-5xl uppercase mt-3">
+              <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-luxury-purple-glowing tracking-[0.1em] xs:tracking-[0.12em] sm:tracking-[0.15em] font-light text-xs xs:text-sm sm:text-4xl md:text-5xl uppercase mt-1 sm:mt-3 max-w-[280px] xs:max-w-xs sm:max-w-none line-clamp-2">
                 {currentBanner.title}
               </span>
             </h2>
 
             {/* Brand narrative details */}
-            <p className="text-white font-sans text-xs sm:text-sm md:text-base font-medium tracking-wide max-w-xl leading-relaxed italic mb-10 min-h-[48px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+            <p className="text-white/90 font-sans text-[10px] xs:text-[11px] sm:text-sm md:text-base font-medium tracking-wide max-w-[270px] xs:max-w-xs sm:max-w-xl leading-relaxed italic mb-4 sm:mb-10 min-h-[32px] sm:min-h-[48px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.955)] line-clamp-3 sm:line-clamp-none">
               {currentBanner.subtitle}
             </p>
           </motion.div>
         </AnimatePresence>
 
         {/* Scroll action element indicators */}
-        <div className="w-[1.5px] h-14 bg-gradient-to-b from-luxury-gold via-luxury-purple-glowing to-transparent animate-bounce"></div>
+        <div className="w-[1.5px] h-5 sm:h-14 bg-gradient-to-b from-luxury-gold via-luxury-purple-glowing to-transparent animate-bounce mt-2 sm:mt-0"></div>
       </div>
 
       {/* Manual Controls: Prev & Next Arrows (Visible on hover of the banner section) */}
@@ -246,18 +268,20 @@ export default function Hero({
           <button 
             type="button"
             onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full border border-white/10 bg-black/40 hover:bg-luxury-gold text-white hover:text-luxury-black opacity-0 group-hover/hero:opacity-100 transition-all duration-300 backdrop-blur-sm cursor-pointer"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full border border-white/10 bg-black/40 hover:bg-luxury-gold text-white hover:text-luxury-black opacity-100 sm:opacity-0 sm:group-hover/hero:opacity-100 transition-all duration-300 backdrop-blur-sm cursor-pointer"
             aria-label="Previous Banner"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={16} className="sm:hidden" />
+            <ChevronLeft size={20} className="hidden sm:block" />
           </button>
           <button 
             type="button"
             onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full border border-white/10 bg-black/40 hover:bg-luxury-gold text-white hover:text-luxury-black opacity-0 group-hover/hero:opacity-100 transition-all duration-300 backdrop-blur-sm cursor-pointer"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-2.5 rounded-full border border-white/10 bg-black/40 hover:bg-luxury-gold text-white hover:text-luxury-black opacity-100 sm:opacity-0 sm:group-hover/hero:opacity-100 transition-all duration-300 backdrop-blur-sm cursor-pointer"
             aria-label="Next Banner"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={16} className="sm:hidden" />
+            <ChevronRight size={20} className="hidden sm:block" />
           </button>
         </>
       )}
@@ -270,16 +294,16 @@ export default function Hero({
 
       {/* Interactive indicators / pagination bullets at bottom center */}
       {displayBanners.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 bg-black/30 px-3.5 py-1.5 rounded-full border border-white/5 backdrop-blur-xs">
+        <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-2.5 bg-black/30 px-3.5 py-1.5 rounded-full border border-white/5 backdrop-blur-xs">
           {displayBanners.map((_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setCurrentIndex(idx)}
-              className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer ${
+              className={`h-1 sm:h-1.5 rounded-full transition-all duration-500 cursor-pointer ${
                 idx === currentIndex 
-                  ? "w-6 bg-luxury-gold" 
-                  : "w-1.5 bg-white/40 hover:bg-white/80"
+                  ? "w-4 sm:w-6 bg-luxury-gold" 
+                  : "w-1 sm:w-1.5 bg-white/40 hover:bg-white/80"
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />
@@ -287,10 +311,10 @@ export default function Hero({
           <button
             type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className="ml-1 text-white/50 hover:text-white transition-colors cursor-pointer"
+            className="ml-1 text-white/50 hover:text-white transition-colors cursor-pointer p-0.5"
             title={isPlaying ? "Pause autoplay" : "Resume autoplay"}
           >
-            {isPlaying ? <Pause size={10} /> : <Play size={10} />}
+            {isPlaying ? <Pause size={9} /> : <Play size={9} />}
           </button>
         </div>
       )}

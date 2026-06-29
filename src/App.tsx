@@ -17,6 +17,7 @@ import OrderTracker from './components/OrderTracker';
 import LiveChat from './components/LiveChat';
 import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
+import XoroAssistant from './components/XoroAssistant';
 import { supabase } from './lib/supabaseClient';
 
 export default function App() {
@@ -91,6 +92,7 @@ export default function App() {
   // Successful checkout modal information
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
   const [confirmedWhatsAppUrl, setConfirmedWhatsAppUrl] = useState('');
+  const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);
   const [viewToast, setViewToast] = useState(false);
@@ -525,16 +527,11 @@ export default function App() {
   };
 
   const handleOrderNow = (product: Product, size: string) => {
-    const freshCart = [...cart];
-    const matchIdx = freshCart.findIndex(item => item.product.id === product.id && item.selectedSize === size);
-
-    if (matchIdx !== -1) {
-      freshCart[matchIdx].quantity += 1;
-    } else {
-      freshCart.push({ product, selectedSize: size, quantity: 1 });
-    }
-
-    setCart(freshCart);
+    // Direct checkout for a specific product should clear previous cart items
+    // and initialize the cart with ONLY the chosen product at quantity 1
+    // to match the product price perfectly on the payment checkout screen.
+    const directCart = [{ product, selectedSize: size, quantity: 1 }];
+    setCart(directCart);
     setInitialShowCheckout(true);
     setIsCartOpen(true);
   };
@@ -2330,7 +2327,7 @@ CREATE TRIGGER on_auth_user_created
             {/* Generated Details Container */}
             <div className="bg-[#101010] border border-white/5 p-4 rounded text-xs space-y-2 text-left font-mono">
               <p><span className="text-white/40">TRACK RECEIPT:</span> <strong className="text-luxury-gold">{confirmedOrderId}</strong></p>
-              <p><span className="text-white/40">METHOD PAYMENT:</span> <strong className="text-white">CASH ON DELIVERY (COD)</strong></p>
+              <p><span className="text-white/40">METHOD PAYMENT:</span> <strong className="text-white">{confirmedOrderPayment}</strong></p>
               <p className="text-white/40 text-[9px]/relaxed leading-relaxed mt-2 pt-2 border-t border-white/5">
                 Scan QR or track from front-end Track Order menus to view real-time dispatched logs.
               </p>
@@ -2397,10 +2394,11 @@ CREATE TRIGGER on_auth_user_created
         activeCoupons={coupons}
         products={products}
         settings={settings}
-        onCheckoutSuccess={(id, url) => {
+        onCheckoutSuccess={(id, url, paymentInfo) => {
           setIsCartOpen(false);
           setConfirmedOrderId(id);
           setConfirmedWhatsAppUrl(url);
+          setConfirmedOrderPayment(paymentInfo || 'CASH ON DELIVERY (COD)');
           setActiveTrackId(id);
           loadStoreCollections(); // Refresh stock units logs on checkout success!
           loadOrders(); // Refresh public order ticker instantly!
@@ -2788,6 +2786,23 @@ CREATE TRIGGER on_auth_user_created
       )}
 
       <LiveChat isOpen={isChatOpen} onOpenChange={setIsChatOpen} showTrigger={false} />
+
+      <XoroAssistant 
+        products={products}
+        coupons={coupons}
+        cart={cart}
+        currentProduct={selectedProduct}
+        isCartOpen={isCartOpen}
+        confirmedOrderId={confirmedOrderId}
+        isTrackMode={isTrackMode}
+        onSelectProduct={(p) => setSelectedProduct(p)}
+        onTrackOrder={(orderId) => {
+          setIsTrackMode(true);
+          const newUrl = `${window.location.pathname}?track=${orderId}`;
+          window.history.pushState({}, '', newUrl);
+          window.scrollTo({ top: 350, behavior: 'smooth' });
+        }}
+      />
 
     </div>
   );

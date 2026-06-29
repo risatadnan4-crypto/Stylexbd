@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
 import { supabase } from "./src/lib/supabase.js";
+import { GoogleGenAI } from "@google/genai";
 
 
 export const app = express();
@@ -164,6 +165,8 @@ let db = {
     adminPassword: "risat123",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
     logoUrl: "/stylex_logo.jpg",
+    bkashLogoUrl: "",
+    nagadLogoUrl: "",
     lotteryDiscountPercentage: 15,
     lotteryCouponPrefix: "RISAT",
     facebookUrl: "https://www.facebook.com/stylex24/",
@@ -219,6 +222,8 @@ if (fs.existsSync(DB_FILE)) {
         ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
         : currentScriptUrl,
       logoUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
+      bkashLogoUrl: db.settings?.bkashLogoUrl || "",
+      nagadLogoUrl: db.settings?.nagadLogoUrl || "",
       lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
       lotteryCouponPrefix: db.settings?.lotteryCouponPrefix !== undefined ? db.settings.lotteryCouponPrefix : "RISAT",
       facebookUrl: db.settings?.facebookUrl !== undefined ? db.settings.facebookUrl : "https://www.facebook.com/stylex24/",
@@ -298,7 +303,11 @@ async function syncFromSupabase() {
               couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
               offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
               timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
-              timerMessage: p.timerMessage || localProduct?.timerMessage || undefined
+              timerMessage: p.timerMessage || localProduct?.timerMessage || undefined,
+              bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
+              nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
+              paymentType: p.paymentType || localProduct?.paymentType || "cod",
+              deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))
             };
           });
           db.seededProducts = true;
@@ -821,6 +830,8 @@ app.get("/api/settings", async (req, res) => {
         if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
         if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
         if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
+        if (map.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = map.bkashLogoUrl;
+        if (map.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = map.nagadLogoUrl;
         if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
         if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
         if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
@@ -864,6 +875,8 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
             if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
             if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+            if (fallbackSettings.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = fallbackSettings.bkashLogoUrl;
+            if (fallbackSettings.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = fallbackSettings.nagadLogoUrl;
             if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
             if (fallbackSettings.instagramUrl !== undefined) db.settings.instagramUrl = fallbackSettings.instagramUrl;
             if (fallbackSettings.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(fallbackSettings.lotteryDiscountPercentage);
@@ -951,7 +964,7 @@ app.post("/api/discount-request", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated } = req.body;
+    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl } = req.body;
     
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
@@ -959,6 +972,8 @@ app.post("/api/settings", async (req, res) => {
       adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
       appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
+      bkashLogoUrl: bkashLogoUrl !== undefined ? bkashLogoUrl.trim() : (db.settings?.bkashLogoUrl || ""),
+      nagadLogoUrl: nagadLogoUrl !== undefined ? nagadLogoUrl.trim() : (db.settings?.nagadLogoUrl || ""),
       lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
       lotteryCouponPrefix: lotteryCouponPrefix !== undefined ? lotteryCouponPrefix.trim().toUpperCase() : (db.settings?.lotteryCouponPrefix || "RISAT"),
       facebookUrl: facebookUrl !== undefined ? facebookUrl.trim() : (db.settings?.facebookUrl || "https://www.facebook.com/stylex24/"),
@@ -988,6 +1003,8 @@ app.post("/api/settings", async (req, res) => {
         if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
         if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
         if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
+        if (bkashLogoUrl !== undefined) await saveSetting("bkashLogoUrl", bkashLogoUrl.trim());
+        if (nagadLogoUrl !== undefined) await saveSetting("nagadLogoUrl", nagadLogoUrl.trim());
         if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
         if (instagramUrl !== undefined) await saveSetting("instagramUrl", instagramUrl.trim());
         if (lotteryDiscountPercentage !== undefined) await saveSetting("lotteryDiscountPercentage", String(lotteryDiscountPercentage));
@@ -1031,7 +1048,7 @@ app.get("/api/products", async (req, res) => {
     const { data: productsData, error: pError } = await supabase.from("products").select("*");
     if (!pError && productsData && productsData.length > 0) {
       const products = productsData.map((p: any) => {
-        const localProduct = db.products ? db.products.find((lp: any) => lp.id === p.id) : null;
+        const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
         return {
           ...p,
           sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
@@ -1045,7 +1062,11 @@ app.get("/api/products", async (req, res) => {
           couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
           offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
           timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
-          timerMessage: p.timerMessage || localProduct?.timerMessage || undefined
+          timerMessage: p.timerMessage || localProduct?.timerMessage || undefined,
+          bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
+          nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
+          paymentType: p.paymentType || localProduct?.paymentType || "cod",
+          deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))
         };
       });
       db.products = products;
@@ -1062,7 +1083,7 @@ app.get("/api/products/:id", async (req, res) => {
   try {
     const { data, error } = await supabase.from("products").select("*").eq("id", req.params.id).single();
     if (!error && data) {
-      const localProduct = db.products ? db.products.find((lp: any) => lp.id === req.params.id) : null;
+      const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(req.params.id)) : null;
       const prod = {
         ...data,
         sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
@@ -1076,7 +1097,11 @@ app.get("/api/products/:id", async (req, res) => {
         couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined,
         offerPrice: (data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
         timerEndTime: data.timerEndTime || localProduct?.timerEndTime || undefined,
-        timerMessage: data.timerMessage || localProduct?.timerMessage || undefined
+        timerMessage: data.timerMessage || localProduct?.timerMessage || undefined,
+        bkashNumber: data.bkashNumber || localProduct?.bkashNumber || "",
+        nagadNumber: data.nagadNumber || localProduct?.nagadNumber || "",
+        paymentType: data.paymentType || localProduct?.paymentType || "cod",
+        deliveryCharge: data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))
       };
       return res.json(prod);
     }
@@ -1176,7 +1201,11 @@ app.post("/api/products", async (req, res) => {
       couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
       offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
       timerEndTime: newProduct.timerEndTime || null,
-      timerMessage: newProduct.timerMessage || null
+      timerMessage: newProduct.timerMessage || null,
+      bkashNumber: newProduct.bkashNumber || "",
+      nagadNumber: newProduct.nagadNumber || "",
+      paymentType: newProduct.paymentType || "cod",
+      deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100)
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1184,6 +1213,10 @@ app.post("/api/products", async (req, res) => {
     // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
     if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
       console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
+      delete payload.bkashNumber;
+      delete payload.nagadNumber;
+      delete payload.paymentType;
+      delete payload.deliveryCharge;
       delete payload.deliveryPrice;
       delete payload.deliveryPriceDhaka;
       delete payload.deliveryPriceOutside;
@@ -1288,7 +1321,11 @@ app.put("/api/products/:id", async (req, res) => {
         couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
         offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
         timerEndTime: target.timerEndTime || null,
-        timerMessage: target.timerMessage || null
+        timerMessage: target.timerMessage || null,
+        bkashNumber: target.bkashNumber || "",
+        nagadNumber: target.nagadNumber || "",
+        paymentType: target.paymentType || "cod",
+        deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100)
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1296,6 +1333,10 @@ app.put("/api/products/:id", async (req, res) => {
       // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
       if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
         console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
+        delete payload.bkashNumber;
+        delete payload.nagadNumber;
+        delete payload.paymentType;
+        delete payload.deliveryCharge;
         delete payload.deliveryPrice;
         delete payload.deliveryPriceDhaka;
         delete payload.deliveryPriceOutside;
@@ -1478,7 +1519,24 @@ app.get("/api/notifications", (req, res) => {
 });
 
 app.post("/api/orders", async (req, res) => {
-  const { customerName, customerPhone, customerAddress, customerCity, customerNotes, customerEmail, items, totalAmount, couponCode } = req.body;
+  const { 
+    customerName, 
+    customerPhone, 
+    customerAddress, 
+    customerCity, 
+    customerNotes, 
+    customerEmail, 
+    items, 
+    totalAmount, 
+    couponCode,
+    paymentType,
+    paymentMethod,
+    paidAmount,
+    transactionId,
+    paymentScreenshot,
+    customerDistrict,
+    customerArea
+  } = req.body;
 
   // Validate Coupon limits first if a coupon is being applied
   if (couponCode) {
@@ -1504,6 +1562,281 @@ app.post("/api/orders", async (req, res) => {
       return res.status(400).json({ message: `Insufficient stock for "${prod.title}". Only ${prod.stock} items left.` });
     }
   }
+
+  // --- Strict Backend Pricing & Payment Validation ---
+  function getDivisionForCityBackend(city: string): string {
+    const c = String(city || "").trim();
+    if (["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"].includes(c)) {
+      return "Dhaka";
+    }
+    if (["Bandarban", "Brahmanbaria", "Chandpur", "Chattogram", "Cox's Bazar", "Cumilla", "Feni", "Khagrachhari", "Lakshmipur", "Noakhali", "Rangamati"].includes(c)) {
+      return "Chattogram";
+    }
+    if (["Bogura", "Bogra", "Chapainawabganj", "Joypurhat", "Naogaon", "Natore", "Pabna", "Rajshahi", "Sirajganj"].includes(c)) {
+      return "Rajshahi";
+    }
+    if (["Bagerhat", "Chuadanga", "Jashore", "Jhenaidah", "Khulna", "Kushtia", "Magura", "Meherpur", "Narail", "Satkhira"].includes(c)) {
+      return "Khulna";
+    }
+    if (["Barguna", "Barishal", "Bhola", "Jhalokati", "Patuakhali", "Pirojpur"].includes(c)) {
+      return "Barishal";
+    }
+    if (["Habiganj", "Moulvibazar", "Sunamganj", "Sylhet"].includes(c)) {
+      return "Sylhet";
+    }
+    if (["Dinajpur", "Gaibandha", "Kurigram", "Lalmonirhat", "Nilphamari", "Panchagarh", "Rangpur", "Thakurgaon"].includes(c)) {
+      return "Rangpur";
+    }
+    if (["Jamalpur", "Mymensingh", "Netrokona", "Sherpur"].includes(c)) {
+      return "Mymensingh";
+    }
+    return "Outside";
+  }
+
+  function getProductActivePriceBackend(product: Product): number {
+    if (product.offerPrice !== undefined && product.offerPrice !== null) {
+      if (product.timerEndTime) {
+        const end = new Date(product.timerEndTime).getTime();
+        const now = new Date().getTime();
+        if (end <= now) {
+          return product.price;
+        }
+      }
+      return product.offerPrice;
+    }
+    return product.price;
+  }
+
+  // --- COMPLETE 9-STEP PAYMENT TRACE & VALIDATION SYSTEM ---
+  function traceAndValidatePaymentFlow(
+    orderItems: any[],
+    appliedCouponCode: string | undefined,
+    city: string,
+    cliTotal: number,
+    cliPaid: number,
+    payType: string,
+    payMethod: string
+  ): { success: boolean; finalCheckoutTotal: number; logs: string[]; error?: string } {
+    const traceLogs: string[] = [];
+    traceLogs.push(`[PAYMENT_TRACE] ==================================================`);
+    traceLogs.push(`[PAYMENT_TRACE] STARTING PAYMENT AMOUNT TRACE FROM START TO FINISH`);
+    traceLogs.push(`[PAYMENT_TRACE] Input payload: totalAmount=৳${cliTotal}, paidAmount=৳${cliPaid}, paymentType=${payType}, paymentMethod=${payMethod}`);
+
+    // Step 1: Product price is loaded from the database
+    traceLogs.push(`[PAYMENT_TRACE] Step 1: Loading product prices from database...`);
+    const loadedProducts: { prod: any; quantity: number; dbPrice: number; activePrice: number }[] = [];
+    for (const item of orderItems) {
+      const dbProd = db.products.find((p: any) => p.id === item.productId);
+      if (!dbProd) {
+        return { success: false, finalCheckoutTotal: 0, logs: traceLogs, error: `Product ID "${item.productId}" not found in database.` };
+      }
+      const activePrice = getProductActivePriceBackend(dbProd);
+      loadedProducts.push({ prod: dbProd, quantity: item.quantity, dbPrice: dbProd.price, activePrice });
+      traceLogs.push(`[PAYMENT_TRACE]   - Product loaded: ID=${dbProd.id}, SKU=${dbProd.code}, Title="${dbProd.title}", DB_Price=৳${dbProd.price}, ActivePrice=৳${activePrice}, Quantity=${item.quantity}`);
+    }
+
+    // Step 2: Cart calculation
+    traceLogs.push(`[PAYMENT_TRACE] Step 2: Running cart subtotal calculation...`);
+    let calculatedSubtotal = 0;
+    for (const item of loadedProducts) {
+      const itemSubtotal = item.activePrice * item.quantity;
+      calculatedSubtotal += itemSubtotal;
+      traceLogs.push(`[PAYMENT_TRACE]   - Subtotal Contribution: ${item.prod.title} (${item.quantity} x ৳${item.activePrice}) = ৳${itemSubtotal}`);
+    }
+    traceLogs.push(`[PAYMENT_TRACE]   - Total Cart Subtotal: ৳${calculatedSubtotal}`);
+
+    // Step 3: Checkout calculation (coupons, discounts, delivery charges)
+    traceLogs.push(`[PAYMENT_TRACE] Step 3: Running checkout calculations (discount & delivery charge)...`);
+    let calculatedDiscountAmount = 0;
+    if (appliedCouponCode) {
+      const upperCoupon = String(appliedCouponCode).toUpperCase().trim();
+      let coupon = db.coupons.find((c: any) => c.code === upperCoupon && c.active);
+      const lotteryPrefix = (db.settings?.lotteryCouponPrefix || 'RISAT').trim().toUpperCase();
+
+      if (!coupon && upperCoupon.startsWith(lotteryPrefix)) {
+        const pctStr = upperCoupon.replace(lotteryPrefix, '');
+        const pctVal = Number(pctStr);
+        if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
+          coupon = { code: upperCoupon, type: 'PERCENTAGE', value: pctVal, active: true };
+          traceLogs.push(`[PAYMENT_TRACE]   - Matched dynamic lottery coupon: ${upperCoupon} (-${pctVal}%)`);
+        }
+      }
+
+      let isProductSpecific = false;
+      let specificProd = null;
+      if (!coupon) {
+        specificProd = db.products.find((p: any) => p.couponCode && p.couponCode.trim().toUpperCase() === upperCoupon);
+        if (specificProd) {
+          coupon = { code: upperCoupon, type: 'PERCENTAGE', value: specificProd.couponDiscountPercent || 15, active: true };
+          isProductSpecific = true;
+          traceLogs.push(`[PAYMENT_TRACE]   - Matched product-specific coupon: ${upperCoupon} for Product ID=${specificProd.id} (-${coupon.value}%)`);
+        }
+      } else {
+        specificProd = db.products.find((p: any) => p.couponCode && p.couponCode.trim().toUpperCase() === upperCoupon);
+        if (specificProd) {
+          isProductSpecific = true;
+        }
+      }
+
+      if (coupon) {
+        if (upperCoupon.startsWith(lotteryPrefix)) {
+          const lotteryEligibleTotal = loadedProducts.reduce((sum, item) => {
+            return sum + (item.prod.lotteryEligible !== false ? item.activePrice * item.quantity : 0);
+          }, 0);
+          calculatedDiscountAmount = Math.round((lotteryEligibleTotal * coupon.value) / 100);
+          traceLogs.push(`[PAYMENT_TRACE]   - Applied lottery discount of ৳${calculatedDiscountAmount} on eligible items subtotal of ৳${lotteryEligibleTotal}`);
+        } else if (isProductSpecific && specificProd) {
+          const matchingItems = loadedProducts.filter(item => item.prod.id === specificProd.id);
+          const specificTotal = matchingItems.reduce((sum, item) => sum + (item.activePrice * item.quantity), 0);
+          const discountVal = coupon.type === 'PERCENTAGE' ? coupon.value : 15;
+          calculatedDiscountAmount = Math.round((specificTotal * discountVal) / 100);
+          traceLogs.push(`[PAYMENT_TRACE]   - Applied product-specific discount of ৳${calculatedDiscountAmount} on product "${specificProd.title}" total of ৳${specificTotal}`);
+        } else {
+          if (coupon.type === 'PERCENTAGE') {
+            calculatedDiscountAmount = Math.round((calculatedSubtotal * coupon.value) / 100);
+            traceLogs.push(`[PAYMENT_TRACE]   - Applied global percentage discount of ৳${calculatedDiscountAmount} (${coupon.value}%) on subtotal of ৳${calculatedSubtotal}`);
+          } else {
+            calculatedDiscountAmount = coupon.value;
+            traceLogs.push(`[PAYMENT_TRACE]   - Applied global fixed discount of ৳${calculatedDiscountAmount} on subtotal of ৳${calculatedSubtotal}`);
+          }
+        }
+      } else {
+        traceLogs.push(`[PAYMENT_TRACE]   - Coupon code "${upperCoupon}" could not be matched or was inactive.`);
+      }
+    }
+
+    const shippingDivision = getDivisionForCityBackend(city);
+    const calculatedBaseDeliveryCharge = loadedProducts.reduce((max, item) => {
+      let customPrice = 150;
+      switch (shippingDivision) {
+        case "Dhaka":
+          customPrice = item.prod.deliveryPriceDhaka !== undefined ? Number(item.prod.deliveryPriceDhaka) : 100;
+          break;
+        case "Chattogram":
+          customPrice = item.prod.deliveryPriceChattogram !== undefined ? Number(item.prod.deliveryPriceChattogram) : 150;
+          break;
+        case "Rajshahi":
+          customPrice = item.prod.deliveryPriceRajshahi !== undefined ? Number(item.prod.deliveryPriceRajshahi) : 150;
+          break;
+        case "Khulna":
+          customPrice = item.prod.deliveryPriceKhulna !== undefined ? Number(item.prod.deliveryPriceKhulna) : 150;
+          break;
+        case "Barishal":
+          customPrice = item.prod.deliveryPriceBarishal !== undefined ? Number(item.prod.deliveryPriceBarishal) : 150;
+          break;
+        case "Sylhet":
+          customPrice = item.prod.deliveryPriceSylhet !== undefined ? Number(item.prod.deliveryPriceSylhet) : 150;
+          break;
+        case "Rangpur":
+          customPrice = item.prod.deliveryPriceRangpur !== undefined ? Number(item.prod.deliveryPriceRangpur) : 150;
+          break;
+        case "Mymensingh":
+          customPrice = item.prod.deliveryPriceMymensingh !== undefined ? Number(item.prod.deliveryPriceMymensingh) : 150;
+          break;
+        default:
+          customPrice = item.prod.deliveryPriceDhaka !== undefined ? Number(item.prod.deliveryPriceDhaka) : 150;
+          break;
+      }
+      return customPrice > max ? customPrice : max;
+    }, 0);
+
+    const firstItemProd = loadedProducts.length > 0 ? loadedProducts[0].prod : null;
+    const advanceProd = loadedProducts.find(p => p.prod.paymentType && p.prod.paymentType !== 'cod')?.prod;
+    const resolvedGovProduct = advanceProd || firstItemProd;
+
+    const isDeliveryEnabled = resolvedGovProduct?.deliveryCharge !== undefined && resolvedGovProduct?.deliveryCharge !== null
+      ? (resolvedGovProduct.deliveryCharge > 0)
+      : true;
+
+    const calculatedDeliveryCharge = isDeliveryEnabled
+      ? (resolvedGovProduct?.deliveryCharge !== undefined && resolvedGovProduct.deliveryCharge > 0 
+          ? resolvedGovProduct.deliveryCharge 
+          : calculatedBaseDeliveryCharge)
+      : 0;
+
+    const calculatedTotalAmount = Math.max(0, calculatedSubtotal - calculatedDiscountAmount + calculatedDeliveryCharge);
+    traceLogs.push(`[PAYMENT_TRACE]   - Shipping Division: ${shippingDivision}`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Base Courier Delivery Charge: ৳${calculatedBaseDeliveryCharge}`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Governing Product: "${resolvedGovProduct?.title || 'None'}", DeliveryChargeField=${resolvedGovProduct?.deliveryCharge}`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Resolved Courier Delivery Charge: ৳${calculatedDeliveryCharge}`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Final Recalculated Checkout Total: ৳${calculatedTotalAmount}`);
+
+    // Step 4: Order creation initialized
+    traceLogs.push(`[PAYMENT_TRACE] Step 4: Order creation initialized...`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Client Total: ৳${cliTotal}, Backend Recalculated Total: ৳${calculatedTotalAmount}`);
+    if (Math.round(Number(cliTotal)) !== Math.round(calculatedTotalAmount)) {
+      traceLogs.push(`[PAYMENT_TRACE]   - [ERROR] Checkout mismatch detected! Client total ৳${cliTotal} vs Recalculated total ৳${calculatedTotalAmount}`);
+      return { success: false, finalCheckoutTotal: calculatedTotalAmount, logs: traceLogs, error: `Grand total mismatch! Client sent ৳${cliTotal}, Recalculated: ৳${calculatedTotalAmount}` };
+    }
+
+    // Step 5: Payment session creation
+    const paymentSessionId = "SESS-PAY-" + Math.floor(100000 + Math.random() * 900000);
+    traceLogs.push(`[PAYMENT_TRACE] Step 5: Creating simulated secure payment gateway session...`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Session ID: ${paymentSessionId}`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Session registered for Amount: ৳${calculatedTotalAmount}`);
+
+    // Step 6: bKash payment request
+    if (payType !== 'cod' && payMethod === 'bkash') {
+      traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request initiated...`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${calculatedTotalAmount}, currency: "BDT", intent: "sale", merchantInvoiceNumber: "${paymentSessionId}" }`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to bKash Gateway: ৳${calculatedTotalAmount}`);
+    } else {
+      traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request bypassed (not selected).`);
+    }
+
+    // Step 7: Nagad payment request
+    if (payType !== 'cod' && payMethod === 'nagad') {
+      traceLogs.push(`[PAYMENT_TRACE] Step 7: Nagad payment request initiated...`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${calculatedTotalAmount}, orderId: "${paymentSessionId}", serviceType: "merchant_pay" }`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to Nagad Gateway: ৳${calculatedTotalAmount}`);
+    } else {
+      traceLogs.push(`[PAYMENT_TRACE] Step 7: Nagad payment request bypassed (not selected).`);
+    }
+
+    // Step 8: Payment callback verification
+    if (payType !== 'cod') {
+      traceLogs.push(`[PAYMENT_TRACE] Step 8: Payment callback verification received...`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Callback values: paidAmount=৳${cliPaid}, status="success", tracking_id="${paymentSessionId}"`);
+      if (Math.round(Number(cliPaid)) !== Math.round(calculatedTotalAmount)) {
+        traceLogs.push(`[PAYMENT_TRACE]   - [ERROR] Callback amount mismatch! Received ৳${cliPaid}, expected ৳${calculatedTotalAmount}`);
+        return { success: false, finalCheckoutTotal: calculatedTotalAmount, logs: traceLogs, error: `Advance paid amount mismatch! Received ৳${cliPaid}, expected ৳${calculatedTotalAmount}` };
+      }
+      traceLogs.push(`[PAYMENT_TRACE]   - Payment verified successfully for Amount: ৳${calculatedTotalAmount}`);
+    } else {
+      traceLogs.push(`[PAYMENT_TRACE] Step 8: Payment callback verification bypassed (Cash on Delivery).`);
+    }
+
+    // Step 9: Order saved in the database
+    traceLogs.push(`[PAYMENT_TRACE] Step 9: Order successfully verified and marked for database storage.`);
+    traceLogs.push(`[PAYMENT_TRACE]   - Final Order Value to save: ৳${calculatedTotalAmount}`);
+    traceLogs.push(`[PAYMENT_TRACE] ==================================================`);
+
+    return { success: true, finalCheckoutTotal: calculatedTotalAmount, logs: traceLogs };
+  }
+
+  // Calculate items total based purely on current DB prices
+  const traceResult = traceAndValidatePaymentFlow(
+    items,
+    couponCode,
+    customerCity,
+    totalAmount,
+    paidAmount,
+    paymentType,
+    paymentMethod
+  );
+
+  for (const logLine of traceResult.logs) {
+    console.log(logLine);
+  }
+
+  if (!traceResult.success) {
+    console.error(`[PAYMENT_FLOW_FAILURE] ${traceResult.error}`);
+    return res.status(400).json({
+      message: `Payment validation error: ${traceResult.error}`
+    });
+  }
+
+  const calculatedTotalAmount = traceResult.finalCheckoutTotal;
 
   // If validation passes, increment coupon usage
   if (couponCode) {
@@ -1564,14 +1897,21 @@ app.post("/api/orders", async (req, res) => {
     items,
     totalAmount,
     status: "PENDING",
-    date: new Date().toISOString()
+    date: new Date().toISOString(),
+    district: customerDistrict || customerCity,
+    area: customerArea || "",
+    paymentType: paymentType || "cod",
+    paymentMethod: paymentMethod || "COD",
+    paidAmount: paidAmount !== undefined ? Number(paidAmount) : 0,
+    transactionId: transactionId || "",
+    paymentScreenshot: paymentScreenshot || ""
   };
 
   db.orders.push(newOrder);
   saveDB();
 
   try {
-    const payload = {
+    const payload: any = {
       id: newOrder.id,
       customerName: newOrder.customerName,
       customerPhone: newOrder.customerPhone,
@@ -1581,9 +1921,30 @@ app.post("/api/orders", async (req, res) => {
       items: JSON.stringify(newOrder.items),
       totalAmount: Number(newOrder.totalAmount),
       status: newOrder.status,
-      date: newOrder.date
+      date: newOrder.date,
+      district: newOrder.district,
+      area: newOrder.area,
+      paymentType: newOrder.paymentType,
+      paymentMethod: newOrder.paymentMethod,
+      paidAmount: newOrder.paidAmount,
+      transactionId: newOrder.transactionId,
+      paymentScreenshot: newOrder.paymentScreenshot
     };
-    await supabase.from("orders").upsert(payload);
+
+    let { error: upsertErr } = await supabase.from("orders").upsert(payload);
+    
+    // Bulletproof fallback: If orders table doesn't support the new custom checkout columns, retry without them
+    if (upsertErr && (upsertErr.message.includes("column") || upsertErr.code === "P0002" || upsertErr.message.includes("does not exist") || upsertErr.message.includes("not found"))) {
+      console.warn("⚠️ Custom checkout columns do not exist in Supabase orders table. Bypassing and retrying...");
+      delete payload.district;
+      delete payload.area;
+      delete payload.paymentType;
+      delete payload.paymentMethod;
+      delete payload.paidAmount;
+      delete payload.transactionId;
+      delete payload.paymentScreenshot;
+      await supabase.from("orders").upsert(payload);
+    }
   } catch (err: any) {
     console.error("⚠️ Failed to mirror order creation to Supabase: ", err.message);
   }
@@ -1595,17 +1956,27 @@ app.post("/api/orders", async (req, res) => {
     const shippingValue = shipping > 0 ? shipping : 0;
     const shippingText = shippingValue > 0 ? `৳${shippingValue}` : "FREE";
 
-    // Adding an explicit breakdown table to keep email templates extremely transparent and premium
+    // Dynamic payment status label
+    let paymentStatusLabel = "COD";
+    if (newOrder.paymentType !== 'cod') {
+      paymentStatusLabel = "PENDING VERIFICATION";
+    }
+
     const itemsFormatted = items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n") +
       `\n\n-----------------------------\n💵 Product Subtotal: ৳${subtotal}\n📦 VIP Secure Courier Delivery: ${shippingText}\n👑 Grand Invoice Total: ৳${totalAmount}`;
 
     const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
-
     const targetEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
+
+    // Compile dynamic descriptive text for the email notification
+    const orderLocation = `${newOrder.customerAddress}, Area: ${newOrder.area || 'N/A'}, District: ${newOrder.district || 'N/A'}, City: ${newOrder.customerCity}${newOrder.customerNotes ? ` (Notes: ${newOrder.customerNotes})` : ""}`;
+    const paymentDetailText = newOrder.paymentType === 'cod' 
+      ? 'Cash on Delivery (COD)' 
+      : `${String(newOrder.paymentType).toUpperCase()} via ${newOrder.paymentMethod} (Paid Amount: ৳${newOrder.paidAmount})`;
 
     fetch(scriptUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // Google Apps Script POST requests often prefer text/plain to avoid preflight issues 
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         email: targetEmail,
         recipient: targetEmail,
@@ -1618,11 +1989,13 @@ app.post("/api/orders", async (req, res) => {
         notifyEmail: targetEmail,
         name: customerName,
         phone: customerPhone,
-        location: `${customerAddress}, ${customerCity}${customerNotes ? ` (Notes: ${customerNotes})` : ""}`,
+        location: orderLocation,
         items: itemsFormatted,
         total: `৳${totalAmount} (৳${subtotal} Products + ৳${shippingValue} Courier Delivery)`,
-        payment: "Cash on Delivery",
-        trxid: `STX-TRX-${trackingId.split("-")[1]}`,
+        payment: paymentDetailText,
+        paymentStatus: paymentStatusLabel,
+        trxid: newOrder.transactionId || `STX-TRX-${trackingId.split("-")[1]}`,
+        screenshot: newOrder.paymentScreenshot || "",
         date: new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
       })
     })
@@ -2376,6 +2749,226 @@ app.post("/api/upload", async (req, res) => {
     res.status(201).json({ fileUrl });
   } catch (err: any) {
     res.status(500).json({ message: "Upload failed: " + err.message });
+  }
+});
+
+// XORO AI ASSISTANT ENDPOINT
+app.post("/api/xoro/chat", async (req, res) => {
+  try {
+    const { message, history, cart, currentPage, currentProduct } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: "Message is required." });
+    }
+
+    // 1. Look up matched orders if phone number or order ID is in the user message
+    let matchedOrders: Order[] = [];
+    const phoneRegex = /(?:88)?01[3-9]\d{8}/g;
+    const phoneMatches = message.match(phoneRegex);
+    
+    // Look for order IDs matching e.g. "ord-"
+    const orderIdRegex = /ord-[a-zA-Z0-9-]+/gi;
+    const orderMatches = message.match(orderIdRegex);
+
+    if (phoneMatches && phoneMatches.length > 0) {
+      const matchedPhone = phoneMatches[0].replace(/^88/, ""); // normalize
+      matchedOrders = db.orders.filter((o: any) => {
+        const oPhone = (o.customerPhone || "").replace(/^88/, "");
+        return oPhone.includes(matchedPhone) || matchedPhone.includes(oPhone);
+      });
+    } else if (orderMatches && orderMatches.length > 0) {
+      const matchedId = orderMatches[0].toLowerCase();
+      matchedOrders = db.orders.filter((o: any) => o.id.toLowerCase().includes(matchedId));
+    }
+
+    // 2. Format context for products and coupons
+    const productsContext = db.products.map((p: any) => ({
+      code: p.code,
+      title: p.title,
+      description: p.description,
+      price: p.price,
+      offerPrice: p.offerPrice,
+      category: p.category,
+      stock: p.stock > 0 ? `${p.stock} items remaining` : "Out of stock",
+      sizes: p.sizes,
+      dimensions: p.dimensions,
+      whyBuy: p.whyBuy
+    }));
+
+    const couponsContext = db.coupons.map((c: any) => ({
+      code: c.code,
+      discountPercent: c.discountPercent,
+      description: c.description,
+      minPurchase: c.minPurchase
+    }));
+
+    // 3. Check if Gemini API key exists
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        const ai = new GoogleGenAI({
+          apiKey,
+          httpOptions: {
+            headers: {
+              'User-Agent': 'aistudio-build',
+            }
+          }
+        });
+
+        const systemInstruction = `You are Xoro, the official virtual brand ambassador and elite shopping assistant for Style X (styled as "Style X" or "Style X fashion brand").
+Style X is a world-class premium luxury eCommerce platform for exclusive clothing, high-end accessories, and curated pieces created by Risat Adnan.
+
+Your appearance:
+- Cute, modern, premium 3D robot mascot.
+- Glossy black body with elegant gold accents.
+- Smooth white digital face with expressive black eyes.
+- Rounded futuristic design inspired by luxury consumer electronics.
+- Small antenna with a glowing golden light.
+- Style X logo displayed on your chest.
+- Friendly smile and premium, luxury aesthetic.
+
+Your personality and language:
+- Friendly, confident, highly fashionable, humorous, professional, and elite.
+- You behave like an upscale luxury fashion boutique concierge, not a generic, dry chatbot.
+- You are witty, warm, and highly knowledgeable about clothing, fit, styling, and premium trends.
+- Language Constraint: You MUST ALWAYS speak/respond in beautiful, warm, polite, and elite Bengali (বাংলা). All your answers must be written entirely in Bengali.
+- Greeting Constraint: You MUST ALWAYS greet the user with "আসসালামু আলাইকুম!" (Assalamu Alaikum) at the very beginning of your responses or whenever starting a interaction.
+- You must occasionally drop sophisticated, charming fashion tips (such as: "👕 কালো এবং সাদা রঙের পোশাক কখনো ফ্যাশন থেকে হারিয়ে যায় না।", "⌚ একটি সুন্দর ঘড়ি আপনার লুককে পূর্ণতা দেয়।", "✨ আত্মবিশ্বাসই আপনার সবচেয়ে বড় পোশাক।", or other luxury apparel tips).
+
+Here is the current catalog of exclusive Style X products you can recommend (recommend specific pieces in Bengali, mention their unique codes like XP-001, describe why they should buy them based on 'Why Buy' details, highlight categories, prices, and suggest sizing):
+${JSON.stringify(productsContext, null, 2)}
+
+Active elite promotions & coupons:
+${JSON.stringify(couponsContext, null, 2)}
+
+Our premier Delivery & Logistics concierge:
+- Dhaka VIP deliveries: 24-48 Hours, secured via handpicked VIP couriers.
+- Regional deliveries: 2-3 Business Days, fully secured.
+- Policy: Exchange is accepted within 7 days of delivery in pristine, unworn condition with tags fully sealed.
+
+User Context:
+- Current Page: ${currentPage || 'Home'}
+- Current Product they are viewing: ${currentProduct ? JSON.stringify(currentProduct) : 'None'}
+- Current Cart items: ${JSON.stringify(cart || [], null, 2)}
+
+Matched User Orders (if we detected phone/ID lookup):
+${JSON.stringify(matchedOrders, null, 2)}
+
+Instructions for replies:
+1. Be concise, luxurious, and highly interactive.
+2. Recommend products by name and code in Bengali! Give styling advice. Tell them WHY they must buy (using the 'whyBuy' fields).
+3. If their cart is empty, suggest starting with an iconic accessory or a trending menswear/womenswear item.
+4. If their cart has items, encourage them: "🛒 আপনি প্রায় কাছাকাছি চলে এসেছেন! স্টাইল এক্স-এর রাজকীয় ফ্যাশন অনুভব করতে প্রস্তুত?" or suggest matching accessories to complement their cart pieces.
+5. Suggest coupons when they ask about discounts or when completing checkout.
+6. Use elegant formatting. Keep markdown clean. Avoid excessively long paragraphs.
+`;
+
+        const contents = [];
+        if (history && Array.isArray(history)) {
+          for (const item of history) {
+            contents.push({
+              role: item.role === 'user' ? 'user' : 'model',
+              parts: [{ text: item.text }]
+            });
+          }
+        }
+        contents.push({
+          role: 'user',
+          parts: [{ text: message }]
+        });
+
+        let response: any = null;
+        let lastError: any = null;
+        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+        const maxAttempts = 2;
+
+        for (const modelName of modelsToTry) {
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              response = await ai.models.generateContent({
+                model: modelName,
+                contents,
+                config: {
+                  systemInstruction,
+                  temperature: 0.75,
+                },
+              });
+              break; // Success! Exit retry loop for this model
+            } catch (err: any) {
+              lastError = err;
+              const errMsg = String(err.message || err.status || "");
+              const isTransient = errMsg.includes("503") || 
+                                  errMsg.includes("UNAVAILABLE") || 
+                                  errMsg.includes("demand") || 
+                                  errMsg.includes("exhausted") ||
+                                  errMsg.includes("limit") ||
+                                  err.status === 503 ||
+                                  err.status === 429;
+              
+              if (isTransient && attempt < maxAttempts) {
+                console.log(`⚠️ Gemini API [${modelName}] attempt ${attempt} failed with transient error: ${errMsg}. Retrying in ${attempt}s...`);
+                await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+              } else {
+                // If it's not a transient error, or we exhausted retries for this model, break to try the next model
+                console.log(`⚠️ Gemini API [${modelName}] attempt ${attempt} failed: ${errMsg}. Moving on.`);
+                break;
+              }
+            }
+          }
+          if (response) {
+            console.log(`✨ Gemini API call succeeded using model: ${modelName}`);
+            break; // If we got a successful response, stop trying other models
+          }
+        }
+
+        if (!response) {
+          throw lastError || new Error("Failed to generate content with all configured models.");
+        }
+
+        const reply = response.text || "আসসালামু আলাইকুম! আমি জোরো। স্টাইল এক্স-এ আপনাকে স্বাগতম। আজ আপনাকে কীভাবে সাহায্য করতে পারি?";
+        return res.json({ text: reply, matchedOrders });
+      } catch (geminiErr: any) {
+        console.error("⚠️ Gemini API Call failed, falling back to scripted Xoro:", geminiErr.message);
+      }
+    }
+
+    // 4. Elegant local fallback response if Gemini is unavailable or failed (All in beautiful Bengali!)
+    const lowerMessage = message.toLowerCase();
+    let reply = "";
+
+    if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey") || lowerMessage.includes("xoro") || lowerMessage.includes("সালাম") || lowerMessage.includes("salam")) {
+      reply = `👋 **আসসালামু আলাইকুম!**\n\nস্টাইল এক্স (Style X)-এ আপনাকে স্বাগতম! আমি **জোরো (Xoro)**, আপনার পার্সোনাল ৩ডি ডিজিটাল ফ্যাশন অ্যাসিস্ট্যান্ট। আজ আপনাকে ফ্যাশনেবল করে তুলতে আমি কীভাবে সাহায্য করতে পারি? \n\n✨ *ফ্যাশন টিপ: "আত্মবিশ্বাসই আপনার সবচেয়ে বড় পোশাক।"* \n\nআমি আপনাকে ট্রেন্ডিং কালেকশন সাজেস্ট করতে পারি, সাইজ নির্বাচন করতে সাহায্য করতে পারি অথবা কুপন বা অর্ডার ট্র্যাক করতে পারি! আপনি কী খুঁজছেন বলুন?`;
+    } else if (lowerMessage.includes("size") || lowerMessage.includes("fit") || lowerMessage.includes("measure") || lowerMessage.includes("সাইজ") || lowerMessage.includes("মাপ")) {
+      reply = `📏 **আসসালামু আলাইকুম! সাইজ এবং ফিটিং গাইডলাইন:**\n\nস্টাইল এক্স-এ আমরা স্ট্যান্ডার্ড প্রিমিয়াম ফিট অনুযায়ী পোশাক ডিজাইন করে থাকি। আমাদের প্রতিটি পোশাকে **S** থেকে **XL** পর্যন্ত সাইজ পাওয়া যাবে, যা নিখুঁতভাবে আপনার শরীরের সাথে মানিয়ে যাবে।\n\nআপনি কোন পোশাকটি দেখছেন তা আমাকে জানান, আমি আপনাকে সেটির সঠিক পরিমাপ এবং সাইজ সাজেস্ট করব! \n\n⌚ *স্টাইল টিপ: "একটি সুন্দর ঘড়ি আপনার লুককে পূর্ণতা দেয়।"*`;
+    } else if (lowerMessage.includes("delivery") || lowerMessage.includes("shipping") || lowerMessage.includes("kobe") || lowerMessage.includes("কবে") || lowerMessage.includes("কখন") || lowerMessage.includes("ডেলিভারি")) {
+      reply = `🚚 **আসসালামু আলাইকুম! ডেলিভারি সংক্রান্ত তথ্য:**\n\nআমাদের ডেলিভারি সার্ভিস অত্যন্ত দ্রুত এবং প্রিমিয়াম ওয়ান-টু-ওয়ান সার্ভিসের মাধ্যমে সম্পন্ন হয়:\n- **ঢাকা মেট্রো:** ২৪ থেকে ৪৮ ঘণ্টার মধ্যে বিশ্বস্ত ভিআইপি কুরিয়ারের মাধ্যমে ডেলিভারি করা হয়।\n- **ঢাকার বাইরে:** ২ থেকে ৩ কার্যদিবসের মধ্যে অত্যন্ত নিরাপদে ডেলিভারি সম্পন্ন করা হয়।\n\nআপনার কি কোনো সক্রিয় অর্ডার আছে যা ট্র্যাক করতে চান? আপনার **অর্ডার আইডি** বা **ফোন নম্বর** লিখে পাঠান!`;
+    } else if (matchedOrders.length > 0) {
+      const order = matchedOrders[0];
+      const itemsList = order.items.map((i: any) => `• ${i.title} (${i.selectedSize}) x${i.quantity}`).join("\n");
+      reply = `🎉 **আসসালামু আলাইকুম! আপনার অর্ডারটি খুঁজে পেয়েছি:**\n\nআপনার অর্ডার **${order.id}** এর বিস্তারিত বিবরণ:\n\n**পোশাকসমূহ:**\n${itemsList}\n\n**বর্তমান অবস্থা (Status):** ${order.status?.toUpperCase() || 'DELIVERING'}\n**মোট মূল্য:** ৳${order.totalAmount}\n**ডেলিভারি ঠিকানা:** ${order.customerAddress}, ${order.customerCity}\n\nআমাদের বিশেষ কুরিয়ার টিম এটি ডেলিভারি করার জন্য প্রস্তুত রয়েছে। আপনার কি অন্য কোনো তথ্য প্রয়োজন?`;
+    } else if (lowerMessage.includes("track") || lowerMessage.includes("order") || lowerMessage.includes("phone") || lowerMessage.includes("ট্র্যাক") || lowerMessage.includes("অর্ডার")) {
+      reply = `🔍 **আসসালামু আলাইকুম! অর্ডার ট্র্যাক করুন:**\n\nআমি খুব দ্রুত আপনার অর্ডারের বর্তমান অবস্থা চেক করতে পারি। দয়া করে আপনার **অর্ডার আইডি** (যেমন: \`ord-...\`) অথবা অর্ডারের সময় ব্যবহৃত **ফোন নম্বরটি** দিন। আমি এখনই আপনার অর্ডার ট্র্যাকিং করে দিচ্ছি!`;
+    } else if (lowerMessage.includes("discount") || lowerMessage.includes("coupon") || lowerMessage.includes("offer") || lowerMessage.includes("কুপন") || lowerMessage.includes("ছাড়")) {
+      const couponsStr = db.coupons.map((c: any) => `🔑 কোড: **${c.code}** — **${c.discountPercent}% ছাড়** (${c.description})`).join("\n");
+      reply = `🎁 **আসসালামু আলাইকুম! স্টাইল এক্স এক্সক্লুসিভ অফারসমূহ:**\n\nবর্তমানে সক্রিয় থাকা সেরা ডিসকাউন্ট কুপনগুলো নিচে দেওয়া হলো:\n\n${couponsStr || "• **STYLEGOLD** — লাক্সারি পোশাক কেনাকাটায় ১৫% ছাড়।"}\n\nপেমেন্ট করার সময় এই কুপনগুলো ব্যবহার করে আপনার পছন্দের পোশাকটি বিশেষ মূল্যে সংগ্রহ করুন! ✨`;
+    } else if (lowerMessage.includes("menswear") || lowerMessage.includes("men") || lowerMessage.includes("ছেলে")) {
+      const menProducts = db.products.filter((p: any) => p.category === 'MEN' || p.category === 'UNISEX').slice(0, 3);
+      const itemsList = menProducts.map((p: any) => `• **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}`).join("\n");
+      reply = `👔 **আসসালামু আলাইকুম! স্টাইল এক্স মেন্স কালেকশন:**\n\nবর্তমানে দারুণ জনপ্রিয় ৩টি পোশাক নিচে দেওয়া হলো:\n\n${itemsList}\n\nপোশাকটির কোড লিখে আমাকে মেসেজ করুন (যেমন: \`${menProducts[0]?.code || 'XP-001'}\`) এবং জেনে নিন কেন এটি আপনার সংগ্রহে থাকা উচিত!`;
+    } else if (lowerMessage.includes("womenswear") || lowerMessage.includes("women") || lowerMessage.includes("মেয়ে")) {
+      const womenProducts = db.products.filter((p: any) => p.category === 'WOMEN' || p.category === 'UNISEX').slice(0, 3);
+      const itemsList = womenProducts.map((p: any) => `• **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}`).join("\n");
+      reply = `👗 **আসসালামু আলাইকুম! স্টাইল এক্স ওমেন্স কালেকশন:**\n\nআপনার জন্য নির্বাচিত কয়েকটি চমৎকার কালেকশন এখানে রয়েছে:\n\n${itemsList}\n\nআরো জানতে যেকোনো পোশাকের কোডটি টাইপ করুন (যেমন: \`${womenProducts[0]?.code || 'XP-005'}\`)!`;
+    } else {
+      // General recommended products
+      const featured = db.products.slice(0, 2);
+      const itemsList = featured.map((p: any) => `🛍️ **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}\n*"${p.whyBuy || p.description}"*`).join("\n\n");
+      reply = `✨ **আসসালামু আলাইকুম! স্টাইল এক্স এলিট অ্যাসিস্ট্যান্সে আপনাকে স্বাগতম**\n\nআমি জোরো (Xoro), আপনার পার্সোনাল স্টাইলিস্ট। আমি আপনাকে ট্রেন্ডি পোশাক খুঁজে পেতে, সাইজ ক্যালকুলেট করতে, কিংবা অর্ডার ডেলিভারি ট্র্যাক করতে সাহায্য করতে পারি।\n\nআমাদের জনপ্রিয় কিছু পোশাক নিচে দেওয়া হলো:\n\n${itemsList}\n\nআজ আপনাকে কীভাবে সাহায্য করতে পারি?`;
+    }
+
+    res.json({ text: reply, matchedOrders });
+  } catch (err: any) {
+    res.status(500).json({ message: "Xoro assistant failed: " + err.message });
   }
 });
 

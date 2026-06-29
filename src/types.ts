@@ -28,6 +28,10 @@ export interface Product {
   offerPrice?: number;
   timerEndTime?: string;
   timerMessage?: string;
+  bkashNumber?: string;
+  nagadNumber?: string;
+  paymentType?: 'cod' | 'delivery_charge' | 'full_advance';
+  deliveryCharge?: number;
 }
 
 export interface CartItem {
@@ -56,6 +60,13 @@ export interface Order {
   totalAmount: number;
   status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   date: string;
+  district?: string;
+  area?: string;
+  paymentType?: string;
+  paymentMethod?: string;
+  paidAmount?: number;
+  transactionId?: string;
+  paymentScreenshot?: string;
 }
 
 export interface Banner {

@@ -14,7 +14,7 @@ interface AdminPanelProps {
   onBackToStore: () => void;
   products: Product[];
   onRefreshProducts: () => void;
-  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean };
+  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean; bkashLogoUrl?: string; nagadLogoUrl?: string };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
 }
@@ -47,6 +47,8 @@ export default function AdminPanel({
   const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
   const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec");
   const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "/stylex_logo.jpg");
+  const [bkashLogoUrlInput, setBkashLogoUrlInput] = useState(settings?.bkashLogoUrl || "");
+  const [nagadLogoUrlInput, setNagadLogoUrlInput] = useState(settings?.nagadLogoUrl || "");
   const [lotteryPrizesInput, setLotteryPrizesInput] = useState<LotteryPrize[]>([]);
   const [lotteryDiscountPercentageInput, setLotteryDiscountPercentageInput] = useState(settings?.lotteryDiscountPercentage || 15);
   const [lotteryCouponPrefixInput, setLotteryCouponPrefixInput] = useState(settings?.lotteryCouponPrefix || "RISAT");
@@ -62,6 +64,10 @@ export default function AdminPanel({
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadProgress, setLogoUploadProgress] = useState('');
+  const [bkashUploading, setBkashUploading] = useState(false);
+  const [bkashUploadProgress, setBkashUploadProgress] = useState('');
+  const [nagadUploading, setNagadUploading] = useState(false);
+  const [nagadUploadProgress, setNagadUploadProgress] = useState('');
 
   useEffect(() => {
     if (settings?.whatsappNumber) {
@@ -78,6 +84,12 @@ export default function AdminPanel({
     }
     if (settings?.logoUrl !== undefined) {
       setLogoUrlInput(settings.logoUrl);
+    }
+    if (settings?.bkashLogoUrl !== undefined) {
+      setBkashLogoUrlInput(settings.bkashLogoUrl);
+    }
+    if (settings?.nagadLogoUrl !== undefined) {
+      setNagadLogoUrlInput(settings.nagadLogoUrl);
     }
     if (settings?.lotteryPrizes) {
       setLotteryPrizesInput(settings.lotteryPrizes);
@@ -128,6 +140,8 @@ export default function AdminPanel({
           adminPassword: adminPasswordInput,
           appsScriptUrl: appsScriptUrlInput,
           logoUrl: logoUrlInput,
+          bkashLogoUrl: bkashLogoUrlInput,
+          nagadLogoUrl: nagadLogoUrlInput,
           lotteryPrizes: lotteryPrizesInput,
           lotteryDiscountPercentage: lotteryDiscountPercentageInput,
           lotteryCouponPrefix: lotteryCouponPrefixInput,
@@ -150,6 +164,8 @@ export default function AdminPanel({
             adminPassword: adminPasswordInput,
             appsScriptUrl: appsScriptUrlInput,
             logoUrl: logoUrlInput,
+            bkashLogoUrl: bkashLogoUrlInput,
+            nagadLogoUrl: nagadLogoUrlInput,
             lotteryPrizes: lotteryPrizesInput,
             lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput),
             lotteryCouponPrefix: lotteryCouponPrefixInput,
@@ -271,7 +287,7 @@ export default function AdminPanel({
           if (publicUrlData?.publicUrl) {
             setLogoUrlInput(publicUrlData.publicUrl);
             setLogoUploadProgress("Logo uploaded successfully!");
-            await handleAutoSaveSettings(publicUrlData.publicUrl);
+            await handleAutoSaveSettings('brand', publicUrlData.publicUrl);
             setLogoUploading(false);
             return;
           }
@@ -296,7 +312,7 @@ export default function AdminPanel({
       if (res.ok && resultData.fileUrl) {
         setLogoUrlInput(resultData.fileUrl);
         setLogoUploadProgress("Logo registered on servers successfully!");
-        await handleAutoSaveSettings(resultData.fileUrl);
+        await handleAutoSaveSettings('brand', resultData.fileUrl);
       } else {
         throw new Error(resultData.message || "Failed to process logo upload.");
       }
@@ -309,48 +325,169 @@ export default function AdminPanel({
     }
   };
 
-  const handleAutoSaveSettings = async (url: string) => {
+  const handlePaymentLogoUpload = async (type: 'bkash' | 'nagad', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const setUploading = type === 'bkash' ? setBkashUploading : setNagadUploading;
+    const setProgress = type === 'bkash' ? setBkashUploadProgress : setNagadUploadProgress;
+    const setUrlInput = type === 'bkash' ? setBkashLogoUrlInput : setNagadLogoUrlInput;
+
+    setUploading(true);
+    setProgress(`Preparing luxury ${type} logo asset...`);
+
     try {
+      // 1. Client-Side Image Compression & Resizing
+      const compressed = await new Promise<{ base64: string; blob: Blob }>((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const maxDimension = 600;
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve({ base64: event.target?.result as string, blob: file });
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64 = canvas.toDataURL('image/png', 0.9);
+            canvas.toBlob((blob) => {
+              resolve({ base64, blob: blob || file });
+            }, 'image/png', 0.9);
+          };
+          img.onerror = () => {
+            resolve({ base64: event.target?.result as string, blob: file });
+          };
+        };
+        reader.onerror = () => {
+          resolve({ base64: '', blob: file });
+        };
+      });
+
+      const fileNameClean = `${type}_logo_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+
+      // ATTEMPT 1: Try direct upload to Supabase bucket 'media'
+      setProgress(`Uploading ${type} logo to storage...`);
+      try {
+        let activeBucket = 'media';
+        let { data: uploadData, error: uploadError } = await supabase.storage
+          .from(activeBucket)
+          .upload(fileNameClean, compressed.blob, {
+            contentType: file.type || 'image/png',
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.warn(`Direct storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, uploadError.message);
+          activeBucket = 'products';
+          const fallbackRes = await supabase.storage
+            .from(activeBucket)
+            .upload(fileNameClean, compressed.blob, {
+              contentType: file.type || 'image/png',
+              cacheControl: '3600',
+              upsert: true
+            });
+          uploadData = fallbackRes.data;
+          uploadError = fallbackRes.error;
+        }
+
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from(activeBucket)
+            .getPublicUrl(fileNameClean);
+
+          if (publicUrlData?.publicUrl) {
+            setUrlInput(publicUrlData.publicUrl);
+            setProgress(`${type === 'bkash' ? 'bKash' : 'Nagad'} logo uploaded successfully!`);
+            await handleAutoSaveSettings(type, publicUrlData.publicUrl);
+            setUploading(false);
+            return;
+          }
+        }
+      } catch (directErr) {
+        console.warn(`Direct storage upload failed for ${type} logo, cascading to server:`, directErr);
+      }
+
+      // ATTEMPT 2: Fallback to server-side /api/upload endpoint
+      setProgress("Finalizing server-side upload...");
+      if (!compressed.base64) {
+        throw new Error("Could not prepare logo data.");
+      }
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, base64Data: compressed.base64 })
+      });
+
+      const resultData = await res.json();
+      if (res.ok && resultData.fileUrl) {
+        setUrlInput(resultData.fileUrl);
+        setProgress(`${type === 'bkash' ? 'bKash' : 'Nagad'} logo registered on servers successfully!`);
+        await handleAutoSaveSettings(type, resultData.fileUrl);
+      } else {
+        throw new Error(resultData.message || "Server upload failed");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed uploading ${type} logo: ` + err.message);
+    } finally {
+      setUploading(false);
+      setProgress('');
+    }
+  };
+
+  const handleAutoSaveSettings = async (logoType: 'brand' | 'bkash' | 'nagad', url: string) => {
+    try {
+      const payload = { 
+        whatsappNumber: whatsappNumberInput,
+        adminEmail: adminEmailInput,
+        adminPassword: adminPasswordInput,
+        appsScriptUrl: appsScriptUrlInput,
+        logoUrl: logoType === 'brand' ? url : logoUrlInput,
+        bkashLogoUrl: logoType === 'bkash' ? url : bkashLogoUrlInput,
+        nagadLogoUrl: logoType === 'nagad' ? url : nagadLogoUrlInput,
+        lotteryPrizes: lotteryPrizesInput,
+        lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+        lotteryCouponPrefix: lotteryCouponPrefixInput,
+        facebookUrl: facebookUrlInput,
+        instagramUrl: instagramUrlInput,
+        paymentBadgeTitle: paymentBadgeTitleInput,
+        paymentBadgeDescription: paymentBadgeDescriptionInput,
+        isCatalogDeactivated: isCatalogDeactivatedInput,
+        deactivatedMessage: deactivatedMessageInput,
+        isLotteryDeactivated: isLotteryDeactivatedInput,
+        isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+      };
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          whatsappNumber: whatsappNumberInput,
-          adminEmail: adminEmailInput,
-          adminPassword: adminPasswordInput,
-          appsScriptUrl: appsScriptUrlInput,
-          logoUrl: url,
-          lotteryPrizes: lotteryPrizesInput,
-          lotteryDiscountPercentage: lotteryDiscountPercentageInput,
-          lotteryCouponPrefix: lotteryCouponPrefixInput,
-          facebookUrl: facebookUrlInput,
-          instagramUrl: instagramUrlInput,
-          paymentBadgeTitle: paymentBadgeTitleInput,
-          paymentBadgeDescription: paymentBadgeDescriptionInput,
-          isCatalogDeactivated: isCatalogDeactivatedInput,
-          deactivatedMessage: deactivatedMessageInput,
-          isLotteryDeactivated: isLotteryDeactivatedInput,
-          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
-        })
+        body: JSON.stringify(payload)
       });
       try {
         const savedSettings = {
-          whatsappNumber: whatsappNumberInput,
-          adminEmail: adminEmailInput,
-          adminPassword: adminPasswordInput,
-          appsScriptUrl: appsScriptUrlInput,
-          logoUrl: url,
-          lotteryPrizes: lotteryPrizesInput,
-          lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput),
-          lotteryCouponPrefix: lotteryCouponPrefixInput,
-          facebookUrl: facebookUrlInput,
-          instagramUrl: instagramUrlInput,
-          paymentBadgeTitle: paymentBadgeTitleInput,
-          paymentBadgeDescription: paymentBadgeDescriptionInput,
-          isCatalogDeactivated: isCatalogDeactivatedInput,
-          deactivatedMessage: deactivatedMessageInput,
-          isLotteryDeactivated: isLotteryDeactivatedInput,
-          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+          ...payload,
+          lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput)
         };
         localStorage.setItem("stylex_settings", JSON.stringify(savedSettings));
       } catch (errLocalStorage) {
@@ -420,6 +557,10 @@ export default function AdminPanel({
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
   const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
   const [formTimerMessage, setFormTimerMessage] = useState<string>('');
+  const [formBkashNumber, setFormBkashNumber] = useState<string>('');
+  const [formNagadNumber, setFormNagadNumber] = useState<string>('');
+  const [formPaymentType, setFormPaymentType] = useState<'cod' | 'delivery_charge' | 'full_advance'>('cod');
+  const [formDeliveryCharge, setFormDeliveryCharge] = useState<number>(100);
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -763,7 +904,11 @@ export default function AdminPanel({
       couponDiscountPercent: Number(formCouponDiscountPercent),
       offerPrice: formOfferPrice !== '' ? Number(formOfferPrice) : null,
       timerEndTime: formTimerEndTime || null,
-      timerMessage: formTimerMessage || null
+      timerMessage: formTimerMessage || null,
+      bkashNumber: formBkashNumber,
+      nagadNumber: formNagadNumber,
+      paymentType: formPaymentType,
+      deliveryCharge: Number(formDeliveryCharge || 100)
     };
 
     try {
@@ -802,6 +947,10 @@ export default function AdminPanel({
         setFormOfferPrice('');
         setFormTimerEndTime('');
         setFormTimerMessage('');
+        setFormBkashNumber('');
+        setFormNagadNumber('');
+        setFormPaymentType('cod');
+        setFormDeliveryCharge(100);
         setUploadProgress('');
         setFormError('');
 
@@ -849,6 +998,10 @@ export default function AdminPanel({
     setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
     setFormTimerEndTime(prod.timerEndTime || '');
     setFormTimerMessage(prod.timerMessage || '');
+    setFormBkashNumber(prod.bkashNumber || '');
+    setFormNagadNumber(prod.nagadNumber || '');
+    setFormPaymentType(prod.paymentType || 'cod');
+    setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
     setShowProductForm(true);
   };
 
@@ -1948,6 +2101,70 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                           type="number" required value={formDeliveryPriceMymensingh} onChange={(e) => setFormDeliveryPriceMymensingh(Number(e.target.value))}
                           placeholder="Default 150"
                           className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Style X Payment Configuration */}
+                  <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#d4af37]/5 to-transparent border border-[#d4af37]/20 p-5 rounded-xl space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">⚜️</span>
+                      <h4 className="text-xs uppercase font-serif tracking-widest text-[#d4af37] font-bold">Style X Independent Payment Settings</h4>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-sans leading-relaxed">
+                      Configure bespoke payment settings for this specific product. These values govern the interactive checkout flow dynamically.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Payment Type selection */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Payment Type Selection</label>
+                        <select
+                          value={formPaymentType}
+                          onChange={(e) => setFormPaymentType(e.target.value as any)}
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-medium"
+                        >
+                          <option value="cod">Cash on Delivery (COD)</option>
+                          <option value="delivery_charge">Delivery Charge Only</option>
+                          <option value="full_advance">Full Advance Payment</option>
+                        </select>
+                      </div>
+
+                      {/* Delivery Charge */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Delivery Charge (৳ BD Taka)</label>
+                        <input
+                          type="number"
+                          required
+                          value={formDeliveryCharge}
+                          onChange={(e) => setFormDeliveryCharge(Number(e.target.value))}
+                          placeholder="e.g. 100"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+
+                      {/* bKash Number */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">bKash Number</label>
+                        <input
+                          type="text"
+                          value={formBkashNumber}
+                          onChange={(e) => setFormBkashNumber(e.target.value)}
+                          placeholder="e.g. 017XXXXXXXX"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+
+                      {/* Nagad Number */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Nagad Number</label>
+                        <input
+                          type="text"
+                          value={formNagadNumber}
+                          onChange={(e) => setFormNagadNumber(e.target.value)}
+                          placeholder="e.g. 019XXXXXXXX"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                         />
                       </div>
                     </div>
@@ -3239,6 +3456,96 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                       </div>
                     )}
                     <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default typography brand monogram inside the elite header.</p>
+                  </div>
+
+                  {/* bKash CUSTOM LOGO URL */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
+                      <span>bKash Custom Logo URL:</span>
+                      <span className="text-[8px] bg-pink-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">bKash</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={bkashLogoUrlInput}
+                        onChange={(e) => setBkashLogoUrlInput(e.target.value)}
+                        placeholder="e.g. https://domain.com/bkash-logo.png"
+                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      />
+                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
+                        <Upload size={12} />
+                        <span>{bkashUploading ? "Uploading..." : "Upload File"}</span>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePaymentLogoUpload('bkash', e)}
+                          disabled={bkashUploading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {bkashUploadProgress && (
+                      <p className="text-[9px] text-[#e2136e] font-mono tracking-wide mt-1 animate-pulse">
+                        ⚜️ {bkashUploadProgress}
+                      </p>
+                    )}
+                    {bkashLogoUrlInput && (
+                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
+                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Logo:</span>
+                        <img 
+                          src={bkashLogoUrlInput} 
+                          alt="bKash Logo Preview" 
+                          className="h-6 object-contain rounded shadow-sm max-w-[120px]"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default bKash icon inside the cart drawer checkout.</p>
+                  </div>
+
+                  {/* Nagad CUSTOM LOGO URL */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
+                      <span>Nagad Custom Logo URL:</span>
+                      <span className="text-[8px] bg-orange-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">Nagad</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={nagadLogoUrlInput}
+                        onChange={(e) => setNagadLogoUrlInput(e.target.value)}
+                        placeholder="e.g. https://domain.com/nagad-logo.png"
+                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      />
+                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
+                        <Upload size={12} />
+                        <span>{nagadUploading ? "Uploading..." : "Upload File"}</span>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePaymentLogoUpload('nagad', e)}
+                          disabled={nagadUploading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {nagadUploadProgress && (
+                      <p className="text-[9px] text-[#f45c24] font-mono tracking-wide mt-1 animate-pulse">
+                        ⚜️ {nagadUploadProgress}
+                      </p>
+                    )}
+                    {nagadLogoUrlInput && (
+                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
+                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Logo:</span>
+                        <img 
+                          src={nagadLogoUrlInput} 
+                          alt="Nagad Logo Preview" 
+                          className="h-6 object-contain rounded shadow-sm max-w-[120px]"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default Nagad icon inside the cart drawer checkout.</p>
                   </div>
 
                   {/* WHATSAPP INPUT */}

@@ -34,6 +34,8 @@ export default function ProductDetailModal({
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
 
+  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null && (!product.timerEndTime || !timerExpired);
+
   // Hover-to-zoom magnifier states
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
@@ -147,7 +149,7 @@ export default function ProductDetailModal({
   const shareUrl = `${window.location.origin}/?productCode=${product.code}`;
   
   const getSharePrice = () => {
-    if (product.offerPrice && timeLeft && !timerExpired) {
+    if (hasActiveOffer) {
       return product.offerPrice;
     }
     return product.price;
@@ -208,7 +210,7 @@ export default function ProductDetailModal({
   const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
 
   const handleWhatsAppDirect = () => {
-    const activePrice = (product.offerPrice && timeLeft && !timerExpired) ? product.offerPrice : product.price;
+    const activePrice = hasActiveOffer ? product.offerPrice : product.price;
     const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I am looking to acquire:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}\n\nCould you guide me regarding active courier times?\nThank you!`;
     const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
     window.open(finalUrl, '_blank');
@@ -306,54 +308,48 @@ export default function ProductDetailModal({
                 {product.title}
               </h2>
 
-              {timeLeft && !timerExpired ? (
+              {hasActiveOffer ? (
                 <div className="space-y-2 animate-fade-in">
                   <div className="flex items-baseline gap-3">
-                    {product.offerPrice !== undefined && product.offerPrice !== null ? (
-                      <>
-                        <span className="luxury-animated-price text-4xl font-black text-emerald-400 tracking-widest animate-pulse">
-                          {formatPrice(product.offerPrice)}
-                        </span>
-                        <span className="text-sm text-white/40 line-through">
-                          {formatPrice(product.price)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="luxury-animated-price text-4xl font-black text-white tracking-widest">
-                        {formatPrice(product.price)}
-                      </span>
-                    )}
+                    <span className="luxury-animated-price text-4xl font-black text-emerald-400 tracking-widest animate-pulse">
+                      {formatPrice(product.offerPrice!)}
+                    </span>
+                    <span className="text-sm text-white/40 line-through">
+                      {formatPrice(product.price)}
+                    </span>
                   </div>
                   
                   {/* Countdown banner inside modal */}
-                  <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
-                    
-                    {product.timerMessage && (
-                      <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
-                        <span>{product.timerMessage}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 font-mono text-xs text-white">
-                      <span className="text-white/50 text-[10px] uppercase tracking-wider font-display mr-1">Time Left:</span>
-                      {timeLeft.days > 0 && (
-                        <>
-                          <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-1 rounded text-luxury-gold font-bold">{timeLeft.days} Days</span>
-                          <span className="text-luxury-gold/50 animate-pulse">:</span>
-                        </>
+                  {timeLeft && !timerExpired && (
+                    <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
+                      
+                      {product.timerMessage && (
+                        <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+                          <span>{product.timerMessage}</span>
+                        </div>
                       )}
-                      <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-                      <span className="text-luxury-gold/50 animate-pulse">:</span>
-                      <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-                      <span className="text-luxury-gold/50 animate-pulse">:</span>
-                      <span className="bg-luxury-black/95 border border-red-500/50 px-2 py-0.5 rounded text-red-400 font-extrabold animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                      
+                      <div className="flex items-center gap-2 font-mono text-xs text-white">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wider font-display mr-1">Time Left:</span>
+                        {timeLeft.days > 0 && (
+                          <>
+                            <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-1 rounded text-luxury-gold font-bold">{timeLeft.days} Days</span>
+                            <span className="text-luxury-gold/50 animate-pulse">:</span>
+                          </>
+                        )}
+                        <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.hours).padStart(2, '0')}h</span>
+                        <span className="text-luxury-gold/50 animate-pulse">:</span>
+                        <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+                        <span className="text-luxury-gold/50 animate-pulse">:</span>
+                        <span className="bg-luxury-black/95 border border-red-500/50 px-2 py-0.5 rounded text-red-400 font-extrabold animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
-                <p className="luxury-animated-price text-3xl font-black tracking-widest">
+                <p className="luxury-animated-price text-luxury-gold text-3xl font-black tracking-widest">
                   {formatPrice(product.price)}
                 </p>
               )}
@@ -372,6 +368,54 @@ export default function ProductDetailModal({
                       className={`h-full ${product.stock < 10 ? 'bg-yellow-400' : 'bg-gradient-to-r from-luxury-purple via-luxury-gold to-emerald-400'}`}
                       style={{ width: `${Math.min(100, (product.stock / 350) * 100)}%` }}
                     ></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Dynamic Payment Policy Box */}
+              <div className="border border-white/5 bg-[#0e071a]/50 p-4 rounded-xl shadow-inner backdrop-blur-sm space-y-2">
+                <div className="flex items-center justify-between text-[9px] uppercase font-mono text-white/50 tracking-widest border-b border-white/5 pb-1.5">
+                  <span>Payment Security Policy:</span>
+                  <span className="text-[#ffd700] font-bold">SECURED GATEWAY</span>
+                </div>
+                {product.paymentType === 'full_advance' ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-serif font-semibold text-rose-300 uppercase tracking-wider">
+                      👑 Full Advance Payment Required
+                    </p>
+                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                      To secure your bespoke creation order, full payment is required in advance.
+                    </p>
+                    {(product.bkashNumber || product.nagadNumber) && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                      </div>
+                    )}
+                  </div>
+                ) : product.paymentType === 'delivery_charge' ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-serif font-semibold text-amber-300 uppercase tracking-wider">
+                      📦 Delivery Charge Advance Required (৳{product.deliveryCharge || 100})
+                    </p>
+                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                      Pay the courier delivery charge of ৳{product.deliveryCharge || 100} in advance to confirm booking; the balance is paid cash-on-delivery.
+                    </p>
+                    {(product.bkashNumber || product.nagadNumber) && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs font-serif font-semibold text-emerald-400 uppercase tracking-wider">
+                      ⚜️ 100% Cash on Delivery Available
+                    </p>
+                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                      No advance payment needed. Pay in full upon physical handoff at delivery.
+                    </p>
                   </div>
                 )}
               </div>
@@ -499,7 +543,7 @@ export default function ProductDetailModal({
                       onOrderNow(product, selectedSize);
                       onClose();
                     }}
-                    className="w-full bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#059669] text-black hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
+                    className="w-full bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] text-white hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(154,77,255,0.35)] hover:shadow-[0_0_30px_rgba(154,77,255,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
                   >
                     <span>👑</span>
                     <span>Buy Now</span>
@@ -695,7 +739,7 @@ export default function ProductDetailModal({
 
             {/* Security Badge tags */}
             <div className="border-t border-white/5 pt-3.5 flex items-center justify-center gap-2.5 text-[10px] text-white/40 uppercase tracking-widest font-mono text-center">
-              <span>⚜️ CASH ON DELIVERY AVAILABLE</span>
+              <span>⚜️ {product.paymentType === 'full_advance' ? '100% SECURED PAYMENT' : product.paymentType === 'delivery_charge' ? 'DELIVERY CHARGE SECURED' : 'CASH ON DELIVERY AVAILABLE'}</span>
               <span>•</span>
               <span>VIP SHAPE ENGINE GUARANTEED ⚜️</span>
             </div>
