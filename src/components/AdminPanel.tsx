@@ -3,7 +3,7 @@ import {
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
-  Facebook, Instagram
+  Facebook, Instagram, Menu, LogOut, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
@@ -12,22 +12,31 @@ import { LotteryPrize } from './LotteryModal';
 
 interface AdminPanelProps {
   onBackToStore: () => void;
+  onLogout?: () => void;
   products: Product[];
   onRefreshProducts: () => void;
-  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean; bkashLogoUrl?: string; nagadLogoUrl?: string };
+  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; xoroAvatarUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean; bkashLogoUrl?: string; nagadLogoUrl?: string };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
 }
 
 export default function AdminPanel({
   onBackToStore,
+  onLogout,
   products,
   onRefreshProducts,
   settings,
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts'>(() => {
+    return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
+  });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.setItem('stylex_admin_active_tab', activeTab);
+  }, [activeTab]);
 
   // Admin Data states
   const [analytics, setAnalytics] = useState<any>(null);
@@ -47,6 +56,7 @@ export default function AdminPanel({
   const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
   const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec");
   const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "/stylex_logo.jpg");
+  const [xoroAvatarUrlInput, setXoroAvatarUrlInput] = useState(settings?.xoroAvatarUrl || "");
   const [bkashLogoUrlInput, setBkashLogoUrlInput] = useState(settings?.bkashLogoUrl || "");
   const [nagadLogoUrlInput, setNagadLogoUrlInput] = useState(settings?.nagadLogoUrl || "");
   const [lotteryPrizesInput, setLotteryPrizesInput] = useState<LotteryPrize[]>([]);
@@ -64,6 +74,8 @@ export default function AdminPanel({
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadProgress, setLogoUploadProgress] = useState('');
+  const [xoroUploading, setXoroUploading] = useState(false);
+  const [xoroUploadProgress, setXoroUploadProgress] = useState('');
   const [bkashUploading, setBkashUploading] = useState(false);
   const [bkashUploadProgress, setBkashUploadProgress] = useState('');
   const [nagadUploading, setNagadUploading] = useState(false);
@@ -84,6 +96,9 @@ export default function AdminPanel({
     }
     if (settings?.logoUrl !== undefined) {
       setLogoUrlInput(settings.logoUrl);
+    }
+    if (settings?.xoroAvatarUrl !== undefined) {
+      setXoroAvatarUrlInput(settings.xoroAvatarUrl);
     }
     if (settings?.bkashLogoUrl !== undefined) {
       setBkashLogoUrlInput(settings.bkashLogoUrl);
@@ -140,6 +155,7 @@ export default function AdminPanel({
           adminPassword: adminPasswordInput,
           appsScriptUrl: appsScriptUrlInput,
           logoUrl: logoUrlInput,
+          xoroAvatarUrl: xoroAvatarUrlInput,
           bkashLogoUrl: bkashLogoUrlInput,
           nagadLogoUrl: nagadLogoUrlInput,
           lotteryPrizes: lotteryPrizesInput,
@@ -164,6 +180,7 @@ export default function AdminPanel({
             adminPassword: adminPasswordInput,
             appsScriptUrl: appsScriptUrlInput,
             logoUrl: logoUrlInput,
+            xoroAvatarUrl: xoroAvatarUrlInput,
             bkashLogoUrl: bkashLogoUrlInput,
             nagadLogoUrl: nagadLogoUrlInput,
             lotteryPrizes: lotteryPrizesInput,
@@ -325,16 +342,31 @@ export default function AdminPanel({
     }
   };
 
-  const handlePaymentLogoUpload = async (type: 'bkash' | 'nagad', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePaymentLogoUpload = async (type: 'bkash' | 'nagad' | 'xoro', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const setUploading = type === 'bkash' ? setBkashUploading : setNagadUploading;
-    const setProgress = type === 'bkash' ? setBkashUploadProgress : setNagadUploadProgress;
-    const setUrlInput = type === 'bkash' ? setBkashLogoUrlInput : setNagadLogoUrlInput;
+    let setUploading = setBkashUploading;
+    let setProgress = setBkashUploadProgress;
+    let setUrlInput = setBkashLogoUrlInput;
+
+    if (type === 'bkash') {
+      setUploading = setBkashUploading;
+      setProgress = setBkashUploadProgress;
+      setUrlInput = setBkashLogoUrlInput;
+    } else if (type === 'nagad') {
+      setUploading = setNagadUploading;
+      setProgress = setNagadUploadProgress;
+      setUrlInput = setNagadLogoUrlInput;
+    } else if (type === 'xoro') {
+      setUploading = setXoroUploading;
+      setProgress = setXoroUploadProgress;
+      setUrlInput = setXoroAvatarUrlInput;
+    }
 
     setUploading(true);
-    setProgress(`Preparing luxury ${type} logo asset...`);
+    const friendlyName = type === 'xoro' ? 'Xoro Mascot' : (type === 'bkash' ? 'bKash' : 'Nagad');
+    setProgress(`Preparing luxury ${friendlyName} image asset...`);
 
     try {
       // 1. Client-Side Image Compression & Resizing
@@ -386,7 +418,7 @@ export default function AdminPanel({
       const fileNameClean = `${type}_logo_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
 
       // ATTEMPT 1: Try direct upload to Supabase bucket 'media'
-      setProgress(`Uploading ${type} logo to storage...`);
+      setProgress(`Uploading ${friendlyName} to storage...`);
       try {
         let activeBucket = 'media';
         let { data: uploadData, error: uploadError } = await supabase.storage
@@ -418,20 +450,20 @@ export default function AdminPanel({
 
           if (publicUrlData?.publicUrl) {
             setUrlInput(publicUrlData.publicUrl);
-            setProgress(`${type === 'bkash' ? 'bKash' : 'Nagad'} logo uploaded successfully!`);
+            setProgress(`${friendlyName} uploaded successfully!`);
             await handleAutoSaveSettings(type, publicUrlData.publicUrl);
             setUploading(false);
             return;
           }
         }
       } catch (directErr) {
-        console.warn(`Direct storage upload failed for ${type} logo, cascading to server:`, directErr);
+        console.warn(`Direct storage upload failed for ${friendlyName}, cascading to server:`, directErr);
       }
 
       // ATTEMPT 2: Fallback to server-side /api/upload endpoint
       setProgress("Finalizing server-side upload...");
       if (!compressed.base64) {
-        throw new Error("Could not prepare logo data.");
+        throw new Error("Could not prepare image binary data.");
       }
 
       const res = await fetch('/api/upload', {
@@ -443,21 +475,21 @@ export default function AdminPanel({
       const resultData = await res.json();
       if (res.ok && resultData.fileUrl) {
         setUrlInput(resultData.fileUrl);
-        setProgress(`${type === 'bkash' ? 'bKash' : 'Nagad'} logo registered on servers successfully!`);
+        setProgress(`${friendlyName} registered on servers successfully!`);
         await handleAutoSaveSettings(type, resultData.fileUrl);
       } else {
         throw new Error(resultData.message || "Server upload failed");
       }
     } catch (err: any) {
       console.error(err);
-      alert(`Failed uploading ${type} logo: ` + err.message);
+      alert(`Failed uploading ${friendlyName}: ` + err.message);
     } finally {
       setUploading(false);
       setProgress('');
     }
   };
 
-  const handleAutoSaveSettings = async (logoType: 'brand' | 'bkash' | 'nagad', url: string) => {
+  const handleAutoSaveSettings = async (logoType: 'brand' | 'bkash' | 'nagad' | 'xoro', url: string) => {
     try {
       const payload = { 
         whatsappNumber: whatsappNumberInput,
@@ -465,6 +497,7 @@ export default function AdminPanel({
         adminPassword: adminPasswordInput,
         appsScriptUrl: appsScriptUrlInput,
         logoUrl: logoType === 'brand' ? url : logoUrlInput,
+        xoroAvatarUrl: logoType === 'xoro' ? url : xoroAvatarUrlInput,
         bkashLogoUrl: logoType === 'bkash' ? url : bkashLogoUrlInput,
         nagadLogoUrl: logoType === 'nagad' ? url : nagadLogoUrlInput,
         lotteryPrizes: lotteryPrizesInput,
@@ -562,6 +595,7 @@ export default function AdminPanel({
   const [formNagadNumber, setFormNagadNumber] = useState<string>('');
   const [formPaymentType, setFormPaymentType] = useState<'cod' | 'delivery_charge' | 'full_advance'>('cod');
   const [formDeliveryCharge, setFormDeliveryCharge] = useState<number>(100);
+  const [formDeliveryDays, setFormDeliveryDays] = useState<string>('3-5');
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -910,7 +944,8 @@ export default function AdminPanel({
       bkashNumber: formBkashNumber,
       nagadNumber: formNagadNumber,
       paymentType: formPaymentType,
-      deliveryCharge: Number(formDeliveryCharge || 100)
+      deliveryCharge: Number(formDeliveryCharge || 100),
+      deliveryDays: formDeliveryDays || '3-5'
     };
 
     try {
@@ -954,6 +989,7 @@ export default function AdminPanel({
         setFormNagadNumber('');
         setFormPaymentType('cod');
         setFormDeliveryCharge(100);
+        setFormDeliveryDays('3-5');
         setUploadProgress('');
         setFormError('');
 
@@ -1006,6 +1042,7 @@ export default function AdminPanel({
     setFormNagadNumber(prod.nagadNumber || '');
     setFormPaymentType(prod.paymentType || 'cod');
     setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
+    setFormDeliveryDays(prod.deliveryDays !== undefined ? String(prod.deliveryDays) : '3-5');
     setShowProductForm(true);
   };
 
@@ -1338,154 +1375,213 @@ export default function AdminPanel({
 }`;
 
   return (
-    <div className="min-h-screen bg-luxury-black text-white flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-luxury-black text-white flex flex-col lg:flex-row antialiased relative overflow-x-hidden">
       
-      {/* LEFT SIDEBAR PANEL (exactly replicating Screen 1 design) */}
-      <aside className="w-full md:w-64 bg-[#0a0a0a] border-r border-luxury-gold/15 p-5 flex flex-col justify-between flex-shrink-0">
-        <div className="space-y-6">
-          {/* Logo brand box */}
-          <div className="flex items-center gap-3 pb-6 border-b border-white/5">
+      {/* MOBILE TOP APP BAR */}
+      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-luxury-gold/15 sticky top-0 z-40 shadow-lg">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 -ml-1 text-luxury-gold hover:text-white hover:bg-white/5 rounded-md transition-all cursor-pointer flex items-center justify-center"
+            aria-label="Toggle Navigation Menu"
+          >
+            <Menu size={22} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-sm text-luxury-gold font-bold">
+              SX
+            </div>
+            <span className="font-serif text-sm font-extrabold tracking-widest text-white uppercase">STYLE X</span>
+          </div>
+        </div>
+        
+        {/* Highlight currently active tab title in top bar on mobile */}
+        <div className="text-[10px] text-luxury-gold font-mono uppercase tracking-widest bg-luxury-gold/5 px-2.5 py-1 rounded border border-luxury-gold/15 flex items-center gap-1.5 font-bold animate-fade-in">
+          <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-pulse"></span>
+          {activeTab === 'dashboard' && "Dashboard"}
+          {activeTab === 'inventory' && "Inventory"}
+          {activeTab === 'orders' && "Orders"}
+          {activeTab === 'banners' && "Banners"}
+          {activeTab === 'reviews' && "Reviews"}
+          {activeTab === 'coupons' && "Coupons"}
+          {activeTab === 'campaigns' && "Campaigns"}
+          {activeTab === 'chat' && "Support"}
+          {activeTab === 'seo' && "SEO"}
+          {activeTab === 'alerts' && "Alerts"}
+          {activeTab === 'settings' && "Settings"}
+        </div>
+      </header>
+
+      {/* MOBILE SIDE DRAWER BACKDROP */}
+      {isDrawerOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-45 transition-opacity duration-300"
+          onClick={() => setIsDrawerOpen(false)}
+        />
+      )}
+
+      {/* RESPONSIVE LEFT DRAWER / SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0a0a0a] border-r border-luxury-gold/15 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 h-full ${
+        isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Brand logo block */}
+        <div className="flex items-center justify-between pb-5 border-b border-white/5 shrink-0">
+          <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-lg text-luxury-gold font-bold">
               SX
             </div>
             <div>
               <h2 className="font-serif text-base tracking-widest font-extrabold text-white">STYLE X</h2>
-              <span className="text-[9px] text-luxury-gold font-mono uppercase tracking-widest block -mt-1">ADMIN PANEL</span>
+              <span className="text-[9px] text-luxury-gold font-mono uppercase tracking-widest block -mt-1">ADMIN PORTAL</span>
             </div>
           </div>
+          
+          <button 
+            onClick={() => setIsDrawerOpen(false)}
+            className="lg:hidden p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-all cursor-pointer flex items-center justify-center"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          {/* Menus List */}
+        {/* Scrollable menu content */}
+        <div className="flex-1 overflow-y-auto py-5 pr-1 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
           <nav className="space-y-1">
             <p className="text-[8.5px] uppercase font-mono tracking-widest text-white/35 px-2.5 mb-2.5 block">SYSTEM ACCESS</p>
             
             <button 
-              onClick={() => { setActiveTab('dashboard'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('dashboard'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'dashboard' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'dashboard' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <BarChart3 size={13} />
+              <BarChart3 size={13} className={activeTab === 'dashboard' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Dashboard
             </button>
 
             <button 
-              onClick={() => { setActiveTab('inventory'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('inventory'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'inventory' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'inventory' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <LayoutGrid size={13} />
+              <LayoutGrid size={13} className={activeTab === 'inventory' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Inventory
             </button>
 
             <button 
-              onClick={() => { setActiveTab('orders'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('orders'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'orders' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'orders' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <ClipboardList size={13} />
+              <ClipboardList size={13} className={activeTab === 'orders' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Order Tracking
               {orders.filter(o => o.status === 'PENDING').length > 0 && (
-                <span className="ml-auto w-4.5 h-4.5 bg-red-500 rounded-full text-[9px] flex items-center justify-center font-bold text-white leading-none">
+                <span className={`ml-auto w-5 h-5 rounded-full text-[9px] flex items-center justify-center font-bold leading-none ${
+                  activeTab === 'orders' ? 'bg-luxury-black text-luxury-gold' : 'bg-red-500 text-white'
+                }`}>
                   {orders.filter(o => o.status === 'PENDING').length}
                 </span>
               )}
             </button>
 
             <button 
-              onClick={() => { setActiveTab('banners'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('banners'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'banners' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'banners' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <ImageIcon size={13} />
+              <ImageIcon size={13} className={activeTab === 'banners' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Banners
             </button>
 
             <button 
-              onClick={() => { setActiveTab('reviews'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('reviews'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'reviews' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'reviews' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Star size={13} />
+              <Star size={13} className={activeTab === 'reviews' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Reviews
               {reviews.filter(r => !r.isApproved).length > 0 && (
-                <span className="ml-auto bg-luxury-gold/20 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none">
+                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold ${
+                  activeTab === 'reviews' ? 'bg-luxury-black text-luxury-gold border-luxury-gold/40' : 'bg-luxury-gold/20 text-luxury-gold border-luxury-gold/30'
+                }`}>
                   {reviews.filter(r => !r.isApproved).length}
                 </span>
               )}
             </button>
 
             <button 
-              onClick={() => { setActiveTab('coupons'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('coupons'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'coupons' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'coupons' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Tag size={13} />
+              <Tag size={13} className={activeTab === 'coupons' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Coupons
             </button>
 
             <button 
-              onClick={() => { setActiveTab('campaigns'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('campaigns'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'campaigns' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'campaigns' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles size={13} />
+              <Sparkles size={13} className={activeTab === 'campaigns' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Campaigns
             </button>
 
             <button 
-              onClick={() => { setActiveTab('chat'); }}
+              onClick={() => { setActiveTab('chat'); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'chat' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'chat' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <MessageSquare size={13} />
+              <MessageSquare size={13} className={activeTab === 'chat' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Chat Support
             </button>
 
             <button 
-              onClick={() => { setActiveTab('seo'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('seo'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'seo' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'seo' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Globe size={13} />
+              <Globe size={13} className={activeTab === 'seo' ? 'text-luxury-black' : 'text-luxury-gold'} />
               SEO Master
             </button>
 
             <button 
-              onClick={() => { setActiveTab('alerts'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('alerts'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'alerts' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'alerts' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <Bell size={13} className={activeTab === 'alerts' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Restock Alerts
               {backInStockAlerts.length > 0 && (
-                <span className="ml-auto bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold">
+                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold ${
+                  activeTab === 'alerts' ? 'bg-luxury-black text-luxury-gold border-luxury-gold/45' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                }`}>
                   {backInStockAlerts.length}
                 </span>
               )}
             </button>
 
             <button 
-              onClick={() => { setActiveTab('settings'); setSelectedChat(null); }}
+              onClick={() => { setActiveTab('settings'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <Settings size={13} className={activeTab === 'settings' ? 'text-luxury-black' : 'text-luxury-gold'} />
               System Settings
             </button>
           </nav>
-        </div>
 
-        <div className="pt-6 border-t border-white/5 space-y-3">
           {/* Quick Social Setup */}
           <div className="bg-[#0e0e0e] border border-white/5 p-3 rounded-lg space-y-2.5">
             <div className="flex items-center gap-1.5 pb-1 border-b border-white/5">
@@ -1529,13 +1625,33 @@ export default function AdminPanel({
               <p className="text-[7.5px] text-emerald-400 font-mono text-center animate-pulse">✓ Saved Successfully!</p>
             )}
           </div>
+        </div>
 
+        {/* View Store and Logout at the Bottom of the Drawer */}
+        <div className="pt-4 border-t border-white/5 space-y-2 shrink-0">
           <button 
-            onClick={onBackToStore}
-            className="w-full text-center border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black text-[9.5px] font-display font-extrabold uppercase py-2 tracking-widest rounded transition-all cursor-pointer"
+            onClick={() => { onBackToStore(); setIsDrawerOpen(false); }}
+            className="w-full flex items-center justify-center gap-2 border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black text-[10px] font-display font-extrabold uppercase py-2.5 tracking-widest rounded transition-all cursor-pointer"
           >
-            ↩ VIEW FRONT STORE
+            <ExternalLink size={12} />
+            View Store
           </button>
+          
+          <button 
+            onClick={() => {
+              setIsDrawerOpen(false);
+              if (onLogout) {
+                onLogout();
+              } else {
+                onBackToStore();
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-red-950/25 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white text-[10px] font-display font-extrabold uppercase py-2.5 tracking-widest rounded transition-all cursor-pointer"
+          >
+            <LogOut size={12} />
+            Logout
+          </button>
+          
           <p className="text-[8px] text-white/30 text-center font-mono">STYLE X PLATFORM v4.0</p>
         </div>
       </aside>
@@ -2145,6 +2261,19 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                           value={formDeliveryCharge}
                           onChange={(e) => setFormDeliveryCharge(Number(e.target.value))}
                           placeholder="e.g. 100"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+
+                      {/* Delivery Duration */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Delivery Duration / কয়দিন লাগবে (e.g. 3 or 3-5)</label>
+                        <input
+                          type="text"
+                          required
+                          value={formDeliveryDays}
+                          onChange={(e) => setFormDeliveryDays(e.target.value)}
+                          placeholder="e.g. 3-5"
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                         />
                       </div>
@@ -3476,6 +3605,51 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                       </div>
                     )}
                     <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default typography brand monogram inside the elite header.</p>
+                  </div>
+
+                  {/* XORO MASCOT AVATAR IMAGE */}
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
+                      <span>Xoro Mascot Avatar Image:</span>
+                      <span className="text-[8px] bg-luxury-gold text-luxury-black px-1.5 py-0.5 rounded font-bold tracking-widest">XORO</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text"
+                        value={xoroAvatarUrlInput}
+                        onChange={(e) => setXoroAvatarUrlInput(e.target.value)}
+                        placeholder="e.g. https://domain.com/xoro-avatar.png"
+                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                      />
+                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
+                        <Upload size={12} />
+                        <span>{xoroUploading ? "Uploading..." : "Upload File"}</span>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePaymentLogoUpload('xoro', e)}
+                          disabled={xoroUploading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {xoroUploadProgress && (
+                      <p className="text-[9px] text-luxury-gold font-mono tracking-wide mt-1 animate-pulse">
+                        ⚜️ {xoroUploadProgress}
+                      </p>
+                    )}
+                    {xoroAvatarUrlInput && (
+                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
+                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Mascot:</span>
+                        <img 
+                          src={xoroAvatarUrlInput} 
+                          alt="Bespoke Xoro Mascot Preview" 
+                          className="h-10 w-10 rounded-full object-cover border border-luxury-gold/30"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or upload a custom image for Xoro's avatar. Highly visible on the homepage assistant container.</p>
                   </div>
 
                   {/* bKash CUSTOM LOGO URL */}

@@ -147,8 +147,8 @@ export default function Navbar({
                       }}
                       className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
                     >
-                      <History size={13} className="text-luxury-gold" />
-                      My Order History
+                      <History size={13} className="text-luxury-gold animate-pulse" />
+                      My Profile & Orders
                     </button>
                   )}
                   <button 
@@ -317,8 +317,8 @@ export default function Navbar({
                             }}
                             className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
                           >
-                            <History size={13} className="text-luxury-gold" />
-                            My Order History
+                            <History size={13} className="text-luxury-gold animate-pulse" />
+                            My Profile & Orders
                           </button>
                         )}
                         <button 

@@ -452,6 +452,14 @@ export default function ProductDetailModal({
               </div>
             )}
 
+            {/* Delivery Duration Indicator */}
+            <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 px-4 w-full sm:w-fit justify-center sm:justify-start animate-fade-in mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <span className="text-[11px] sm:text-xs font-mono text-emerald-300 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
+                🚀 Delivery: {product.deliveryDays || "3-5"} Days (ডেলিভারি {product.deliveryDays || "3-5"} দিন)
+              </span>
+            </div>
+
             {/* Direct ordering actions */}
             {product.stock === 0 ? (
               <div className="space-y-2 w-full">

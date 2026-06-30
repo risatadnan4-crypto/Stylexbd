@@ -33,6 +33,7 @@ export interface Product {
   nagadNumber?: string;
   paymentType?: 'cod' | 'delivery_charge' | 'full_advance';
   deliveryCharge?: number;
+  deliveryDays?: string; // How many days for delivery
 }
 
 export interface CartItem {

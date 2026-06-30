@@ -144,9 +144,12 @@ export default function ProductCard({
   };
 
   return (
-    <div className="group luxury-glowing-card p-3.5 sm:p-3.5 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible">
+    <div className="group luxury-glowing-card p-3.5 sm:p-3.5 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible relative">
+      {/* Dynamic ambient backdrop glowing aura that radiates out from inside the product card */}
+      <div className="absolute -inset-1.5 bg-gradient-to-r from-luxury-gold/25 via-luxury-purple-glowing/15 to-luxury-gold/25 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none -z-10 animate-pulse"></div>
+
       {/* Premium glowing hover accent card background */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/5 via-transparent to-luxury-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-gold/[0.08] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0 shadow-[inset_0_0_20px_rgba(212,175,55,0.2)]"></div>
 
       {/* Automatic QR Code overlay */}
       {showQRCode && (() => {
@@ -238,7 +241,8 @@ export default function ProductCard({
         />
         {/* Dark gold color overlay on photo hovers */}
         <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-transparent to-transparent opacity-60"></div>
-        <div className="absolute inset-0 bg-luxury-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-purple-glowing/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-screen"></div>
+        <div className="absolute inset-0 bg-luxury-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         
         {/* Quick View absolute layer */}
         <div className="absolute inset-0 bg-luxury-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
@@ -371,6 +375,14 @@ export default function ProductCard({
             </div>
           </div>
         )}
+
+        {/* Delivery Duration Indicator */}
+        <div className="mb-2 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md p-1 px-1.5 w-full sm:w-fit justify-center sm:justify-start animate-fade-in">
+          <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+          <span className="text-[9px] sm:text-[9.5px] font-mono text-emerald-400 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
+            🚀 Delivery: {product.deliveryDays || "3-5"} Days ({product.deliveryDays || "3-5"} দিন)
+          </span>
+        </div>
       </div>
 
       {/* Order Actions and Collapsible Explain Panels */}

@@ -165,6 +165,7 @@ let db = {
     adminPassword: "risat123",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
     logoUrl: "/stylex_logo.jpg",
+    xoroAvatarUrl: "",
     bkashLogoUrl: "",
     nagadLogoUrl: "",
     lotteryDiscountPercentage: 15,
@@ -222,6 +223,7 @@ if (fs.existsSync(DB_FILE)) {
         ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
         : currentScriptUrl,
       logoUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
+      xoroAvatarUrl: db.settings?.xoroAvatarUrl || "",
       bkashLogoUrl: db.settings?.bkashLogoUrl || "",
       nagadLogoUrl: db.settings?.nagadLogoUrl || "",
       lotteryDiscountPercentage: db.settings?.lotteryDiscountPercentage !== undefined ? Number(db.settings.lotteryDiscountPercentage) : 15,
@@ -307,7 +309,8 @@ async function syncFromSupabase() {
               bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
               nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
               paymentType: p.paymentType || localProduct?.paymentType || "cod",
-              deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))
+              deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100)),
+              deliveryDays: p.deliveryDays || localProduct?.deliveryDays || "3-5"
             };
           });
           db.seededProducts = true;
@@ -373,6 +376,7 @@ async function syncFromSupabase() {
               if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
               if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
               if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+              if (fallbackSettings.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = fallbackSettings.xoroAvatarUrl;
               if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
               if (fallbackSettings.instagramUrl !== undefined) db.settings.instagramUrl = fallbackSettings.instagramUrl;
               if (fallbackSettings.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(fallbackSettings.lotteryDiscountPercentage);
@@ -578,6 +582,7 @@ async function syncFromSupabase() {
           if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
           if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
           if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
+          if (map.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = map.xoroAvatarUrl;
           if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
           if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
           if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
@@ -731,15 +736,23 @@ app.get("/api/visitor-ping", (req, res) => {
       activeSessions.set(visitorId, now);
     }
 
-    // Handle unique visitor views counting accuracy
-    if (visitorId) {
+    // Handle unique visitor views counting accuracy using session-based and device-based tracking
+    const trackingKey = sessionId || visitorId;
+    if (trackingKey) {
       if (!db.countedSessions) {
         db.countedSessions = [];
       }
 
-      if (!db.countedSessions.includes(visitorId)) {
-        db.countedSessions.push(visitorId);
-        db.visits = db.countedSessions.length;
+      if (!db.countedSessions.includes(trackingKey)) {
+        db.countedSessions.push(trackingKey);
+        
+        // Cap the size of countedSessions to prevent memory/storage blowup over time (max 5000)
+        if (db.countedSessions.length > 5000) {
+          db.countedSessions.shift();
+        }
+
+        // Monotonically increase visits so that it never decreases and counts forever
+        db.visits = Math.max((db.visits || 125) + 1, db.countedSessions.length);
         saveDB();
 
         // Asynchronously back up the visitor metrics to Supabase
@@ -830,6 +843,7 @@ app.get("/api/settings", async (req, res) => {
         if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
         if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
         if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
+        if (map.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = map.xoroAvatarUrl;
         if (map.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = map.bkashLogoUrl;
         if (map.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = map.nagadLogoUrl;
         if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
@@ -875,6 +889,7 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
             if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
             if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+            if (fallbackSettings.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = fallbackSettings.xoroAvatarUrl;
             if (fallbackSettings.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = fallbackSettings.bkashLogoUrl;
             if (fallbackSettings.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = fallbackSettings.nagadLogoUrl;
             if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
@@ -964,7 +979,7 @@ app.post("/api/discount-request", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl } = req.body;
+    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, xoroAvatarUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl } = req.body;
     
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
@@ -972,6 +987,7 @@ app.post("/api/settings", async (req, res) => {
       adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
       appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
+      xoroAvatarUrl: xoroAvatarUrl !== undefined ? xoroAvatarUrl.trim() : (db.settings?.xoroAvatarUrl || ""),
       bkashLogoUrl: bkashLogoUrl !== undefined ? bkashLogoUrl.trim() : (db.settings?.bkashLogoUrl || ""),
       nagadLogoUrl: nagadLogoUrl !== undefined ? nagadLogoUrl.trim() : (db.settings?.nagadLogoUrl || ""),
       lotteryDiscountPercentage: lotteryDiscountPercentage !== undefined ? Number(lotteryDiscountPercentage) : (db.settings?.lotteryDiscountPercentage || 15),
@@ -1003,6 +1019,7 @@ app.post("/api/settings", async (req, res) => {
         if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
         if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
         if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
+        if (xoroAvatarUrl !== undefined) await saveSetting("xoroAvatarUrl", xoroAvatarUrl.trim());
         if (bkashLogoUrl !== undefined) await saveSetting("bkashLogoUrl", bkashLogoUrl.trim());
         if (nagadLogoUrl !== undefined) await saveSetting("nagadLogoUrl", nagadLogoUrl.trim());
         if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
@@ -1066,7 +1083,8 @@ app.get("/api/products", async (req, res) => {
           bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
           nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
           paymentType: p.paymentType || localProduct?.paymentType || "cod",
-          deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))
+          deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100)),
+          deliveryDays: p.deliveryDays || localProduct?.deliveryDays || "3-5"
         };
       });
       db.products = products;
@@ -1101,7 +1119,8 @@ app.get("/api/products/:id", async (req, res) => {
         bkashNumber: data.bkashNumber || localProduct?.bkashNumber || "",
         nagadNumber: data.nagadNumber || localProduct?.nagadNumber || "",
         paymentType: data.paymentType || localProduct?.paymentType || "cod",
-        deliveryCharge: data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))
+        deliveryCharge: data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100)),
+        deliveryDays: data.deliveryDays || localProduct?.deliveryDays || "3-5"
       };
       return res.json(prod);
     }
@@ -1205,7 +1224,8 @@ app.post("/api/products", async (req, res) => {
       bkashNumber: newProduct.bkashNumber || "",
       nagadNumber: newProduct.nagadNumber || "",
       paymentType: newProduct.paymentType || "cod",
-      deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100)
+      deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
+      deliveryDays: newProduct.deliveryDays || null
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1217,6 +1237,7 @@ app.post("/api/products", async (req, res) => {
       delete payload.nagadNumber;
       delete payload.paymentType;
       delete payload.deliveryCharge;
+      delete payload.deliveryDays;
       delete payload.deliveryPrice;
       delete payload.deliveryPriceDhaka;
       delete payload.deliveryPriceOutside;
@@ -1326,7 +1347,8 @@ app.put("/api/products/:id", async (req, res) => {
         bkashNumber: target.bkashNumber || "",
         nagadNumber: target.nagadNumber || "",
         paymentType: target.paymentType || "cod",
-        deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100)
+        deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
+        deliveryDays: target.deliveryDays || null
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1338,6 +1360,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.nagadNumber;
         delete payload.paymentType;
         delete payload.deliveryCharge;
+        delete payload.deliveryDays;
         delete payload.deliveryPrice;
         delete payload.deliveryPriceDhaka;
         delete payload.deliveryPriceOutside;

@@ -38,11 +38,11 @@
 
 /* Luxury Glowing Micro-Accents */
 .gold-glow {
-  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.65), 0 0 25px rgba(154, 77, 255, 0.3);
 }
 
 .gold-glow-border {
-  box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.38), 0 0 15px rgba(154, 77, 255, 0.2);
 }
 
 /* Glassmorphism Classes */
@@ -345,18 +345,20 @@
 /* Luxury product card styling - clean, premium, and performant (no laggy animations or purple lines) */
 .luxury-glowing-card {
   position: relative;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.05);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   background: #07010e;
   border-radius: 12px;
 }
 
-/* Active gold border & shadow on hover */
+/* Active gold border & shadow on hover - significantly intensified gold glow with ambient purple secondary glow */
 .luxury-glowing-card:hover {
-  border-color: rgba(212, 175, 55, 0.45);
-  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
-  transform: translateY(-4px);
+  border-color: rgba(212, 175, 55, 0.85);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 
+              0 0 35px rgba(212, 175, 55, 0.5), 
+              0 0 20px rgba(154, 77, 255, 0.3);
+  transform: translateY(-5px);
 }
 
 /* Clear unused heavy laser beam/glowing wave styles */

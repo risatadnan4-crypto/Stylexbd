@@ -18,6 +18,7 @@ import LiveChat from './components/LiveChat';
 import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
 import XoroAssistant from './components/XoroAssistant';
+import CustomerProfileModal from './components/CustomerProfileModal';
 import { supabase } from './lib/supabaseClient';
 
 export default function App() {
@@ -77,6 +78,8 @@ export default function App() {
   }, [products]);
 
   // Customer Shopping states
+  const [globalVisits, setGlobalVisits] = useState<number>(0);
+  const [liveViews, setLiveViews] = useState<number>(1);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -104,6 +107,18 @@ export default function App() {
   const [isFirstNotifLoad, setIsFirstNotifLoad] = useState(true);
 
   const [showTopBanner, setShowTopBanner] = useState(true);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScroll > 0) {
+        setScrollProgress((window.scrollY / totalScroll) * 100);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const [activeTrackId, setActiveTrackId] = useState(() => {
     try {
       const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
@@ -187,6 +202,7 @@ export default function App() {
   }, [filteredNotifications, lastReadTimestamp]);
 
   const [showCustomerAuthModal, setShowCustomerAuthModal] = useState(false);
+  const [showCustomerProfileModal, setShowCustomerProfileModal] = useState(false);
   const [customerAuthTab, setCustomerAuthTab] = useState<'login' | 'signup'>('login');
   
   // Custom input states for Customer Auth
@@ -366,7 +382,16 @@ export default function App() {
 
     const pingSession = async () => {
       try {
-        await fetch(`/api/visitor-ping?visitorId=${visitorId}&sessionId=${sessionId}`);
+        const res = await fetch(`/api/visitor-ping?visitorId=${visitorId}&sessionId=${sessionId}`);
+        const data = await res.json();
+        if (data && data.success) {
+          if (data.visits) {
+            setGlobalVisits(data.visits);
+          }
+          if (data.liveViews) {
+            setLiveViews(data.liveViews);
+          }
+        }
       } catch (err) {
         // Silent catch
       }
@@ -549,6 +574,12 @@ export default function App() {
   const handleRemoveCartItem = (idx: number) => {
     const fresh = [...cart];
     fresh.splice(idx, 1);
+    setCart(fresh);
+  };
+
+  const handleUpdateCartSize = (idx: number, newSize: string) => {
+    const fresh = [...cart];
+    fresh[idx].selectedSize = newSize;
     setCart(fresh);
   };
 
@@ -791,6 +822,26 @@ export default function App() {
     localStorage.removeItem('stylex_current_customer');
   };
 
+  const handleUpdateCustomer = (updated: Customer) => {
+    setCurrentCustomer(updated);
+    localStorage.setItem('stylex_current_customer', JSON.stringify(updated));
+
+    // Also update in registered list so it persists across sessions
+    try {
+      const savedList = localStorage.getItem('stylex_registered_customers');
+      let registeredList = savedList ? JSON.parse(savedList) : [];
+      const idx = registeredList.findIndex((c: any) => c.email.toLowerCase().trim() === updated.email.toLowerCase().trim());
+      if (idx !== -1) {
+        registeredList[idx] = updated;
+      } else {
+        registeredList.push(updated);
+      }
+      localStorage.setItem('stylex_registered_customers', JSON.stringify(registeredList));
+    } catch (e) {
+      console.warn("Error updating registered list: ", e);
+    }
+  };
+
   // Submit Feedback Review Form
   const handleReviewFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -895,6 +946,7 @@ export default function App() {
     return (
       <AdminPanel 
         onBackToStore={() => setIsAdminView(false)}
+        onLogout={handleLogout}
         products={products}
         onRefreshProducts={() => {
           loadStoreCollections();
@@ -948,6 +1000,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans select-none overflow-x-hidden antialiased">
+      {/* Slim Gradient Scroll Progress Bar */}
+      <div 
+        className="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-yellow-600 via-luxury-gold to-yellow-300 z-[99999] transition-all duration-75 shadow-[0_0_12px_rgba(212,175,55,0.8)]"
+        style={{ width: `${scrollProgress}%` }}
+      />
       
       {/* Top Privilege / Announcement Notification Banner */}
       {showTopBanner && (
@@ -1019,9 +1076,7 @@ export default function App() {
         }}
         onCustomerLogout={handleCustomerLogout}
         onViewMyOrdersClick={() => {
-          setIsTrackMode(true);
-          setIsSearchPage(false);
-          window.scrollTo({ top: 350, behavior: 'smooth' });
+          setShowCustomerProfileModal(true);
         }}
       />
 
@@ -1186,20 +1241,20 @@ export default function App() {
               </div>
 
               {/* Responsive pills sliders */}
-              <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none py-1 px-0.5">
+              <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-luxury-gold/10 scrollbar-track-transparent py-1.5 -mx-4 px-4 md:mx-0 md:px-0 flex gap-2 sm:gap-3 snap-x snap-mandatory">
                 {[
-                  { id: 'ALL', label: '⚜️ All archives' },
-                  { id: 'MEN', label: '🕶️ Gentlemen' },
-                  { id: 'WOMEN', label: '💃 Haute Couture' },
-                  { id: 'UNISEX', label: '💎 Co-Ed Line' },
-                  { id: 'ACCESSORIES', label: '👑 Ensemble' }
+                  { id: 'ALL', label: '⚜️ সব পণ্য (All)' },
+                  { id: 'MEN', label: '🕶️ ছেলেদের (Men)' },
+                  { id: 'WOMEN', label: '💃 মেয়েদের (Women)' },
+                  { id: 'UNISEX', label: '💎 ইউনিসেক্স (Co-Ed)' },
+                  { id: 'ACCESSORIES', label: '👑 এক্সেসরিজ (Ensemble)' }
                 ].map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`px-5 py-2.5 text-[9.5px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer hover:scale-[1.03] active:scale-95 relative overflow-hidden luxury-reflection ${
+                    className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 relative overflow-hidden luxury-reflection ${
                       activeCategory === cat.id
-                        ? 'bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] text-[#030107] border-transparent shadow-[0_4px_18px_rgba(212,175,55,0.4)]'
+                        ? 'bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] text-[#030107] border-transparent shadow-[0_4px_18px_rgba(212,175,55,0.4)] font-black'
                         : 'bg-[#10031f]/35 text-white/70 border-white/5 hover:border-[#d4af37]/45 hover:text-white hover:bg-[#180530]/65 shadow-inner'
                     }`}
                   >
@@ -1583,7 +1638,7 @@ export default function App() {
       </main>
                   {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 flex flex-nowrap items-center justify-end gap-1 sm:gap-2.5 z-40 p-1 sm:p-1.5 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.85)] border border-white/5 transition-all">
+        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.85)] border border-white/5 transition-all flex items-center justify-end overflow-hidden">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -1594,67 +1649,19 @@ export default function App() {
             <div className="absolute inset-[1.5px] rounded-full bg-[#05010ca6]/95 backdrop-blur-md" />
           </div>
 
-          {/* VIP Notification Alerts Hub */}
-          <button 
-            onClick={() => { 
-                setIsNotificationOpen(true); 
-                const now = Date.now();
-                setLastReadTimestamp(now);
-                localStorage.setItem('stylex_notif_last_read_ts', String(now));
-            }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-1"
-            title="VIP Dispatch & Product Alerts Hub"
-          >
-            {/* Animated multi-layered running glow border around the button */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              {/* Soft splash backdrop glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              {/* Sharp crisp running line */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-            </div>
+          {/* Inner scrollable wrapper for buttons */}
+          <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-1.5 sm:gap-2.5 py-0.5 px-1.5 justify-end">
             
-            <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[7.5px] text-white font-extrabold items-center justify-center leading-none">
-                  {unreadNotificationsCount}
-                </span>
-              </span>
-            )}
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              NOTICES
-            </span>
-          </button>
-
-          {/* Claim Discount Option */}
-          <button 
-            onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-2"
-            title="Request Campaign Discount Coupon"
-          >
-            {/* Animated multi-layered running glow border around the button */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              {/* Soft splash backdrop glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              {/* Sharp crisp running line */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-            </div>
-            
-            <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              GET DISCOUNT
-            </span>
-          </button>
-          
-          {/* Imperial Fortune Game */}
-          {!settings?.isLotteryDeactivated && (
+            {/* VIP Notification Alerts Hub */}
             <button 
-              onClick={() => setIsLotteryOpen(true)}
-              className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-3"
-              title="Imperial Fortune Game"
+              onClick={() => { 
+                  setIsNotificationOpen(true); 
+                  const now = Date.now();
+                  setLastReadTimestamp(now);
+                  localStorage.setItem('stylex_notif_last_read_ts', String(now));
+              }}
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1"
+              title="VIP Dispatch & Product Alerts Hub"
             >
               {/* Animated multi-layered running glow border around the button */}
               <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -1665,140 +1672,192 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
-              </span>
+              <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[7.5px] text-white font-extrabold items-center justify-center leading-none">
+                    {unreadNotificationsCount}
+                  </span>
+                </span>
+              )}
               <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-                VOUCHER WHEEL
+                NOTICES
               </span>
             </button>
-          )}
-          
-          {/* Track Existing Receipts */}
-          <button 
-            onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-4"
-            title="Track Existing Receipts"
-          >
-            {/* Animated multi-layered running glow border around the button */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              {/* Soft splash backdrop glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              {/* Sharp crisp running line */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-            </div>
-            
-            <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              TRACK RECEIPT
-            </span>
-          </button>
-          
-          {/* View Current Bag */}
-          <button 
-            onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-1"
-            title="View Current Luxury Bag"
-          >
-            {/* Animated multi-layered running glow border around the button */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              {/* Soft splash backdrop glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              {/* Sharp crisp running line */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-            </div>
-            
-            <motion.div
-              key={cart.reduce((sum, item) => sum + item.quantity, 0)}
-              animate={cart.length > 0 ? {
-                scale: [1, 1.35, 0.95, 1.05, 1],
-                rotate: [0, -8, 8, -4, 0]
-              } : {}}
-              transition={{ duration: 0.55, ease: "easeInOut" }}
-              className="relative z-10 flex items-center justify-center"
+
+            {/* Claim Discount Option */}
+            <button 
+              onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2"
+              title="Request Campaign Discount Coupon"
             >
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-            </motion.div>
-            {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce">
-                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              {/* Animated multi-layered running glow border around the button */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                {/* Soft splash backdrop glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                {/* Sharp crisp running line */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+              </div>
+              
+              <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                GET DISCOUNT
               </span>
+            </button>
+            
+            {/* Imperial Fortune Game */}
+            {!settings?.isLotteryDeactivated && (
+              <button 
+                onClick={() => setIsLotteryOpen(true)}
+                className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3"
+                title="Imperial Fortune Game"
+              >
+                {/* Animated multi-layered running glow border around the button */}
+                <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                  {/* Soft splash backdrop glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                  {/* Sharp crisp running line */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                  <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+                </div>
+                
+                <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
+                </span>
+                <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                  VOUCHER WHEEL
+                </span>
+              </button>
             )}
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              LUXURY BAG
-            </span>
-          </button>
-
-          {/* WhatsApp Live Concierge */}
-          <a 
-            href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-2"
-            title="WhatsApp Live Concierge"
-          >
-            {/* Animated multi-layered running glow border around the button */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              {/* Soft splash backdrop glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[4px] opacity-65 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              {/* Sharp crisp running line */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a1204]" />
-            </div>
             
-            {/* Pulsing visual halo rings */}
-            <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
-            <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon" />
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              WHATSAPP
-            </span>
-          </a>
-
-          {/* Facebook Official Page */}
-          <a 
-            href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-3"
-            title="Facebook Official Collection"
-          >
-            {/* Animated border */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
-            </div>
+            {/* Track Existing Receipts */}
+            <button 
+              onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4"
+              title="Track Existing Receipts"
+            >
+              {/* Animated multi-layered running glow border around the button */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                {/* Soft splash backdrop glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                {/* Sharp crisp running line */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+              </div>
+              
+              <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                TRACK RECEIPT
+              </span>
+            </button>
             
-            <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              FACEBOOK
-            </span>
-          </a>
+            {/* View Current Bag */}
+            <button 
+              onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1"
+              title="View Current Luxury Bag"
+            >
+              {/* Animated multi-layered running glow border around the button */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                {/* Soft splash backdrop glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                {/* Sharp crisp running line */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#D4AF37,#9A4DFF,#3b82f6,#22c55e,#D4AF37)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+              </div>
+              
+              <motion.div
+                key={cart.reduce((sum, item) => sum + item.quantity, 0)}
+                animate={cart.length > 0 ? {
+                  scale: [1, 1.35, 0.95, 1.05, 1],
+                  rotate: [0, -8, 8, -4, 0]
+                } : {}}
+                transition={{ duration: 0.55, ease: "easeInOut" }}
+                className="relative z-10 flex items-center justify-center"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              </motion.div>
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce">
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              )}
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                LUXURY BAG
+              </span>
+            </button>
 
-          {/* Instagram Official Page */}
-          <a 
-            href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group animate-subtle-bob-4"
-            title="Instagram Gallery Reel"
-          >
-            {/* Animated border */}
-            <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
-              <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
-            </div>
-            
-            <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-            <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
-              INSTAGRAM
-            </span>
-          </a>
+            {/* WhatsApp Live Concierge */}
+            <a 
+              href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2"
+              title="WhatsApp Live Concierge"
+            >
+              {/* Animated multi-layered running glow border around the button */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                {/* Soft splash backdrop glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[4px] opacity-65 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                {/* Sharp crisp running line */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#25D366,#22c55e,#D4AF37,#25D366)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#0a1204]" />
+              </div>
+              
+              {/* Pulsing visual halo rings */}
+              <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
+              <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon" />
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                WHATSAPP
+              </span>
+            </a>
+
+            {/* Facebook Official Page */}
+            <a 
+              href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3"
+              title="Facebook Official Collection"
+            >
+              {/* Animated border */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#1877F2,#3b82f6,#D4AF37,#1877F2)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
+              </div>
+              
+              <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                FACEBOOK
+              </span>
+            </a>
+
+            {/* Instagram Official Page */}
+            <a 
+              href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4"
+              title="Instagram Gallery Reel"
+            >
+              {/* Animated border */}
+              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[4px] opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180%] h-[180%] bg-[conic-gradient(from_0deg,#E1306C,#F77737,#FCAF45,#833AB4,#E1306C)] animate-luxury-glow-spin blur-[0.5px] opacity-90 group-hover:scale-105 transition-all duration-300" />
+                <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
+              </div>
+              
+              <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                INSTAGRAM
+              </span>
+            </a>
+          </div>
         </div>
       )}
 
@@ -1900,7 +1959,7 @@ export default function App() {
               [admin]
             </button>
           </p>
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center justify-center gap-2">
             <button 
               id="admin-portal-link"
               onClick={() => {
@@ -1910,7 +1969,7 @@ export default function App() {
                   setShowLoginModal(true);
                 }
               }} 
-              className="opacity-0 pointer-events-none select-none uppercase font-bold tracking-wider flex items-center gap-1 justify-center"
+              className="opacity-0 pointer-events-none select-none uppercase font-bold tracking-wider flex items-center gap-1 justify-center h-0 overflow-hidden"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold inline-block animate-pulse"></span>
               Risat Adnan
@@ -2396,6 +2455,7 @@ CREATE TRIGGER on_auth_user_created
         cartItems={cart}
         onUpdateQty={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
+        onUpdateSize={handleUpdateCartSize}
         activeCoupons={coupons}
         products={products}
         settings={settings}
@@ -2410,6 +2470,20 @@ CREATE TRIGGER on_auth_user_created
         }}
         initialShowCheckout={initialShowCheckout}
         customer={currentCustomer}
+      />
+
+      <CustomerProfileModal
+        isOpen={showCustomerProfileModal}
+        onClose={() => setShowCustomerProfileModal(false)}
+        customer={currentCustomer}
+        onUpdateCustomer={handleUpdateCustomer}
+        orders={allOrders}
+        products={products}
+        whatsappNumber={settings.whatsappNumber}
+        onOpenChat={() => {
+          setShowCustomerProfileModal(false);
+          setIsChatOpen(true);
+        }}
       />
 
       {/* 4. LUXURY VIP NOTIFICATION ALERTS OVERLAY */}
@@ -2800,6 +2874,7 @@ CREATE TRIGGER on_auth_user_created
         isCartOpen={isCartOpen}
         confirmedOrderId={confirmedOrderId}
         isTrackMode={isTrackMode}
+        settings={settings}
         onSelectProduct={(p) => setSelectedProduct(p)}
         onTrackOrder={(orderId) => {
           setIsTrackMode(true);

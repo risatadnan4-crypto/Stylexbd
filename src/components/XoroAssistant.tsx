@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { Product, CartItem, Coupon } from '../types';
 
+// @ts-ignore
+import defaultXoroAvatar from '../assets/images/xoro_mascot_3d_1782635214676.jpg';
+
 interface XoroAssistantProps {
   products: Product[];
   coupons: Coupon[];
@@ -17,6 +20,7 @@ interface XoroAssistantProps {
   isTrackMode: boolean;
   onSelectProduct: (product: Product) => void;
   onTrackOrder: (orderId: string) => void;
+  settings?: any;
 }
 
 interface Message {
@@ -38,7 +42,7 @@ const XORO_TIPS = [
 
 
 
-const XORO_AVATAR = "/src/assets/images/xoro_mascot_3d_1782635214676.jpg";
+const XORO_AVATAR = defaultXoroAvatar;
 
 const makeAvatarBackgroundTransparent = (imageSrc: string): Promise<string> => {
   return new Promise((resolve) => {
@@ -213,17 +217,20 @@ export default function XoroAssistant({
   confirmedOrderId,
   isTrackMode,
   onSelectProduct,
-  onTrackOrder
+  onTrackOrder,
+  settings
 }: XoroAssistantProps) {
   const dragControls = useDragControls();
   const [isOpen, setIsOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(XORO_AVATAR);
+  const [avatarUrl, setAvatarUrl] = useState(settings?.xoroAvatarUrl || XORO_AVATAR);
+
+  const currentAvatar = settings?.xoroAvatarUrl || XORO_AVATAR;
 
   useEffect(() => {
-    makeAvatarBackgroundTransparent(XORO_AVATAR).then((transparentUrl) => {
+    makeAvatarBackgroundTransparent(currentAvatar).then((transparentUrl) => {
       setAvatarUrl(transparentUrl);
     });
-  }, []);
+  }, [currentAvatar]);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -253,6 +260,24 @@ export default function XoroAssistant({
 
   const hasSpokenWelcomeRef = useRef(false);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechPulseIntervalRef = useRef<any>(null);
+  const speechAuraRef = useRef<{ osc: OscillatorNode; lfo: OscillatorNode; gain: GainNode } | null>(null);
+
+  // Clean up speech pulse interval and aura on unmount
+  useEffect(() => {
+    return () => {
+      if (speechPulseIntervalRef.current) {
+        clearInterval(speechPulseIntervalRef.current);
+      }
+      try {
+        const sa = speechAuraRef.current;
+        if (sa) {
+          sa.osc.stop();
+          sa.lfo.stop();
+        }
+      } catch (e) {}
+    };
+  }, []);
 
   // Helper to play procedural cute robotic sounds (EMO Go Home style beeps/chirps)
   const playEmoRobotSound = (type: 'greet' | 'think' | 'happy' = 'greet') => {
@@ -359,81 +384,240 @@ export default function XoroAssistant({
     }
   };
 
+  const playClimbBeeps = () => {
+    if (!isSoundEnabled) return;
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const now = ctx.currentTime;
+      const notes = [440, 554.37, 659.25, 880];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+        gain.gain.setValueAtTime(0.04, now + idx * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.15);
+        osc.stop(now + idx * 0.15 + 0.15);
+      });
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  const playJetIgnitionSound = () => {
+    if (!isSoundEnabled) return;
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.5);
+      osc.frequency.linearRampToValueAtTime(220, now + 1.5);
+      
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.05, now + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(400, now);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 2.0);
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
+  // Cozy, ambient high-fidelity cybernetic warmth pad (replaces mechanical clicks/digital beeps)
+  // Plays a beautiful, soft, comforting 144Hz frequency aura (at < 1% volume) during speaking
+  const startSpeechAura = () => {
+    if (!isSoundEnabled) return;
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      // Stop any existing speech aura cleanly first
+      if (speechAuraRef.current) {
+        try {
+          speechAuraRef.current.osc.stop();
+          speechAuraRef.current.lfo.stop();
+        } catch (e) {}
+        speechAuraRef.current = null;
+      }
+
+      const now = ctx.currentTime;
+      
+      // Dual friendly harmonic sine waves (extremely low gain, warm studio vibe)
+      const osc = ctx.createOscillator();
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      const gainNode = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(144, now); // Sweet solfeggio resonant humming frequency
+
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(2.2, now); // Gentle organic breathing rate
+      lfoGain.gain.setValueAtTime(1.8, now); // Tiny warmth frequency wiggle (±1.8Hz)
+
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.008, now + 0.25); // Extremely soft, almost imperceptible premium AI warmth texture
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      lfo.start(now);
+      osc.start(now);
+
+      speechAuraRef.current = { osc, lfo, gain: gainNode };
+    } catch (e) {}
+  };
+
+  const stopSpeechAura = () => {
+    try {
+      const sa = speechAuraRef.current;
+      if (sa && audioCtxRef.current) {
+        const ctx = audioCtxRef.current;
+        const now = ctx.currentTime;
+        sa.gain.gain.setValueAtTime(sa.gain.gain.value, now);
+        sa.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+        setTimeout(() => {
+          try {
+            sa.osc.stop();
+            sa.lfo.stop();
+          } catch (e) {}
+          if (speechAuraRef.current === sa) {
+            speechAuraRef.current = null;
+          }
+        }, 400);
+      }
+    } catch (e) {}
+  };
+
   // Helper to read aloud text using Web Speech API (Text-to-Speech)
-  // plays a cute EMO-style robotic sound and then speaks the text using SpeechSynthesis.
-  // Tuned to be extremely soft, calm, beautiful, and soothing.
+  // Tuned to sound premium, soft, comforting, warm, and highly professional with a medium-slow, gentle pace.
   const speakText = (text: string) => {
     if (!isSoundEnabled) return;
     try {
-      // 1. Play the cute robotic chirp/beep sound effect like EMO GO HOME first
+      // 1. Play the cozy introductory chirp sound effect
       const isShort = text.length < 50;
       playEmoRobotSound(isShort ? 'greet' : 'happy');
-
+  
       // 2. Speak the actual text using the Web Speech API
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         // Cancel any pending speech first
         window.speechSynthesis.cancel();
-
+        stopSpeechAura();
+  
         // Workaround for Chrome bug where synthesis gets stuck in a "paused" state
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         }
-
+  
         // Clean up emojis, markdown patterns for clean voice synthesis
         const cleanText = text
           .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '') // strip emojis
           .replace(/[*_#`~৳-]/g, ' ') // strip markdown and special symbols
           .replace(/XP-/gi, 'style code ')
           .trim();
-
+  
         if (!cleanText) return;
-
+  
         const utterance = new SpeechSynthesisUtterance(cleanText);
         
-        // Smooth, elegant, and professional Alexa-style premium voice profile
-        utterance.rate = 0.95; // Perfectly polished, natural human-like pacing (just like Alexa)
-        utterance.pitch = 1.0; // Warm, natural, balanced mid-frequency human voice (instead of high squeaky robot)
-        utterance.volume = 1.0;
-
-        // Use high-quality female or cute sweet English voices
+        const hasBengali = /[\u0980-\u09FF]/.test(cleanText);
+  
+        // Premium, comforting, warm, and clear voice tuning (no monotone or mechanical clicks)
+        if (hasBengali) {
+          utterance.rate = 0.90;  // Elegant, natural medium-slow tempo (0.88-0.92) for Bangla
+          utterance.pitch = 1.02; // Friendly, sweet youthful pitch with a natural "voice smile"
+          utterance.volume = 0.95; // Perfectly clear articulation
+        } else {
+          utterance.rate = 0.90;  // Comforting and articulate English pacing
+          utterance.pitch = 1.05; // Soft premium tech tone
+          utterance.volume = 0.95; 
+        }
+  
         const voices = window.speechSynthesis.getVoices();
         let selectedVoice = null;
-
-        // Prioritize soft, lovely, sweet female English voices resembling Alexa
-        const softVoiceKeys = ['zira', 'sara', 'samantha', 'aria', 'jenny', 'sonia', 'natural', 'female', 'google us english', 'microsoft'];
-        for (const key of softVoiceKeys) {
-          selectedVoice = voices.find(v => {
-            const lang = v.lang.toLowerCase();
-            const name = v.name.toLowerCase();
-            return lang.startsWith('en') && name.includes(key);
-          });
-          if (selectedVoice) break;
+  
+        if (hasBengali) {
+          // Prioritize clear high-quality Bangla voices (Google বাংলা, Microsoft Ananya, etc.)
+          const bengaliKeys = ['bengali', 'bangla', 'bn', 'google বাংলা', 'ananya', 'shreya', 'dilara'];
+          for (const key of bengaliKeys) {
+            selectedVoice = voices.find(v => {
+              const lang = v.lang.toLowerCase();
+              const name = v.name.toLowerCase();
+              return (lang.startsWith('bn') || name.includes(key));
+            });
+            if (selectedVoice) break;
+          }
         }
-
+  
+        // Prioritize soft, warm, premium English voices if no Bangla selected or if speaking English
         if (!selectedVoice) {
-          // Fallback: Any female English voice or any English voice
-          selectedVoice = voices.find(v => {
-            const lang = v.lang.toLowerCase();
-            const name = v.name.toLowerCase();
-            return lang.startsWith('en') && (name.includes('female') || name.includes('girl'));
-          }) || voices.find(v => v.lang.toLowerCase().startsWith('en'));
+          const warmVoiceKeys = ['natural', 'samantha', 'aria', 'jenny', 'sara', 'zira', 'female', 'google us english', 'microsoft'];
+          for (const key of warmVoiceKeys) {
+            selectedVoice = voices.find(v => {
+              const lang = v.lang.toLowerCase();
+              const name = v.name.toLowerCase();
+              return lang.startsWith('en') && name.includes(key);
+            });
+            if (selectedVoice) break;
+          }
         }
-
+  
+        if (!selectedVoice) {
+          selectedVoice = voices.find(v => v.lang.toLowerCase().startsWith('en')) || voices[0];
+        }
+  
         if (selectedVoice) {
           utterance.voice = selectedVoice;
           utterance.lang = selectedVoice.lang;
+        } else if (hasBengali) {
+          utterance.lang = 'bn-BD';
         }
-
+  
         // Retain reference to prevent garbage collection mid-speech (major Chrome bug fix)
         currentUtteranceRef.current = utterance;
+  
+        // Start cozy premium background presence hum when speaking begins
+        startSpeechAura();
+  
         utterance.onend = () => {
           currentUtteranceRef.current = null;
+          stopSpeechAura();
         };
         utterance.onerror = (e) => {
           console.warn("SpeechSynthesisUtterance error:", e);
           currentUtteranceRef.current = null;
+          stopSpeechAura();
         };
-
+  
         window.speechSynthesis.speak(utterance);
       }
     } catch (err) {
@@ -607,6 +791,85 @@ export default function XoroAssistant({
   // Animation triggers
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [isWaving, setIsWaving] = useState(false);
+  const [isClimbing, setIsClimbing] = useState(false);
+  const [isFlyingJet, setIsFlyingJet] = useState(false);
+  const [showRope, setShowRope] = useState(false);
+
+  // Trigger rope climb and jet engine sequence on idle
+  const triggerClimbAndFlySequence = () => {
+    if (isOpen || isClimbing || isFlyingJet) return;
+
+    // Drop the rope
+    setShowRope(true);
+    setSpeechBubbleText("আইচ্ছা! আমি একটু রশি বেয়ে উপরে উটছি... 🧗");
+    setShowSpeechBubble(true);
+    playEmoRobotSound('think');
+    
+    // Start climbing
+    setTimeout(() => {
+      setIsClimbing(true);
+      playClimbBeeps();
+
+      // Finish climbing, ignite jet engine
+      setTimeout(() => {
+        setIsClimbing(false);
+        setShowRope(false);
+        setIsFlyingJet(true);
+        setSpeechBubbleText("উড়ছি জেট ইঞ্জিন দিয়ে! 🚀 জুম্ম্ম্ম্ম্ম্ম্ম্ম!");
+        playJetIgnitionSound();
+
+        // Hover around for 6 seconds, then land back down
+        setTimeout(() => {
+          setIsFlyingJet(false);
+          setSpeechBubbleText("হাফ! নিরাপদে ল্যান্ড করলাম। 😄");
+          playEmoRobotSound('happy');
+          
+          // Hide bubble after 3 seconds
+          setTimeout(() => {
+            setShowSpeechBubble(false);
+          }, 3000);
+        }, 6000);
+
+      }, 2500);
+    }, 500);
+  };
+
+  useEffect(() => {
+    let idleTimer: NodeJS.Timeout;
+    const startIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      if (isOpen || isClimbing || isFlyingJet) return;
+      
+      idleTimer = setTimeout(() => {
+        triggerClimbAndFlySequence();
+      }, 3000); // 3 seconds idle threshold
+    };
+
+    const handleUserActivity = () => {
+      if (!isClimbing && !isFlyingJet) {
+        startIdleTimer();
+      }
+    };
+
+    // User activity listeners
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+
+    // Initial trigger
+    startIdleTimer();
+
+    return () => {
+      clearTimeout(idleTimer);
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+    };
+  }, [isOpen, isClimbing, isFlyingJet]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -785,18 +1048,24 @@ export default function XoroAssistant({
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const isHidden = !!currentProduct || isCartOpen;
+
   return (
-    <>
-      {/* 1. FLOATING ASSISTANT WRAPPER IN THE LEFT CENTER (DRAGGABLE) */}
-      <motion.div 
-        id="xoro-floating-assistant" 
-        drag
-        dragControls={dragControls}
-        dragListener={false}
-        dragMomentum={false}
-        dragElastic={0.05}
-        className="fixed left-6 top-[40%] z-50 flex flex-col items-start select-none touch-none"
-      >
+    <AnimatePresence>
+      {!isHidden && (
+        <motion.div 
+          id="xoro-floating-assistant" 
+          initial={{ opacity: 0, scale: 0, x: -30 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0, x: -30 }}
+          transition={{ duration: 0.45, ease: "easeInOut" }}
+          drag
+          dragControls={dragControls}
+          dragListener={false}
+          dragMomentum={false}
+          dragElastic={0.05}
+          className="fixed left-6 top-[40%] z-50 flex flex-col items-start select-none touch-none"
+        >
         
         {/* SPEECH BUBBLE OUTLET */}
         <AnimatePresence>
@@ -827,6 +1096,33 @@ export default function XoroAssistant({
           )}
         </AnimatePresence>
 
+        {/* GOLDEN ROPE FOR CLIMBING */}
+        <AnimatePresence>
+          {showRope && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 240, opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="absolute bottom-16 left-8 -translate-x-1/2 w-[6px] z-[-1] origin-bottom select-none pointer-events-none"
+            >
+              {/* Outer bright golden fuzzy glow */}
+              <div className="absolute inset-0 bg-yellow-400 blur-[4px] opacity-60 rounded-full animate-pulse"></div>
+              {/* Main braided rope texture */}
+              <div 
+                className="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(212,175,55,1),rgba(212,175,55,1)_3px,rgba(163,117,14,1)_3px,rgba(163,117,14,1)_6px)] rounded-full shadow-[0_0_15px_rgba(212,175,55,0.8),inset_0_1px_2px_rgba(255,255,255,0.4)] border border-yellow-300/30"
+              />
+              {/* Ultra-glowing core thread */}
+              <div className="absolute top-0 bottom-0 left-[2px] right-[2px] bg-gradient-to-b from-white/90 via-yellow-300/40 to-transparent rounded-full mix-blend-overlay"></div>
+              
+              {/* Decorative golden tassel/knot at the bottom end of the rope */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-gradient-to-r from-[#d4af37] to-[#aa7c11] rounded-full shadow-[0_4px_10px_rgba(212,175,55,0.9)] border border-yellow-200">
+                <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-2 h-2.5 bg-[#aa7c11] rounded-b-full animate-bounce"></div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* FLOATING MASCOT BUTTON */}
         <motion.button
           onClick={() => {
@@ -843,30 +1139,149 @@ export default function XoroAssistant({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           animate={
-            isCelebrating 
+            isClimbing 
+              ? { 
+                  y: [-120], 
+                  rotate: [0, -6, 6, -6, 6, -6, 0] 
+                }
+              : isFlyingJet 
+              ? {
+                  y: [-150, -170, -140, -160, -150],
+                  x: [0, 8, -8, 4, -4, 0],
+                  rotate: [0, 5, -5, 3, -3, 0]
+                }
+              : isCelebrating 
               ? { y: [0, -12, 0, -12, 0], rotate: [0, -5, 5, -5, 0] }
               : isWaving 
               ? { rotate: [0, -10, 10, -10, 10, 0] }
               : { y: [0, -4, 0] }
           }
           transition={
-            isCelebrating 
+            isClimbing 
+              ? { duration: 2.5, ease: "easeInOut" }
+              : isFlyingJet 
+              ? { 
+                  y: { repeat: Infinity, duration: 4, ease: "easeInOut" },
+                  x: { repeat: Infinity, duration: 3, ease: "easeInOut" },
+                  rotate: { repeat: Infinity, duration: 2.5, ease: "easeInOut" }
+                }
+              : isCelebrating 
               ? { duration: 1.2, ease: "easeInOut" }
               : isWaving 
               ? { duration: 1.8, ease: "easeInOut" }
               : { repeat: Infinity, duration: 4, ease: "easeInOut" }
           }
-          className={`relative h-16 w-16 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 bg-transparent border-none shadow-none text-luxury-gold`}
+          className={`relative h-14 w-14 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 bg-gradient-to-b from-zinc-950 via-zinc-900 to-black border-2 border-luxury-gold/50 rounded-full shadow-[0_4px_24px_rgba(212,175,55,0.4)] hover:shadow-[0_4px_32px_rgba(212,175,55,0.6)] hover:border-luxury-gold text-luxury-gold p-1`}
         >
           {/* Glowing Aura backdrop */}
-          <span className="absolute inset-4 rounded-full border border-luxury-gold/15 animate-ping opacity-30 animate-pulse"></span>
+          <span className="absolute inset-0 rounded-full border border-luxury-gold/25 animate-ping opacity-30 animate-pulse pointer-events-none"></span>
           
           <img 
             src={avatarUrl} 
             alt="Xoro" 
-            className="h-full w-full object-contain select-none pointer-events-none filter drop-shadow-[0_8px_16px_rgba(212,175,55,0.45)]" 
+            className="h-full w-full rounded-full object-cover select-none pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" 
             referrerPolicy="no-referrer"
           />
+
+          {/* JET ENGINE EXHAUST FLAME */}
+          <AnimatePresence>
+            {isFlyingJet && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.4, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.4, y: -8 }}
+                className="absolute bottom-[-55px] left-1/2 -translate-x-1/2 flex flex-col items-center z-[-2] pointer-events-none w-20 overflow-visible"
+              >
+                {/* Sleek metallic thruster nozzle */}
+                <div className="w-5 h-3 bg-gradient-to-b from-zinc-800 via-zinc-950 to-zinc-900 border border-zinc-700/40 rounded-b-md shadow-lg flex items-center justify-center relative overflow-hidden z-10">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
+                  {/* Glowing hot inside rim */}
+                  <div className="absolute bottom-0 w-3 h-[2px] bg-gradient-to-r from-orange-500 via-yellow-300 to-orange-500 blur-[0.5px]"></div>
+                </div>
+
+                {/* Triple-layer super realistic plasma exhaust */}
+                <div className="relative flex flex-col items-center mt-[-1px] w-full h-[60px] overflow-visible">
+                  
+                  {/* Layer 1: Outer thermal gas envelope (Flickering orange-purple aura) */}
+                  <motion.div 
+                    animate={{ 
+                      height: [45, 65, 45],
+                      width: [24, 30, 24],
+                      opacity: [0.55, 0.85, 0.55],
+                      filter: ["blur(4px)", "blur(6px)", "blur(4px)"]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.18, ease: "easeInOut" }}
+                    className="absolute top-0 bg-gradient-to-b from-orange-500/80 via-red-500/40 to-transparent rounded-b-full w-6 z-0"
+                  />
+
+                  {/* Layer 2: Main golden-yellow thruster plume (Medium heat) */}
+                  <motion.div 
+                    animate={{ 
+                      height: [35, 50, 35],
+                      width: [14, 18, 14],
+                      filter: ["blur(1px)", "blur(2px)", "blur(1px)"]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.12, ease: "linear" }}
+                    className="absolute top-0 bg-gradient-to-b from-yellow-300 via-yellow-500 to-orange-600 rounded-b-full w-4 z-10 shadow-[0_0_20px_rgba(251,191,36,0.8)]"
+                  />
+
+                  {/* Layer 3: Shock diamonds & Core heat column (Blazing white-blue core) */}
+                  <motion.div 
+                    animate={{ 
+                      height: [20, 32, 20],
+                      scaleX: [0.85, 1.1, 0.85]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.08, ease: "linear" }}
+                    className="absolute top-0 bg-gradient-to-b from-white via-cyan-200/90 to-transparent rounded-b-full w-2.5 z-20 shadow-[0_0_12px_#fff,0_0_25px_rgba(56,189,248,0.9)]"
+                  >
+                    {/* Shock diamond nodes inside the core */}
+                    <div className="absolute top-[8px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-white rotate-45 rounded-[1px] shadow-[0_0_8px_#fff]"></div>
+                    <div className="absolute top-[22px] left-1/2 -translate-x-1/2 w-1 h-1 bg-cyan-300 rotate-45 rounded-[1px]"></div>
+                  </motion.div>
+
+                  {/* Downward drifting heat distortion & sparks */}
+                  <div className="absolute top-[35px] flex flex-col gap-2.5 items-center">
+                    <motion.div 
+                      animate={{ 
+                        y: [0, 25], 
+                        opacity: [1, 0], 
+                        scale: [1, 0.3] 
+                      }}
+                      transition={{ repeat: Infinity, duration: 0.25, ease: "easeOut" }}
+                      className="w-1.5 h-1.5 bg-yellow-400 rounded-full blur-[0.5px]"
+                    />
+                    <motion.div 
+                      animate={{ 
+                        y: [0, 30], 
+                        opacity: [0.8, 0], 
+                        scale: [0.8, 0.2] 
+                      }}
+                      transition={{ repeat: Infinity, duration: 0.35, ease: "easeOut", delay: 0.1 }}
+                      className="w-1 h-1 bg-orange-400 rounded-full blur-[0.5px]"
+                    />
+                  </div>
+
+                  {/* Ring-like energy thrust waves */}
+                  <motion.div 
+                    animate={{ 
+                      scale: [0.6, 2.2],
+                      opacity: [0.7, 0]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.4, ease: "easeOut" }}
+                    className="absolute top-[12px] w-7 h-[2px] bg-gradient-to-r from-transparent via-yellow-400/80 to-transparent border-t border-yellow-300/40 rounded-full blur-[0.5px] z-30"
+                  />
+                  <motion.div 
+                    animate={{ 
+                      scale: [0.6, 2.2],
+                      opacity: [0.7, 0]
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.4, ease: "easeOut", delay: 0.2 }}
+                    className="absolute top-[24px] w-5 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent border-t border-cyan-300/40 rounded-full blur-[0.5px] z-30"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.button>
 
         {/* 2. CHAT DRAWER PANEL */}
@@ -1151,7 +1566,8 @@ export default function XoroAssistant({
           )}
         </AnimatePresence>
 
-      </motion.div>
-    </>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
