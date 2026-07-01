@@ -15,7 +15,33 @@ interface AdminPanelProps {
   onLogout?: () => void;
   products: Product[];
   onRefreshProducts: () => void;
-  settings?: { whatsappNumber: string; adminEmail?: string; adminPassword?: string; appsScriptUrl?: string; logoUrl?: string; xoroAvatarUrl?: string; lotteryPrizes?: LotteryPrize[]; lotteryDiscountPercentage?: number; lotteryCouponPrefix?: string; facebookUrl?: string; instagramUrl?: string; paymentBadgeTitle?: string; paymentBadgeDescription?: string; isCatalogDeactivated?: boolean; deactivatedMessage?: string; isLotteryDeactivated?: boolean; isNotifyMeDeactivated?: boolean; bkashLogoUrl?: string; nagadLogoUrl?: string };
+  settings?: { 
+    whatsappNumber: string; 
+    adminEmail?: string; 
+    adminPassword?: string; 
+    appsScriptUrl?: string; 
+    logoUrl?: string; 
+    xoroAvatarUrl?: string; 
+    lotteryPrizes?: LotteryPrize[]; 
+    lotteryDiscountPercentage?: number; 
+    lotteryCouponPrefix?: string; 
+    facebookUrl?: string; 
+    instagramUrl?: string; 
+    paymentBadgeTitle?: string; 
+    paymentBadgeDescription?: string; 
+    isCatalogDeactivated?: boolean; 
+    deactivatedMessage?: string; 
+    isLotteryDeactivated?: boolean; 
+    isNotifyMeDeactivated?: boolean; 
+    bkashLogoUrl?: string; 
+    nagadLogoUrl?: string;
+    globalTimerEndTime?: string;
+    globalTimerMessage?: string;
+    globalTimerActive?: boolean;
+    globalPaymentSystem?: string;
+    globalPaymentMethod?: string;
+    globalDeliveryDays?: string;
+  };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
 }
@@ -70,6 +96,12 @@ export default function AdminPanel({
   const [deactivatedMessageInput, setDeactivatedMessageInput] = useState(settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.");
   const [isLotteryDeactivatedInput, setIsLotteryDeactivatedInput] = useState(settings?.isLotteryDeactivated || false);
   const [isNotifyMeDeactivatedInput, setIsNotifyMeDeactivatedInput] = useState(settings?.isNotifyMeDeactivated || false);
+  const [globalTimerEndTimeInput, setGlobalTimerEndTimeInput] = useState(settings?.globalTimerEndTime || "");
+  const [globalTimerMessageInput, setGlobalTimerMessageInput] = useState(settings?.globalTimerMessage || "");
+  const [globalTimerActiveInput, setGlobalTimerActiveInput] = useState(settings?.globalTimerActive || false);
+  const [globalPaymentSystemInput, setGlobalPaymentSystemInput] = useState(settings?.globalPaymentSystem || "product_defined");
+  const [globalPaymentMethodInput, setGlobalPaymentMethodInput] = useState(settings?.globalPaymentMethod || "both");
+  const [globalDeliveryDaysInput, setGlobalDeliveryDaysInput] = useState(settings?.globalDeliveryDays || "");
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -139,6 +171,24 @@ export default function AdminPanel({
     if (settings?.isNotifyMeDeactivated !== undefined) {
       setIsNotifyMeDeactivatedInput(settings.isNotifyMeDeactivated);
     }
+    if (settings?.globalTimerEndTime !== undefined) {
+      setGlobalTimerEndTimeInput(settings.globalTimerEndTime);
+    }
+    if (settings?.globalTimerMessage !== undefined) {
+      setGlobalTimerMessageInput(settings.globalTimerMessage);
+    }
+    if (settings?.globalTimerActive !== undefined) {
+      setGlobalTimerActiveInput(settings.globalTimerActive);
+    }
+    if (settings?.globalPaymentSystem !== undefined) {
+      setGlobalPaymentSystemInput(settings.globalPaymentSystem);
+    }
+    if (settings?.globalPaymentMethod !== undefined) {
+      setGlobalPaymentMethodInput(settings.globalPaymentMethod);
+    }
+    if (settings?.globalDeliveryDays !== undefined) {
+      setGlobalDeliveryDaysInput(settings.globalDeliveryDays);
+    }
   }, [settings]);
 
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -168,37 +218,17 @@ export default function AdminPanel({
           isCatalogDeactivated: isCatalogDeactivatedInput,
           deactivatedMessage: deactivatedMessageInput,
           isLotteryDeactivated: isLotteryDeactivatedInput,
-          isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+          globalTimerEndTime: globalTimerEndTimeInput,
+          globalTimerMessage: globalTimerMessageInput,
+          globalTimerActive: globalTimerActiveInput,
+          globalPaymentSystem: globalPaymentSystemInput,
+          globalPaymentMethod: globalPaymentMethodInput,
+          globalDeliveryDays: globalDeliveryDaysInput
         })
       });
       if (res.ok) {
         setSettingsSuccess(true);
-        try {
-          const savedSettings = {
-            whatsappNumber: whatsappNumberInput,
-            adminEmail: adminEmailInput,
-            adminPassword: adminPasswordInput,
-            appsScriptUrl: appsScriptUrlInput,
-            logoUrl: logoUrlInput,
-            xoroAvatarUrl: xoroAvatarUrlInput,
-            bkashLogoUrl: bkashLogoUrlInput,
-            nagadLogoUrl: nagadLogoUrlInput,
-            lotteryPrizes: lotteryPrizesInput,
-            lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput),
-            lotteryCouponPrefix: lotteryCouponPrefixInput,
-            facebookUrl: facebookUrlInput,
-            instagramUrl: instagramUrlInput,
-            paymentBadgeTitle: paymentBadgeTitleInput,
-            paymentBadgeDescription: paymentBadgeDescriptionInput,
-            isCatalogDeactivated: isCatalogDeactivatedInput,
-            deactivatedMessage: deactivatedMessageInput,
-            isLotteryDeactivated: isLotteryDeactivatedInput,
-            isNotifyMeDeactivated: isNotifyMeDeactivatedInput
-          };
-          localStorage.setItem("stylex_settings", JSON.stringify(savedSettings));
-        } catch (errLocalStorage) {
-          console.warn("Failed to write updated settings to localStorage directly", errLocalStorage);
-        }
         if (onRefreshSettings) {
           onRefreshSettings();
         }
@@ -517,15 +547,6 @@ export default function AdminPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      try {
-        const savedSettings = {
-          ...payload,
-          lotteryDiscountPercentage: Number(lotteryDiscountPercentageInput)
-        };
-        localStorage.setItem("stylex_settings", JSON.stringify(savedSettings));
-      } catch (errLocalStorage) {
-        console.warn("Failed to write auto-saved settings to localStorage directly", errLocalStorage);
-      }
       if (onRefreshSettings) {
         onRefreshSettings();
       }
@@ -2002,11 +2023,62 @@ CREATE TABLE IF NOT EXISTS public.chats (
     "updatedAt" TEXT
 );
 
--- 8. Create Settings Table
+-- 8. Migrate or Drop old settings table if it does not have the 'id' column
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+          AND table_name = 'settings'
+    ) AND NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'settings' 
+          AND column_name = 'id'
+    ) THEN
+        DROP TABLE IF EXISTS public.settings CASCADE;
+    END IF;
+END $$;
+
+-- Create Settings Table (Single-Row structure with ID = 1)
 CREATE TABLE IF NOT EXISTS public.settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    "whatsappNumber" TEXT,
+    "adminEmail" TEXT,
+    "adminPassword" TEXT,
+    "appsScriptUrl" TEXT,
+    "logoUrl" TEXT,
+    "xoroAvatarUrl" TEXT,
+    "bkashLogoUrl" TEXT,
+    "nagadLogoUrl" TEXT,
+    "lotteryDiscountPercentage" NUMERIC DEFAULT 15,
+    "lotteryCouponPrefix" TEXT DEFAULT 'RISAT',
+    "facebookUrl" TEXT,
+    "instagramUrl" TEXT,
+    "paymentBadgeTitle" TEXT,
+    "paymentBadgeDescription" TEXT,
+    "isCatalogDeactivated" BOOLEAN DEFAULT false,
+    "deactivatedMessage" TEXT,
+    "isLotteryDeactivated" BOOLEAN DEFAULT false,
+    "isNotifyMeDeactivated" BOOLEAN DEFAULT false,
+    "globalTimerEndTime" TEXT,
+    "globalTimerMessage" TEXT,
+    "globalTimerActive" BOOLEAN DEFAULT false,
+    "globalPaymentSystem" TEXT DEFAULT 'product_defined',
+    "globalPaymentMethod" TEXT DEFAULT 'both',
+    "globalDeliveryDays" TEXT,
+    "lotteryPrizes" TEXT,
+    visits_count INTEGER DEFAULT 0,
+    counted_sessions TEXT,
+    CONSTRAINT single_row_settings_check CHECK (id = 1)
 );
+
+-- Seed initial settings row if not present
+INSERT INTO public.settings (id, "whatsappNumber", "adminEmail", "adminPassword", "logoUrl")
+VALUES (1, '8801755104443', 'risatadnan4@gmail.com', 'risat123', '/stylex_logo.jpg')
+ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
@@ -3917,6 +3989,122 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                         )}{" "}
                         When deactivated, out-of-stock items will display a disabled "Out of Stock" button instead of allowing collectors to register for back-in-stock notifications.
                       </p>
+                    </div>
+                  </div>
+
+                  {/* GLOBAL PUBLIC STORE SETTINGS SUITE */}
+                  <div className="border border-luxury-gold/30 bg-[#090514]/80 p-5 rounded-xl space-y-5 relative overflow-hidden">
+                    {/* Glowing Accent */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-luxury-gold/5 rounded-full blur-xl pointer-events-none"></div>
+
+                    <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-mono text-luxury-gold uppercase tracking-widest font-black flex items-center gap-1.5">
+                          <Sparkles size={12} className="text-luxury-gold animate-pulse" />
+                          🌐 Global Public Store Synchronizer
+                        </span>
+                        <span className="text-[7.5px] bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">LIVE SYNC</span>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-zinc-400 font-sans leading-relaxed">
+                      Configure global store-wide variables below. Changes here are synchronized immediately in real-time across all visitor devices worldwide.
+                    </p>
+
+                    {/* SECTION 1: GLOBAL COUNTDOWN TIMER */}
+                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                        <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold">⏱️ Global Countdown Timer Override</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={globalTimerActiveInput}
+                            onChange={(e) => setGlobalTimerActiveInput(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-luxury-gold"></div>
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Event End Date &amp; Time:</label>
+                          <input 
+                            type="datetime-local"
+                            value={globalTimerEndTimeInput}
+                            onChange={(e) => setGlobalTimerEndTimeInput(e.target.value)}
+                            disabled={!globalTimerActiveInput}
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2 py-2.5 font-mono text-white transition-all disabled:opacity-40"
+                          />
+                          <p className="text-[8px] text-zinc-500 font-mono">Specify when the global flash sale banner countdown should expire.</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Promotion Headline Message:</label>
+                          <input 
+                            type="text"
+                            value={globalTimerMessageInput}
+                            onChange={(e) => setGlobalTimerMessageInput(e.target.value)}
+                            disabled={!globalTimerActiveInput}
+                            placeholder="e.g. SPECIAL ROYAL EID CARRIAGE PRIVILEGES ACTIVE"
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all disabled:opacity-40"
+                          />
+                          <p className="text-[8px] text-zinc-500 font-mono">Display message text rendered next to the global timer countdown.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: GLOBAL PAYMENT & OVERRIDES */}
+                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-4">
+                      <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold block pb-2 border-b border-white/5">💳 Global Payment Architecture Overrides</span>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Primary Payment Gateway Brand:</label>
+                          <select 
+                            value={globalPaymentSystemInput}
+                            onChange={(e) => setGlobalPaymentSystemInput(e.target.value)}
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                          >
+                            <option value="product_defined">Product Default (Defined individually by product)</option>
+                            <option value="always_bkash">Force bKash Only (Globally across all products)</option>
+                            <option value="always_nagad">Force Nagad Only (Globally across all products)</option>
+                            <option value="always_both">Force Both Brand Channels (bKash + Nagad everywhere)</option>
+                          </select>
+                          <p className="text-[8px] text-zinc-500 font-mono">Define the default visual mobile banking logos presented during checkout flow.</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Acceptable Payment Mode Options:</label>
+                          <select 
+                            value={globalPaymentMethodInput}
+                            onChange={(e) => setGlobalPaymentMethodInput(e.target.value)}
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                          >
+                            <option value="both">Standard Multi-Mode (Allow Cash on Delivery &amp; Mobile Prepayment)</option>
+                            <option value="cod_only">Strict Cash on Delivery (COD Only - Disable prepayments)</option>
+                            <option value="prepay_only">Strict Mobile Prepayment Only (Disable COD checkout options)</option>
+                          </select>
+                          <p className="text-[8px] text-zinc-500 font-mono">Select if you want to completely restrict available transaction channels globally.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: GLOBAL DELIVERY DAYS OVERRIDE */}
+                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-3">
+                      <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold block pb-2 border-b border-white/5">🚚 Global Delivery Estimates Override</span>
+
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Global Delivery Days Override:</label>
+                        <input 
+                          type="text"
+                          value={globalDeliveryDaysInput}
+                          onChange={(e) => setGlobalDeliveryDaysInput(e.target.value)}
+                          placeholder="Leave blank to use product defaults, or enter override (e.g., 2-3 Days)"
+                          className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                        />
+                        <p className="text-[8px] text-zinc-500 font-mono">Inputting a value here instantly overrides delivery badges for all store items globally (e.g. <strong>3-5 Days</strong>).</p>
+                      </div>
                     </div>
                   </div>
 

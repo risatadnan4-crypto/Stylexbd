@@ -21,6 +21,12 @@ interface XoroAssistantProps {
   onSelectProduct: (product: Product) => void;
   onTrackOrder: (orderId: string) => void;
   settings?: any;
+  onToggleCart?: (isOpen: boolean) => void;
+  onSetCategory?: (category: string) => void;
+  onToggleLottery?: (isOpen: boolean) => void;
+  onSetTrackMode?: (track: boolean) => void;
+  onShowLoginModal?: (show: boolean) => void;
+  onSetSearchPage?: (search: boolean) => void;
 }
 
 interface Message {
@@ -218,10 +224,18 @@ export default function XoroAssistant({
   isTrackMode,
   onSelectProduct,
   onTrackOrder,
-  settings
+  settings,
+  onToggleCart,
+  onSetCategory,
+  onToggleLottery,
+  onSetTrackMode,
+  onShowLoginModal,
+  onSetSearchPage
 }: XoroAssistantProps) {
   const dragControls = useDragControls();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'explore'>('chat');
+  const [isTouring, setIsTouring] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(settings?.xoroAvatarUrl || XORO_AVATAR);
 
   const currentAvatar = settings?.xoroAvatarUrl || XORO_AVATAR;
@@ -834,6 +848,175 @@ export default function XoroAssistant({
     }, 500);
   };
 
+  const handleNavigateToSection = async (section: string, customSpeech?: string) => {
+    // 1. Close chat window so user can see the website and Xoro flying
+    setIsOpen(false);
+    
+    // 2. Start rocket engine flying!
+    setIsFlyingJet(true);
+    playJetIgnitionSound();
+    
+    // 3. Set custom bubble speech text and show it
+    const defaultSpeechMap: Record<string, string> = {
+      hero: "আসসালামু আলাইকুম! চলুন উড়ি! আমরা এখন স্টাইল এক্স-এর রাজকীয় হিরো সেকশনে প্রবেশ করছি! 🚀✨",
+      countdown: "⏳ এই জোনে লিমিটেড টাইম রয়েল ফ্ল্যাশ ইভেন্ট চলছে! মিস করবেন না কিন্তু!",
+      catalog: "👔 এটি আমাদের স্টাইল এক্স সিগনেচার কালেকশন! চমৎকার ডিজাইন এবং নিখুঁত কাপড়ের মেলবন্ধন!",
+      lottery: "🎟️ স্বাগতম রয়েল লাক্সারি স্পিন লটারিতে! কুপন এবং বিশেষ অফার জিতে নিতে এখানে ক্লিক করুন!",
+      cart: "🛒 এটি আপনার রাজকীয় শপিং কার্ট! এখানে আপনার নির্বাচিত পোশাকগুলো সুরক্ষিতভাবে চেকআউট করতে পারেন।",
+      tracker: "📦 আপনার অর্ডারটি কোথায় আছে দেখতে চান? এখানে আপনার আইডি বা নম্বর দিয়ে লাইভ ট্র্যাক করুন!",
+      reviews: "✍️ আমাদের বৈশ্বিক গ্রাহকদের ভেরিফাইড এক্সপেরিয়েন্স লেজার বুক দেখুন! আপনার মতামতও জানাতে পারেন।",
+      admin: "👑 এটি রাজকীয় অ্যাডমিন কন্ট্রোল ডেস্ক! এখানে সিস্টেম সেটিংস এবং স্টোর আপডেট পরিচালিত হয়।"
+    };
+
+    const speechText = customSpeech || defaultSpeechMap[section] || "উড়ছি জেট ইঞ্জিন দিয়ে! 🚀 জুম্ম্ম্ম্ম্ম্ম্ম্ম!";
+    setSpeechBubbleText(speechText);
+    setShowSpeechBubble(true);
+
+    // 4. Smoothly fly to the target
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    // Perform the actual navigation action in the website!
+    switch (section) {
+      case 'hero':
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'countdown':
+        const banner = document.getElementById('global-countdown-banner');
+        if (banner) {
+          banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 400, behavior: 'smooth' });
+        }
+        break;
+      case 'catalog':
+        if (onSetCategory) onSetCategory('ALL');
+        const cat = document.getElementById('exclusive-series-catalog');
+        if (cat) {
+          cat.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 900, behavior: 'smooth' });
+        }
+        break;
+      case 'lottery':
+        if (onToggleLottery) onToggleLottery(true);
+        break;
+      case 'cart':
+        if (onToggleCart) onToggleCart(true);
+        break;
+      case 'tracker':
+        if (onSetTrackMode) onSetTrackMode(true);
+        const trackerEl = document.getElementById('order-tracker-container');
+        if (trackerEl) {
+          trackerEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 500, behavior: 'smooth' });
+        }
+        break;
+      case 'reviews':
+        const rev = document.getElementById('customer-experiences-reviews');
+        if (rev) {
+          rev.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 1800, behavior: 'smooth' });
+        }
+        break;
+      case 'admin':
+        if (onShowLoginModal) onShowLoginModal(true);
+        break;
+      default:
+        break;
+    }
+
+    // 5. Land / stop flying after showing off
+    setTimeout(() => {
+      setIsFlyingJet(false);
+      playEmoRobotSound('happy');
+      
+      // Hide speech bubble after 5 more seconds
+      setTimeout(() => {
+        setShowSpeechBubble(false);
+      }, 5000);
+    }, 4000);
+  };
+
+  const startAutomaticTour = async () => {
+    setIsTouring(true);
+    setIsOpen(false);
+    
+    const steps = [
+      { section: 'hero', speech: "👋 আসসালামু আলাইকুম! আমি জোরো। চলুন, স্টাইল এক্স-এর পুরো ওয়েবসাইট ঘুরে দেখাই! আমাদের প্রথম স্টপ: রাজকীয় হিরো ব্যানার! 🌟" },
+      { section: 'countdown', speech: "⏳ ২য় স্টপ: লিমিটেড টাইম ফ্ল্যাশ সেল ইভেন্ট! বিশেষ ছাড়ের সময় শেষ হবার আগে এখনই কিনে নিন!" },
+      { section: 'catalog', speech: "👔 ৩য় স্টপ: এক্সক্লুসিভ ক্লোথিং কালেকশন! চমৎকার ডিজাইন এবং নিখাদ সুতার প্রিমিয়াম পোশাক!" },
+      { section: 'lottery', speech: "🎟️ ৪র্থ স্টপ: রয়্যাল লাক্সারি স্পিন লটারিতে আপনার ভাগ্য পরীক্ষা করে নিন!" },
+      { section: 'reviews', speech: "✍️ ৫মি স্টপ: ভেরিফাইড কাস্টমার লেজার! বৈশ্বিক গ্রাহকদের চমৎকার সব রিভিউ এবং ফিডব্যাক বুক!" },
+      { section: 'cart', speech: "🛒 শেষ স্টপ: চেকআউট কার্ট! এখানে আপনার নির্বাচিত রাজকীয় পোশাক ও নিরাপদ পেমেন্ট সম্পন্ন করতে পারবেন।" }
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      
+      // Ignite rocket & set speech
+      setIsFlyingJet(true);
+      playJetIgnitionSound();
+      setSpeechBubbleText(step.speech);
+      setShowSpeechBubble(true);
+      
+      // Wait for flight thrill
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Trigger action
+      switch (step.section) {
+        case 'hero':
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+        case 'countdown':
+          const banner = document.getElementById('global-countdown-banner');
+          if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          else window.scrollTo({ top: 400, behavior: 'smooth' });
+          break;
+        case 'catalog':
+          if (onSetCategory) onSetCategory('ALL');
+          const cat = document.getElementById('exclusive-series-catalog');
+          if (cat) cat.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          else window.scrollTo({ top: 900, behavior: 'smooth' });
+          break;
+        case 'lottery':
+          if (onToggleLottery) onToggleLottery(true);
+          break;
+        case 'reviews':
+          if (onToggleLottery) onToggleLottery(false); // Close previous
+          const rev = document.getElementById('customer-experiences-reviews');
+          if (rev) rev.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          else window.scrollTo({ top: 1800, behavior: 'smooth' });
+          break;
+        case 'cart':
+          if (onToggleCart) onToggleCart(true);
+          break;
+        default:
+          break;
+      }
+      
+      // Hover at destination
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Close open modals/drawers for transition
+      if (step.section === 'cart' && onToggleCart) {
+        onToggleCart(false);
+      }
+    }
+
+    // Done!
+    setIsFlyingJet(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSpeechBubbleText("🎉 ওয়াও! স্টাইল এক্স-এর পুরো সফর সম্পন্ন হলো! আপনার কেনাকাটা দারুণ উপভোগ্য হোক। 😄");
+    playEmoRobotSound('happy');
+    setIsTouring(false);
+    
+    setTimeout(() => {
+      setShowSpeechBubble(false);
+    }, 4000);
+  };
+
   useEffect(() => {
     let idleTimer: NodeJS.Timeout;
     const startIdleTimer = () => {
@@ -1171,15 +1354,53 @@ export default function XoroAssistant({
               ? { duration: 1.8, ease: "easeInOut" }
               : { repeat: Infinity, duration: 4, ease: "easeInOut" }
           }
-          className={`relative h-14 w-14 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 bg-gradient-to-b from-zinc-950 via-zinc-900 to-black border-2 border-luxury-gold/50 rounded-full shadow-[0_4px_24px_rgba(212,175,55,0.4)] hover:shadow-[0_4px_32px_rgba(212,175,55,0.6)] hover:border-luxury-gold text-luxury-gold p-1`}
+          className={`relative h-14 w-14 flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible transition-all duration-300 rounded-full text-luxury-gold p-1 ${
+            isFlyingJet 
+              ? 'bg-gradient-to-b from-zinc-900 via-black to-zinc-950 border-2 border-luxury-gold shadow-[0_0_35px_rgba(212,175,55,0.85)]' 
+              : 'bg-gradient-to-b from-zinc-950 via-zinc-900 to-black border-2 border-luxury-gold/50 shadow-[0_4px_24px_rgba(212,175,55,0.4)]'
+          } hover:shadow-[0_4px_32px_rgba(212,175,55,0.6)] hover:border-luxury-gold`}
         >
+          {/* ROCKET BODY EXTRAS */}
+          {isFlyingJet && (
+            <>
+              {/* Nose Cone */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.2, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="absolute -top-7 left-1/2 -translate-x-1/2 w-6 h-8 bg-gradient-to-b from-luxury-gold via-yellow-600 to-zinc-950 border border-luxury-gold/60 z-20 shadow-[0_0_15px_rgba(212,175,55,0.5)] pointer-events-none"
+                style={{ borderRadius: '60% 60% 0 0' }}
+              >
+                {/* Nose Cone Red Beacon Light */}
+                <span className="absolute top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse pointer-events-none" />
+                <span className="absolute top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-400 rounded-full animate-ping pointer-events-none" />
+              </motion.div>
+
+              {/* Left Wing / Delta Fin */}
+              <motion.div 
+                initial={{ opacity: 0, x: 10, rotate: -40 }}
+                animate={{ opacity: 1, x: 0, rotate: 0 }}
+                className="absolute -left-3.5 bottom-1.5 w-4 h-8 bg-gradient-to-br from-luxury-gold via-yellow-700 to-zinc-950 border border-luxury-gold/50 rounded-tl-[100%] rounded-bl-[20%] origin-bottom-right z-10 pointer-events-none"
+              />
+
+              {/* Right Wing / Delta Fin */}
+              <motion.div 
+                initial={{ opacity: 0, x: -10, rotate: 40 }}
+                animate={{ opacity: 1, x: 0, rotate: 0 }}
+                className="absolute -right-3.5 bottom-1.5 w-4 h-8 bg-gradient-to-bl from-luxury-gold via-yellow-700 to-zinc-950 border border-luxury-gold/50 rounded-tr-[100%] rounded-br-[20%] origin-bottom-left z-10 pointer-events-none"
+              />
+
+              {/* Cockpit glass panel reflection overlay */}
+              <div className="absolute inset-0 rounded-full border-2 border-luxury-gold bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none z-30" />
+            </>
+          )}
+
           {/* Glowing Aura backdrop */}
           <span className="absolute inset-0 rounded-full border border-luxury-gold/25 animate-ping opacity-30 animate-pulse pointer-events-none"></span>
           
           <img 
             src={avatarUrl} 
             alt="Xoro" 
-            className="h-full w-full rounded-full object-cover select-none pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" 
+            className="h-full w-full rounded-full object-cover select-none pointer-events-none filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] z-20" 
             referrerPolicy="no-referrer"
           />
 
@@ -1347,8 +1568,36 @@ export default function XoroAssistant({
                 </div>
               </div>
 
-              {/* MESSAGES BODY */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              {/* TAB SELECTOR */}
+              <div className="flex border-b border-white/5 bg-[#070707] shrink-0">
+                <button 
+                  onClick={() => setActiveTab('chat')}
+                  className={`flex-1 py-2 text-[9px] font-mono font-bold uppercase tracking-widest transition-all border-b-2 flex items-center justify-center gap-1.5 ${
+                    activeTab === 'chat' 
+                      ? 'border-luxury-gold text-luxury-gold bg-zinc-950/40' 
+                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <Bot size={11} className={activeTab === 'chat' ? 'text-luxury-gold' : 'text-zinc-500'} />
+                  <span>💬 Chat Concierge</span>
+                </button>
+                <button 
+                  onClick={() => setActiveTab('explore')}
+                  className={`flex-1 py-2 text-[9px] font-mono font-bold uppercase tracking-widest transition-all border-b-2 flex items-center justify-center gap-1.5 ${
+                    activeTab === 'explore' 
+                      ? 'border-luxury-gold text-luxury-gold bg-zinc-950/40' 
+                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <Compass size={11} className={`${activeTab === 'explore' ? 'text-luxury-gold animate-spin' : 'text-zinc-500'}`} style={{ animationDuration: '6s' }} />
+                  <span>🌐 Travel Map</span>
+                </button>
+              </div>
+
+              {activeTab === 'chat' ? (
+                <>
+                  {/* MESSAGES BODY */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                 
                 {/* Brand introduction banner card */}
                 <div className="p-2.5 bg-gradient-to-br from-[#121212] to-black border border-white/5 rounded-xl flex flex-col items-center text-center space-y-1">
@@ -1562,7 +1811,72 @@ export default function XoroAssistant({
                   <Send size={14} />
                 </button>
               </form>
-            </motion.div>
+            </>
+          ) : (
+            /* EXPLORE MAP BODY */
+            <div className="flex-1 overflow-y-auto p-3.5 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent flex flex-col bg-zinc-950/90 text-left">
+              {/* Tour banner */}
+              <div className="p-3 bg-gradient-to-r from-luxury-black via-[#0d0a14] to-luxury-black border border-luxury-gold/40 rounded-xl flex flex-col items-center text-center space-y-2 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl animate-pulse pointer-events-none"></div>
+                <div className="w-8 h-8 bg-luxury-gold/10 border border-luxury-gold/30 rounded-full flex items-center justify-center text-luxury-gold">
+                  <Compass size={16} className={isTouring ? "animate-spin" : "animate-pulse"} />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">অটো ওয়েবসাইট সফর</p>
+                  <p className="text-[9px] text-zinc-400 font-sans">জোরো আপনাকে নিজ দায়িত্বে পুরো ওয়েবসাইট ঘুরিয়ে দেখাবে</p>
+                </div>
+                
+                <button
+                  onClick={startAutomaticTour}
+                  disabled={isTouring}
+                  className="w-full py-1.5 bg-luxury-gold hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100 text-luxury-black font-mono font-bold text-[10px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-[0_2px_10px_rgba(212,175,55,0.2)] cursor-pointer"
+                >
+                  <span>{isTouring ? "সফর চলছে..." : "ট্যুর শুরু করুন 🚀"}</span>
+                </button>
+              </div>
+
+              {/* Manual Navigation Pins */}
+              <div className="space-y-2">
+                <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400 font-bold border-b border-white/5 pb-1 flex items-center gap-1">
+                  <MapPin size={9} className="text-luxury-gold" />
+                  <span>ম্যানুয়াল লোকেশন নেভিগেশন (জোরো স্পেস)</span>
+                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'hero', name: '🏠 হোম ব্যানার', desc: 'ওয়েবসাইটের প্রারম্ভে ফিরুন' },
+                    { id: 'countdown', name: '⏳ ফ্ল্যাশ সেল', desc: 'কাউন্টডাউন এবং অফার' },
+                    { id: 'catalog', name: '👕 প্রোডাক্ট ক্যাটালগ', desc: 'এক্সক্লুসিভ ক্লোথিং সিরিজ' },
+                    { id: 'lottery', name: '🎟️ রয়্যাল লটারি', desc: 'লাকি স্পিন হুইল' },
+                    { id: 'cart', name: '🛒 শপিং কার্ট', desc: 'আপনার ক্রিত পণ্য তালিকা' },
+                    { id: 'tracker', name: '📦 অর্ডার ট্র্যাকার', desc: 'অর্ডারের লাইভ আপডেট' },
+                    { id: 'reviews', name: '✍️ ভেরিফাইড রিভিউ', desc: 'গ্রাহকদের মতামত খাতা' },
+                    { id: 'admin', name: '👑 অ্যাডমিন ডেস্ক', desc: 'স্টোর এডমিনিস্ট্রেশন' }
+                  ].map((poi) => (
+                    <button
+                      key={poi.id}
+                      onClick={() => handleNavigateToSection(poi.id)}
+                      className="p-2.5 bg-[#0e0e0e] hover:bg-zinc-900 border border-white/5 hover:border-luxury-gold/30 rounded-xl text-left transition-all duration-200 flex flex-col justify-between h-16 group active:scale-95 cursor-pointer outline-none"
+                    >
+                      <span className="text-[10px] font-semibold text-white group-hover:text-luxury-gold transition-colors block">
+                        {poi.name}
+                      </span>
+                      <span className="text-[8px] text-zinc-500 block leading-tight font-light truncate w-full">
+                        {poi.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="p-2.5 bg-[#0d0d0d] border border-white/5 rounded-xl text-center">
+                <p className="text-[8.5px] text-zinc-500 font-mono italic leading-normal">
+                  পিনের ওপর ক্লিক করলে জোরো তার রকেট থ্রাস্টার জ্বালিয়ে আপনাকে ওই সেকশনে নিয়ে যাবে! 🚀
+                </p>
+              </div>
+            </div>
+          )}
+        </motion.div>
           )}
         </AnimatePresence>
 

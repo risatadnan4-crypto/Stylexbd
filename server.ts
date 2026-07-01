@@ -178,6 +178,12 @@ let db = {
     deactivatedMessage: "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
     isLotteryDeactivated: false,
     isNotifyMeDeactivated: false,
+    globalTimerEndTime: "",
+    globalTimerMessage: "",
+    globalTimerActive: false,
+    globalPaymentSystem: "product_defined",
+    globalPaymentMethod: "both",
+    globalDeliveryDays: "",
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
       { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -236,6 +242,12 @@ if (fs.existsSync(DB_FILE)) {
       deactivatedMessage: db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
       isLotteryDeactivated: db.settings?.isLotteryDeactivated !== undefined ? !!db.settings.isLotteryDeactivated : false,
       isNotifyMeDeactivated: db.settings?.isNotifyMeDeactivated !== undefined ? !!db.settings.isNotifyMeDeactivated : false,
+      globalTimerEndTime: db.settings?.globalTimerEndTime || "",
+      globalTimerMessage: db.settings?.globalTimerMessage || "",
+      globalTimerActive: db.settings?.globalTimerActive !== undefined ? !!db.settings.globalTimerActive : false,
+      globalPaymentSystem: db.settings?.globalPaymentSystem || "product_defined",
+      globalPaymentMethod: db.settings?.globalPaymentMethod || "both",
+      globalDeliveryDays: db.settings?.globalDeliveryDays || "",
       lotteryPrizes: db.settings?.lotteryPrizes || [
         { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
         { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -283,7 +295,7 @@ async function syncFromSupabase() {
       supabase.from("reviews").select("*"),
       supabase.from("orders").select("*"),
       supabase.from("chats").select("*"),
-      supabase.from("settings").select("*")
+      supabase.from("global_settings").select("*")
     ]);
 
     // 1. Sync Products
@@ -558,7 +570,7 @@ async function syncFromSupabase() {
         const errMsg = settingsResult.error.message || "";
         if (errMsg.includes("Could not find the table") || errMsg.includes("does not exist") || settingsResult.error.code === "PGRST116" || settingsResult.error.code === "42P01") {
           isSettingsTableAvailable = false;
-          console.info("ℹ️ Supabase 'settings' table is not available yet. File-based cache will be used for settings storage.");
+          console.info("ℹ️ Supabase 'global_settings' table is not available yet. File-based cache will be used for settings storage.");
         } else {
           console.warn("⚠️ Failed syncing settings from Supabase:", settingsResult.error.message);
         }
@@ -568,55 +580,69 @@ async function syncFromSupabase() {
 
       if (isSettingsTableAvailable && settingsResult.data) {
         const settingsData = settingsResult.data;
-        if (settingsData && settingsData.length > 0) {
-          const map: Record<string, string> = {};
-          settingsData.forEach((row: any) => {
-            if (row && row.key) {
-              map[row.key] = row.value || "";
-            }
-          });
-
-          // Restore normal settings if present
-          if (map.whatsappNumber !== undefined) db.settings.whatsappNumber = map.whatsappNumber;
-          if (map.adminEmail !== undefined) db.settings.adminEmail = map.adminEmail;
-          if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
-          if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
-          if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
-          if (map.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = map.xoroAvatarUrl;
-          if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
-          if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
-          if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
-          if (map.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
-          if (map.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
-          if (map.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
-          if (map.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
-          if (map.deactivatedMessage !== undefined) db.settings.deactivatedMessage = map.deactivatedMessage;
-          if (map.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
-          if (map.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
-          if (map.lotteryPrizes) {
+        const configRow = settingsData.find((r: any) => r.id === 1 || r.id === "1") || settingsData[0];
+        if (configRow) {
+          if (configRow.whatsappNumber !== undefined && configRow.whatsappNumber !== null) db.settings.whatsappNumber = configRow.whatsappNumber;
+          if (configRow.adminEmail !== undefined && configRow.adminEmail !== null) db.settings.adminEmail = configRow.adminEmail;
+          if (configRow.adminPassword !== undefined && configRow.adminPassword !== null) db.settings.adminPassword = configRow.adminPassword;
+          if (configRow.appsScriptUrl !== undefined && configRow.appsScriptUrl !== null) db.settings.appsScriptUrl = configRow.appsScriptUrl;
+          if (configRow.logoUrl !== undefined && configRow.logoUrl !== null) db.settings.logoUrl = configRow.logoUrl;
+          if (configRow.xoroAvatarUrl !== undefined && configRow.xoroAvatarUrl !== null) db.settings.xoroAvatarUrl = configRow.xoroAvatarUrl;
+          if (configRow.bkashLogoUrl !== undefined && configRow.bkashLogoUrl !== null) db.settings.bkashLogoUrl = configRow.bkashLogoUrl;
+          if (configRow.nagadLogoUrl !== undefined && configRow.nagadLogoUrl !== null) db.settings.nagadLogoUrl = configRow.nagadLogoUrl;
+          if (configRow.facebookUrl !== undefined && configRow.facebookUrl !== null) db.settings.facebookUrl = configRow.facebookUrl;
+          if (configRow.instagramUrl !== undefined && configRow.instagramUrl !== null) db.settings.instagramUrl = configRow.instagramUrl;
+          if (configRow.lotteryDiscountPercentage !== undefined && configRow.lotteryDiscountPercentage !== null) db.settings.lotteryDiscountPercentage = Number(configRow.lotteryDiscountPercentage);
+          if (configRow.lotteryCouponPrefix !== undefined && configRow.lotteryCouponPrefix !== null) db.settings.lotteryCouponPrefix = configRow.lotteryCouponPrefix;
+          if (configRow.paymentBadgeTitle !== undefined && configRow.paymentBadgeTitle !== null) db.settings.paymentBadgeTitle = configRow.paymentBadgeTitle;
+          if (configRow.paymentBadgeDescription !== undefined && configRow.paymentBadgeDescription !== null) db.settings.paymentBadgeDescription = configRow.paymentBadgeDescription;
+          
+          if (configRow.isCatalogDeactivated !== undefined && configRow.isCatalogDeactivated !== null) {
+            db.settings.isCatalogDeactivated = configRow.isCatalogDeactivated === true || configRow.isCatalogDeactivated === "true";
+          }
+          if (configRow.deactivatedMessage !== undefined && configRow.deactivatedMessage !== null) db.settings.deactivatedMessage = configRow.deactivatedMessage;
+          
+          if (configRow.isLotteryDeactivated !== undefined && configRow.isLotteryDeactivated !== null) {
+            db.settings.isLotteryDeactivated = configRow.isLotteryDeactivated === true || configRow.isLotteryDeactivated === "true";
+          }
+          if (configRow.isNotifyMeDeactivated !== undefined && configRow.isNotifyMeDeactivated !== null) {
+            db.settings.isNotifyMeDeactivated = configRow.isNotifyMeDeactivated === true || configRow.isNotifyMeDeactivated === "true";
+          }
+          
+          if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
+          if (configRow.globalTimerMessage !== undefined && configRow.globalTimerMessage !== null) db.settings.globalTimerMessage = configRow.globalTimerMessage;
+          
+          if (configRow.globalTimerActive !== undefined && configRow.globalTimerActive !== null) {
+            db.settings.globalTimerActive = configRow.globalTimerActive === true || configRow.globalTimerActive === "true";
+          }
+          
+          if (configRow.globalPaymentSystem !== undefined && configRow.globalPaymentSystem !== null) db.settings.globalPaymentSystem = configRow.globalPaymentSystem;
+          if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
+          if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
+          
+          if (configRow.lotteryPrizes) {
             try {
-              db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
+              db.settings.lotteryPrizes = typeof configRow.lotteryPrizes === "string" ? JSON.parse(configRow.lotteryPrizes) : configRow.lotteryPrizes;
             } catch (err) {}
           }
 
-          // Restore persistent count and counted sessions
-          if (map.visits_count) {
-            const parsedVisits = Number(map.visits_count);
+          // Restore persistent count and counted sessions from single-row configRow
+          if (configRow.visits_count !== undefined && configRow.visits_count !== null) {
+            const parsedVisits = Number(configRow.visits_count);
             if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
               db.visits = parsedVisits;
             }
           }
-          if (map.counted_sessions) {
+          if (configRow.counted_sessions !== undefined && configRow.counted_sessions !== null) {
             try {
-              const sessions = JSON.parse(map.counted_sessions);
+              const sessions = typeof configRow.counted_sessions === "string" ? JSON.parse(configRow.counted_sessions) : configRow.counted_sessions;
               if (Array.isArray(sessions)) {
-                // Merge unique sessions and make sure we don't lose any
                 const combined = Array.from(new Set([...(db.countedSessions || []), ...sessions]));
                 db.countedSessions = combined;
                 db.visits = Math.max(db.visits, db.countedSessions.length);
               }
             } catch (jsonErr) {
-              console.error("Error parsing counted_sessions from Supabase settings:", jsonErr);
+              console.error("Error parsing counted_sessions from single-row settings:", jsonErr);
             }
           }
         }
@@ -757,11 +783,14 @@ app.get("/api/visitor-ping", (req, res) => {
 
         // Asynchronously back up the visitor metrics to Supabase
         if (isSettingsTableAvailable) {
-          Promise.all([
-            supabase.from("settings").upsert({ key: "visits_count", value: String(db.visits) }, { onConflict: "key" }),
-            supabase.from("settings").upsert({ key: "counted_sessions", value: JSON.stringify(db.countedSessions) }, { onConflict: "key" })
-          ]).catch((err) => {
-            console.error("⚠️ Background backup of visitor count to Supabase failed:", err.message);
+          supabase.from("global_settings").upsert({
+            id: 1,
+            visits_count: db.visits,
+            counted_sessions: JSON.stringify(db.countedSessions)
+          }, { onConflict: "id" }).then(({ error: upsertErr }) => {
+            if (upsertErr) {
+              console.error("⚠️ Background backup of single-row visitor count failed:", upsertErr.message);
+            }
           });
         }
       }
@@ -828,45 +857,52 @@ app.get("/api/analytics", (req, res) => {
 app.get("/api/settings", async (req, res) => {
   try {
     if (isSettingsTableAvailable) {
-      const { data: settingsResult, error } = await supabase.from("settings").select("*");
+      const { data: settingsResult, error } = await supabase.from("global_settings").select("*");
       if (!error && settingsResult && settingsResult.length > 0) {
-        const map: Record<string, string> = {};
-        settingsResult.forEach((row: any) => {
-          if (row && row.key) {
-            map[row.key] = row.value || "";
+        const configRow = settingsResult.find((r: any) => r.id === 1 || r.id === "1") || settingsResult[0];
+        if (configRow) {
+          if (configRow.whatsappNumber !== undefined && configRow.whatsappNumber !== null) db.settings.whatsappNumber = configRow.whatsappNumber;
+          if (configRow.adminEmail !== undefined && configRow.adminEmail !== null) db.settings.adminEmail = configRow.adminEmail;
+          if (configRow.adminPassword !== undefined && configRow.adminPassword !== null) db.settings.adminPassword = configRow.adminPassword;
+          if (configRow.appsScriptUrl !== undefined && configRow.appsScriptUrl !== null) db.settings.appsScriptUrl = configRow.appsScriptUrl;
+          if (configRow.logoUrl !== undefined && configRow.logoUrl !== null) db.settings.logoUrl = configRow.logoUrl;
+          if (configRow.xoroAvatarUrl !== undefined && configRow.xoroAvatarUrl !== null) db.settings.xoroAvatarUrl = configRow.xoroAvatarUrl;
+          if (configRow.bkashLogoUrl !== undefined && configRow.bkashLogoUrl !== null) db.settings.bkashLogoUrl = configRow.bkashLogoUrl;
+          if (configRow.nagadLogoUrl !== undefined && configRow.nagadLogoUrl !== null) db.settings.nagadLogoUrl = configRow.nagadLogoUrl;
+          if (configRow.facebookUrl !== undefined && configRow.facebookUrl !== null) db.settings.facebookUrl = configRow.facebookUrl;
+          if (configRow.instagramUrl !== undefined && configRow.instagramUrl !== null) db.settings.instagramUrl = configRow.instagramUrl;
+          if (configRow.lotteryDiscountPercentage !== undefined && configRow.lotteryDiscountPercentage !== null) db.settings.lotteryDiscountPercentage = Number(configRow.lotteryDiscountPercentage);
+          if (configRow.lotteryCouponPrefix !== undefined && configRow.lotteryCouponPrefix !== null) db.settings.lotteryCouponPrefix = configRow.lotteryCouponPrefix;
+          if (configRow.paymentBadgeTitle !== undefined && configRow.paymentBadgeTitle !== null) db.settings.paymentBadgeTitle = configRow.paymentBadgeTitle;
+          if (configRow.paymentBadgeDescription !== undefined && configRow.paymentBadgeDescription !== null) db.settings.paymentBadgeDescription = configRow.paymentBadgeDescription;
+          
+          if (configRow.isCatalogDeactivated !== undefined && configRow.isCatalogDeactivated !== null) {
+            db.settings.isCatalogDeactivated = configRow.isCatalogDeactivated === true || configRow.isCatalogDeactivated === "true";
           }
-        });
-
-        // Update local db.settings from Supabase values
-        if (map.whatsappNumber !== undefined) db.settings.whatsappNumber = map.whatsappNumber;
-        if (map.adminEmail !== undefined) db.settings.adminEmail = map.adminEmail;
-        if (map.adminPassword !== undefined) db.settings.adminPassword = map.adminPassword;
-        if (map.appsScriptUrl !== undefined) db.settings.appsScriptUrl = map.appsScriptUrl;
-        if (map.logoUrl !== undefined) db.settings.logoUrl = map.logoUrl;
-        if (map.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = map.xoroAvatarUrl;
-        if (map.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = map.bkashLogoUrl;
-        if (map.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = map.nagadLogoUrl;
-        if (map.facebookUrl !== undefined) db.settings.facebookUrl = map.facebookUrl;
-        if (map.instagramUrl !== undefined) db.settings.instagramUrl = map.instagramUrl;
-        if (map.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(map.lotteryDiscountPercentage);
-        if (map.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = map.lotteryCouponPrefix;
-        if (map.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = map.paymentBadgeTitle;
-        if (map.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = map.paymentBadgeDescription;
-        if (map.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = map.isCatalogDeactivated === "true";
-        if (map.deactivatedMessage !== undefined) db.settings.deactivatedMessage = map.deactivatedMessage;
-        if (map.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = map.isLotteryDeactivated === "true";
-        if (map.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = map.isNotifyMeDeactivated === "true";
-        if (map.lotteryPrizes) {
-          try {
-            db.settings.lotteryPrizes = JSON.parse(map.lotteryPrizes);
-          } catch (err) {}
-        }
-
-        // Restore persistent counts
-        if (map.visits_count) {
-          const parsedVisits = Number(map.visits_count);
-          if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
-            db.visits = parsedVisits;
+          if (configRow.deactivatedMessage !== undefined && configRow.deactivatedMessage !== null) db.settings.deactivatedMessage = configRow.deactivatedMessage;
+          
+          if (configRow.isLotteryDeactivated !== undefined && configRow.isLotteryDeactivated !== null) {
+            db.settings.isLotteryDeactivated = configRow.isLotteryDeactivated === true || configRow.isLotteryDeactivated === "true";
+          }
+          if (configRow.isNotifyMeDeactivated !== undefined && configRow.isNotifyMeDeactivated !== null) {
+            db.settings.isNotifyMeDeactivated = configRow.isNotifyMeDeactivated === true || configRow.isNotifyMeDeactivated === "true";
+          }
+          
+          if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
+          if (configRow.globalTimerMessage !== undefined && configRow.globalTimerMessage !== null) db.settings.globalTimerMessage = configRow.globalTimerMessage;
+          
+          if (configRow.globalTimerActive !== undefined && configRow.globalTimerActive !== null) {
+            db.settings.globalTimerActive = configRow.globalTimerActive === true || configRow.globalTimerActive === "true";
+          }
+          
+          if (configRow.globalPaymentSystem !== undefined && configRow.globalPaymentSystem !== null) db.settings.globalPaymentSystem = configRow.globalPaymentSystem;
+          if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
+          if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
+          
+          if (configRow.lotteryPrizes) {
+            try {
+              db.settings.lotteryPrizes = typeof configRow.lotteryPrizes === "string" ? JSON.parse(configRow.lotteryPrizes) : configRow.lotteryPrizes;
+            } catch (err) {}
           }
         }
       } else if (error) {
@@ -902,6 +938,12 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
             if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
             if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+            if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
+            if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
+            if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
+            if (fallbackSettings.globalPaymentSystem !== undefined) db.settings.globalPaymentSystem = fallbackSettings.globalPaymentSystem;
+            if (fallbackSettings.globalPaymentMethod !== undefined) db.settings.globalPaymentMethod = fallbackSettings.globalPaymentMethod;
+            if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
             if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
@@ -979,7 +1021,14 @@ app.post("/api/discount-request", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, xoroAvatarUrl, lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl } = req.body;
+    const { 
+      whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, xoroAvatarUrl, 
+      lotteryPrizes, lotteryDiscountPercentage, lotteryCouponPrefix, facebookUrl, instagramUrl, 
+      paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, 
+      isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl,
+      globalTimerEndTime, globalTimerMessage, globalTimerActive, globalPaymentSystem, 
+      globalPaymentMethod, globalDeliveryDays
+    } = req.body;
     
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
@@ -1000,6 +1049,12 @@ app.post("/api/settings", async (req, res) => {
       deactivatedMessage: deactivatedMessage !== undefined ? deactivatedMessage.trim() : (db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops."),
       isLotteryDeactivated: isLotteryDeactivated !== undefined ? !!isLotteryDeactivated : (db.settings?.isLotteryDeactivated || false),
       isNotifyMeDeactivated: isNotifyMeDeactivated !== undefined ? !!isNotifyMeDeactivated : (db.settings?.isNotifyMeDeactivated || false),
+      globalTimerEndTime: globalTimerEndTime !== undefined ? globalTimerEndTime.trim() : (db.settings?.globalTimerEndTime || ""),
+      globalTimerMessage: globalTimerMessage !== undefined ? globalTimerMessage.trim() : (db.settings?.globalTimerMessage || ""),
+      globalTimerActive: globalTimerActive !== undefined ? !!globalTimerActive : (db.settings?.globalTimerActive || false),
+      globalPaymentSystem: globalPaymentSystem !== undefined ? globalPaymentSystem.trim() : (db.settings?.globalPaymentSystem || "product_defined"),
+      globalPaymentMethod: globalPaymentMethod !== undefined ? globalPaymentMethod.trim() : (db.settings?.globalPaymentMethod || "both"),
+      globalDeliveryDays: globalDeliveryDays !== undefined ? globalDeliveryDays.trim() : (db.settings?.globalDeliveryDays || ""),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || [])
     };
     saveDB();
@@ -1007,34 +1062,82 @@ app.post("/api/settings", async (req, res) => {
     // Mirror to Supabase 'settings' table if table matches
     if (isSettingsTableAvailable) {
       try {
-        const saveSetting = async (key: string, value: string) => {
-          const { error } = await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
-          if (error) {
-            console.error(`⚠️ Error upserting setting ${key} to Supabase:`, error.message);
-          }
-        };
+        const { data: testResult, error: testError } = await supabase.from("settings").select("*").limit(1);
+        const isOldKeyValue = !testError && testResult && testResult.length > 0 && testResult[0].key !== undefined && testResult[0].value !== undefined;
 
-        if (whatsappNumber) await saveSetting("whatsappNumber", whatsappNumber.trim());
-        if (adminEmail) await saveSetting("adminEmail", adminEmail.trim());
-        if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
-        if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
-        if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
-        if (xoroAvatarUrl !== undefined) await saveSetting("xoroAvatarUrl", xoroAvatarUrl.trim());
-        if (bkashLogoUrl !== undefined) await saveSetting("bkashLogoUrl", bkashLogoUrl.trim());
-        if (nagadLogoUrl !== undefined) await saveSetting("nagadLogoUrl", nagadLogoUrl.trim());
-        if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
-        if (instagramUrl !== undefined) await saveSetting("instagramUrl", instagramUrl.trim());
-        if (lotteryDiscountPercentage !== undefined) await saveSetting("lotteryDiscountPercentage", String(lotteryDiscountPercentage));
-        if (lotteryCouponPrefix !== undefined) await saveSetting("lotteryCouponPrefix", lotteryCouponPrefix.trim().toUpperCase());
-        if (paymentBadgeTitle !== undefined) await saveSetting("paymentBadgeTitle", paymentBadgeTitle.trim());
-        if (paymentBadgeDescription !== undefined) await saveSetting("paymentBadgeDescription", paymentBadgeDescription.trim());
-        if (isCatalogDeactivated !== undefined) await saveSetting("isCatalogDeactivated", String(!!isCatalogDeactivated));
-        if (deactivatedMessage !== undefined) await saveSetting("deactivatedMessage", deactivatedMessage.trim());
-        if (isLotteryDeactivated !== undefined) await saveSetting("isLotteryDeactivated", String(!!isLotteryDeactivated));
-        if (isNotifyMeDeactivated !== undefined) await saveSetting("isNotifyMeDeactivated", String(!!isNotifyMeDeactivated));
-        if (Array.isArray(lotteryPrizes)) await saveSetting("lotteryPrizes", JSON.stringify(lotteryPrizes));
+        if (isOldKeyValue) {
+          const saveSetting = async (key: string, value: string) => {
+            const { error } = await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
+            if (error) {
+              console.error(`⚠️ Error upserting setting ${key} to Supabase:`, error.message);
+            }
+          };
+
+          if (whatsappNumber) await saveSetting("whatsappNumber", whatsappNumber.trim());
+          if (adminEmail) await saveSetting("adminEmail", adminEmail.trim());
+          if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
+          if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
+          if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
+          if (xoroAvatarUrl !== undefined) await saveSetting("xoroAvatarUrl", xoroAvatarUrl.trim());
+          if (bkashLogoUrl !== undefined) await saveSetting("bkashLogoUrl", bkashLogoUrl.trim());
+          if (nagadLogoUrl !== undefined) await saveSetting("nagadLogoUrl", nagadLogoUrl.trim());
+          if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
+          if (instagramUrl !== undefined) await saveSetting("instagramUrl", instagramUrl.trim());
+          if (lotteryDiscountPercentage !== undefined) await saveSetting("lotteryDiscountPercentage", String(lotteryDiscountPercentage));
+          if (lotteryCouponPrefix !== undefined) await saveSetting("lotteryCouponPrefix", lotteryCouponPrefix.trim().toUpperCase());
+          if (paymentBadgeTitle !== undefined) await saveSetting("paymentBadgeTitle", paymentBadgeTitle.trim());
+          if (paymentBadgeDescription !== undefined) await saveSetting("paymentBadgeDescription", paymentBadgeDescription.trim());
+          if (isCatalogDeactivated !== undefined) await saveSetting("isCatalogDeactivated", String(!!isCatalogDeactivated));
+          if (deactivatedMessage !== undefined) await saveSetting("deactivatedMessage", deactivatedMessage.trim());
+          if (isLotteryDeactivated !== undefined) await saveSetting("isLotteryDeactivated", String(!!isLotteryDeactivated));
+          if (isNotifyMeDeactivated !== undefined) await saveSetting("isNotifyMeDeactivated", String(!!isNotifyMeDeactivated));
+          if (globalTimerEndTime !== undefined) await saveSetting("globalTimerEndTime", globalTimerEndTime.trim());
+          if (globalTimerMessage !== undefined) await saveSetting("globalTimerMessage", globalTimerMessage.trim());
+          if (globalTimerActive !== undefined) await saveSetting("globalTimerActive", String(!!globalTimerActive));
+          if (globalPaymentSystem !== undefined) await saveSetting("globalPaymentSystem", globalPaymentSystem.trim());
+          if (globalPaymentMethod !== undefined) await saveSetting("globalPaymentMethod", globalPaymentMethod.trim());
+          if (globalDeliveryDays !== undefined) await saveSetting("globalDeliveryDays", globalDeliveryDays.trim());
+          if (Array.isArray(lotteryPrizes)) await saveSetting("lotteryPrizes", JSON.stringify(lotteryPrizes));
+        } else {
+          // Single-Row structure (id = 1) atomic upsert
+          const upsertPayload: any = {
+            id: 1,
+            whatsappNumber: db.settings.whatsappNumber,
+            adminEmail: db.settings.adminEmail,
+            adminPassword: db.settings.adminPassword,
+            appsScriptUrl: db.settings.appsScriptUrl,
+            logoUrl: db.settings.logoUrl,
+            xoroAvatarUrl: db.settings.xoroAvatarUrl,
+            bkashLogoUrl: db.settings.bkashLogoUrl,
+            nagadLogoUrl: db.settings.nagadLogoUrl,
+            lotteryDiscountPercentage: db.settings.lotteryDiscountPercentage,
+            lotteryCouponPrefix: db.settings.lotteryCouponPrefix,
+            facebookUrl: db.settings.facebookUrl,
+            instagramUrl: db.settings.instagramUrl,
+            paymentBadgeTitle: db.settings.paymentBadgeTitle,
+            paymentBadgeDescription: db.settings.paymentBadgeDescription,
+            isCatalogDeactivated: db.settings.isCatalogDeactivated,
+            deactivatedMessage: db.settings.deactivatedMessage,
+            isLotteryDeactivated: db.settings.isLotteryDeactivated,
+            isNotifyMeDeactivated: db.settings.isNotifyMeDeactivated,
+            globalTimerEndTime: db.settings.globalTimerEndTime,
+            globalTimerMessage: db.settings.globalTimerMessage,
+            globalTimerActive: db.settings.globalTimerActive,
+            globalPaymentSystem: db.settings.globalPaymentSystem,
+            globalPaymentMethod: db.settings.globalPaymentMethod,
+            globalDeliveryDays: db.settings.globalDeliveryDays,
+            lotteryPrizes: typeof db.settings.lotteryPrizes === "string" ? db.settings.lotteryPrizes : JSON.stringify(db.settings.lotteryPrizes)
+          };
+
+          const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
+          if (upsertError) {
+            console.error("⚠️ Error upserting single-row setting to Supabase settings table:", upsertError.message);
+          } else {
+            console.log("✅ Settings table updated successfully via atomic single-row upsert.");
+          }
+        }
       } catch (dbErr: any) {
-        console.error("⚠️ Failed to mirror settings to Supabase:", dbErr?.message || dbErr);
+        console.error("⚠️ Failed to mirror settings to Supabase settings table:", dbErr?.message || dbErr);
       }
     }
 

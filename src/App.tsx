@@ -19,6 +19,7 @@ import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
 import XoroAssistant from './components/XoroAssistant';
 import CustomerProfileModal from './components/CustomerProfileModal';
+import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
 
 export default function App() {
@@ -232,59 +233,31 @@ export default function App() {
     deactivatedMessage?: string;
     isLotteryDeactivated?: boolean;
     isNotifyMeDeactivated?: boolean;
-  }>(() => {
-    try {
-      const saved = localStorage.getItem("stylex_settings");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.warn("Failed to load settings from localStorage", e);
-    }
-    return {
-      whatsappNumber: "8801755104443",
-      facebookUrl: "https://www.facebook.com/stylex24/",
-      instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
-      logoUrl: "/stylex_logo.jpg"
-    };
+    globalTimerEndTime?: string;
+    globalTimerMessage?: string;
+    globalTimerActive?: boolean;
+    globalPaymentSystem?: string;
+    globalPaymentMethod?: string;
+    globalDeliveryDays?: string;
+  }>({
+    whatsappNumber: "8801755104443",
+    facebookUrl: "https://www.facebook.com/stylex24/",
+    instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
+    logoUrl: "/stylex_logo.jpg",
+    globalTimerEndTime: "",
+    globalTimerMessage: "",
+    globalTimerActive: false,
+    globalPaymentSystem: "product_defined",
+    globalPaymentMethod: "both",
+    globalDeliveryDays: ""
   });
-
-  // Synchronize settings state with localStorage
-  useEffect(() => {
-    if (settings) {
-      try {
-        localStorage.setItem("stylex_settings", JSON.stringify(settings));
-      } catch (e) {
-        console.error("Failed to save settings to localStorage", e);
-      }
-    }
-  }, [settings]);
 
   const loadSettings = async () => {
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
-        setSettings(prev => {
-          const defaultLogo = "/stylex_logo.jpg";
-          const defaultFb = "https://www.facebook.com/stylex24/";
-          const defaultIg = "https://www.instagram.com/style_x25/?hl=en";
-
-          const merged = { ...prev, ...data };
-
-          // If the incoming server setting has the default value, but our local state has a custom value, keep the custom local value.
-          if (prev && prev.logoUrl && prev.logoUrl !== defaultLogo && data.logoUrl === defaultLogo) {
-            merged.logoUrl = prev.logoUrl;
-          }
-          if (prev && prev.facebookUrl && prev.facebookUrl !== defaultFb && data.facebookUrl === defaultFb) {
-            merged.facebookUrl = prev.facebookUrl;
-          }
-          if (prev && prev.instagramUrl && prev.instagramUrl !== defaultIg && data.instagramUrl === defaultIg) {
-            merged.instagramUrl = prev.instagramUrl;
-          }
-
-          return merged;
-        });
+        setSettings(data);
       }
     } catch (err) {
       console.error("Failed loading settings", err);
@@ -321,6 +294,25 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [viewToast]);
+
+  // Real-time settings synchronization via Supabase Realtime Postgres Changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:settings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'settings' },
+        () => {
+          // Instantly reload settings from API whenever any rows change in Supabase
+          loadSettings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Initial Boot Data Loading
   useEffect(() => {
@@ -1095,7 +1087,7 @@ export default function App() {
       <main className="flex-1 pb-16">
         {isTrackMode ? (
           /* Track Order Layout view */
-          <div className="bg-[#050505] min-h-[50vh] border-b border-white/5 py-10">
+          <div id="order-tracker-container" className="bg-[#050505] min-h-[50vh] border-b border-white/5 py-10">
             <OrderTracker 
               whatsappNumber={settings.whatsappNumber} 
               activeTrackId={activeTrackId}
@@ -1202,6 +1194,7 @@ export default function App() {
                     onToggleWishlist={handleToggleWishlist}
                     whatsappNumber={settings.whatsappNumber}
                     isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+                    globalDeliveryDays={settings?.globalDeliveryDays}
                   />
                 ))}
               </div>
@@ -1230,8 +1223,15 @@ export default function App() {
           /* Standard listings collections catalog view */
           <div className="max-w-7xl mx-auto px-4 py-12 md:px-8 space-y-12">
             
+            {/* Global Countdown Banner */}
+            <GlobalCountdown 
+              endTime={settings?.globalTimerEndTime}
+              message={settings?.globalTimerMessage}
+              active={settings?.globalTimerActive}
+            />
+            
             {/* Category selection bar */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/5 pb-4 gap-4">
+            <div id="exclusive-series-catalog" className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/5 pb-4 gap-4">
               <div>
                 <h3 className="font-serif text-xl font-bold uppercase tracking-widest text-white flex items-center gap-2">
                   <span className="w-2.5 h-2.5 bg-luxury-gold inline-block rounded-full"></span>
@@ -1243,11 +1243,11 @@ export default function App() {
               {/* Responsive pills sliders */}
               <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-luxury-gold/10 scrollbar-track-transparent py-1.5 -mx-4 px-4 md:mx-0 md:px-0 flex gap-2 sm:gap-3 snap-x snap-mandatory">
                 {[
-                  { id: 'ALL', label: '⚜️ সব পণ্য (All)' },
-                  { id: 'MEN', label: '🕶️ ছেলেদের (Men)' },
-                  { id: 'WOMEN', label: '💃 মেয়েদের (Women)' },
-                  { id: 'UNISEX', label: '💎 ইউনিসেক্স (Co-Ed)' },
-                  { id: 'ACCESSORIES', label: '👑 এক্সেসরিজ (Ensemble)' }
+                  { id: 'ALL', label: '⚜️ All archives' },
+                  { id: 'MEN', label: '🕶️ Gentlemen' },
+                  { id: 'WOMEN', label: '💃 Haute Couture' },
+                  { id: 'UNISEX', label: '💎 Co-Ed Line' },
+                  { id: 'ACCESSORIES', label: '👑 Ensemble' }
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -1467,13 +1467,14 @@ export default function App() {
                     onToggleWishlist={handleToggleWishlist}
                     whatsappNumber={settings.whatsappNumber}
                     isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+                    globalDeliveryDays={settings?.globalDeliveryDays}
                   />
                 ))}
               </div>
             )}
 
             {/* LUXURY EXPERIENCES STORIES / REVIEWS CATALOG */}
-            <div className="border-t border-white/5 pt-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div id="customer-experiences-reviews" className="border-t border-white/5 pt-16 grid grid-cols-1 lg:grid-cols-3 gap-10">
               
               {/* Left text Column */}
               <div className="lg:col-span-1 space-y-4">
@@ -2619,6 +2620,7 @@ CREATE TRIGGER on_auth_user_created
           onToggleWishlist={handleToggleWishlist}
           whatsappNumber={settings.whatsappNumber}
           isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+          globalDeliveryDays={settings?.globalDeliveryDays}
         />
       )}
 
@@ -2882,6 +2884,11 @@ CREATE TRIGGER on_auth_user_created
           window.history.pushState({}, '', newUrl);
           window.scrollTo({ top: 350, behavior: 'smooth' });
         }}
+        onToggleCart={(isOpen) => setIsCartOpen(isOpen)}
+        onSetCategory={(category) => setActiveCategory(category)}
+        onToggleLottery={(isOpen) => setIsLotteryOpen(isOpen)}
+        onSetTrackMode={(track) => setIsTrackMode(track)}
+        onShowLoginModal={(show) => setShowLoginModal(show)}
       />
 
     </div>

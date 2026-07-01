@@ -22,6 +22,12 @@ interface CartDrawerProps {
     lotteryCouponPrefix?: string;
     bkashLogoUrl?: string;
     nagadLogoUrl?: string;
+    globalTimerEndTime?: string;
+    globalTimerMessage?: string;
+    globalTimerActive?: boolean;
+    globalPaymentSystem?: string;
+    globalPaymentMethod?: string;
+    globalDeliveryDays?: string;
   };
   onCheckoutSuccess: (orderId: string, whatsappUrl: string, paymentInfo?: string) => void;
   initialShowCheckout?: boolean;
@@ -61,7 +67,18 @@ export default function CartDrawer({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Payment integration state
-  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad'>('bkash');
+  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad'>(() => {
+    return settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash';
+  });
+
+  useEffect(() => {
+    if (settings?.globalPaymentSystem === 'always_nagad') {
+      setPaymentMethod('nagad');
+    } else if (settings?.globalPaymentSystem === 'always_bkash') {
+      setPaymentMethod('bkash');
+    }
+  }, [settings?.globalPaymentSystem]);
+
   const [transactionId, setTransactionId] = useState('');
   const [transactionError, setTransactionError] = useState('');
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -204,7 +221,17 @@ export default function CartDrawer({
 
   // Resolve governing product settings (prefer any product that requires advance payment)
   const governingProduct = cartItems.find(item => item.product.paymentType && item.product.paymentType !== 'cod')?.product || cartItems[0]?.product;
-  const paymentType = governingProduct?.paymentType || 'cod';
+  
+  // Apply Global Payment Method Overrides
+  let paymentType = governingProduct?.paymentType || 'cod';
+  if (settings?.globalPaymentMethod === 'cod_only') {
+    paymentType = 'cod';
+  } else if (settings?.globalPaymentMethod === 'prepay_only') {
+    if (paymentType === 'cod') {
+      paymentType = 'full_advance';
+    }
+  }
+
   const bkashNumber = governingProduct?.bkashNumber || '';
   const nagadNumber = governingProduct?.nagadNumber || '';
   
@@ -968,83 +995,92 @@ export default function CartDrawer({
                     </p>
 
                     {/* bKash / Nagad Toggle segmented control */}
-                    <div className="grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethod('bkash');
-                          setTransactionId('');
-                          setTransactionError('');
-                        }}
-                        className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          paymentMethod === 'bkash'
-                            ? 'bg-[#e2136e]/15 text-[#e2136e] border border-[#e2136e]/40 font-black shadow-[0_0_15px_rgba(226,19,110,0.25)]'
-                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
-                        }`}
-                      >
-                        {settings?.bkashLogoUrl ? (
-                          <img 
-                            src={settings.bkashLogoUrl} 
-                            alt="bKash" 
-                            className="h-5 w-5 rounded object-contain flex-shrink-0"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <svg 
-                            viewBox="0 0 100 100" 
-                            className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <rect width="100" height="100" rx="20" fill="#e2136e" />
-                            <g transform="translate(10, 10) scale(0.8)" fill="#ffffff">
-                              <polygon points="50,15 42,28 58,28" />
-                              <polygon points="50,32 38,55 50,75" opacity="0.9" />
-                              <polygon points="50,32 62,55 50,75" />
-                              <polygon points="34,34 15,50 38,50" opacity="0.8" />
-                              <polygon points="66,34 85,50 62,50" opacity="0.95" />
-                              <polygon points="50,78 45,90 55,90" />
-                            </g>
-                          </svg>
-                        )}
-                        <span>bKash (বিকাশ)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethod('nagad');
-                          setTransactionId('');
-                          setTransactionError('');
-                        }}
-                        className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                          paymentMethod === 'nagad'
-                            ? 'bg-[#f45c24]/15 text-[#f45c24] border border-[#f45c24]/40 font-black shadow-[0_0_15px_rgba(244,92,36,0.25)]'
-                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
-                        }`}
-                      >
-                        {settings?.nagadLogoUrl ? (
-                          <img 
-                            src={settings.nagadLogoUrl} 
-                            alt="Nagad" 
-                            className="h-5 w-5 rounded object-contain flex-shrink-0"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <svg 
-                            viewBox="0 0 100 100" 
-                            className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <rect width="100" height="100" rx="20" fill="#f45c24" />
-                            <g transform="translate(15, 15) scale(0.7)">
-                              <path d="M20,60 C40,60 70,40 80,10 C60,40 30,50 20,60 Z" fill="#ffffff" />
-                              <path d="M10,75 C30,75 60,55 70,25 C55,50 25,60 10,75 Z" fill="#a3e635" />
-                              <path d="M35,45 C45,45 60,35 65,15 C55,30 45,35 35,45 Z" fill="#ffffff" opacity="0.8" />
-                            </g>
-                          </svg>
-                        )}
-                        <span>Nagad (নগদ)</span>
-                      </button>
-                    </div>
+                    {settings?.globalPaymentSystem !== 'always_bkash' && settings?.globalPaymentSystem !== 'always_nagad' ? (
+                      <div className="grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentMethod('bkash');
+                            setTransactionId('');
+                            setTransactionError('');
+                          }}
+                          className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            paymentMethod === 'bkash'
+                              ? 'bg-[#e2136e]/15 text-[#e2136e] border border-[#e2136e]/40 font-black shadow-[0_0_15px_rgba(226,19,110,0.25)]'
+                              : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
+                          }`}
+                        >
+                          {settings?.bkashLogoUrl ? (
+                            <img 
+                              src={settings.bkashLogoUrl} 
+                              alt="bKash" 
+                              className="h-5 w-5 rounded object-contain flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <svg 
+                              viewBox="0 0 100 100" 
+                              className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <rect width="100" height="100" rx="20" fill="#e2136e" />
+                              <g transform="translate(10, 10) scale(0.8)" fill="#ffffff">
+                                <polygon points="50,15 42,28 58,28" />
+                                <polygon points="50,32 38,55 50,75" opacity="0.9" />
+                                <polygon points="50,32 62,55 50,75" />
+                                <polygon points="34,34 15,50 38,50" opacity="0.8" />
+                                <polygon points="66,34 85,50 62,50" opacity="0.95" />
+                                <polygon points="50,78 45,90 55,90" />
+                              </g>
+                            </svg>
+                          )}
+                          <span>bKash (বিকাশ)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaymentMethod('nagad');
+                            setTransactionId('');
+                            setTransactionError('');
+                          }}
+                          className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            paymentMethod === 'nagad'
+                              ? 'bg-[#f45c24]/15 text-[#f45c24] border border-[#f45c24]/40 font-black shadow-[0_0_15px_rgba(244,92,36,0.25)]'
+                              : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
+                          }`}
+                        >
+                          {settings?.nagadLogoUrl ? (
+                            <img 
+                              src={settings.nagadLogoUrl} 
+                              alt="Nagad" 
+                              className="h-5 w-5 rounded object-contain flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <svg 
+                              viewBox="0 0 100 100" 
+                              className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <rect width="100" height="100" rx="20" fill="#f45c24" />
+                              <g transform="translate(15, 15) scale(0.7)">
+                                <path d="M20,60 C40,60 70,40 80,10 C60,40 30,50 20,60 Z" fill="#ffffff" />
+                                <path d="M10,75 C30,75 60,55 70,25 C55,50 25,60 10,75 Z" fill="#a3e635" />
+                                <path d="M35,45 C45,45 60,35 65,15 C55,30 45,35 35,45 Z" fill="#ffffff" opacity="0.8" />
+                              </g>
+                            </svg>
+                          )}
+                          <span>Nagad (নগদ)</span>
+                        </button>
+                      </div>
+                    ) : (
+                      /* Display active channel notice */
+                      <div className="py-2.5 px-3.5 bg-luxury-gold/5 border border-luxury-gold/20 rounded-xl text-center">
+                        <span className="text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-bold">
+                          ⚜️ Governing Payment Channel Active: {paymentMethod === 'bkash' ? 'bKash (বিকাশ) Only' : 'Nagad (নগদ) Only'}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Recipient Account Details with quick copy button */}
                     <div className="bg-black/60 border border-white/5 rounded-xl p-3.5 space-y-2 relative">

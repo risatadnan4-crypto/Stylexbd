@@ -14,6 +14,7 @@ interface ProductCardProps {
   onToggleWishlist: (p: Product) => void;
   whatsappNumber?: string;
   isNotifyMeDeactivated?: boolean;
+  globalDeliveryDays?: string;
 }
 
 export default function ProductCard({
@@ -24,7 +25,8 @@ export default function ProductCard({
   isWishlisted,
   onToggleWishlist,
   whatsappNumber = "8801755104443",
-  isNotifyMeDeactivated = false
+  isNotifyMeDeactivated = false,
+  globalDeliveryDays
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
@@ -380,7 +382,7 @@ export default function ProductCard({
         <div className="mb-2 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md p-1 px-1.5 w-full sm:w-fit justify-center sm:justify-start animate-fade-in">
           <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
           <span className="text-[9px] sm:text-[9.5px] font-mono text-emerald-400 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
-            🚀 Delivery: {product.deliveryDays || "3-5"} Days ({product.deliveryDays || "3-5"} দিন)
+            🚀 Delivery: {globalDeliveryDays || product.deliveryDays || "3-5"} Days ({globalDeliveryDays || product.deliveryDays || "3-5"} দিন)
           </span>
         </div>
       </div>
