@@ -191,7 +191,8 @@ let db = {
       { text: "Limited Edition SX Patch", value: "SX_PATCH", type: "merch" },
       { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
       { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
-    ]
+    ],
+    productPayments: {} as Record<string, any>
   }
 };
 
@@ -255,7 +256,8 @@ if (fs.existsSync(DB_FILE)) {
         { text: "Limited Edition SX Patch", value: "SX_PATCH", type: "merch" },
         { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
         { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
-      ]
+      ],
+      productPayments: db.settings?.productPayments || {}
     };
     saveDB();
   } catch (err) {
@@ -270,6 +272,82 @@ function saveDB() {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
   } catch (err) {
     console.error("Error saving DB to filesystem:", err);
+  }
+}
+
+// Function to synchronize settings to Supabase cloud as a bulletproof failsafe
+async function syncSettingsToCloud() {
+  saveDB();
+  
+  if (isSettingsTableAvailable) {
+    try {
+      const { data: testResult, error: testError } = await supabase.from("settings").select("*").limit(1);
+      const isOldKeyValue = !testError && testResult && testResult.length > 0 && testResult[0].key !== undefined && testResult[0].value !== undefined;
+
+      if (isOldKeyValue) {
+        const saveSetting = async (key: string, value: string) => {
+          await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
+        };
+        await saveSetting("productPayments", JSON.stringify(db.settings.productPayments || {}));
+      } else {
+        const upsertPayload: any = {
+          id: 1,
+          whatsappNumber: db.settings.whatsappNumber,
+          adminEmail: db.settings.adminEmail,
+          adminPassword: db.settings.adminPassword,
+          appsScriptUrl: db.settings.appsScriptUrl,
+          logoUrl: db.settings.logoUrl,
+          xoroAvatarUrl: db.settings.xoroAvatarUrl,
+          bkashLogoUrl: db.settings.bkashLogoUrl,
+          nagadLogoUrl: db.settings.nagadLogoUrl,
+          lotteryDiscountPercentage: db.settings.lotteryDiscountPercentage,
+          lotteryCouponPrefix: db.settings.lotteryCouponPrefix,
+          facebookUrl: db.settings.facebookUrl,
+          instagramUrl: db.settings.instagramUrl,
+          paymentBadgeTitle: db.settings.paymentBadgeTitle,
+          paymentBadgeDescription: db.settings.paymentBadgeDescription,
+          isCatalogDeactivated: db.settings.isCatalogDeactivated,
+          deactivatedMessage: db.settings.deactivatedMessage,
+          isLotteryDeactivated: db.settings.isLotteryDeactivated,
+          isNotifyMeDeactivated: db.settings.isNotifyMeDeactivated,
+          globalTimerEndTime: db.settings.globalTimerEndTime,
+          globalTimerMessage: db.settings.globalTimerMessage,
+          globalTimerActive: db.settings.globalTimerActive,
+          globalPaymentSystem: db.settings.globalPaymentSystem,
+          globalPaymentMethod: db.settings.globalPaymentMethod,
+          globalDeliveryDays: db.settings.globalDeliveryDays,
+          lotteryPrizes: typeof db.settings.lotteryPrizes === "string" ? db.settings.lotteryPrizes : JSON.stringify(db.settings.lotteryPrizes)
+        };
+
+        try {
+          upsertPayload.productPayments = JSON.stringify(db.settings.productPayments || {});
+        } catch (e) {}
+
+        const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
+        if (upsertError && upsertError.message.includes("column")) {
+          // Retry without productPayments column if it doesn't exist
+          delete upsertPayload.productPayments;
+          await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
+        }
+      }
+    } catch (dbErr: any) {
+      console.error("⚠️ Failed to mirror settings to Supabase settings table:", dbErr?.message || dbErr);
+    }
+  }
+
+  // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup
+  try {
+    await supabase.from("banners").upsert({
+      id: "system_settings_metadata",
+      title: "SYSTEM_SETTINGS_METADATA",
+      subtitle: JSON.stringify(db.settings),
+      imageUrl: db.settings.logoUrl || "/stylex_logo.jpg",
+      active: false,
+      isVideo: false
+    }, { onConflict: "id" });
+    console.log("✅ Backup of settings mirrored to Supabase 'banners' metadata table successfully.");
+  } catch (bannerErr: any) {
+    console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
   }
 }
 
@@ -295,8 +373,37 @@ async function syncFromSupabase() {
       supabase.from("reviews").select("*"),
       supabase.from("orders").select("*"),
       supabase.from("chats").select("*"),
-      supabase.from("global_settings").select("*")
+      supabase.from("settings").select("*")
     ]);
+
+    // 0. Pre-parse settings & banners fallback to populate productPayments
+    try {
+      if (settingsResult && !settingsResult.error && settingsResult.data) {
+        const settingsData = settingsResult.data;
+        const configRow = settingsData.find((r: any) => r.id === 1 || r.id === "1") || settingsData[0];
+        if (configRow && configRow.productPayments) {
+          try {
+            db.settings.productPayments = typeof configRow.productPayments === "string" 
+              ? JSON.parse(configRow.productPayments) 
+              : configRow.productPayments;
+          } catch (err) {}
+        }
+      }
+      if (bannersResult && !bannersResult.error && bannersResult.data) {
+        const bannersData = bannersResult.data;
+        const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
+        if (systemSettingsRow && systemSettingsRow.subtitle) {
+          try {
+            const fallbackSettings = JSON.parse(systemSettingsRow.subtitle);
+            if (fallbackSettings.productPayments) {
+              db.settings.productPayments = fallbackSettings.productPayments;
+            }
+          } catch (err) {}
+        }
+      }
+    } catch (settingsPreErr) {
+      console.error("⚠️ Error pre-parsing settings in syncFromSupabase:", settingsPreErr);
+    }
 
     // 1. Sync Products
     try {
@@ -305,6 +412,7 @@ async function syncFromSupabase() {
         if (productsData.length > 0) {
           db.products = productsData.map((p: any) => {
             const localProduct = db.products ? db.products.find((lp: any) => lp.id === p.id) : null;
+            const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
             return {
               ...p,
               sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
@@ -315,14 +423,15 @@ async function syncFromSupabase() {
               lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
               couponCode: p.couponCode || "",
               couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
-              offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
-              timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
-              timerMessage: p.timerMessage || localProduct?.timerMessage || undefined,
-              bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
-              nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
-              paymentType: p.paymentType || localProduct?.paymentType || "cod",
-              deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100)),
-              deliveryDays: p.deliveryDays || localProduct?.deliveryDays || "3-5"
+              offerPrice: pm.offerPrice !== undefined ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
+              timerEndTime: pm.timerEndTime !== undefined ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
+              timerMessage: pm.timerMessage !== undefined ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
+              bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
+              nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
+              paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
+              deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
+              deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
+              isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
             };
           });
           db.seededProducts = true;
@@ -399,6 +508,13 @@ async function syncFromSupabase() {
               if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
               if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
               if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+              if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
+              if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
+              if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
+              if (fallbackSettings.globalPaymentSystem !== undefined) db.settings.globalPaymentSystem = fallbackSettings.globalPaymentSystem;
+              if (fallbackSettings.globalPaymentMethod !== undefined) db.settings.globalPaymentMethod = fallbackSettings.globalPaymentMethod;
+              if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
+              if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
               if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
               
               saveDB();
@@ -570,7 +686,7 @@ async function syncFromSupabase() {
         const errMsg = settingsResult.error.message || "";
         if (errMsg.includes("Could not find the table") || errMsg.includes("does not exist") || settingsResult.error.code === "PGRST116" || settingsResult.error.code === "42P01") {
           isSettingsTableAvailable = false;
-          console.info("ℹ️ Supabase 'global_settings' table is not available yet. File-based cache will be used for settings storage.");
+          console.info("ℹ️ Supabase 'settings' table is not available yet. File-based cache will be used for settings storage.");
         } else {
           console.warn("⚠️ Failed syncing settings from Supabase:", settingsResult.error.message);
         }
@@ -783,7 +899,7 @@ app.get("/api/visitor-ping", (req, res) => {
 
         // Asynchronously back up the visitor metrics to Supabase
         if (isSettingsTableAvailable) {
-          supabase.from("global_settings").upsert({
+          supabase.from("settings").upsert({
             id: 1,
             visits_count: db.visits,
             counted_sessions: JSON.stringify(db.countedSessions)
@@ -857,7 +973,7 @@ app.get("/api/analytics", (req, res) => {
 app.get("/api/settings", async (req, res) => {
   try {
     if (isSettingsTableAvailable) {
-      const { data: settingsResult, error } = await supabase.from("global_settings").select("*");
+      const { data: settingsResult, error } = await supabase.from("settings").select("*");
       if (!error && settingsResult && settingsResult.length > 0) {
         const configRow = settingsResult.find((r: any) => r.id === 1 || r.id === "1") || settingsResult[0];
         if (configRow) {
@@ -944,6 +1060,7 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.globalPaymentSystem !== undefined) db.settings.globalPaymentSystem = fallbackSettings.globalPaymentSystem;
             if (fallbackSettings.globalPaymentMethod !== undefined) db.settings.globalPaymentMethod = fallbackSettings.globalPaymentMethod;
             if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
+            if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
             if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
@@ -1034,7 +1151,7 @@ app.post("/api/settings", async (req, res) => {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
       adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
       adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
-      appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
+      appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
       xoroAvatarUrl: xoroAvatarUrl !== undefined ? xoroAvatarUrl.trim() : (db.settings?.xoroAvatarUrl || ""),
       bkashLogoUrl: bkashLogoUrl !== undefined ? bkashLogoUrl.trim() : (db.settings?.bkashLogoUrl || ""),
@@ -1055,107 +1172,11 @@ app.post("/api/settings", async (req, res) => {
       globalPaymentSystem: globalPaymentSystem !== undefined ? globalPaymentSystem.trim() : (db.settings?.globalPaymentSystem || "product_defined"),
       globalPaymentMethod: globalPaymentMethod !== undefined ? globalPaymentMethod.trim() : (db.settings?.globalPaymentMethod || "both"),
       globalDeliveryDays: globalDeliveryDays !== undefined ? globalDeliveryDays.trim() : (db.settings?.globalDeliveryDays || ""),
-      lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || [])
+      lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
+      productPayments: db.settings?.productPayments || {}
     };
-    saveDB();
 
-    // Mirror to Supabase 'settings' table if table matches
-    if (isSettingsTableAvailable) {
-      try {
-        const { data: testResult, error: testError } = await supabase.from("settings").select("*").limit(1);
-        const isOldKeyValue = !testError && testResult && testResult.length > 0 && testResult[0].key !== undefined && testResult[0].value !== undefined;
-
-        if (isOldKeyValue) {
-          const saveSetting = async (key: string, value: string) => {
-            const { error } = await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
-            if (error) {
-              console.error(`⚠️ Error upserting setting ${key} to Supabase:`, error.message);
-            }
-          };
-
-          if (whatsappNumber) await saveSetting("whatsappNumber", whatsappNumber.trim());
-          if (adminEmail) await saveSetting("adminEmail", adminEmail.trim());
-          if (adminPassword !== undefined) await saveSetting("adminPassword", adminPassword.trim());
-          if (appsScriptUrl) await saveSetting("appsScriptUrl", appsScriptUrl.trim());
-          if (logoUrl !== undefined) await saveSetting("logoUrl", logoUrl.trim());
-          if (xoroAvatarUrl !== undefined) await saveSetting("xoroAvatarUrl", xoroAvatarUrl.trim());
-          if (bkashLogoUrl !== undefined) await saveSetting("bkashLogoUrl", bkashLogoUrl.trim());
-          if (nagadLogoUrl !== undefined) await saveSetting("nagadLogoUrl", nagadLogoUrl.trim());
-          if (facebookUrl !== undefined) await saveSetting("facebookUrl", facebookUrl.trim());
-          if (instagramUrl !== undefined) await saveSetting("instagramUrl", instagramUrl.trim());
-          if (lotteryDiscountPercentage !== undefined) await saveSetting("lotteryDiscountPercentage", String(lotteryDiscountPercentage));
-          if (lotteryCouponPrefix !== undefined) await saveSetting("lotteryCouponPrefix", lotteryCouponPrefix.trim().toUpperCase());
-          if (paymentBadgeTitle !== undefined) await saveSetting("paymentBadgeTitle", paymentBadgeTitle.trim());
-          if (paymentBadgeDescription !== undefined) await saveSetting("paymentBadgeDescription", paymentBadgeDescription.trim());
-          if (isCatalogDeactivated !== undefined) await saveSetting("isCatalogDeactivated", String(!!isCatalogDeactivated));
-          if (deactivatedMessage !== undefined) await saveSetting("deactivatedMessage", deactivatedMessage.trim());
-          if (isLotteryDeactivated !== undefined) await saveSetting("isLotteryDeactivated", String(!!isLotteryDeactivated));
-          if (isNotifyMeDeactivated !== undefined) await saveSetting("isNotifyMeDeactivated", String(!!isNotifyMeDeactivated));
-          if (globalTimerEndTime !== undefined) await saveSetting("globalTimerEndTime", globalTimerEndTime.trim());
-          if (globalTimerMessage !== undefined) await saveSetting("globalTimerMessage", globalTimerMessage.trim());
-          if (globalTimerActive !== undefined) await saveSetting("globalTimerActive", String(!!globalTimerActive));
-          if (globalPaymentSystem !== undefined) await saveSetting("globalPaymentSystem", globalPaymentSystem.trim());
-          if (globalPaymentMethod !== undefined) await saveSetting("globalPaymentMethod", globalPaymentMethod.trim());
-          if (globalDeliveryDays !== undefined) await saveSetting("globalDeliveryDays", globalDeliveryDays.trim());
-          if (Array.isArray(lotteryPrizes)) await saveSetting("lotteryPrizes", JSON.stringify(lotteryPrizes));
-        } else {
-          // Single-Row structure (id = 1) atomic upsert
-          const upsertPayload: any = {
-            id: 1,
-            whatsappNumber: db.settings.whatsappNumber,
-            adminEmail: db.settings.adminEmail,
-            adminPassword: db.settings.adminPassword,
-            appsScriptUrl: db.settings.appsScriptUrl,
-            logoUrl: db.settings.logoUrl,
-            xoroAvatarUrl: db.settings.xoroAvatarUrl,
-            bkashLogoUrl: db.settings.bkashLogoUrl,
-            nagadLogoUrl: db.settings.nagadLogoUrl,
-            lotteryDiscountPercentage: db.settings.lotteryDiscountPercentage,
-            lotteryCouponPrefix: db.settings.lotteryCouponPrefix,
-            facebookUrl: db.settings.facebookUrl,
-            instagramUrl: db.settings.instagramUrl,
-            paymentBadgeTitle: db.settings.paymentBadgeTitle,
-            paymentBadgeDescription: db.settings.paymentBadgeDescription,
-            isCatalogDeactivated: db.settings.isCatalogDeactivated,
-            deactivatedMessage: db.settings.deactivatedMessage,
-            isLotteryDeactivated: db.settings.isLotteryDeactivated,
-            isNotifyMeDeactivated: db.settings.isNotifyMeDeactivated,
-            globalTimerEndTime: db.settings.globalTimerEndTime,
-            globalTimerMessage: db.settings.globalTimerMessage,
-            globalTimerActive: db.settings.globalTimerActive,
-            globalPaymentSystem: db.settings.globalPaymentSystem,
-            globalPaymentMethod: db.settings.globalPaymentMethod,
-            globalDeliveryDays: db.settings.globalDeliveryDays,
-            lotteryPrizes: typeof db.settings.lotteryPrizes === "string" ? db.settings.lotteryPrizes : JSON.stringify(db.settings.lotteryPrizes)
-          };
-
-          const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
-          if (upsertError) {
-            console.error("⚠️ Error upserting single-row setting to Supabase settings table:", upsertError.message);
-          } else {
-            console.log("✅ Settings table updated successfully via atomic single-row upsert.");
-          }
-        }
-      } catch (dbErr: any) {
-        console.error("⚠️ Failed to mirror settings to Supabase settings table:", dbErr?.message || dbErr);
-      }
-    }
-
-    // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup
-    try {
-      await supabase.from("banners").upsert({
-        id: "system_settings_metadata",
-        title: "SYSTEM_SETTINGS_METADATA",
-        subtitle: JSON.stringify(db.settings),
-        imageUrl: db.settings.logoUrl || "/stylex_logo.jpg",
-        active: false,
-        isVideo: false
-      }, { onConflict: "id" });
-      console.log("✅ Backup of settings mirrored to Supabase 'banners' metadata table successfully.");
-    } catch (bannerErr: any) {
-      console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
-    }
-
+    await syncSettingsToCloud();
     return res.json(db.settings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -1169,6 +1190,7 @@ app.get("/api/products", async (req, res) => {
     if (!pError && productsData && productsData.length > 0) {
       const products = productsData.map((p: any) => {
         const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
+        const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
         return {
           ...p,
           sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
@@ -1183,11 +1205,12 @@ app.get("/api/products", async (req, res) => {
           offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
           timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
           timerMessage: p.timerMessage || localProduct?.timerMessage || undefined,
-          bkashNumber: p.bkashNumber || localProduct?.bkashNumber || "",
-          nagadNumber: p.nagadNumber || localProduct?.nagadNumber || "",
-          paymentType: p.paymentType || localProduct?.paymentType || "cod",
-          deliveryCharge: p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100)),
-          deliveryDays: p.deliveryDays || localProduct?.deliveryDays || "3-5"
+          bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
+          nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
+          paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
+          deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
+          deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
+          isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
         };
       });
       db.products = products;
@@ -1205,6 +1228,7 @@ app.get("/api/products/:id", async (req, res) => {
     const { data, error } = await supabase.from("products").select("*").eq("id", req.params.id).single();
     if (!error && data) {
       const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(req.params.id)) : null;
+      const pm = (db.settings.productPayments && db.settings.productPayments[req.params.id]) || {};
       const prod = {
         ...data,
         sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
@@ -1219,11 +1243,12 @@ app.get("/api/products/:id", async (req, res) => {
         offerPrice: (data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
         timerEndTime: data.timerEndTime || localProduct?.timerEndTime || undefined,
         timerMessage: data.timerMessage || localProduct?.timerMessage || undefined,
-        bkashNumber: data.bkashNumber || localProduct?.bkashNumber || "",
-        nagadNumber: data.nagadNumber || localProduct?.nagadNumber || "",
-        paymentType: data.paymentType || localProduct?.paymentType || "cod",
-        deliveryCharge: data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100)),
-        deliveryDays: data.deliveryDays || localProduct?.deliveryDays || "3-5"
+        bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (data.bkashNumber || localProduct?.bkashNumber || ""),
+        nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (data.nagadNumber || localProduct?.nagadNumber || ""),
+        paymentType: pm.paymentType !== undefined ? pm.paymentType : (data.paymentType || localProduct?.paymentType || "cod"),
+        deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))),
+        deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (data.deliveryDays || localProduct?.deliveryDays || "3-5"),
+        isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
       };
       return res.json(prod);
     }
@@ -1291,7 +1316,21 @@ app.post("/api/products", async (req, res) => {
     }
   }
 
-  saveDB();
+  if (!db.settings.productPayments) {
+    db.settings.productPayments = {};
+  }
+  db.settings.productPayments[newProduct.id] = {
+    bkashNumber: newProduct.bkashNumber || "",
+    nagadNumber: newProduct.nagadNumber || "",
+    paymentType: newProduct.paymentType || "cod",
+    deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
+    deliveryDays: newProduct.deliveryDays || "",
+    isPinned: !!newProduct.isPinned,
+    offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
+    timerEndTime: newProduct.timerEndTime || null,
+    timerMessage: newProduct.timerMessage || null
+  };
+  syncSettingsToCloud();
 
   try {
     const payload: any = {
@@ -1333,31 +1372,15 @@ app.post("/api/products", async (req, res) => {
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
     
-    // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
+    // Bulletproof fallback: If the Supabase table doesn't have these custom local-only columns, retry without them
     if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-      console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
+      console.warn("⚠️ Custom local-only columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
       delete payload.bkashNumber;
       delete payload.nagadNumber;
       delete payload.paymentType;
       delete payload.deliveryCharge;
       delete payload.deliveryDays;
-      delete payload.deliveryPrice;
-      delete payload.deliveryPriceDhaka;
-      delete payload.deliveryPriceOutside;
-      delete payload.deliveryPriceChattogram;
-      delete payload.deliveryPriceRajshahi;
-      delete payload.deliveryPriceKhulna;
-      delete payload.deliveryPriceBarishal;
-      delete payload.deliveryPriceSylhet;
-      delete payload.deliveryPriceRangpur;
-      delete payload.deliveryPriceMymensingh;
-      delete payload.lotteryEligible;
-      delete payload.couponCode;
-      delete payload.couponDiscountPercent;
-      delete payload.offerPrice;
-      delete payload.timerEndTime;
-      delete payload.timerMessage;
-      delete payload.images;
+      delete payload.isPinned;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -1412,9 +1435,23 @@ app.put("/api/products/:id", async (req, res) => {
       updatedBody.deliveryPriceMymensingh = Number(updatedBody.deliveryPriceMymensingh);
     }
     db.products[idx] = { ...db.products[idx], ...updatedBody };
-    saveDB();
-
     const target = db.products[idx];
+    if (!db.settings.productPayments) {
+      db.settings.productPayments = {};
+    }
+    db.settings.productPayments[target.id] = {
+      bkashNumber: target.bkashNumber || "",
+      nagadNumber: target.nagadNumber || "",
+      paymentType: target.paymentType || "cod",
+      deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
+      deliveryDays: target.deliveryDays || "",
+      isPinned: !!target.isPinned,
+      offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
+      timerEndTime: target.timerEndTime || null,
+      timerMessage: target.timerMessage || null
+    };
+    syncSettingsToCloud();
+
     try {
       const payload: any = {
         id: target.id,
@@ -1456,32 +1493,15 @@ app.put("/api/products/:id", async (req, res) => {
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
 
-      // Bulletproof fallback: If the Supabase table doesn't have these deliveryPrice columns, retry without them
+      // Bulletproof fallback: If the Supabase table doesn't have these custom local-only columns, retry without them
       if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-        console.warn("⚠️ Custom delivery Price or coupon columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
+        console.warn("⚠️ Custom local-only columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
         delete payload.bkashNumber;
         delete payload.nagadNumber;
         delete payload.paymentType;
         delete payload.deliveryCharge;
         delete payload.deliveryDays;
-        delete payload.deliveryPrice;
-        delete payload.deliveryPriceDhaka;
-        delete payload.deliveryPriceOutside;
-        delete payload.deliveryPriceChattogram;
-        delete payload.deliveryPriceRajshahi;
-        delete payload.deliveryPriceKhulna;
-        delete payload.deliveryPriceBarishal;
-        delete payload.deliveryPriceSylhet;
-        delete payload.deliveryPriceRangpur;
-        delete payload.deliveryPriceMymensingh;
-        delete payload.lotteryEligible;
         delete payload.isPinned;
-        delete payload.couponCode;
-        delete payload.couponDiscountPercent;
-        delete payload.offerPrice;
-        delete payload.timerEndTime;
-        delete payload.timerMessage;
-        delete payload.images;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }
@@ -1511,7 +1531,10 @@ app.delete("/api/products/:id", async (req, res) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx !== -1) {
     const deleted = db.products.splice(idx, 1)[0];
-    saveDB();
+    if (db.settings.productPayments) {
+      delete db.settings.productPayments[req.params.id];
+    }
+    syncSettingsToCloud();
 
     try {
       const { error: deleteError } = await supabase.from("products").delete().eq("id", req.params.id);

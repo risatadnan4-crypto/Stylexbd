@@ -536,13 +536,13 @@ export default function ProductDetailModal({
               </div>
             ) : (
               <div className="space-y-2.5">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
                   <button
                     onClick={() => {
                       onAddToCart(product, selectedSize);
                       onClose();
                     }}
-                    className="w-full border border-[#9A4DFF]/40 hover:border-luxury-purple-glowing bg-black/60 hover:bg-black/80 text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.25)] relative overflow-hidden luxury-reflection cursor-pointer"
+                    className="w-full border border-[#9A4DFF]/40 hover:border-luxury-purple-glowing bg-black/60 hover:bg-black/80 text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.25)] relative overflow-hidden luxury-reflection cursor-pointer"
                   >
                     <ShoppingBag size={13} className="text-[#9A4DFF]" />
                     Add to Bag
@@ -553,7 +553,7 @@ export default function ProductDetailModal({
                       onOrderNow(product, selectedSize);
                       onClose();
                     }}
-                    className="w-full bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] text-white hover:brightness-110 font-display font-black text-[11px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(154,77,255,0.35)] hover:shadow-[0_0_30px_rgba(154,77,255,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
+                    className="w-full bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] text-white hover:brightness-110 font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(154,77,255,0.35)] hover:shadow-[0_0_30px_rgba(154,77,255,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
                   >
                     <span>👑</span>
                     <span>Buy Now</span>

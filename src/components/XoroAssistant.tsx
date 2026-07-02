@@ -864,8 +864,7 @@ export default function XoroAssistant({
       lottery: "🎟️ স্বাগতম রয়েল লাক্সারি স্পিন লটারিতে! কুপন এবং বিশেষ অফার জিতে নিতে এখানে ক্লিক করুন!",
       cart: "🛒 এটি আপনার রাজকীয় শপিং কার্ট! এখানে আপনার নির্বাচিত পোশাকগুলো সুরক্ষিতভাবে চেকআউট করতে পারেন।",
       tracker: "📦 আপনার অর্ডারটি কোথায় আছে দেখতে চান? এখানে আপনার আইডি বা নম্বর দিয়ে লাইভ ট্র্যাক করুন!",
-      reviews: "✍️ আমাদের বৈশ্বিক গ্রাহকদের ভেরিফাইড এক্সপেরিয়েন্স লেজার বুক দেখুন! আপনার মতামতও জানাতে পারেন।",
-      admin: "👑 এটি রাজকীয় অ্যাডমিন কন্ট্রোল ডেস্ক! এখানে সিস্টেম সেটিংস এবং স্টোর আপডেট পরিচালিত হয়।"
+      reviews: "✍️ আমাদের বৈশ্বিক গ্রাহকদের ভেরিফাইড এক্সপেরিয়েন্স লেজার বুক দেখুন! আপনার মতামতও জানাতে পারেন।"
     };
 
     const speechText = customSpeech || defaultSpeechMap[section] || "উড়ছি জেট ইঞ্জিন দিয়ে! 🚀 জুম্ম্ম্ম্ম্ম্ম্ম্ম!";
@@ -920,9 +919,7 @@ export default function XoroAssistant({
           window.scrollTo({ top: 1800, behavior: 'smooth' });
         }
         break;
-      case 'admin':
-        if (onShowLoginModal) onShowLoginModal(true);
-        break;
+
       default:
         break;
     }
@@ -1850,8 +1847,7 @@ export default function XoroAssistant({
                     { id: 'lottery', name: '🎟️ রয়্যাল লটারি', desc: 'লাকি স্পিন হুইল' },
                     { id: 'cart', name: '🛒 শপিং কার্ট', desc: 'আপনার ক্রিত পণ্য তালিকা' },
                     { id: 'tracker', name: '📦 অর্ডার ট্র্যাকার', desc: 'অর্ডারের লাইভ আপডেট' },
-                    { id: 'reviews', name: '✍️ ভেরিফাইড রিভিউ', desc: 'গ্রাহকদের মতামত খাতা' },
-                    { id: 'admin', name: '👑 অ্যাডমিন ডেস্ক', desc: 'স্টোর এডমিনিস্ট্রেশন' }
+                    { id: 'reviews', name: '✍️ ভেরিফাইড রিভিউ', desc: 'গ্রাহকদের মতামত খাতা' }
                   ].map((poi) => (
                     <button
                       key={poi.id}

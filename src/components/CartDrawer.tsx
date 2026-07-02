@@ -4,6 +4,7 @@ import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, M
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
 import { getValidatedTotal, getProductActivePrice, getAdvancePaymentAmount } from '../utils/totalHelper';
+import LuxuryCheckoutButton from './LuxuryCheckoutButton';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -65,6 +66,8 @@ export default function CartDrawer({
   const [customerNotes, setCustomerNotes] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showLocalSuccessToast, setShowLocalSuccessToast] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
 
   // Payment integration state
   const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad'>(() => {
@@ -366,6 +369,7 @@ export default function CartDrawer({
     setIsCheckingOut(true);
 
     try {
+      const startTime = Date.now();
       const dbFormatItems = cartItems.map(item => ({
         productId: item.product.id,
         title: item.product.title,
@@ -445,15 +449,34 @@ export default function CartDrawer({
         console.warn('Error saving guest order context: ', err);
       }
 
-      // Open Whatsapp link & show success
-      let paymentLabel = 'Cash on Delivery (COD)';
-      if (paymentType !== 'cod') {
-        paymentLabel = `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : 'Full Advance Payment'} (${paymentMethod === 'bkash' ? 'bKash' : 'Nagad'})`;
-      }
-      onCheckoutSuccess(data.order.id, data.whatsappUrl, paymentLabel);
+      // Set order id locally so we can show it in our gorgeous notification toast
+      setPlacedOrderId(data.order.id);
+
+      // Transition the button to success and show the local notification toast exactly after 3.6s
+      const elapsedTime = Date.now() - startTime;
+      
+      setTimeout(() => {
+        setShowLocalSuccessToast(true);
+      }, Math.max(0, 3600 - elapsedTime));
+
+      // Wait a total of 8.0 seconds to let the user enjoy the success animation and read the VIP alert
+      const totalDelay = 8000;
+      const remainingTime = Math.max(0, totalDelay - elapsedTime);
+
+      setTimeout(() => {
+        let paymentLabel = 'Cash on Delivery (COD)';
+        if (paymentType !== 'cod') {
+          paymentLabel = `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : 'Full Advance Payment'} (${paymentMethod === 'bkash' ? 'bKash' : 'Nagad'})`;
+        }
+        onCheckoutSuccess(data.order.id, data.whatsappUrl, paymentLabel);
+        setIsCheckingOut(false);
+        // Reset local notifications state for subsequent checkouts
+        setShowLocalSuccessToast(false);
+        setPlacedOrderId(null);
+      }, remainingTime);
+
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected database error occurred');
-    } finally {
       setIsCheckingOut(false);
     }
   };
@@ -1240,20 +1263,36 @@ export default function CartDrawer({
                     <span className="luxury-animated-price text-luxury-gold text-base font-mono">{formatPrice(grandTotal)}</span>
                   </div>
 
-                  <button
-                    type="submit"
+                  {showLocalSuccessToast && placedOrderId && (
+                    <div className="bg-gradient-to-br from-[#0c051a] via-[#05010c] to-[#120726] border-2 border-luxury-gold p-4 rounded-xl shadow-[0_15px_30px_rgba(154,77,255,0.3)] animate-fade-in flex items-start gap-3 text-left mb-4 relative overflow-hidden">
+                      {/* Real-time pulse locator dot */}
+                      <div className="w-2 h-2 rounded-full bg-luxury-gold animate-ping absolute top-4 right-4"></div>
+                      
+                      <div className="w-9 h-9 rounded-full bg-luxury-gold/10 border border-luxury-gold/40 flex items-center justify-center text-base shrink-0 text-luxury-gold relative">
+                        <span className="absolute inset-0 rounded-full border border-luxury-gold/20 animate-pulse"></span>
+                        🔔
+                      </div>
+
+                      <div className="space-y-1 text-left min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[7.5px] font-mono uppercase tracking-widest text-luxury-gold bg-luxury-gold/10 px-1 py-0.5 rounded border border-luxury-gold/30 font-bold">VIP Status Alert</span>
+                          <span className="text-[7px] font-mono text-white/50 tracking-wider">#{placedOrderId}</span>
+                        </div>
+                        <h5 className="font-serif text-xs font-bold text-white tracking-wide">
+                          Bespoke Order Secured!
+                        </h5>
+                        <p className="text-[10px] text-[#ebd9fc]/90 leading-relaxed font-sans">
+                          Your custom order is fully registered in our VIP private vault. Proceed to WhatsApp to finalize concierge verification.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <LuxuryCheckoutButton
+                    isCheckingOut={isCheckingOut}
                     disabled={isCheckingOut || (paymentType !== 'cod' && (!transactionId || !!validateTransactionId(transactionId)))}
-                    className="running-glow-gold-filled w-full text-white font-display font-black uppercase text-xs tracking-[0.25em] py-4.5 rounded-xl shadow-[0_5px_25px_rgba(154,77,255,0.25)] hover:shadow-[0_8px_35px_rgba(154,77,255,0.55)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isCheckingOut ? (
-                      <>
-                        <span className="relative z-10 w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
-                        <span className="relative z-10">অর্ডার কনফার্ম করা হচ্ছে...</span>
-                      </>
-                    ) : (
-                      <span className="relative z-10">⚜️ অর্ডার নিশ্চিত করুন (Confirm Order)</span>
-                    )}
-                  </button>
+                    label="Confirm Order"
+                  />
                 </div>
               </form>
 
