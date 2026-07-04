@@ -696,9 +696,132 @@
   animation: luxury-pulse-glow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Brighter, more vibrant gold transition & faint, infrequent idle state pulse animation for product image containers */
+@keyframes product-container-idle-glow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(212, 175, 55, 0.05), inset 0 0 2px rgba(212, 175, 55, 0.02);
+    border-color: rgba(212, 175, 55, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.2), inset 0 0 4px rgba(212, 175, 55, 0.06);
+    border-color: rgba(212, 175, 55, 0.35);
+  }
+}
 
+.product-image-container {
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: product-container-idle-glow 8s infinite ease-in-out;
+}
 
+/* High-vibrancy gold border color and smooth box-shadow on hover or group-hover */
+.product-image-container:hover,
+.group:hover .product-image-container {
+  animation: none !important; /* Stop the idle pulse during active hover states for maximum stability */
+  border-color: #ffd700 !important; /* Brighter, more vibrant gold */
+  box-shadow: 0 0 22px rgba(212, 175, 55, 0.45), 
+              0 0 10px rgba(154, 77, 255, 0.2),
+              inset 0 0 8px rgba(212, 175, 55, 0.15) !important;
+}
 
+/* Custom spinning and premium loading shimmer animations */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
+@keyframes spin-slow-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes luxury-loading-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-spin-slow-reverse {
+  animation: spin-slow-reverse 12s linear infinite;
+}
+
+.animate-shimmer {
+  animation: luxury-loading-shimmer 2.5s infinite ease-in-out;
+}
+
+/* Luxury loading screen animations */
+@keyframes gold-sparkle-float {
+  0% {
+    transform: translateY(20px) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-80px) scale(1.1) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes gold-halo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.35;
+  }
+}
+
+@keyframes text-gold-shine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-sparkle-float-1 {
+  animation: gold-sparkle-float 4s infinite ease-in-out;
+}
+
+.animate-sparkle-float-2 {
+  animation: gold-sparkle-float 5s infinite ease-in-out;
+  animation-delay: 1.2s;
+}
+
+.animate-sparkle-float-3 {
+  animation: gold-sparkle-float 6s infinite ease-in-out;
+  animation-delay: 2.5s;
+}
+
+.animate-sparkle-float-4 {
+  animation: gold-sparkle-float 4.5s infinite ease-in-out;
+  animation-delay: 0.6s;
+}
+
+.animate-sparkle-float-5 {
+  animation: gold-sparkle-float 5.5s infinite ease-in-out;
+  animation-delay: 1.8s;
+}
+
+.animate-gold-halo {
+  animation: gold-halo-pulse 3s infinite ease-in-out;
+}
+
+.animate-gold-shine {
+  background-size: 200% auto;
+  animation: text-gold-shine 4s linear infinite;
+}
 
 

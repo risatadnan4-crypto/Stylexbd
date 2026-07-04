@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
@@ -23,6 +23,10 @@ import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
 
 export default function App() {
+  // Premium entry loading screen states
+  const [isSiteLoading, setIsSiteLoading] = useState(true);
+  const [siteLoadProgress, setSiteLoadProgress] = useState(0);
+
   // Navigation states
   const [isAdminView, setIsAdminView] = useState(false);
   const [isTrackMode, setIsTrackMode] = useState(false);
@@ -159,6 +163,24 @@ export default function App() {
       return null;
     }
   });
+
+  // Redirect unauthenticated users to Log In / Sign Up when they try to click/select any product
+  useEffect(() => {
+    if (selectedProduct && !currentCustomer) {
+      setSelectedProduct(null);
+      setCustomerAuthTab('login');
+      setCustomerAuthError('পণ্যটি দেখতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to view products.)');
+      setCustomerAuthSuccess('');
+      setShowCustomerAuthModal(true);
+    }
+  }, [selectedProduct, currentCustomer]);
+
+  const handleAuthRequired = (msg?: string) => {
+    setCustomerAuthTab('login');
+    setCustomerAuthError(msg || 'দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in.)');
+    setCustomerAuthSuccess('');
+    setShowCustomerAuthModal(true);
+  };
 
   const [pendingCheckoutAfterLogin, setPendingCheckoutAfterLogin] = useState(false);
 
@@ -467,6 +489,34 @@ export default function App() {
     };
   }, []);
 
+  // Premium entry loading screen timer & organic progress simulation
+  useEffect(() => {
+    let start = Date.now();
+    const duration = 1200; // 1.2 seconds minimum luxury load screen duration (fast but highly premium)
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setSiteLoadProgress(Math.floor(progress));
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsSiteLoading(false);
+        }, 200);
+      }
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getLoadingStatus = (progress: number) => {
+    if (progress < 25) return "Establishing Secure Gate...";
+    if (progress < 50) return "Authenticating VIP Portals...";
+    if (progress < 75) return "Loading Curated Apparel...";
+    if (progress < 92) return "Deploying Concierge Dispatch...";
+    return "Entrance Decrypting...";
+  };
+
   // Initial Boot Data Loading
   useEffect(() => {
     loadStoreCollections();
@@ -682,6 +732,13 @@ export default function App() {
 
   // Cart operations
   const handleAddToCart = (product: Product, size: string) => {
+    if (!currentCustomer) {
+      setCustomerAuthTab('login');
+      setCustomerAuthError('পণ্যটি কার্টে যুক্ত করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to add items to your cart.)');
+      setCustomerAuthSuccess('');
+      setShowCustomerAuthModal(true);
+      return;
+    }
     const freshCart = [...cart];
     const matchIdx = freshCart.findIndex(item => item.product.id === product.id && item.selectedSize === size);
 
@@ -697,6 +754,13 @@ export default function App() {
   };
 
   const handleOrderNow = (product: Product, size: string) => {
+    if (!currentCustomer) {
+      setCustomerAuthTab('login');
+      setCustomerAuthError('পণ্যটি অর্ডার করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to order.)');
+      setCustomerAuthSuccess('');
+      setShowCustomerAuthModal(true);
+      return;
+    }
     // Direct checkout for a specific product should clear previous cart items
     // and initialize the cart with ONLY the chosen product at quantity 1
     // to match the product price perfectly on the payment checkout screen.
@@ -730,6 +794,13 @@ export default function App() {
 
   // Wishlist actions
   const handleToggleWishlist = (product: Product) => {
+    if (!currentCustomer) {
+      setCustomerAuthTab('login');
+      setCustomerAuthError('উইশলিস্টে যুক্ত করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to wishlist.)');
+      setCustomerAuthSuccess('');
+      setShowCustomerAuthModal(true);
+      return;
+    }
     if (wishlist.includes(product.id)) {
       setWishlist(wishlist.filter(id => id !== product.id));
     } else {
@@ -1276,6 +1347,113 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans select-none overflow-x-hidden antialiased">
+      {/* Premium Loader Overlay */}
+      <AnimatePresence mode="wait">
+        {isSiteLoading && (
+          <motion.div
+            key="site-loader"
+            initial={{ opacity: 1 }}
+            exit={{ 
+              opacity: 0,
+              scale: 1.04,
+              filter: 'blur(12px)',
+              transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } 
+            }}
+            className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-[#030304] text-white overflow-hidden select-none"
+          >
+            {/* Background luxury gradient layers */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,transparent_65%)] pointer-events-none" />
+            <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-luxury-gold/5 rounded-full filter blur-[150px] animate-pulse pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-luxury-purple-glowing/4 rounded-full filter blur-[150px] animate-pulse pointer-events-none" />
+            
+            {/* Gentle, organic floating golden sparkles (Luxury dust) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-[60%] left-[20%] w-1.5 h-1.5 rounded-full bg-luxury-gold/40 animate-sparkle-float-1 filter blur-[0.5px]" />
+              <div className="absolute top-[70%] left-[45%] w-2 h-2 rotate-45 bg-luxury-gold/60 animate-sparkle-float-2" />
+              <div className="absolute top-[55%] left-[80%] w-1 h-1 rounded-full bg-yellow-300/55 animate-sparkle-float-3" />
+              <div className="absolute top-[65%] left-[65%] w-1.5 h-1.5 rounded-full bg-luxury-gold/50 animate-sparkle-float-4" />
+              <div className="absolute top-[75%] left-[30%] w-2.5 h-2.5 rotate-12 bg-yellow-400/35 animate-sparkle-float-5 filter blur-[0.8px]" />
+            </div>
+
+            {/* Rotating central luxury crest */}
+            <div className="relative mb-6 w-32 h-32 flex items-center justify-center">
+              {/* Pulsing glow ring backdrop */}
+              <div className="absolute inset-[-12px] rounded-full bg-luxury-gold/[0.02] border border-luxury-gold/5 animate-gold-halo pointer-events-none"></div>
+              
+              {/* Layered luxury rotating borders */}
+              <div className="absolute inset-0 rounded-full border border-luxury-gold/20 animate-spin-slow"></div>
+              <div className="absolute inset-2 rounded-full border border-dashed border-luxury-purple-glowing/30 animate-spin-slow-reverse"></div>
+              <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-luxury-gold/80 border-r-luxury-gold/20 animate-spin"></div>
+              <div className="absolute inset-6 rounded-full border border-white/5"></div>
+              
+              {/* Center Logo Hub */}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#080601] via-[#1d1403] to-[#080601] border border-luxury-gold/45 flex items-center justify-center shadow-[0_0_35px_rgba(212,175,55,0.3)] z-10 overflow-hidden p-1.5">
+                {settings?.logoUrl ? (
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="Brand Logo" 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(212,175,55,0.55)] transition-transform duration-700 hover:scale-110" 
+                  />
+                ) : (
+                  <span className="font-serif font-black text-luxury-gold text-2xl tracking-widest filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">X</span>
+                )}
+              </div>
+            </div>
+
+            {/* Glowing Brand Title with Shimmer Reflection */}
+            <motion.h1 
+              initial={{ letterSpacing: "0.2em", opacity: 0 }}
+              animate={{ letterSpacing: "0.45em", opacity: 1 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className="font-serif text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 via-white via-luxury-gold to-yellow-600 font-bold uppercase tracking-[0.45em] text-center pl-[0.45em] mb-2 animate-gold-shine"
+            >
+              STYLE X
+            </motion.h1>
+
+            {/* Sophisticated Luxury Separator Line */}
+            <div className="flex items-center justify-center gap-3 w-36 opacity-75 mb-3.5">
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-luxury-gold/40" />
+              <div className="w-1.5 h-1.5 rotate-45 bg-luxury-gold shadow-[0_0_5px_rgba(212,175,55,0.8)]" />
+              <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-luxury-gold/40" />
+            </div>
+
+            {/* Tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 0.7, y: 0 }}
+              transition={{ delay: 0.3, duration: 1 }}
+              className="text-[9px] md:text-[10px] font-mono tracking-[0.25em] uppercase text-luxury-gold/90 text-center mb-10"
+            >
+              bespoke wardrobe acquisitions
+            </motion.p>
+
+            {/* Progress Bar Container */}
+            <div className="w-64 max-w-xs flex flex-col items-center">
+              {/* Status Message */}
+              <div className="flex justify-between w-full text-[8.5px] font-mono tracking-widest text-white/45 uppercase mb-2">
+                <span className="animate-pulse">{getLoadingStatus(siteLoadProgress)}</span>
+                <span className="text-luxury-gold font-bold tracking-wider">{siteLoadProgress}%</span>
+              </div>
+              
+              {/* Glass Capsule Bar frame */}
+              <div className="w-full h-[3px] bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)] p-[0.5px]">
+                <div 
+                  className="h-full bg-gradient-to-r from-yellow-600 via-luxury-gold to-yellow-300 rounded-full transition-all duration-75 shadow-[0_0_10px_rgba(212,175,55,0.75)]"
+                  style={{ width: `${siteLoadProgress}%` }}
+                />
+              </div>
+              
+              {/* Encryption Notice */}
+              <div className="flex items-center gap-1.5 mt-8 text-[8px] font-mono tracking-widest text-white/30 uppercase">
+                <Lock size={8} className="text-luxury-gold/60 animate-pulse" />
+                <span>256-Bit SSL Secured Corridor</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Slim Gradient Scroll Progress Bar */}
       <div 
         className="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-yellow-600 via-luxury-gold to-yellow-300 z-[99999] transition-all duration-75 shadow-[0_0_12px_rgba(212,175,55,0.8)]"
@@ -1466,7 +1644,7 @@ export default function App() {
 
             {/* Results Grid block */}
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5">
                 {filteredProducts.map((product) => (
                   <ProductCard 
                     key={product.id}
@@ -1479,6 +1657,8 @@ export default function App() {
                     whatsappNumber={settings.whatsappNumber}
                     isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
                     globalDeliveryDays={settings?.globalDeliveryDays}
+                    currentCustomer={currentCustomer}
+                    onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
                   />
                 ))}
               </div>
@@ -1739,7 +1919,7 @@ export default function App() {
               </div>
             ) : (
               /* Core Grid */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 animate-fade-in">
                 {filteredProducts.map((prod) => (
                   <ProductCard 
                     key={prod.id}
@@ -1752,6 +1932,8 @@ export default function App() {
                     whatsappNumber={settings.whatsappNumber}
                     isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
                     globalDeliveryDays={settings?.globalDeliveryDays}
+                    currentCustomer={currentCustomer}
+                    onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
                   />
                 ))}
               </div>
@@ -2801,6 +2983,9 @@ CREATE TRIGGER on_auth_user_created
           setShowCustomerProfileModal(false);
           setIsChatOpen(true);
         }}
+        wishlist={wishlist}
+        onToggleWishlist={handleToggleWishlist}
+        onAddToCart={handleAddToCart}
       />
 
       {/* 4. LUXURY VIP NOTIFICATION ALERTS OVERLAY */}

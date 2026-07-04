@@ -15,6 +15,8 @@ interface ProductCardProps {
   whatsappNumber?: string;
   isNotifyMeDeactivated?: boolean;
   globalDeliveryDays?: string;
+  currentCustomer?: any;
+  onAuthRequired?: () => void;
 }
 
 export default function ProductCard({
@@ -26,11 +28,14 @@ export default function ProductCard({
   onToggleWishlist,
   whatsappNumber = "8801755104443",
   isNotifyMeDeactivated = false,
-  globalDeliveryDays
+  globalDeliveryDays,
+  currentCustomer,
+  onAuthRequired
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Real-time flash sale countdown timer ticking logic
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
@@ -140,13 +145,17 @@ export default function ProductCard({
 
   // Generate WhatsApp Direct link for this exact product
   const handleWhatsAppDirect = () => {
+    if (!currentCustomer && onAuthRequired) {
+      onAuthRequired();
+      return;
+    }
     const wsMessage = `👑 *STYLE X INQUIRY* 👑\n\nHello Style X Team, I am interested in: \n\n*Product:* ${product.title} (${product.code})\n*Price:* ৳${product.price}\n*Size Chosen:* ${selectedSize}\n\nCan you please check availability?\nThank you!`;
     const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
     window.open(finalUrl, '_blank');
   };
 
   return (
-    <div className="group luxury-glowing-card p-3.5 sm:p-3.5 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible relative">
+    <div className="group luxury-glowing-card p-3 sm:p-3.5 lg:p-2.5 xl:p-2 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible relative">
       {/* Dynamic ambient backdrop glowing aura that radiates out from inside the product card */}
       <div className="absolute -inset-1.5 bg-gradient-to-r from-luxury-gold/25 via-luxury-purple-glowing/15 to-luxury-gold/25 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none -z-10 animate-pulse"></div>
 
@@ -233,21 +242,38 @@ export default function ProductCard({
       {/* Image frame */}
       <div 
         onClick={() => onProductClick(product)}
-        className="relative aspect-[1.15] sm:aspect-[1.12] overflow-hidden rounded-lg bg-[#0a0a0a] cursor-pointer flex items-center justify-center border border-white/5 hover:border-luxury-gold/30 group mb-1.5 sm:mb-2.5"
+        className="product-image-container relative aspect-square w-full overflow-hidden rounded-lg bg-[#0f0f12] cursor-pointer flex items-center justify-center border border-white/5 transition-all duration-300 group mb-1 lg:mb-1.5 p-1.5"
       >
+        {/* Premium skeleton loading backdrop */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0c] via-[#121217] to-[#0a0a0c]">
+            {/* Soft pulsing gold and purple glowing ring loader */}
+            <div className="relative w-10 h-10 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-luxury-gold/10 border-t-luxury-gold/80 animate-spin"></div>
+              <div className="absolute inset-1 rounded-full border border-luxury-purple-glowing/10 border-b-luxury-purple-glowing/60 animate-spin-slow"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></div>
+            </div>
+            {/* Elegant luxury loading shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"></div>
+          </div>
+        )}
+
         <img 
           src={product.imageUrl} 
           alt={product.title} 
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-contain object-center transition-all duration-1000 ease-out group-hover:scale-105 z-10 ${
+            imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-md'
+          }`}
         />
-        {/* Dark gold color overlay on photo hovers */}
-        <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-transparent to-transparent opacity-60"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-purple-glowing/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-screen"></div>
-        <div className="absolute inset-0 bg-luxury-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* Dark subtle gold color overlay behind the image to elevate realism */}
+        <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent opacity-60 z-0 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-purple-glowing/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-screen z-20"></div>
+        <div className="absolute inset-0 bg-luxury-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-20"></div>
         
         {/* Quick View absolute layer */}
-        <div className="absolute inset-0 bg-luxury-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+        <div className="absolute inset-0 bg-luxury-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-30">
           <button 
             onClick={(e) => {
               e.stopPropagation();
@@ -261,7 +287,7 @@ export default function ProductCard({
         </div>
 
         {/* Dynamic status badges */}
-        <div className="absolute bottom-1 left-1 bg-luxury-black/95 backdrop-blur-md border border-luxury-gold/20 text-[7px] sm:text-[9px] text-white rounded-md px-1 py-0.5 font-display uppercase tracking-widest font-semibold flex items-center gap-1">
+        <div className="absolute bottom-1 left-1 bg-luxury-black/95 backdrop-blur-md border border-luxury-gold/20 text-[7px] sm:text-[9px] text-white rounded-md px-1 py-0.5 font-display uppercase tracking-widest font-semibold flex items-center gap-1 z-30">
           <span className={`w-1 h-1 rounded-full ${product.stock === 0 ? "bg-red-500" : product.trending ? "bg-luxury-gold animate-ping" : "bg-luxury-gold"}`}></span>
           <span>{product.stock === 0 ? "ARCHIVED" : product.trending ? "TRENDING" : "EXCLUSIVE"}</span>
         </div>
@@ -272,7 +298,7 @@ export default function ProductCard({
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-1 mb-1">
           <h3 
             onClick={() => onProductClick(product)}
-            className="font-serif text-[13px] sm:text-base md:text-lg font-bold text-white hover:text-luxury-purple-glowing transition-colors duration-300 cursor-pointer line-clamp-1"
+            className="font-serif text-[13px] sm:text-sm md:text-base lg:text-sm font-bold text-white hover:text-luxury-purple-glowing transition-colors duration-300 cursor-pointer line-clamp-1"
           >
             {product.title}
           </h3>
@@ -297,13 +323,13 @@ export default function ProductCard({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.9 }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="luxury-animated-price text-luxury-gold text-[14px] sm:text-[18px] flex-shrink-0"
+                    className="luxury-animated-price text-luxury-gold text-[14px] sm:text-base lg:text-[14px] flex-shrink-0"
                   >
                     {formatPrice(product.offerPrice!)}
                   </motion.span>
                 </AnimatePresence>
               </div>
-              <span className="text-[9px] sm:text-[10px] text-white/40 line-through">
+              <span className="text-[9px] sm:text-[10px] lg:text-[9px] text-white/40 line-through">
                 {formatPrice(product.price)}
               </span>
             </div>
@@ -315,7 +341,7 @@ export default function ProductCard({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 4, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                className="luxury-animated-price text-luxury-gold text-[14px] sm:text-[18px] flex-shrink-0"
+                className="luxury-animated-price text-luxury-gold text-[14px] sm:text-base lg:text-[14px] flex-shrink-0"
               >
                 {formatPrice(product.price)}
               </motion.span>
@@ -352,20 +378,20 @@ export default function ProductCard({
           </div>
         )}
 
-        <p className="text-[11px] sm:text-xs text-white/60 line-clamp-1 sm:line-clamp-2 italic mb-1 sm:mb-2 font-light">
+        <p className="text-[11px] sm:text-xs lg:text-[10px] text-white/60 line-clamp-1 sm:line-clamp-2 lg:line-clamp-1 italic mb-1 lg:mb-1 font-light">
           {product.description}
         </p>
 
         {/* Sizes Selections */}
         {product.sizes && product.sizes.length > 0 && (
-          <div className="mb-1.5">
-            <p className="text-[8px] sm:text-[9.5px] text-white/40 uppercase font-mono tracking-wider mb-0.5">DIMENSIONS</p>
+          <div className="mb-1 lg:mb-0.5">
+            <p className="text-[8px] sm:text-[9.5px] lg:text-[8px] text-white/40 uppercase font-mono tracking-wider mb-0.5">DIMENSIONS</p>
             <div className="flex flex-wrap gap-1">
               {product.sizes.map((size) => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`h-5.5 sm:h-7 min-w-[22px] sm:min-w-[28px] px-1.5 sm:px-2 rounded text-[7.5px] sm:text-[9px] font-display font-semibold border uppercase tracking-wider flex items-center justify-center transition-all ${
+                  className={`h-5.5 sm:h-7 lg:h-5.5 min-w-[22px] sm:min-w-[28px] lg:min-w-[22px] px-1.5 sm:px-2 lg:px-1 rounded text-[7.5px] sm:text-[9px] lg:text-[7.5px] font-display font-semibold border uppercase tracking-wider flex items-center justify-center transition-all ${
                     selectedSize === size
                       ? 'bg-gradient-to-br from-luxury-gold to-[#f0c742] text-luxury-black border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]'
                       : 'bg-black/40 text-white/70 border-white/5 hover:border-luxury-gold/30'
@@ -379,9 +405,9 @@ export default function ProductCard({
         )}
 
         {/* Delivery Duration Indicator */}
-        <div className="mb-2 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md p-1 px-1.5 w-full sm:w-fit justify-center sm:justify-start animate-fade-in">
+        <div className="mb-1.5 lg:mb-1 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md p-1 px-1.5 w-full sm:w-fit justify-center sm:justify-start animate-fade-in">
           <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-          <span className="text-[9px] sm:text-[9.5px] font-mono text-emerald-400 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
+          <span className="text-[9px] sm:text-[9.5px] lg:text-[8px] font-mono text-emerald-400 font-bold uppercase tracking-wide sm:tracking-widest lg:tracking-wider leading-normal">
             🚀 Delivery: {globalDeliveryDays || product.deliveryDays || "3-5"} Days ({globalDeliveryDays || product.deliveryDays || "3-5"} দিন)
           </span>
         </div>
@@ -395,7 +421,7 @@ export default function ProductCard({
             isNotifyMeDeactivated ? (
               <button
                 disabled
-                className="relative w-full h-[40px] bg-neutral-950 border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
+                className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-neutral-950 border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
               >
                 <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Out of</span>
                 <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Stock</span>
@@ -403,7 +429,7 @@ export default function ProductCard({
             ) : (
               <button
                 onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
-                className="relative w-full h-[40px] bg-gradient-to-r from-amber-950 via-[#271302] to-[#120801] border border-amber-500/50 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group"
+                className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-amber-950 via-[#271302] to-[#120801] border border-amber-500/50 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group"
               >
                 <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-amber-400/80 uppercase font-black group-hover:text-amber-300 transition-colors">Notify</span>
@@ -414,7 +440,7 @@ export default function ProductCard({
             <button
               onClick={() => onAddToCart(product, selectedSize)}
               disabled={product.stock === 0}
-              className="relative w-full h-[40px] bg-gradient-to-r from-[#1b0833] via-[#0d041a] to-[#1b0833] border border-luxury-purple-glowing/50 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_22px_rgba(154,77,255,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
+              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-[#1b0833] via-[#0d041a] to-[#1b0833] border border-luxury-purple-glowing/50 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_22px_rgba(154,77,255,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
             >
               <div className="absolute inset-0 bg-luxury-purple-glowing/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
               <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-luxury-purple-glowing uppercase font-black transition-colors">Add To</span>
@@ -426,7 +452,7 @@ export default function ProductCard({
           {product.stock === 0 ? (
             <button
               disabled
-              className="relative w-full h-[40px] bg-[#111] border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
+              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-[#111] border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
             >
               <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Unavailable</span>
               <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Sold Out</span>
@@ -434,7 +460,7 @@ export default function ProductCard({
           ) : (
             <button
               onClick={() => onOrderNow(product, selectedSize)}
-              className="relative w-full h-[40px] bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] border border-[#9A4DFF] text-white font-display font-black text-[11px] uppercase tracking-[0.15em] rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
+              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] border border-[#9A4DFF] text-white font-display font-black text-[11px] uppercase tracking-[0.15em] rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
             >
               <div className="absolute inset-0 bg-white/15 opacity-0 group-hover/buy:opacity-100 transition-opacity duration-300" />
               <span>Order Now</span>
@@ -445,7 +471,7 @@ export default function ProductCard({
         {/* WhatsApp Direct Order */}
         <button
           onClick={handleWhatsAppDirect}
-          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[9.5px] sm:text-[11.5px] font-display font-extrabold uppercase tracking-[0.12em] py-1.5 sm:py-3 rounded-lg sm:rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
+          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[9.5px] sm:text-[11.5px] lg:text-[10px] font-display font-extrabold uppercase tracking-[0.12em] py-1.5 sm:py-3 lg:py-1.5 rounded-lg sm:rounded-xl lg:rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
         >
           <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
           <Send size={13.5} className="text-emerald-400 group-hover/wa:translate-x-0.5 group-hover/wa:-translate-y-0.5 transition-transform" />

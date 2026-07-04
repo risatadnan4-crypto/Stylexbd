@@ -251,13 +251,13 @@ export default function ProductDetailModal({
                 const y = ((e.clientY - top) / height) * 100;
                 setZoomPos({ x, y });
               }}
-              className="w-full relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom"
+              className="w-full relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-4"
             >
               <img 
                 src={displayImage} 
                 alt={product.title} 
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover animate-fade-in"
+                className="w-full h-full object-contain animate-fade-in"
                 style={{
                   transformOrigin: isZooming ? `${zoomPos.x}% ${zoomPos.y}%` : 'center center',
                   transform: isZooming ? 'scale(2.25)' : 'scale(1)',
@@ -265,10 +265,10 @@ export default function ProductDetailModal({
                 }}
               />
               {/* Visual gradient filter */}
-              <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/70 via-transparent to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent pointer-events-none z-0"></div>
 
               {/* Indicator badge */}
-              <div className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[9px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
+              <div className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[9px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none z-10 ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-luxury-purple-glowing animate-ping"></span>
                 <span className="text-white/80 font-bold">Hover to Zoom Fabric</span>
               </div>
@@ -288,7 +288,7 @@ export default function ProductDetailModal({
                         : 'border-white/5 hover:border-white/20 hover:scale-105'
                     }`}
                   >
-                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
                   </button>
                 ))}
               </div>

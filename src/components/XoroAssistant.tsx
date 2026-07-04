@@ -497,7 +497,7 @@ export default function XoroAssistant({
       lfoGain.gain.setValueAtTime(1.8, now); // Tiny warmth frequency wiggle (±1.8Hz)
 
       gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.008, now + 0.25); // Extremely soft, almost imperceptible premium AI warmth texture
+      gainNode.gain.linearRampToValueAtTime(0.0, now + 0.25); // Muted during voice speech to prevent any acoustic interference or muffled tones
 
       lfo.connect(lfoGain);
       lfoGain.connect(osc.frequency);
@@ -533,7 +533,7 @@ export default function XoroAssistant({
   };
 
   // Helper to read aloud text using Web Speech API (Text-to-Speech)
-  // Tuned to sound premium, soft, comforting, warm, and highly professional with a medium-slow, gentle pace.
+  // Tuned for crystal-clear pronunciation, organic articulation, and zero background interference.
   const speakText = (text: string) => {
     if (!isSoundEnabled) return;
     try {
@@ -552,11 +552,13 @@ export default function XoroAssistant({
           window.speechSynthesis.resume();
         }
   
-        // Clean up emojis, markdown patterns for clean voice synthesis
+        // Clean up emojis, markdown patterns, and map Latin brand names to native phonetic equivalents
         const cleanText = text
           .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '') // strip emojis
           .replace(/[*_#`~৳-]/g, ' ') // strip markdown and special symbols
-          .replace(/XP-/gi, 'style code ')
+          .replace(/Xoro/gi, 'জোরো') // Map Xoro brand name to Bengali phonetic sound for crystal-clear local pronunciation
+          .replace(/Style X/gi, 'স্টাইল এক্স') // Map Style X to Bengali phonetic sound
+          .replace(/XP-/gi, 'স্টাইল কোড ')
           .trim();
   
         if (!cleanText) return;
@@ -565,43 +567,69 @@ export default function XoroAssistant({
         
         const hasBengali = /[\u0980-\u09FF]/.test(cleanText);
   
-        // Premium, comforting, warm, and clear voice tuning (no monotone or mechanical clicks)
+        // Pristine, articulate, and crystal-clear voice tuning (no mechanical time-stretching or flat robotic frequencies)
         if (hasBengali) {
-          utterance.rate = 0.90;  // Elegant, natural medium-slow tempo (0.88-0.92) for Bangla
-          utterance.pitch = 1.02; // Friendly, sweet youthful pitch with a natural "voice smile"
-          utterance.volume = 0.95; // Perfectly clear articulation
+          utterance.rate = 0.98;   // High-fidelity natural speed (0.95 - 1.0) to eliminate audio slur or stretching artifacts
+          utterance.pitch = 1.0;   // Solid, clear tone with perfect natural timber (no robotic metallic down-pitch)
+          utterance.volume = 1.0;  // Full sound volume for pristine presence
         } else {
-          utterance.rate = 0.90;  // Comforting and articulate English pacing
-          utterance.pitch = 1.05; // Soft premium tech tone
-          utterance.volume = 0.95; 
+          utterance.rate = 1.0;    // Perfectly natural native English rate
+          utterance.pitch = 1.0;   // Crisp, neutral standard tone
+          utterance.volume = 1.0;  // Maximum studio-quality presence
         }
   
         const voices = window.speechSynthesis.getVoices();
         let selectedVoice = null;
   
         if (hasBengali) {
-          // Prioritize clear high-quality Bangla voices (Google বাংলা, Microsoft Ananya, etc.)
-          const bengaliKeys = ['bengali', 'bangla', 'bn', 'google বাংলা', 'ananya', 'shreya', 'dilara'];
-          for (const key of bengaliKeys) {
-            selectedVoice = voices.find(v => {
-              const lang = v.lang.toLowerCase();
-              const name = v.name.toLowerCase();
-              return (lang.startsWith('bn') || name.includes(key));
-            });
+          // Filter to get all available Bengali voices first
+          const bnVoices = voices.filter(v => v.lang.toLowerCase().startsWith('bn'));
+          
+          // Pass 1: Look for ultra-realistic neural or natural high-quality online voices
+          const premiumKeys = ['natural', 'neural', 'online', 'premium', 'google বাংলা', 'google', 'sabina', 'nabonita'];
+          for (const key of premiumKeys) {
+            selectedVoice = bnVoices.find(v => v.name.toLowerCase().includes(key));
             if (selectedVoice) break;
+          }
+          
+          // Pass 2: Look for standard comforting names
+          if (!selectedVoice) {
+            const comfortingKeys = ['ananya', 'shreya', 'dilara', 'microsoft', 'bengali', 'bangla'];
+            for (const key of comfortingKeys) {
+              selectedVoice = bnVoices.find(v => v.name.toLowerCase().includes(key));
+              if (selectedVoice) break;
+            }
+          }
+          
+          // Pass 3: Fallback to first Bengali voice
+          if (!selectedVoice && bnVoices.length > 0) {
+            selectedVoice = bnVoices[0];
           }
         }
   
         // Prioritize soft, warm, premium English voices if no Bangla selected or if speaking English
         if (!selectedVoice) {
-          const warmVoiceKeys = ['natural', 'samantha', 'aria', 'jenny', 'sara', 'zira', 'female', 'google us english', 'microsoft'];
-          for (const key of warmVoiceKeys) {
-            selectedVoice = voices.find(v => {
-              const lang = v.lang.toLowerCase();
-              const name = v.name.toLowerCase();
-              return lang.startsWith('en') && name.includes(key);
-            });
+          const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+          
+          // Pass 1: Look for ultra-realistic natural neural voices (e.g., Safari's Natural, Edge's Neural, Chrome's Online)
+          const premiumKeys = ['natural', 'neural', 'online', 'premium', 'google'];
+          for (const key of premiumKeys) {
+            selectedVoice = enVoices.find(v => v.name.toLowerCase().includes(key));
             if (selectedVoice) break;
+          }
+          
+          // Pass 2: Look for soft, warm, friendly human names
+          if (!selectedVoice) {
+            const friendlyKeys = ['samantha', 'aria', 'jenny', 'sara', 'zira', 'female', 'google us english', 'microsoft'];
+            for (const key of friendlyKeys) {
+              selectedVoice = enVoices.find(v => v.name.toLowerCase().includes(key));
+              if (selectedVoice) break;
+            }
+          }
+          
+          // Pass 3: Fallback to first English voice
+          if (!selectedVoice && enVoices.length > 0) {
+            selectedVoice = enVoices[0];
           }
         }
   
@@ -619,7 +647,7 @@ export default function XoroAssistant({
         // Retain reference to prevent garbage collection mid-speech (major Chrome bug fix)
         currentUtteranceRef.current = utterance;
   
-        // Start cozy premium background presence hum when speaking begins
+        // Start background aura with absolute silence (gain = 0.0) during active speech to eliminate any hum/vibration interference
         startSpeechAura();
   
         utterance.onend = () => {
@@ -1686,28 +1714,12 @@ export default function XoroAssistant({
                               <p className="text-[9px] font-mono uppercase text-luxury-gold tracking-widest font-bold">Suggested Style Acquisitions:</p>
                               <div className="grid grid-cols-2 gap-2">
                                 {products.slice(0, 2).map((p, pIdx) => (
-                                  <div 
+                                  <AssistantProductCard 
                                     key={pIdx} 
-                                    onClick={() => {
-                                      onSelectProduct(p);
-                                      setIsOpen(false);
-                                    }}
-                                    className="bg-black/40 border border-white/5 hover:border-luxury-gold/30 rounded-xl p-1.5 cursor-pointer transition-all hover:scale-[1.02] flex flex-col group relative"
-                                  >
-                                    <div className="aspect-square rounded-lg overflow-hidden bg-zinc-950 relative">
-                                      <img 
-                                        src={p.imageUrl} 
-                                        alt={p.title} 
-                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform" 
-                                        referrerPolicy="no-referrer"
-                                      />
-                                      <span className="absolute top-1 left-1 text-[7px] bg-black/80 text-luxury-gold px-1 rounded font-mono uppercase tracking-widest">
-                                        {p.code}
-                                      </span>
-                                    </div>
-                                    <p className="text-[9px] font-bold text-white truncate mt-1 leading-tight">{p.title}</p>
-                                    <p className="text-[8px] text-luxury-gold font-mono font-black mt-0.5">৳{p.offerPrice || p.price}</p>
-                                  </div>
+                                    product={p} 
+                                    onSelectProduct={onSelectProduct} 
+                                    setIsOpen={setIsOpen} 
+                                  />
                                 ))}
                               </div>
                             </div>
@@ -1881,3 +1893,57 @@ export default function XoroAssistant({
     </AnimatePresence>
   );
 }
+
+function AssistantProductCard({ 
+  product, 
+  onSelectProduct, 
+  setIsOpen 
+}: { 
+  product: any; 
+  onSelectProduct: (p: any) => void; 
+  setIsOpen: (open: boolean) => void; 
+}) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  return (
+    <div 
+      onClick={() => {
+        onSelectProduct(product);
+        setIsOpen(false);
+      }}
+      className="bg-black/40 border border-white/5 hover:border-luxury-gold/30 rounded-xl p-1.5 cursor-pointer transition-all hover:scale-[1.02] flex flex-col group relative"
+    >
+      <div className="product-image-container aspect-square rounded-lg overflow-hidden bg-zinc-950 relative flex items-center justify-center p-1.5 border border-transparent transition-all duration-300">
+        {/* Premium skeleton loading backdrop */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0c] via-[#121217] to-[#0a0a0c]">
+            {/* Soft pulsing gold and purple ring loader */}
+            <div className="relative w-6 h-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-luxury-gold/10 border-t-luxury-gold/80 animate-spin"></div>
+              <div className="absolute inset-0.5 rounded-full border border-luxury-purple-glowing/10 border-b-luxury-purple-glowing/60 animate-spin-slow"></div>
+              <div className="w-1 h-1 rounded-full bg-luxury-gold animate-pulse"></div>
+            </div>
+            {/* Elegant luxury loading shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"></div>
+          </div>
+        )}
+
+        <img 
+          src={product.imageUrl} 
+          alt={product.title} 
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-contain object-center transition-all duration-1000 ease-out group-hover:scale-105 z-10 ${
+            imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-md'
+          }`} 
+          referrerPolicy="no-referrer"
+        />
+        <span className="absolute top-1 left-1 text-[7px] bg-black/80 text-luxury-gold px-1 rounded font-mono uppercase tracking-widest z-20">
+          {product.code}
+        </span>
+      </div>
+      <p className="text-[9px] font-bold text-white truncate mt-1 leading-tight">{product.title}</p>
+      <p className="text-[8px] text-luxury-gold font-mono font-black mt-0.5">৳{product.offerPrice || product.price}</p>
+    </div>
+  );
+}
+

@@ -81,7 +81,7 @@ export default function AdminPanel({
   const [whatsappNumberInput, setWhatsappNumberInput] = useState(settings?.whatsappNumber || "8801755104443");
   const [adminEmailInput, setAdminEmailInput] = useState(settings?.adminEmail || "risatadnan4@gmail.com");
   const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
-  const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec");
+  const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec");
   const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "/stylex_logo.jpg");
   const [xoroAvatarUrlInput, setXoroAvatarUrlInput] = useState(settings?.xoroAvatarUrl || "");
   const [bkashLogoUrlInput, setBkashLogoUrlInput] = useState(settings?.bkashLogoUrl || "");

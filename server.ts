@@ -166,7 +166,7 @@ let db = {
     whatsappNumber: "8801755104443",
     adminEmail: "risatadnan4@gmail.com",
     adminPassword: "risat123",
-    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec",
     logoUrl: "/stylex_logo.jpg",
     xoroAvatarUrl: "",
     bkashLogoUrl: "",
@@ -222,7 +222,9 @@ if (fs.existsSync(DB_FILE)) {
     // Always migrate old default script URLs to the newly provided script URL
     const oldDefaultUrls = [
       "https://script.google.com/macros/s/AKfycbwlkTgUkW1XTScs7dIIym1mNpa6MVgY9JO9c0lACN7Jaj8zi6TWYs1LgNDp4V6NoDPa/exec",
-      "https://script.google.com/macros/s/AKfycbxyp9-vg7NU4Gvi7_lEd2G1MQr_QwkbmEBT3QZhs9EsbheCr0wwYy2aLydw-HOQqjoY/exec"
+      "https://script.google.com/macros/s/AKfycbxyp9-vg7NU4Gvi7_lEd2G1MQr_QwkbmEBT3QZhs9EsbheCr0wwYy2aLydw-HOQqjoY/exec",
+      "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+      "https://script.google.com/macros/s/AKfycbzaRc7woff9SNvCKhXSlfvrNt6XVrgzvXZ0e86BCdDVWIv1VVjFIEPPz12w38WBy-tW/exec"
     ];
     const currentScriptUrl = db.settings?.appsScriptUrl || oldDefaultUrls[0];
     
@@ -231,7 +233,7 @@ if (fs.existsSync(DB_FILE)) {
       adminEmail: db.settings?.adminEmail || "risatadnan4@gmail.com",
       adminPassword: db.settings?.adminPassword || "risat123",
       appsScriptUrl: oldDefaultUrls.includes(currentScriptUrl)
-        ? "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec" 
+        ? "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec" 
         : currentScriptUrl,
       logoUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
       xoroAvatarUrl: db.settings?.xoroAvatarUrl || "",
@@ -777,6 +779,22 @@ async function syncFromSupabase() {
       console.warn("⚠️ Failed syncing settings: ", e.message);
     }
 
+    // Always migrate old default script URLs after syncing from cloud as a robust failsafe
+    const obsoleteUrls = [
+      "https://script.google.com/macros/s/AKfycbwlkTgUkW1XTScs7dIIym1mNpa6MVgY9JO9c0lACN7Jaj8zi6TWYs1LgNDp4V6NoDPa/exec",
+      "https://script.google.com/macros/s/AKfycbxyp9-vg7NU4Gvi7_lEd2G1MQr_QwkbmEBT3QZhs9EsbheCr0wwYy2aLydw-HOQqjoY/exec",
+      "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+      "https://script.google.com/macros/s/AKfycbzaRc7woff9SNvCKhXSlfvrNt6XVrgzvXZ0e86BCdDVWIv1VVjFIEPPz12w38WBy-tW/exec"
+    ];
+    if (db.settings?.appsScriptUrl && obsoleteUrls.includes(db.settings.appsScriptUrl.trim())) {
+      console.log(`♻️ [CLOUD_MIGRATION] Obsolete Apps Script URL detected from Supabase settings (${db.settings.appsScriptUrl.trim()}). Upgrading to: https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec`);
+      db.settings.appsScriptUrl = "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
+      // Force write back to cloud
+      setTimeout(() => {
+        syncSettingsToCloud().catch(err => console.error("⚠️ Failed back-syncing migrated settings to cloud:", err));
+      }, 500);
+    }
+
     // Save final state locally as hot cache
     saveDB();
   } catch (error: any) {
@@ -1085,7 +1103,7 @@ app.get("/api/settings", async (req, res) => {
   res.json(db.settings || { 
     whatsappNumber: "8801755104443", 
     adminEmail: "risatadnan4@gmail.com",
-    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec",
+    appsScriptUrl: "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec",
     logoUrl: "/stylex_logo.jpg",
     lotteryDiscountPercentage: 15,
     lotteryPrizes: [
@@ -1107,7 +1125,7 @@ app.post("/api/discount-request", async (req, res) => {
   }
 
   try {
-    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
     const targetEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
     const dateStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" });
 
@@ -1161,7 +1179,7 @@ app.post("/api/settings", async (req, res) => {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
       adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
       adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
-      appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec"),
+      appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
       xoroAvatarUrl: xoroAvatarUrl !== undefined ? xoroAvatarUrl.trim() : (db.settings?.xoroAvatarUrl || ""),
       bkashLogoUrl: bkashLogoUrl !== undefined ? bkashLogoUrl.trim() : (db.settings?.bkashLogoUrl || ""),
@@ -1754,7 +1772,7 @@ async function sendAdminEmail({ subject, text, html }: { subject: string, text: 
   }
 
   // 3. Fallback: Google Apps Script Webhook (Pre-configured admin routing)
-  const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+  const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
   console.log(`[EMAIL_SYSTEM] Attempting fallback Google Apps Script Webhook delivery to: ${scriptUrl}`);
   try {
     const scriptRes = await fetch(scriptUrl, {
@@ -1870,18 +1888,82 @@ app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
   let executionError: any = null;
 
   const tryEmailSend = async () => {
+    let mailSuccess = false;
+    let webhookSuccess = false;
+
+    // 1. Try sendAdminEmail (standard SMTP, Resend, or Google Apps Script Webhook fallback)
     try {
-      console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching admin email notification for: ${email}`);
+      console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching via sendAdminEmail...`);
       await sendAdminEmail({
         subject: `🔔 [SIGNUP NOTIFICATION] New Member Registered: ${fullName}`,
         text: emailBody,
         html: emailHtml
       });
-      sentSuccessfully = true;
-      console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] Email sent successfully for: ${email}`);
+      mailSuccess = true;
+      console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] sendAdminEmail succeeded.`);
     } catch (err: any) {
+      console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] sendAdminEmail failed:`, err.message || err);
       executionError = err;
-      console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] Email sending failed:`, err.message || err);
+    }
+
+    // 2. ALSO trigger Google Apps Script Webhook directly with rich order-like payload (just like /api/orders)
+    const adminEmail = process.env.ADMIN_EMAIL || db.settings?.adminEmail || "risatadnan4@gmail.com";
+    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
+    
+    console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching directly to Google Apps Script URL: ${scriptUrl}`);
+    try {
+      const response = await fetch(scriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          // Email routing parameters
+          email: adminEmail,
+          recipient: adminEmail,
+          recipientEmail: adminEmail,
+          targetEmail: adminEmail,
+          target_email: adminEmail,
+          adminEmail: adminEmail,
+          storeEmail: adminEmail,
+          toEmail: adminEmail,
+          notifyEmail: adminEmail,
+          
+          // Subject & Email content for simple forwarding webhooks
+          subject: `🔔 [SIGNUP NOTIFICATION] New Member Registered: ${fullName}`,
+          body: emailBody,
+          html: emailHtml,
+          
+          // Rich order-like parameters for spreadsheet / form extraction webhooks
+          name: fullName,
+          phone: mobileNumber,
+          customerName: fullName,
+          customerPhone: mobileNumber,
+          customerEmail: email,
+          location: `Signup GeoIP: ${finalCountry}`,
+          items: `New Member VIP Signup Details:\n- Name: ${fullName}\n- Mobile: ${mobileNumber}\n- Email: ${email}`,
+          total: `New Member Registration (ID: ${userId || 'N/A'})`,
+          payment: `Device: ${clientDevice} (${clientBrowser})`,
+          paymentStatus: "Verified",
+          trxid: `REG-${userId ? userId.slice(0, 8).toUpperCase() : 'VIP'}`,
+          screenshot: "",
+          date: signupTime || new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
+        })
+      });
+
+      if (response.ok) {
+        webhookSuccess = true;
+        console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] Direct Google Apps Script webhook succeeded.`);
+      } else {
+        const txt = await response.text();
+        console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] Direct Google Apps Script returned status ${response.status}:`, txt);
+      }
+    } catch (err: any) {
+      console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] Direct Google Apps Script call failed:`, err.message || err);
+      if (!executionError) executionError = err;
+    }
+
+    // Mark as successful if EITHER sendAdminEmail succeeded OR direct Apps Script succeeded
+    if (mailSuccess || webhookSuccess) {
+      sentSuccessfully = true;
     }
   };
 
@@ -2418,7 +2500,7 @@ app.post("/api/orders", async (req, res) => {
     const itemsFormatted = items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n") +
       `\n\n-----------------------------\n💵 Product Subtotal: ৳${subtotal}\n📦 VIP Secure Courier Delivery: ${shippingText}\n👑 Grand Invoice Total: ৳${totalAmount}`;
 
-    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+    const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
     const targetEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
 
     // Compile dynamic descriptive text for the email notification

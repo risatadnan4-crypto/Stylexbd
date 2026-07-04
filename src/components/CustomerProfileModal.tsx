@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Mail, Phone, Lock, History, X, ChevronRight, 
   ArrowRight, CheckCircle, Check, Copy, ExternalLink, 
-  MessageSquare, Clock, MapPin, Truck, Sparkles, AlertTriangle
+  MessageSquare, Clock, MapPin, Truck, Sparkles, AlertTriangle,
+  Heart, ShoppingBag, Trash2
 } from 'lucide-react';
 import { Order, Product, Customer } from '../types';
 import { formatPrice, generateOrderQrUrl } from '../utils';
@@ -17,6 +18,9 @@ interface CustomerProfileModalProps {
   products: Product[];
   whatsappNumber?: string;
   onOpenChat: () => void;
+  wishlist?: string[];
+  onToggleWishlist?: (p: Product) => void;
+  onAddToCart?: (p: Product, size: string) => void;
 }
 
 export default function CustomerProfileModal({
@@ -27,10 +31,13 @@ export default function CustomerProfileModal({
   orders,
   products,
   whatsappNumber = "8801755104443",
-  onOpenChat
+  onOpenChat,
+  wishlist = [],
+  onToggleWishlist = () => {},
+  onAddToCart = () => {}
 }: CustomerProfileModalProps) {
-  // Tabs: 'profile' | 'orders'
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders'>('orders');
+  // Tabs: 'profile' | 'orders' | 'wishlist'
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist'>('orders');
   
   // Profile Form States
   const [name, setName] = useState('');
@@ -69,6 +76,8 @@ export default function CustomerProfileModal({
 
     return matchEmail || matchPhone;
   });
+
+  const wishlistedProducts = products.filter(p => wishlist.includes(p.id));
 
   const handleProfileSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +211,12 @@ export default function CustomerProfileModal({
                     {customerOrders.length}
                   </span>
                 </div>
+                <div className="mt-2 pt-2 border-t border-white/[0.05] flex justify-between items-center text-[10px] text-white/50 font-mono">
+                  <span>WISHLIST PIECES:</span>
+                  <span className="text-luxury-purple-glowing font-bold bg-luxury-purple-glowing/10 px-2 py-0.5 rounded-full border border-luxury-purple-glowing/20">
+                    {wishlist.length}
+                  </span>
+                </div>
               </div>
 
               {/* Sidebar Navigation Tabs */}
@@ -222,6 +237,24 @@ export default function CustomerProfileModal({
                     <span>My Bespoke Orders</span>
                   </div>
                   <ChevronRight size={14} className={activeTab === 'orders' ? "text-luxury-gold" : "text-white/20"} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('wishlist');
+                    setSelectedOrder(null);
+                  }}
+                  className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider py-3 px-3.5 rounded-xl transition-all border duration-200 cursor-pointer ${
+                    activeTab === 'wishlist'
+                      ? 'bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 text-luxury-gold border-luxury-gold/40 shadow-md font-black'
+                      : 'text-white/60 hover:text-white hover:bg-white/[0.03] border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Heart size={14} className={activeTab === 'wishlist' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
+                    <span>My Wishlist</span>
+                  </div>
+                  <ChevronRight size={14} className={activeTab === 'wishlist' ? "text-luxury-gold" : "text-white/20"} />
                 </button>
 
                 <button
@@ -744,6 +777,45 @@ export default function CustomerProfileModal({
                 </div>
               )}
 
+              {/* TAB 3: WISHLIST PIECES */}
+              {activeTab === 'wishlist' && (
+                <div className="flex-1 flex flex-col space-y-4 min-h-0">
+                  <div className="flex items-center justify-between flex-shrink-0">
+                    <h4 className="text-xs uppercase font-black tracking-widest text-white/80 font-mono flex items-center gap-2">
+                      <Heart size={12} className="text-luxury-purple-glowing animate-pulse fill-luxury-purple-glowing" />
+                      My Wishlist Pieces ({wishlistedProducts.length})
+                    </h4>
+                  </div>
+
+                  {wishlistedProducts.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center border border-white/5 bg-white/[0.01] rounded-2xl p-8 text-center max-w-xl mx-auto my-auto space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center text-white/30 border border-white/10">
+                        <Heart size={20} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs sm:text-sm font-medium text-white/80">No Pieces Wishlisted Yet</p>
+                        <p className="text-[10.5px] text-white/40 leading-relaxed font-sans max-w-sm text-center">
+                          Explore our boutique collection and tap the heart icon on any piece to catalog it here.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-1.5 custom-scrollbar pb-6">
+                      {wishlistedProducts.map((product) => {
+                        return (
+                          <WishlistItemCard 
+                            key={product.id}
+                            product={product}
+                            onToggleWishlist={onToggleWishlist}
+                            onAddToCart={onAddToCart}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
 
           </div>
@@ -751,5 +823,126 @@ export default function CustomerProfileModal({
         </motion.div>
       </div>
     </AnimatePresence>
+  );
+}
+
+function WishlistItemCard({
+  product,
+  onToggleWishlist,
+  onAddToCart
+}: {
+  product: Product;
+  onToggleWishlist: (p: Product) => void;
+  onAddToCart: (p: Product, size: string) => void;
+}) {
+  const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || 'Default');
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const handleMoveToCart = () => {
+    onAddToCart(product, selectedSize);
+    onToggleWishlist(product);
+  };
+
+  return (
+    <div className="group bg-gradient-to-b from-white/[0.02] to-transparent border border-white/10 hover:border-luxury-gold/45 rounded-xl p-3 flex flex-col justify-between transition-all duration-300 relative overflow-hidden select-none">
+      
+      {/* Remove from wishlist button */}
+      <button 
+        onClick={() => onToggleWishlist(product)}
+        className="absolute top-2.5 right-2.5 z-20 w-7 h-7 bg-black/60 backdrop-blur-md rounded-full border border-white/5 hover:border-red-500/50 hover:text-red-400 text-white/60 flex items-center justify-center transition-all cursor-pointer"
+        title="Remove from wishlist"
+      >
+        <Trash2 size={12} />
+      </button>
+
+      {/* Image frame */}
+      <div className="product-image-container relative aspect-square w-full overflow-hidden rounded-lg bg-[#0f0f12] flex items-center justify-center border border-white/5 transition-all duration-300 mb-2.5 p-1.5">
+        {/* Premium skeleton loading backdrop */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0c] via-[#121217] to-[#0a0a0c]">
+            {/* Soft pulsing gold and purple glowing ring loader */}
+            <div className="relative w-8 h-8 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-luxury-gold/10 border-t-luxury-gold/80 animate-spin"></div>
+              <div className="absolute inset-1 rounded-full border border-luxury-purple-glowing/10 border-b-luxury-purple-glowing/60 animate-spin-slow"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></div>
+            </div>
+            {/* Elegant luxury loading shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"></div>
+          </div>
+        )}
+
+        <img 
+          src={product.imageUrl} 
+          referrerPolicy="no-referrer"
+          alt={product.title}
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-contain object-center transition-all duration-1000 ease-out group-hover:scale-105 z-10 ${
+            imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-md'
+          }`}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none z-0" />
+      </div>
+
+      {/* Title & Info */}
+      <div className="text-left space-y-1 mb-2">
+        <h4 className="font-serif text-[13px] font-bold text-white hover:text-luxury-purple-glowing transition-colors line-clamp-1">
+          {product.title}
+        </h4>
+        <p className="text-[10px] text-white/40 font-mono">
+          {product.code || 'SX-PC'}
+        </p>
+      </div>
+
+      {/* Price */}
+      <div className="flex items-center gap-1.5 justify-start text-left mb-2.5">
+        {product.offerPrice ? (
+          <>
+            <span className="text-luxury-gold font-mono font-bold text-xs">
+              {formatPrice(product.offerPrice)}
+            </span>
+            <span className="text-[9.5px] text-white/40 line-through font-mono">
+              {formatPrice(product.price)}
+            </span>
+          </>
+        ) : (
+          <span className="text-luxury-gold font-mono font-bold text-xs">
+            {formatPrice(product.price)}
+          </span>
+        )}
+      </div>
+
+      {/* Sizes selector inside card */}
+      {product.sizes && product.sizes.length > 0 && (
+        <div className="mb-3 text-left">
+          <p className="text-[8px] text-white/40 uppercase font-mono tracking-wider mb-1">SELECT SIZE</p>
+          <div className="flex flex-wrap gap-1">
+            {product.sizes.map((size) => (
+              <button
+                key={size}
+                onClick={() => setSelectedSize(size)}
+                className={`h-5 min-w-[20px] px-1 rounded text-[7.5px] font-display font-semibold border uppercase tracking-wider flex items-center justify-center transition-all cursor-pointer ${
+                  selectedSize === size
+                    ? 'bg-gradient-to-br from-luxury-gold to-[#f0c742] text-luxury-black border-luxury-gold shadow-[0_0_8px_rgba(212,175,55,0.3)]'
+                    : 'bg-black/40 text-white/70 border-white/5 hover:border-luxury-gold/30'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Move to Cart action button */}
+      <button
+        onClick={handleMoveToCart}
+        disabled={product.stock === 0}
+        className="w-full h-8 bg-gradient-to-r from-luxury-purple/50 to-[#9A4DFF]/40 hover:from-luxury-purple hover:to-[#9A4DFF] border border-luxury-purple-glowing/40 hover:border-luxury-purple-glowing text-white text-[10px] uppercase font-mono font-black tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shadow-md"
+      >
+        <ShoppingBag size={11} />
+        <span>Move to Cart</span>
+      </button>
+
+    </div>
   );
 }
