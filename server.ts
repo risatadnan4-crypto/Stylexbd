@@ -7,6 +7,7 @@ import fs from "fs";
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
 import { supabase } from "./src/lib/supabase.js";
 import { GoogleGenAI } from "@google/genai";
+import nodemailer from "nodemailer";
 
 
 export const app = express();
@@ -150,10 +151,12 @@ let db = {
   coupons: initialCoupons,
   campaigns: initialCampaigns,
   chats: [] as ChatRoom[],
+  carts: {} as Record<string, any[]>,
   visits: 125,
   liveViews: 3,
   countedSessions: [] as string[],
   notifications: [] as any[],
+  failed_notifications: [] as any[],
   seededCoupons: false,
   seededCampaigns: false,
   seededBanners: false,
@@ -208,6 +211,7 @@ if (fs.existsSync(DB_FILE)) {
     db = { ...db, ...parsedData };
     db.countedSessions = db.countedSessions || [];
     db.notifications = db.notifications || [];
+    db.failed_notifications = parsedData.failed_notifications || [];
     db.backInStockAlerts = db.backInStockAlerts || [];
     db.seededCoupons = parsedData.seededCoupons !== undefined ? !!parsedData.seededCoupons : false;
     db.seededCampaigns = parsedData.seededCampaigns !== undefined ? !!parsedData.seededCampaigns : false;
@@ -405,6 +409,12 @@ async function syncFromSupabase() {
       console.error("⚠️ Error pre-parsing settings in syncFromSupabase:", settingsPreErr);
     }
 
+    // Determine if the database is already initialized with existing content
+    const hasProductsInDb = !!(productsResult.data && productsResult.data.length > 0);
+    const hasBannersInDb = !!(bannersResult.data && bannersResult.data.length > 0);
+    const hasSettingsInDb = !!(settingsResult.data && settingsResult.data.length > 0);
+    const isDbInitialized = hasProductsInDb || hasBannersInDb || hasSettingsInDb;
+
     // 1. Sync Products
     try {
       if (!productsResult.error && productsResult.data) {
@@ -438,7 +448,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if (db.products && db.products.length > 0) {
+          if (!isDbInitialized && db.products && db.products.length > 0) {
             console.log("🌱 Supabase 'products' table is empty. Seeding Supabase from local database backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
@@ -523,7 +533,7 @@ async function syncFromSupabase() {
             }
           }
         } else {
-          if (db.banners && db.banners.length > 0) {
+          if (!isDbInitialized && db.banners && db.banners.length > 0) {
             console.log("🌱 Supabase 'banners' table is empty. Seeding from local database backup...");
             for (const b of db.banners) {
               await supabase.from("banners").upsert(b);
@@ -561,7 +571,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.coupons.length} coupons from Supabase.`);
         } else {
-          if (db.coupons && db.coupons.length > 0) {
+          if (!db.seededCoupons && !isDbInitialized && db.coupons && db.coupons.length > 0) {
             console.log("🌱 Supabase 'coupons' table is empty. Seeding from local database backup...");
             for (const c of db.coupons) {
               await supabase.from("coupons").upsert(c);
@@ -589,7 +599,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.campaigns.length} campaigns from Supabase.`);
         } else {
-          if (db.campaigns && db.campaigns.length > 0) {
+          if (!isDbInitialized && db.campaigns && db.campaigns.length > 0) {
             console.log("🌱 Supabase 'campaigns' table is empty. Seeding from local database backup...");
             for (const c of db.campaigns) {
               await supabase.from("campaigns").upsert(c);
@@ -618,7 +628,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.reviews.length} reviews from Supabase.`);
         } else {
-          if (db.reviews && db.reviews.length > 0) {
+          if (!isDbInitialized && db.reviews && db.reviews.length > 0) {
             console.log("🌱 Supabase 'reviews' table is empty. Seeding from local database backup...");
             for (const r of db.reviews) {
               await supabase.from("reviews").upsert(r);
@@ -1665,6 +1675,294 @@ app.get("/api/orders/:id", async (req, res) => {
   }
 });
 
+// --- Secured Admin Email System ---
+async function sendAdminEmail({ subject, text, html }: { subject: string, text: string, html: string }) {
+  const adminEmail = process.env.ADMIN_EMAIL || db.settings?.adminEmail || "risatadnan4@gmail.com";
+  const timestamp = new Date().toISOString();
+  console.log(`[EMAIL_SYSTEM] [${timestamp}] Dispatching email to admin: ${adminEmail}`);
+
+  let lastError: Error | null = null;
+
+  // 1. Try to send via standard SMTP if configured
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = Number(process.env.SMTP_PORT || 587);
+    console.log(`[EMAIL_SYSTEM] Attempting SMTP delivery via host: ${smtpHost}:${smtpPort}`);
+    try {
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 5000,
+      });
+
+      await transporter.sendMail({
+        from: `"Style X System" <${process.env.SMTP_USER}>`,
+        to: adminEmail,
+        subject,
+        text,
+        html
+      });
+      console.log(`[EMAIL_SYSTEM] [SUCCESS] SMTP Email sent successfully to ${adminEmail}`);
+      return;
+    } catch (smtpErr: any) {
+      console.error(`[EMAIL_SYSTEM] [SMTP_FAIL] SMTP delivery failed to ${adminEmail}:`, smtpErr.message || smtpErr);
+      lastError = smtpErr;
+    }
+  } else {
+    console.log(`[EMAIL_SYSTEM] SMTP is unconfigured. Skipping SMTP route.`);
+  }
+
+  // 2. Try to send via Resend API if API Key is configured
+  if (process.env.RESEND_API_KEY) {
+    console.log(`[EMAIL_SYSTEM] Attempting Resend API delivery...`);
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
+        },
+        body: JSON.stringify({
+          from: "StyleX <onboarding@resend.dev>",
+          to: adminEmail,
+          subject,
+          text,
+          html
+        })
+      });
+      if (response.ok) {
+        console.log(`[EMAIL_SYSTEM] [SUCCESS] Resend Email sent successfully to ${adminEmail}`);
+        return;
+      } else {
+        const errText = await response.text();
+        const resendErr = new Error(`Resend API HTTP ${response.status}: ${errText}`);
+        console.error(`[EMAIL_SYSTEM] [RESEND_FAIL] Resend API error:`, resendErr.message);
+        lastError = resendErr;
+      }
+    } catch (resendErr: any) {
+      console.error(`[EMAIL_SYSTEM] [RESEND_FAIL] Resend API call failed:`, resendErr.message || resendErr);
+      lastError = resendErr;
+    }
+  } else {
+    console.log(`[EMAIL_SYSTEM] Resend API Key is unconfigured. Skipping Resend route.`);
+  }
+
+  // 3. Fallback: Google Apps Script Webhook (Pre-configured admin routing)
+  const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwXARnVsjEPfY2D81-3PswAiNPJke7py_UlwB-vre-RcBZfOgNtEB15morsHUEuUG5_yA/exec";
+  console.log(`[EMAIL_SYSTEM] Attempting fallback Google Apps Script Webhook delivery to: ${scriptUrl}`);
+  try {
+    const scriptRes = await fetch(scriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        email: adminEmail,
+        recipient: adminEmail,
+        toEmail: adminEmail,
+        subject: subject,
+        body: text,
+        message: text,
+        html: html
+      })
+    });
+    if (scriptRes.ok) {
+      console.log(`[EMAIL_SYSTEM] [SUCCESS] Fallback Apps Script webhook invoked successfully for ${adminEmail}`);
+      return;
+    } else {
+      const errText = await scriptRes.text();
+      const scriptErr = new Error(`Apps Script responded with HTTP ${scriptRes.status}: ${errText}`);
+      console.error(`[EMAIL_SYSTEM] [WEBHOOK_FAIL] Apps Script error:`, scriptErr.message);
+      lastError = scriptErr;
+    }
+  } catch (scriptErr: any) {
+    console.error(`[EMAIL_SYSTEM] [WEBHOOK_FAIL] Fallback Apps Script webhook failed:`, scriptErr.message || scriptErr);
+    lastError = scriptErr;
+  }
+
+  // If all methods failed, throw error to trigger caller's retry logic
+  const finalErrorMessage = lastError ? lastError.message : "No email provider configured (SMTP, Resend, or Webhook).";
+  throw new Error(finalErrorMessage);
+}
+
+app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
+  const { fullName, mobileNumber, email, signupTime, userId, browser, device, country } = req.body;
+  if (!fullName || !mobileNumber || !email) {
+    console.error(`[SIGNUP_EMAIL] [BAD_REQUEST] Missing required details: fullName='${fullName}', mobileNumber='${mobileNumber}', email='${email}'`);
+    return res.status(400).json({ message: "Missing required signup details." });
+  }
+
+  const clientBrowser = browser || "Unknown Browser";
+  const clientDevice = device || "Unknown Device";
+  
+  // Extract server-side country headers as backup/fallback if client-side is unknown
+  const serverCountry = req.headers["cf-ipcountry"] || req.headers["x-appengine-country"] || req.headers["x-cloud-trace-context"] || "Unknown";
+  const finalCountry = (country && country !== "Unknown Country") ? country : (serverCountry !== "Unknown" ? String(serverCountry) : "Unknown Country");
+
+  const traceTimestamp = new Date().toISOString();
+  console.log(`[SIGNUP_EMAIL] [START] [${traceTimestamp}] Processing user signup notification for: ${fullName} (${email}), ID: ${userId || 'N/A'}`);
+
+  const emailBody = `
+========================================
+🆕 NEW USER SIGNED UP
+========================================
+👤 Full Name: ${fullName}
+📞 Mobile Number: ${mobileNumber}
+✉️ Email: ${email}
+🆔 User ID: ${userId || 'N/A'}
+⏰ Signup Time: ${signupTime || new Date().toLocaleString()}
+🌐 Browser: ${clientBrowser}
+📱 Device: ${clientDevice}
+🌍 Country: ${finalCountry}
+========================================
+  `;
+
+  const emailHtml = `
+    <div style="font-family: sans-serif; padding: 25px; max-width: 600px; border: 2px solid #d4af37; border-radius: 12px; background-color: #fafafa; color: #333;">
+      <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 12px; margin-top: 0; font-family: serif; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;">🆕 New Style X Member Signup</h2>
+      <p style="font-size: 14px; line-height: 1.5; color: #555;">A new member has completed the secure VIP registration flow. Below are the registered member credentials and session metadata details:</p>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px;">
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; width: 160px; border-bottom: 1px solid #eaeaea; color: #111;">Full Name:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444;">${fullName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Mobile Number:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444;">${mobileNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Email Address:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea;"><a href="mailto:${email}" style="color: #d4af37; text-decoration: none; font-weight: bold;">${email}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">User ID:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; font-family: monospace; font-size: 12px; color: #666;">${userId || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Signup Time:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444;">${signupTime || new Date().toLocaleString()}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Browser:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444; font-size: 13px;">${clientBrowser}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Device:</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444; font-size: 13px;">${clientDevice}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 8px; font-weight: bold; border-bottom: 1px solid #eaeaea; color: #111;">Country (GeoIP):</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #eaeaea; color: #444; font-size: 13px; font-weight: 500;">${finalCountry}</td>
+        </tr>
+      </table>
+      <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #eaeaea; font-size: 11px; text-align: center; color: #888; font-family: monospace;">
+        Secure Automated Real-time Dispatch System • Style X Premium
+      </div>
+    </div>
+  `;
+
+  let attemptCount = 1;
+  let sentSuccessfully = false;
+  let executionError: any = null;
+
+  const tryEmailSend = async () => {
+    try {
+      console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching admin email notification for: ${email}`);
+      await sendAdminEmail({
+        subject: `🔔 [SIGNUP NOTIFICATION] New Member Registered: ${fullName}`,
+        text: emailBody,
+        html: emailHtml
+      });
+      sentSuccessfully = true;
+      console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] Email sent successfully for: ${email}`);
+    } catch (err: any) {
+      executionError = err;
+      console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] Email sending failed:`, err.message || err);
+    }
+  };
+
+  // Attempt 1
+  await tryEmailSend();
+
+  // Retry once if failed
+  if (!sentSuccessfully) {
+    attemptCount++;
+    console.warn(`[SIGNUP_EMAIL] First attempt failed. Retrying in 1.2s...`);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await tryEmailSend();
+  }
+
+  if (sentSuccessfully) {
+    res.json({ 
+      success: true, 
+      message: "Admin notification email sent successfully.", 
+      attempts: attemptCount 
+    });
+  } else {
+    const errorDetails = executionError?.message || "All custom SMTP/Resend providers failed";
+    console.error(`[SIGNUP_EMAIL] [ABORT] Both notification attempts failed for: ${email}. Error: ${errorDetails}`);
+
+    // Save failed notification in Supabase table
+    let savedToSupabase = false;
+    try {
+      console.log(`[SIGNUP_EMAIL] Registering failed notification inside Supabase...`);
+      const { error: dbError } = await supabase.from("failed_notifications").insert({
+        user_id: userId || null,
+        full_name: fullName,
+        email: email,
+        mobile_number: mobileNumber,
+        browser: clientBrowser,
+        device: clientDevice,
+        country: finalCountry,
+        error_message: errorDetails,
+        retry_count: 1,
+        created_at: new Date().toISOString()
+      });
+
+      if (dbError) {
+        throw dbError;
+      }
+      savedToSupabase = true;
+      console.log(`[SIGNUP_EMAIL] Saved failed notification to 'failed_notifications' table on Supabase.`);
+    } catch (dbErr: any) {
+      console.error(`[SIGNUP_EMAIL] Supabase DB failed_notifications insert failed:`, dbErr.message || dbErr);
+    }
+
+    // Save locally as a secondary database backup
+    try {
+      db.failed_notifications = db.failed_notifications || [];
+      db.failed_notifications.push({
+        userId: userId || null,
+        fullName,
+        email,
+        mobileNumber,
+        browser: clientBrowser,
+        device: clientDevice,
+        country: finalCountry,
+        errorMessage: errorDetails,
+        createdAt: new Date().toISOString(),
+        savedToSupabase
+      });
+      saveDB();
+      console.log(`[SIGNUP_EMAIL] Backup stored in local database luxury_db.json successfully.`);
+    } catch (localSaveErr: any) {
+      console.error(`[SIGNUP_EMAIL] Backup local save failed:`, localSaveErr.message);
+    }
+
+    // Return 500 error to indicate that the admin notification failed (which the frontend expects to check before showing success)
+    res.status(500).json({
+      success: false,
+      message: "User registration succeeded but the admin notification email failed to dispatch after multiple retries.",
+      error: errorDetails,
+      savedToDb: true
+    });
+  }
+});
+
 app.get("/api/notifications", (req, res) => {
   res.json(db.notifications || []);
 });
@@ -1686,7 +1984,8 @@ app.post("/api/orders", async (req, res) => {
     transactionId,
     paymentScreenshot,
     customerDistrict,
-    customerArea
+    customerArea,
+    userId
   } = req.body;
 
   // Validate Coupon limits first if a coupon is being applied
@@ -2055,7 +2354,8 @@ app.post("/api/orders", async (req, res) => {
     paymentMethod: paymentMethod || "COD",
     paidAmount: paidAmount !== undefined ? Number(paidAmount) : 0,
     transactionId: transactionId || "",
-    paymentScreenshot: paymentScreenshot || ""
+    paymentScreenshot: paymentScreenshot || "",
+    userId: userId || ""
   };
 
   db.orders.push(newOrder);
@@ -2079,7 +2379,8 @@ app.post("/api/orders", async (req, res) => {
       paymentMethod: newOrder.paymentMethod,
       paidAmount: newOrder.paidAmount,
       transactionId: newOrder.transactionId,
-      paymentScreenshot: newOrder.paymentScreenshot
+      paymentScreenshot: newOrder.paymentScreenshot,
+      userId: newOrder.userId
     };
 
     let { error: upsertErr } = await supabase.from("orders").upsert(payload);
@@ -2094,6 +2395,7 @@ app.post("/api/orders", async (req, res) => {
       delete payload.paidAmount;
       delete payload.transactionId;
       delete payload.paymentScreenshot;
+      delete payload.userId;
       await supabase.from("orders").upsert(payload);
     }
   } catch (err: any) {
@@ -2124,6 +2426,71 @@ app.post("/api/orders", async (req, res) => {
     const paymentDetailText = newOrder.paymentType === 'cod' 
       ? 'Cash on Delivery (COD)' 
       : `${String(newOrder.paymentType).toUpperCase()} via ${newOrder.paymentMethod} (Paid Amount: ৳${newOrder.paidAmount})`;
+
+    // Send direct admin email notification via Multi-Method Email System
+    const orderItemsText = items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n");
+    const emailSubject = `🛍️ New Order Placed: #${newOrder.id}`;
+    const emailBody = `
+========================================
+🛍️ NEW ORDER PLACED
+========================================
+🆔 Order ID: ${newOrder.id}
+👤 Customer Name: ${newOrder.customerName}
+📞 Mobile Number: ${newOrder.customerPhone}
+✉️ Email: ${newOrder.customerEmail || 'Guest'}
+📦 Product Details:
+${orderItemsText}
+🏠 Delivery Address: ${orderLocation}
+💳 Payment Method: ${paymentDetailText}
+💰 Total Price: ৳${newOrder.totalAmount}
+⏰ Order Time: ${new Date().toLocaleString()}
+========================================
+    `;
+
+    const emailHtml = `
+      <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #d4af37; border-radius: 8px;">
+        <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">👑 Style X Luxury Order Confirmation</h2>
+        <p style="font-size: 14px; font-weight: bold; color: #111;">Order ID: #${newOrder.id}</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; width: 150px;">Customer Name:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${newOrder.customerName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Mobile Number:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${newOrder.customerPhone}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${newOrder.customerEmail || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; vertical-align: top;">Product Details:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; white-space: pre-line;">${orderItemsText}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Delivery Address:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderLocation}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Payment Method:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">${paymentDetailText}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; color: #d4af37; font-size: 16px;">Total Price:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #d4af37; font-size: 16px;">৳${newOrder.totalAmount}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">Order Time:</td>
+            <td style="padding: 8px;">${new Date().toLocaleString()}</td>
+          </tr>
+        </table>
+      </div>
+    `;
+
+    sendAdminEmail({ subject: emailSubject, text: emailBody, html: emailHtml })
+      .catch(err => console.error("Error sending admin order email:", err));
 
     fetch(scriptUrl, {
       method: "POST",
@@ -2231,6 +2598,22 @@ app.put("/api/orders/:id/status", async (req, res) => {
       console.error("⚠️ Failed to status sync order to Supabase: ", err.message);
     }
     res.json(db.orders[idx]);
+  } else {
+    res.status(404).json({ message: "Order not found" });
+  }
+});
+
+app.delete("/api/orders/:id", async (req, res) => {
+  const idx = db.orders.findIndex(o => o.id === req.params.id);
+  if (idx !== -1) {
+    const deleted = db.orders.splice(idx, 1)[0];
+    saveDB();
+    try {
+      await supabase.from("orders").delete().eq("id", req.params.id);
+    } catch (err: any) {
+      console.error("⚠️ Failed to mirror order deletion to Supabase: ", err.message);
+    }
+    res.json(deleted);
   } else {
     res.status(404).json({ message: "Order not found" });
   }
@@ -2514,18 +2897,116 @@ app.post("/api/coupons", async (req, res) => {
 });
 
 app.delete("/api/coupons/:code", async (req, res) => {
-  const idx = db.coupons.findIndex(c => c.code === req.params.code);
+  const codeParam = String(req.params.code).trim().toUpperCase();
+  console.log(`[DELETE COUPON] Initiating delete for: ${codeParam}`);
+  
+  // 1. Delete from Supabase first
+  try {
+    const { error } = await supabase.from("coupons").delete().eq("code", codeParam);
+    if (error) {
+      console.error(`⚠️ Coupons Supabase delete error for ${codeParam}:`, error.message, error.details);
+      return res.status(500).json({ 
+        message: `Supabase database rejected deletion: ${error.message}`, 
+        error: error 
+      });
+    }
+    console.log(`[DELETE COUPON] Supabase deletion reported success for: ${codeParam}`);
+  } catch (err: any) {
+    console.error(`⚠️ Coupons Supabase delete failed with exception for ${codeParam}:`, err.message);
+    return res.status(500).json({ 
+      message: `Database connection failed: ${err.message}` 
+    });
+  }
+
+  // 2. Since Supabase was successful, delete from local memory DB
+  const idx = db.coupons.findIndex(c => c.code.trim().toUpperCase() === codeParam);
   if (idx !== -1) {
     const deleted = db.coupons.splice(idx, 1)[0];
     saveDB();
-    try {
-      await supabase.from("coupons").delete().eq("code", req.params.code);
-    } catch (err: any) {
-      console.error("⚠️ Coupons Supabase delete failed:", err.message);
-    }
-    res.json(deleted);
+    console.log(`[DELETE COUPON] Memory DB updated. Successfully removed coupon ${codeParam}`);
+    res.json({ success: true, deleted });
   } else {
-    res.status(404).json({ message: "Coupon not found" });
+    // Already deleted or wasn't in memory, but Supabase is clean
+    res.json({ success: true, message: "Coupon removed from cloud database" });
+  }
+});
+
+// Persistent Shopping Cart API
+app.get("/api/cart", async (req, res) => {
+  const email = String(req.query.email || "").trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ message: "Customer email is required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("carts")
+      .select("items")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(`[GET CART] Supabase fetch warning for ${email}:`, error.message);
+      // Fallback to local memory DB
+      const localCart = db.carts[email] || [];
+      return res.json({ source: "local_fallback", items: localCart });
+    }
+
+    if (data && data.items) {
+      try {
+        const parsedItems = JSON.parse(data.items);
+        // Sync to local memory
+        db.carts[email] = parsedItems;
+        saveDB();
+        return res.json({ source: "supabase", items: parsedItems });
+      } catch (parseErr) {
+        console.error(`[GET CART] JSON parse error for ${email} cart data:`, parseErr);
+      }
+    }
+
+    // Return empty cart if no data found
+    const fallback = db.carts[email] || [];
+    res.json({ source: "empty_or_fallback", items: fallback });
+  } catch (err: any) {
+    console.error(`[GET CART] Exception fetching cart for ${email}:`, err.message);
+    const localCart = db.carts[email] || [];
+    res.json({ source: "exception_fallback", items: localCart });
+  }
+});
+
+app.post("/api/cart", async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const items = req.body.items;
+
+  if (!email) {
+    return res.status(400).json({ message: "Customer email is required" });
+  }
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ message: "Items must be an array" });
+  }
+
+  // Sync to local memory first
+  db.carts[email] = items;
+  saveDB();
+
+  try {
+    const payload = {
+      email,
+      items: JSON.stringify(items),
+      updatedAt: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from("carts").upsert(payload, { onConflict: "email" });
+    if (error) {
+      console.warn(`[POST CART] Supabase upsert warning for ${email}:`, error.message);
+      return res.json({ success: true, source: "local_only", message: "Saved to local cache only" });
+    }
+
+    console.log(`[POST CART] Successfully synchronized cart in cloud database for: ${email}`);
+    res.json({ success: true, source: "supabase", items });
+  } catch (err: any) {
+    console.error(`[POST CART] Exception updating cart for ${email}:`, err.message);
+    res.json({ success: true, source: "local_only", message: `Saved locally: ${err.message}` });
   }
 });
 

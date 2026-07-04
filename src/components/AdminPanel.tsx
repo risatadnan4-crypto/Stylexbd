@@ -75,6 +75,7 @@ export default function AdminPanel({
   const [backInStockAlerts, setBackInStockAlerts] = useState<any[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
+  const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Settings State Management
   const [whatsappNumberInput, setWhatsappNumberInput] = useState(settings?.whatsappNumber || "8801755104443");
@@ -666,8 +667,14 @@ export default function AdminPanel({
   const fetchAnalytics = async () => {
     try {
       const res = await fetch('/api/analytics');
-      if (res.ok) setAnalytics(await res.json());
-    } catch (e) { console.error("Error reading metrics", e); }
+      if (res.ok) {
+        setAnalytics(await res.json());
+      } else {
+        console.warn("⚠️ Analytics response not ok", res.status);
+      }
+    } catch (e) { 
+      console.warn("⚠️ Failed to load metrics:", e); 
+    }
   };
 
   const fetchOrders = async () => {
@@ -725,9 +732,11 @@ export default function AdminPanel({
       const res = await fetch('/api/back-in-stock-alerts');
       if (res.ok) {
         setBackInStockAlerts(await res.json());
+      } else {
+        console.warn("⚠️ Back in stock alerts response not ok", res.status);
       }
     } catch (e) {
-      console.error("Error reading restock alerts:", e);
+      console.warn("⚠️ Failed to load restock alerts:", e);
     }
   };
 
@@ -1094,6 +1103,20 @@ export default function AdminPanel({
     } catch (e) {}
   };
 
+  // Delete Order
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm("Are you sure you want to delete this order permanently?")) return;
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchOrders();
+        fetchAnalytics();
+      }
+    } catch (e) {}
+  };
+
   // Create Coupon
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1125,10 +1148,19 @@ export default function AdminPanel({
     try {
       const res = await fetch(`/api/coupons/${code}`, { method: 'DELETE' });
       if (res.ok) {
+        setAdminToast({ message: `COUPON "${code}" DELETED SUCCESSFULLY`, type: 'success' });
         fetchCoupons();
         onRefreshCoupons?.();
+        setTimeout(() => setAdminToast(null), 3500);
+      } else {
+        const err = await res.json();
+        setAdminToast({ message: err.message || `FAILED TO DELETE COUPON "${code}"`, type: 'error' });
+        setTimeout(() => setAdminToast(null), 4000);
       }
-    } catch (e) {}
+    } catch (e: any) {
+      setAdminToast({ message: `CONNECTION ERROR DELETING COUPON: ${e.message}`, type: 'error' });
+      setTimeout(() => setAdminToast(null), 4000);
+    }
   };
 
   // Create Banner
@@ -2089,6 +2121,15 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS select_all_products ON public.products;
+DROP POLICY IF EXISTS select_all_banners ON public.banners;
+DROP POLICY IF EXISTS select_all_coupons ON public.coupons;
+DROP POLICY IF EXISTS select_all_campaigns ON public.campaigns;
+DROP POLICY IF EXISTS select_all_reviews ON public.reviews;
+DROP POLICY IF EXISTS select_all_orders ON public.orders;
+DROP POLICY IF EXISTS select_all_chats ON public.chats;
+DROP POLICY IF EXISTS select_all_settings ON public.settings;
+
 CREATE POLICY select_all_products ON public.products FOR SELECT USING (true);
 CREATE POLICY select_all_banners ON public.banners FOR SELECT USING (true);
 CREATE POLICY select_all_coupons ON public.coupons FOR SELECT USING (true);
@@ -2098,9 +2139,22 @@ CREATE POLICY select_all_orders ON public.orders FOR SELECT USING (true);
 CREATE POLICY select_all_chats ON public.chats FOR SELECT USING (true);
 CREATE POLICY select_all_settings ON public.settings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS insert_orders ON public.orders;
+DROP POLICY IF EXISTS insert_reviews ON public.reviews;
+DROP POLICY IF EXISTS insert_chats ON public.chats;
+
 CREATE POLICY insert_orders ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY insert_reviews ON public.reviews FOR INSERT WITH CHECK (true);
 CREATE POLICY insert_chats ON public.chats FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS insert_all_products ON public.products;
+DROP POLICY IF EXISTS insert_all_banners ON public.banners;
+DROP POLICY IF EXISTS insert_all_coupons ON public.coupons;
+DROP POLICY IF EXISTS insert_all_campaigns ON public.campaigns;
+DROP POLICY IF EXISTS insert_all_reviews ON public.reviews;
+DROP POLICY IF EXISTS insert_all_orders ON public.orders;
+DROP POLICY IF EXISTS insert_all_chats ON public.chats;
+DROP POLICY IF EXISTS insert_all_settings ON public.settings;
 
 CREATE POLICY insert_all_products ON public.products FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_banners ON public.banners FOR ALL USING (true) WITH CHECK (true);
@@ -2117,10 +2171,72 @@ VALUES ('media', 'media', true), ('products', 'products', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Allows open read/write access to storage.objects in the buckets for seamless anonymous uploads
+DROP POLICY IF EXISTS "Allow public select on buckets" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public insert on buckets" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public update on buckets" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public delete on buckets" ON storage.objects;
+
 CREATE POLICY "Allow public select on buckets" ON storage.objects FOR SELECT TO public USING (bucket_id IN ('media', 'products'));
 CREATE POLICY "Allow public insert on buckets" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id IN ('media', 'products'));
 CREATE POLICY "Allow public update on buckets" ON storage.objects FOR UPDATE TO public USING (bucket_id IN ('media', 'products'));
-CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO public USING (bucket_id IN ('media', 'products'));`;
+CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO public USING (bucket_id IN ('media', 'products'));
+
+-- 9. Create Carts Table & Policies for Persistent Shopping Carts
+CREATE TABLE IF NOT EXISTS public.carts (
+    email TEXT PRIMARY KEY,
+    items TEXT NOT NULL,
+    "updatedAt" TEXT NOT NULL
+);
+ALTER TABLE public.carts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY select_all_carts ON public.carts FOR SELECT USING (true);
+CREATE POLICY insert_all_carts ON public.carts FOR ALL USING (true) WITH CHECK (true);
+
+-- 10. Create Profiles Table & Security Policies
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT NOT NULL,
+    mobile_number TEXT NOT NULL,
+    email TEXT NOT NULL,
+    name TEXT,
+    phone TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can select own profile" ON public.profiles;
+CREATE POLICY "Users can select own profile" ON public.profiles FOR SELECT USING (auth.uid() = id OR auth.jwt() ->> 'email' = 'risatadnan4@gmail.com' OR auth.jwt() ->> 'email' = 'admin@stylex.com' OR auth.jwt() ->> 'email' = (SELECT "adminEmail" FROM public.settings LIMIT 1));
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- 11. Secure Orders Table and Add User ID reference
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS "userId" TEXT;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS select_all_orders ON public.orders;
+DROP POLICY IF EXISTS "Users can select own orders" ON public.orders;
+CREATE POLICY "Users can select own orders" ON public.orders FOR SELECT USING (auth.uid()::text = "userId" OR auth.jwt() ->> 'email' = 'risatadnan4@gmail.com' OR auth.jwt() ->> 'email' = 'admin@stylex.com' OR auth.jwt() ->> 'email' = (SELECT "adminEmail" FROM public.settings LIMIT 1) OR auth.uid() IS NULL);
+DROP POLICY IF EXISTS insert_all_orders ON public.orders;
+CREATE POLICY "insert_all_orders" ON public.orders FOR INSERT WITH CHECK (true);
+
+-- 12. Create Failed Notifications Table & Policies for resilient tracking
+CREATE TABLE IF NOT EXISTS public.failed_notifications (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_id TEXT,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    mobile_number TEXT,
+    browser TEXT,
+    device TEXT,
+    country TEXT,
+    error_message TEXT,
+    retry_count INT DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+ALTER TABLE public.failed_notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS select_all_failed_notifications ON public.failed_notifications;
+CREATE POLICY select_all_failed_notifications ON public.failed_notifications FOR SELECT USING (true);
+DROP POLICY IF EXISTS insert_all_failed_notifications ON public.failed_notifications;
+CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR INSERT WITH CHECK (true);`;
                           try {
                             if (navigator.clipboard && navigator.clipboard.writeText) {
                               navigator.clipboard.writeText(sql);
@@ -2832,7 +2948,7 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                         <th>Bespoke Items</th>
                         <th>Value</th>
                         <th>Status Control</th>
-                        <th className="text-right">Concierge Link</th>
+                        <th className="text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 text-white/85">
@@ -2882,18 +2998,27 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
                             </select>
                           </td>
 
-                          {/* Whatsapp direct redirection */}
+                          {/* Actions: Whatsapp direct redirection & Delete */}
                           <td className="text-right">
-                            <button
-                              onClick={() => {
-                                const itemsText = ord.items.map((i: any) => `- ${i.title} (${i.selectedSize}) x${i.quantity} @ ৳${i.price}`).join("\n");
-                                const wsMessage = `👑 *STYLE X CONCIERGE CALL* 👑\n\nHello ${ord.customerName}, confirming order status:\n\n*Order Tracking ID:* ${ord.id}\n*Items Details:*\n${itemsText}\n*Invoice amount:* ৳${ord.totalAmount}\n*Current Status:* ${ord.status}\n\nThank you for choosing STYLE X Luxury!`;
-                                window.open(`https://wa.me/${ord.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wsMessage)}`, '_blank');
-                              }}
-                              className="text-[9.5px] font-display font-semibold uppercase bg-green-500/10 hover:bg-green-500/25 border border-green-500/30 hover:border-green-500 text-green-400 py-1.5 px-3 rounded transition-all inline-block whitespace-nowrap cursor-pointer"
-                            >
-                              WhatsApp Call
-                            </button>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  const itemsText = ord.items.map((i: any) => `- ${i.title} (${i.selectedSize}) x${i.quantity} @ ৳${i.price}`).join("\n");
+                                  const wsMessage = `👑 *STYLE X CONCIERGE CALL* 👑\n\nHello ${ord.customerName}, confirming order status:\n\n*Order Tracking ID:* ${ord.id}\n*Items Details:*\n${itemsText}\n*Invoice amount:* ৳${ord.totalAmount}\n*Current Status:* ${ord.status}\n\nThank you for choosing STYLE X Luxury!`;
+                                  window.open(`https://wa.me/${ord.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wsMessage)}`, '_blank');
+                                }}
+                                className="text-[9.5px] font-display font-semibold uppercase bg-green-500/10 hover:bg-green-500/25 border border-green-500/30 hover:border-green-500 text-green-400 py-1.5 px-3 rounded transition-all inline-block whitespace-nowrap cursor-pointer"
+                              >
+                                WhatsApp Call
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOrder(ord.id)}
+                                className="text-[9.5px] font-display font-semibold uppercase bg-red-500/10 hover:bg-red-500/25 border border-red-500/30 hover:border-red-500 text-red-400 p-2 rounded transition-all flex items-center justify-center cursor-pointer"
+                                title="Delete Order"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </td>
 
                         </tr>
@@ -4500,6 +4625,15 @@ CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO 
 
       </main>
 
+      {adminToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-luxury-black/95 border-2 border-luxury-gold/50 text-white px-5 py-3.5 rounded-xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] animate-fade-in font-display backdrop-blur-md">
+          <div className={`w-2.5 h-2.5 rounded-full ${adminToast.type === 'error' ? 'bg-red-500' : 'bg-luxury-gold'} animate-ping`} />
+          <span className="text-[11px] uppercase tracking-wider font-bold">{adminToast.message}</span>
+          <button onClick={() => setAdminToast(null)} className="text-white/50 hover:text-white transition-colors ml-2 cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

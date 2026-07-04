@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
   SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight,
-  Facebook, Instagram, MessageCircle
+  Facebook, Instagram, MessageCircle, Copy, Check
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -81,7 +81,25 @@ export default function App() {
   // Customer Shopping states
   const [globalVisits, setGlobalVisits] = useState<number>(0);
   const [liveViews, setLiveViews] = useState<number>(1);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedCust = localStorage.getItem('stylex_current_customer');
+      if (savedCust) {
+        const parsed = JSON.parse(savedCust);
+        if (parsed && parsed.email) {
+          const cached = localStorage.getItem(`stylex_cart_${parsed.email.toLowerCase().trim()}`);
+          if (cached) return JSON.parse(cached);
+        }
+      }
+      const savedGuest = localStorage.getItem('stylex_guest_cart');
+      return savedGuest ? JSON.parse(savedGuest) : [];
+    } catch (e) {
+      console.warn("Error reading cached cart on init", e);
+      return [];
+    }
+  });
+  const [isCartLoading, setIsCartLoading] = useState(false);
+  const cartInitializedRef = React.useRef(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialShowCheckout, setInitialShowCheckout] = useState(false);
@@ -95,6 +113,7 @@ export default function App() {
 
   // Successful checkout modal information
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
+  const [copiedOrderId, setCopiedOrderId] = useState(false);
   const [confirmedWhatsAppUrl, setConfirmedWhatsAppUrl] = useState('');
   const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -120,6 +139,7 @@ export default function App() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
   const [activeTrackId, setActiveTrackId] = useState(() => {
     try {
       const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
@@ -139,6 +159,114 @@ export default function App() {
       return null;
     }
   });
+
+  const [pendingCheckoutAfterLogin, setPendingCheckoutAfterLogin] = useState(false);
+
+  // Persistent Shopping Cart System
+  // 1. Initial load & customer login state change cart merge
+  useEffect(() => {
+    let active = true;
+    async function loadAndMergeCart() {
+      setIsCartLoading(true);
+      cartInitializedRef.current = false;
+
+      if (currentCustomer) {
+        console.log("[CART PERSIST] Loading database cart for customer:", currentCustomer.email);
+        const customerEmailKey = `stylex_cart_${currentCustomer.email.toLowerCase().trim()}`;
+        try {
+          const res = await fetch(`/api/cart?email=${encodeURIComponent(currentCustomer.email)}`);
+          if (res.ok && active) {
+            const data = await res.json();
+            const dbCart: CartItem[] = data.items || [];
+            
+            setCart((currentGuestCart) => {
+              if (currentGuestCart.length > 0) {
+                console.log("[CART PERSIST] Merging guest items into persistent database cart:", currentGuestCart);
+                const merged = [...dbCart];
+                currentGuestCart.forEach(gItem => {
+                  const matchIdx = merged.findIndex(
+                    dItem => dItem.product.id === gItem.product.id && dItem.selectedSize === gItem.selectedSize
+                  );
+                  if (matchIdx !== -1) {
+                    merged[matchIdx].quantity += gItem.quantity;
+                  } else {
+                    merged.push(gItem);
+                  }
+                });
+
+                // Clear guest cart from localStorage
+                localStorage.removeItem('stylex_guest_cart');
+
+                // Async post merged to server database
+                fetch('/api/cart', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: currentCustomer.email, items: merged })
+                }).catch(err => console.error("Error saving merged cart:", err));
+
+                // Save to customer local cache
+                localStorage.setItem(customerEmailKey, JSON.stringify(merged));
+
+                return merged;
+              } else {
+                // Save to customer local cache
+                localStorage.setItem(customerEmailKey, JSON.stringify(dbCart));
+                return dbCart;
+              }
+            });
+          }
+        } catch (err) {
+          console.error("[CART PERSIST] Error loading database cart:", err);
+        }
+      } else {
+        // Guest user: load from localStorage
+        console.log("[CART PERSIST] Loading guest cart from localStorage");
+        try {
+          const savedGuestCart = localStorage.getItem('stylex_guest_cart');
+          setCart(savedGuestCart ? JSON.parse(savedGuestCart) : []);
+        } catch (err) {
+          console.warn("[CART PERSIST] Guest cart in localStorage is corrupted, resetting:", err);
+          setCart([]);
+        }
+      }
+
+      if (active) {
+        setTimeout(() => {
+          if (active) {
+            cartInitializedRef.current = true;
+            setIsCartLoading(false);
+          }
+        }, 100);
+      }
+    }
+
+    loadAndMergeCart();
+    return () => {
+      active = false;
+    };
+  }, [currentCustomer]);
+
+  // 2. Auto-save cart to database / localStorage when state changes
+  useEffect(() => {
+    if (!cartInitializedRef.current) return;
+
+    if (currentCustomer) {
+      console.log("[CART PERSIST] Auto-saving cart to database and local cache for:", currentCustomer.email);
+      const customerEmailKey = `stylex_cart_${currentCustomer.email.toLowerCase().trim()}`;
+      localStorage.setItem(customerEmailKey, JSON.stringify(cart));
+
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentCustomer.email, items: cart })
+      }).catch(err => {
+        console.error("[CART PERSIST] Error auto-saving database cart:", err);
+      });
+    } else {
+      console.log("[CART PERSIST] Auto-saving guest cart to localStorage:", cart);
+      localStorage.setItem('stylex_guest_cart', JSON.stringify(cart));
+    }
+  }, [cart, currentCustomer]);
 
   // Filter notifications based on customer email/phone, guest checkout order IDs, or tracked order references
   const filteredNotifications = useMemo(() => {
@@ -214,6 +342,31 @@ export default function App() {
   const [customerAuthError, setCustomerAuthError] = useState('');
   const [customerAuthSuccess, setCustomerAuthSuccess] = useState('');
   const [sqlCopied, setSqlCopied] = useState(false);
+  const [detectedCountry, setDetectedCountry] = useState('Unknown Country');
+
+  // Asynchronously detect country once modal is opened
+  useEffect(() => {
+    if (showCustomerAuthModal && detectedCountry === 'Unknown Country') {
+      const fetchCountry = async () => {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          const ipRes = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (ipRes.ok) {
+            const ipData = await ipRes.json();
+            const countryName = ipData.country_name || ipData.country;
+            if (countryName) {
+              setDetectedCountry(countryName);
+            }
+          }
+        } catch (e) {
+          console.warn("Country lookup failed or timeout.", e);
+        }
+      };
+      fetchCountry();
+    }
+  }, [showCustomerAuthModal, detectedCountry]);
 
   // Dynamic Settings (WhatsApp Support etc.)
   const [settings, setSettings] = useState<{ 
@@ -656,6 +809,7 @@ export default function App() {
         if (data?.user) {
           const meta = data.user.user_metadata || {};
           const loggedCust: Customer = {
+            id: data.user.id,
             name: meta.name || data.user.email?.split('@')[0] || 'VIP Member',
             email: data.user.email || customerEmail,
             password: customerPassword,
@@ -680,6 +834,13 @@ export default function App() {
             setCustomerEmail('');
             setCustomerPassword('');
             setCustomerAuthSuccess('');
+
+            // Auto resume checkout if pending
+            if (pendingCheckoutAfterLogin) {
+              setPendingCheckoutAfterLogin(false);
+              setInitialShowCheckout(true);
+              setIsCartOpen(true);
+            }
           }, 1000);
         }
       } catch (err: any) {
@@ -711,6 +872,13 @@ export default function App() {
           setCustomerEmail('');
           setCustomerPassword('');
           setCustomerAuthSuccess('');
+
+          // Auto resume checkout if pending
+          if (pendingCheckoutAfterLogin) {
+            setPendingCheckoutAfterLogin(false);
+            setInitialShowCheckout(true);
+            setIsCartOpen(true);
+          }
         }, 1000);
       }
     } else {
@@ -724,7 +892,33 @@ export default function App() {
         return;
       }
 
+      setCustomerAuthError('');
+      setCustomerAuthSuccess('Securing membership profile inside database...');
+
+      // 1. Detect browser and device details
+      const ua = navigator.userAgent;
+      let clientBrowser = "Unknown Browser";
+      if (ua.includes("Chrome") && !ua.includes("Chromium") && !ua.includes("Edg")) {
+        clientBrowser = "Chrome";
+      } else if (ua.includes("Safari") && !ua.includes("Chrome") && !ua.includes("Chromium")) {
+        clientBrowser = "Safari";
+      } else if (ua.includes("Firefox")) {
+        clientBrowser = "Firefox";
+      } else if (ua.includes("Edg")) {
+        clientBrowser = "Edge";
+      } else if (ua.includes("Trident") || ua.includes("MSIE")) {
+        clientBrowser = "Internet Explorer";
+      }
+
+      let clientDevice = "Desktop";
+      if (/mobile/i.test(ua)) {
+        clientDevice = "Mobile Phone";
+      } else if (/tablet|ipad|playbook|silk/i.test(ua)) {
+        clientDevice = "Tablet";
+      }
+
       try {
+        // Step 1: Create Supabase Auth account
         const { data, error } = await supabase.auth.signUp({
           email: customerEmail.trim(),
           password: customerPassword,
@@ -740,12 +934,54 @@ export default function App() {
           throw error;
         }
 
+        const userId = data.user?.id || '';
         const newCust: Customer = {
+          id: userId,
           name: customerName.trim(),
           email: customerEmail.trim(),
           password: customerPassword,
           phone: customerPhone?.trim() || ''
         };
+
+        // Step 2: Insert profile into public profiles table
+        if (userId) {
+          try {
+            await supabase.from('profiles').insert({
+              id: userId,
+              full_name: customerName.trim(),
+              mobile_number: customerPhone?.trim() || '',
+              email: customerEmail.trim(),
+              name: customerName.trim(),
+              phone: customerPhone?.trim() || '',
+              created_at: new Date().toISOString()
+            });
+          } catch (profileErr: any) {
+            console.warn("Profiles database table insert bypassed/failed:", profileErr.message);
+          }
+        }
+
+        setCustomerAuthSuccess('User profile created. Dispatching secure admin notification email...');
+
+        // Step 3: Trigger Admin Notification Email API & await success
+        const notifyRes = await fetch('/api/auth/signup-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: customerName.trim(),
+            mobileNumber: customerPhone?.trim() || 'N/A',
+            email: customerEmail.trim(),
+            userId: userId,
+            signupTime: new Date().toLocaleString(),
+            browser: clientBrowser,
+            device: clientDevice,
+            country: detectedCountry
+          })
+        });
+
+        const notifyData = await notifyRes.json();
+        if (!notifyRes.ok || !notifyData.success) {
+          throw new Error(notifyData.message || 'The admin email notification dispatch failed.');
+        }
 
         // Cache locally too
         const exists = registered.some(
@@ -756,7 +992,7 @@ export default function App() {
           localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
         }
 
-        setCustomerAuthSuccess('Membership profile secured inside Supabase Auth! Active now.');
+        setCustomerAuthSuccess('Membership profile created and admin notification dispatched! Active now.');
         setCurrentCustomer(newCust);
         localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
 
@@ -767,39 +1003,87 @@ export default function App() {
           setCustomerPhone('');
           setCustomerPassword('');
           setCustomerAuthSuccess('');
-        }, 1000);
+
+          // Auto resume checkout if pending
+          if (pendingCheckoutAfterLogin) {
+            setPendingCheckoutAfterLogin(false);
+            setInitialShowCheckout(true);
+            setIsCartOpen(true);
+          }
+        }, 1500);
+
       } catch (err: any) {
-        console.warn("Supabase Auth signup error. Silently falling back to local registration:", err);
+        console.warn("Supabase Signup failed, falling back to offline-resilient local flow. Reason:", err.message || err);
         
-        const newCust: Customer = {
+        // Show progress update for fallback route
+        setCustomerAuthSuccess('Supabase Auth offline. Dispatching secure fallback local signup...');
+
+        const fallbackCust: Customer = {
+          id: 'local_' + Math.random().toString(36).substr(2, 9),
           name: customerName.trim(),
           email: customerEmail.trim(),
           password: customerPassword,
           phone: customerPhone?.trim() || ''
         };
 
+        // Cache in local registers
         const existsIdx = registered.findIndex(
-          c => c.email.toLowerCase().trim() === newCust.email.toLowerCase().trim()
+          c => c.email.toLowerCase().trim() === fallbackCust.email.toLowerCase().trim()
         );
         if (existsIdx === -1) {
-          registered.push(newCust);
+          registered.push(fallbackCust);
         } else {
-          registered[existsIdx] = newCust;
+          registered[existsIdx] = fallbackCust;
         }
         localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
 
-        setCustomerAuthSuccess('Membership profile created successfully! Active now.');
-        setCurrentCustomer(newCust);
-        localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
+        try {
+          // Trigger Admin Notification Email API for local fallback flow & await success
+          const fallbackNotifyRes = await fetch('/api/auth/signup-notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fullName: customerName.trim(),
+              mobileNumber: customerPhone?.trim() || 'N/A',
+              email: customerEmail.trim(),
+              userId: fallbackCust.id,
+              signupTime: new Date().toLocaleString(),
+              browser: clientBrowser,
+              device: clientDevice,
+              country: detectedCountry
+            })
+          });
 
-        setTimeout(() => {
-          setShowCustomerAuthModal(false);
-          setCustomerName('');
-          setCustomerEmail('');
-          setCustomerPhone('');
-          setCustomerPassword('');
+          const fallbackNotifyData = await fallbackNotifyRes.json();
+          if (!fallbackNotifyRes.ok || !fallbackNotifyData.success) {
+            throw new Error(fallbackNotifyData.message || 'The admin email notification dispatch failed on retry fallback.');
+          }
+
+          setCustomerAuthSuccess('Membership profile created and admin notification dispatched! Active now.');
+          setCurrentCustomer(fallbackCust);
+          localStorage.setItem('stylex_current_customer', JSON.stringify(fallbackCust));
+
+          setTimeout(() => {
+            setShowCustomerAuthModal(false);
+            setCustomerName('');
+            setCustomerEmail('');
+            setCustomerPhone('');
+            setCustomerPassword('');
+            setCustomerAuthSuccess('');
+
+            // Auto resume checkout if pending
+            if (pendingCheckoutAfterLogin) {
+              setPendingCheckoutAfterLogin(false);
+              setInitialShowCheckout(true);
+              setIsCartOpen(true);
+            }
+          }, 1500);
+
+        } catch (fallbackErr: any) {
+          console.error("Critical: Admin notification failed even on local fallback:", fallbackErr.message || fallbackErr);
           setCustomerAuthSuccess('');
-        }, 1000);
+          setCustomerAuthError(fallbackErr.message || 'Registration failed because the admin notification email system is currently unconfigured or failing.');
+        }
       }
     }
   };
@@ -2391,7 +2675,31 @@ CREATE TRIGGER on_auth_user_created
 
             {/* Generated Details Container */}
             <div className="bg-[#101010] border border-white/5 p-4 rounded text-xs space-y-2 text-left font-mono">
-              <p><span className="text-white/40">TRACK RECEIPT:</span> <strong className="text-luxury-gold">{confirmedOrderId}</strong></p>
+              <div className="flex items-center justify-between gap-2">
+                <p><span className="text-white/40">TRACK RECEIPT:</span> <strong className="text-luxury-gold select-all">{confirmedOrderId}</strong></p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(confirmedOrderId);
+                    setCopiedOrderId(true);
+                    setTimeout(() => setCopiedOrderId(false), 2000);
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-sans font-medium text-white/70 hover:text-white transition-all cursor-pointer active:scale-95 shrink-0"
+                  title="Copy Tracking ID"
+                >
+                  {copiedOrderId ? (
+                    <>
+                      <Check size={10} className="text-emerald-400" />
+                      <span className="text-emerald-400 font-mono text-[8px] tracking-wider uppercase font-bold">COPIED</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={10} className="text-luxury-gold/70" />
+                      <span className="font-mono text-[8px] tracking-wider uppercase text-white/50 font-bold">COPY</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <p><span className="text-white/40">METHOD PAYMENT:</span> <strong className="text-white">{confirmedOrderPayment}</strong></p>
               <p className="text-white/40 text-[9px]/relaxed leading-relaxed mt-2 pt-2 border-t border-white/5">
                 Scan QR or track from front-end Track Order menus to view real-time dispatched logs.
@@ -2471,6 +2779,14 @@ CREATE TRIGGER on_auth_user_created
         }}
         initialShowCheckout={initialShowCheckout}
         customer={currentCustomer}
+        isLoading={isCartLoading}
+        onRequireLogin={() => {
+          setPendingCheckoutAfterLogin(true);
+          setCustomerAuthTab('login');
+          setCustomerAuthError('');
+          setCustomerAuthSuccess('');
+          setShowCustomerAuthModal(true);
+        }}
       />
 
       <CustomerProfileModal

@@ -69,6 +69,7 @@ export interface Order {
   paidAmount?: number;
   transactionId?: string;
   paymentScreenshot?: string;
+  userId?: string;
 }
 
 export interface Banner {
@@ -134,6 +135,7 @@ export interface AnalyticsStats {
 }
 
 export interface Customer {
+  id?: string;
   name: string;
   email: string;
   phone?: string;

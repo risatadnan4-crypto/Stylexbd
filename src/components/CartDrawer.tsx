@@ -33,6 +33,8 @@ interface CartDrawerProps {
   onCheckoutSuccess: (orderId: string, whatsappUrl: string, paymentInfo?: string) => void;
   initialShowCheckout?: boolean;
   customer?: Customer | null;
+  isLoading?: boolean;
+  onRequireLogin?: () => void;
 }
 
 export default function CartDrawer({
@@ -47,7 +49,9 @@ export default function CartDrawer({
   settings,
   onCheckoutSuccess,
   initialShowCheckout = false,
-  customer
+  customer,
+  isLoading = false,
+  onRequireLogin
 }: CartDrawerProps) {
   // Coupon State
   const [couponCode, setCouponCode] = useState('');
@@ -390,6 +394,7 @@ export default function CartDrawer({
           customerArea,
           customerNotes,
           customerEmail: customer?.email,
+          userId: customer?.id,
           items: dbFormatItems,
           totalAmount: grandTotal,
           couponCode: appliedCoupon ? appliedCoupon.code : undefined,
@@ -531,7 +536,19 @@ export default function CartDrawer({
           </button>
         </div>
 
-        {cartItems.length === 0 ? (
+        {isLoading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className="relative w-16 h-16 flex items-center justify-center mb-4">
+              <div className="absolute inset-0 border-2 border-luxury-gold/10 rounded-full" />
+              <div className="absolute inset-0 border-2 border-t-luxury-gold border-r-luxury-gold rounded-full animate-spin" />
+              <ShoppingBag size={20} className="text-luxury-gold animate-pulse" />
+            </div>
+            <h4 className="font-serif text-sm text-white/80 uppercase tracking-widest mb-1 font-bold">Synchronizing Cart</h4>
+            <p className="text-[11px] text-white/40 max-w-xs font-light">
+              Connecting with cloud storage to fetch your personal wardrobe archive...
+            </p>
+          </div>
+        ) : cartItems.length === 0 ? (
           /* Empty Bag */
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="w-16 h-16 bg-luxury-charcoal border border-luxury-gold/20 rounded flex items-center justify-center text-luxury-gold mb-4">
@@ -738,7 +755,13 @@ export default function CartDrawer({
 
               <button
                 type="button"
-                onClick={() => setShowCheckoutForm(true)}
+                onClick={() => {
+                  if (!customer) {
+                    if (onRequireLogin) onRequireLogin();
+                  } else {
+                    setShowCheckoutForm(true);
+                  }
+                }}
                 className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] hover:brightness-110 text-black font-display font-black uppercase text-xs tracking-[0.22em] py-4 rounded-xl shadow-[0_5px_25px_rgba(212,175,55,0.25)] hover:shadow-[0_8px_35px_rgba(212,175,55,0.45)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 group relative overflow-hidden luxury-reflection"
               >
                 <span>PROCEED TO SECURE CHECKOUT</span>
@@ -1288,11 +1311,21 @@ export default function CartDrawer({
                     </div>
                   )}
 
-                  <LuxuryCheckoutButton
-                    isCheckingOut={isCheckingOut}
-                    disabled={isCheckingOut || (paymentType !== 'cod' && (!transactionId || !!validateTransactionId(transactionId)))}
-                    label="Confirm Order"
-                  />
+                  {(() => {
+                    const isFormInvalid = 
+                      cartItems.length === 0 ||
+                      !customerName.trim() ||
+                      customerPhone.replace(/[^0-9]/g, '').length < 8 ||
+                      !customerAddress.trim() ||
+                      (paymentType !== 'cod' && (!transactionId || !!validateTransactionId(transactionId)));
+                    return (
+                      <LuxuryCheckoutButton
+                        isCheckingOut={isCheckingOut}
+                        disabled={isCheckingOut || isFormInvalid}
+                        label={isFormInvalid ? "Fill Requirements" : "Confirm Order"}
+                      />
+                    );
+                  })()}
                 </div>
               </form>
 

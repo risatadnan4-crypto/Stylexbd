@@ -21,69 +21,12 @@ export function composeWhatsAppLink(phone: string, message: string): string {
 
 export const CITIES_LIST = [
   "Dhaka",
-  "Bagerhat",
-  "Bandarban",
-  "Barguna",
-  "Barishal",
-  "Bhola",
-  "Bogura",
-  "Brahmanbaria",
-  "Chandpur",
-  "Chapainawabganj",
   "Chattogram",
-  "Chuadanga",
-  "Cox's Bazar",
-  "Cumilla",
-  "Dinajpur",
-  "Faridpur",
-  "Feni",
-  "Gaibandha",
-  "Gazipur",
-  "Gopalganj",
-  "Habiganj",
-  "Jamalpur",
-  "Jashore",
-  "Jhalokati",
-  "Jhenaidah",
-  "Joypurhat",
-  "Khagrachhari",
-  "Khulna",
-  "Kishoreganj",
-  "Kurigram",
-  "Kushtia",
-  "Lakshmipur",
-  "Lalmonirhat",
-  "Madaripur",
-  "Magura",
-  "Manikganj",
-  "Meherpur",
-  "Moulvibazar",
-  "Munshiganj",
-  "Mymensingh",
-  "Naogaon",
-  "Narail",
-  "Narayanganj",
-  "Narsingdi",
-  "Natore",
-  "Netrokona",
-  "Nilphamari",
-  "Noakhali",
-  "Pabna",
-  "Panchagarh",
-  "Patuakhali",
-  "Pirojpur",
-  "Rajbari",
   "Rajshahi",
-  "Rangamati",
-  "Rangpur",
-  "Satkhira",
-  "Shariatpur",
-  "Sherpur",
-  "Sirajganj",
-  "Sunamganj",
+  "Khulna",
+  "Barishal",
   "Sylhet",
-  "Tangail",
-  "Thakurgaon"
+  "Rangpur"
 ];
 
 export const DIVISIONS = [
@@ -93,45 +36,19 @@ export const DIVISIONS = [
   { key: 'Khulna', name: 'Khulna Division' },
   { key: 'Barishal', name: 'Barishal Division' },
   { key: 'Sylhet', name: 'Sylhet Division' },
-  { key: 'Rangpur', name: 'Rangpur Division' },
-  { key: 'Mymensingh', name: 'Mymensingh Division' }
+  { key: 'Rangpur', name: 'Rangpur Division' }
 ];
 
 export function getDivisionForCity(city: string): string {
   const c = city.trim();
   
-  // Dhaka Division
-  if (["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"].includes(c)) {
-    return "Dhaka";
-  }
-  // Chattogram Division
-  if (["Bandarban", "Brahmanbaria", "Chandpur", "Chattogram", "Cox's Bazar", "Cumilla", "Feni", "Khagrachhari", "Lakshmipur", "Noakhali", "Rangamati"].includes(c)) {
-    return "Chattogram";
-  }
-  // Rajshahi Division
-  if (["Bogura", "Bogra", "Chapainawabganj", "Joypurhat", "Naogaon", "Natore", "Pabna", "Rajshahi", "Sirajganj"].includes(c)) {
-    return "Rajshahi";
-  }
-  // Khulna Division
-  if (["Bagerhat", "Chuadanga", "Jashore", "Jhenaidah", "Khulna", "Kushtia", "Magura", "Meherpur", "Narail", "Satkhira"].includes(c)) {
-    return "Khulna";
-  }
-  // Barishal Division
-  if (["Barguna", "Barishal", "Bhola", "Jhalokati", "Patuakhali", "Pirojpur"].includes(c)) {
-    return "Barishal";
-  }
-  // Sylhet Division
-  if (["Habiganj", "Moulvibazar", "Sunamganj", "Sylhet"].includes(c)) {
-    return "Sylhet";
-  }
-  // Rangpur Division
-  if (["Dinajpur", "Gaibandha", "Kurigram", "Lalmonirhat", "Nilphamari", "Panchagarh", "Rangpur", "Thakurgaon"].includes(c)) {
-    return "Rangpur";
-  }
-  // Mymensingh Division
-  if (["Jamalpur", "Mymensingh", "Netrokona", "Sherpur"].includes(c)) {
-    return "Mymensingh";
-  }
+  if (c === "Dhaka") return "Dhaka";
+  if (c === "Chattogram") return "Chattogram";
+  if (c === "Rajshahi") return "Rajshahi";
+  if (c === "Khulna") return "Khulna";
+  if (c === "Barishal") return "Barishal";
+  if (c === "Sylhet") return "Sylhet";
+  if (c === "Rangpur") return "Rangpur";
   
   return "Outside"; // default fallback
 }
