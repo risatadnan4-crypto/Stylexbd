@@ -254,6 +254,7 @@ export default function XoroAssistant({
     }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [bubbleInput, setBubbleInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
@@ -265,6 +266,62 @@ export default function XoroAssistant({
 
   // Audio state for robotic idle humming (always enabled by default)
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [voicePitch, setVoicePitch] = useState<'low' | 'normal' | 'high'>('high');
+
+  // Selected custom system voice name and context product state
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
+  const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [xoroProductContext, setXoroProductContext] = useState<Product | null>(null);
+
+  // Load available system voices
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const updateVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        // Filter to keep Bengali and English voices
+        const filtered = voices.filter(v => 
+          v.lang.toLowerCase().startsWith('bn') || 
+          v.lang.toLowerCase().includes('bengali') ||
+          v.lang.toLowerCase().includes('bangla') ||
+          v.lang.toLowerCase().startsWith('en')
+        );
+        setSystemVoices(filtered);
+      };
+      updateVoices();
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Listen for the custom "ask-xoro" event
+  useEffect(() => {
+    const handleAskXoroEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const product = customEvent.detail as Product;
+      if (product) {
+        setIsOpen(true);
+        setXoroProductContext(product);
+        
+        // Add introductory message about this product context
+        const greetingText = `✨ আমি দেখতে পাচ্ছি আপনি "${product.title}" সম্পর্কে জানতে চাচ্ছেন! এই চমৎকার পোশাকটির ডিজাইন, ফেব্রিক বা সাইজ নিয়ে আপনার যেকোনো প্রশ্ন আমাকে করতে পারেন।`;
+        
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'model',
+            text: greetingText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+        
+        // Speak the message
+        setTimeout(() => {
+          speakText(greetingText);
+        }, 300);
+      }
+    };
+    window.addEventListener('ask-xoro', handleAskXoroEvent);
+    return () => window.removeEventListener('ask-xoro', handleAskXoroEvent);
+  }, []);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscRef = useRef<OscillatorNode | null>(null);
   const osc2Ref = useRef<OscillatorNode | null>(null);
@@ -537,9 +594,9 @@ export default function XoroAssistant({
   const speakText = (text: string) => {
     if (!isSoundEnabled) return;
     try {
-      // 1. Play the cozy introductory chirp sound effect
-      const isShort = text.length < 50;
-      playEmoRobotSound(isShort ? 'greet' : 'happy');
+      // Disabled introductory beep sounds to guarantee a purely natural, non-robotic, and professional human greeting experience
+      // const isShort = text.length < 50;
+      // playEmoRobotSound(isShort ? 'greet' : 'happy');
   
       // 2. Speak the actual text using the Web Speech API
       if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -552,84 +609,181 @@ export default function XoroAssistant({
           window.speechSynthesis.resume();
         }
   
+        const hasBengali = /[\u0980-\u09FF]/.test(text);
+
         // Clean up emojis, markdown patterns, and map Latin brand names to native phonetic equivalents
-        const cleanText = text
+        let cleanText = text
           .replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '') // strip emojis
-          .replace(/[*_#`~৳-]/g, ' ') // strip markdown and special symbols
-          .replace(/Xoro/gi, 'জোরো') // Map Xoro brand name to Bengali phonetic sound for crystal-clear local pronunciation
-          .replace(/Style X/gi, 'স্টাইল এক্স') // Map Style X to Bengali phonetic sound
-          .replace(/XP-/gi, 'স্টাইল কোড ')
-          .trim();
-  
-        if (!cleanText) return;
-  
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        
-        const hasBengali = /[\u0980-\u09FF]/.test(cleanText);
-  
-        // Pristine, articulate, and crystal-clear voice tuning (no mechanical time-stretching or flat robotic frequencies)
+          .replace(/[*_#`~]/g, ' ') // strip markdown
+          .replace(/-/g, ' ') // Convert hyphens to spaces to prevent words from sticking together
+          .replace(/:/g, ', ') // Convert colons to commas for natural mid-sentence breathing pauses
+          .replace(/[!?]/g, '.') // Convert exclamations/questions to periods to prevent screechy pitch spikes
+          .replace(/\s+/g, ' '); // Collapse extra spaces
+
         if (hasBengali) {
-          utterance.rate = 0.98;   // High-fidelity natural speed (0.95 - 1.0) to eliminate audio slur or stretching artifacts
-          utterance.pitch = 1.0;   // Solid, clear tone with perfect natural timber (no robotic metallic down-pitch)
-          utterance.volume = 1.0;  // Full sound volume for pristine presence
+          cleanText = cleanText
+            .replace(/১ম/g, ' প্রথম ')
+            .replace(/২য়/g, ' দ্বিতীয় ')
+            .replace(/৩য়/g, ' তৃতীয় ')
+            .replace(/৪র্থ/g, ' চতুর্থ ')
+            .replace(/৫ম/g, ' পঞ্চম ')
+            .replace(/৫মি/g, ' পঞ্চম ')
+            .replace(/৬ষ্ঠ/g, ' ষষ্ঠ ')
+            .replace(/৭ম/g, ' সপ্তম ')
+            .replace(/৮ম/g, ' অষ্টম ')
+            .replace(/৯ম/g, ' নবম ')
+            .replace(/১০ম/g, ' দশম ')
+            .replace(/Xoro/gi, ' জোরো ') // Map Xoro brand name to Bengali phonetic sound for crystal-clear local pronunciation
+            .replace(/Style X/gi, ' স্টাইল এক্স ') // Map Style X to Bengali phonetic sound
+            .replace(/XP-/gi, ' স্টাইল কোড ')
+            .replace(/৳/g, ' টাকা ')
+            .replace(/&/g, ' এবং ')
+            .replace(/\+/g, ' প্লাস ')
+            .replace(/VIP/gi, ' ভি আই পি ')
+            .replace(/SSL/gi, ' এস এস এল ');
         } else {
-          utterance.rate = 1.0;    // Perfectly natural native English rate
-          utterance.pitch = 1.0;   // Crisp, neutral standard tone
-          utterance.volume = 1.0;  // Maximum studio-quality presence
+          // English phonetic improvements
+          cleanText = cleanText
+            .replace(/Xoro/gi, ' Zoro ') // Phonetic "Zoro" is perfect for English voice
+            .replace(/Style X/gi, ' Style Ex ') // Phonetic "Style Ex" is crystal-clear
+            .replace(/XP-/gi, ' Style Code ')
+            .replace(/৳/g, ' Taka ')
+            .replace(/&/g, ' and ')
+            .replace(/\+/g, ' plus ')
+            .replace(/VIP/gi, ' V I P ')
+            .replace(/SSL/gi, ' S S L ');
         }
-  
+
+        cleanText = cleanText.trim();
+   
+        if (!cleanText) return;
+   
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+        // Soft, clear, and natural human voice tuning (realistic, comforting speed and gentle tone)
+        let currentPitch = 1.0;
+        let currentRate = 1.0; // Perfectly natural, crisp native speed for maximum word clarity
+        if (hasBengali) {
+          if (voicePitch === 'low') {
+            currentPitch = 0.95; // Warm, professional male/deep-female tone (optimized from 0.92)
+            currentRate = 0.96; // Slightly faster to prevent dragging and slurring
+          } else if (voicePitch === 'normal') {
+            currentPitch = 1.0;  // True organic human range
+            currentRate = 1.0;   // Native 1.0 rate ensures clean audio processing without artifacts
+          } else {
+            currentPitch = 1.05; // Extremely sweet, clear, natural female profile without mechanical distortion
+            currentRate = 1.0;
+          }
+          utterance.rate = currentRate;
+          utterance.pitch = currentPitch;
+          utterance.volume = 1.0;
+        } else {
+          if (voicePitch === 'low') {
+            currentPitch = 0.95;
+            currentRate = 0.96;
+          } else if (voicePitch === 'normal') {
+            currentPitch = 1.0;
+            currentRate = 1.0;
+          } else {
+            currentPitch = 1.04; // Delicate, warm female tone with natural clarity
+            currentRate = 1.0;
+          }
+          utterance.rate = currentRate;
+          utterance.pitch = currentPitch;
+          utterance.volume = 1.0;
+        }
+   
         const voices = window.speechSynthesis.getVoices();
         let selectedVoice = null;
   
-        if (hasBengali) {
-          // Filter to get all available Bengali voices first
-          const bnVoices = voices.filter(v => v.lang.toLowerCase().startsWith('bn'));
-          
-          // Pass 1: Look for ultra-realistic neural or natural high-quality online voices
-          const premiumKeys = ['natural', 'neural', 'online', 'premium', 'google বাংলা', 'google', 'sabina', 'nabonita'];
-          for (const key of premiumKeys) {
-            selectedVoice = bnVoices.find(v => v.name.toLowerCase().includes(key));
-            if (selectedVoice) break;
-          }
-          
-          // Pass 2: Look for standard comforting names
-          if (!selectedVoice) {
-            const comfortingKeys = ['ananya', 'shreya', 'dilara', 'microsoft', 'bengali', 'bangla'];
-            for (const key of comfortingKeys) {
-              selectedVoice = bnVoices.find(v => v.name.toLowerCase().includes(key));
-              if (selectedVoice) break;
-            }
-          }
-          
-          // Pass 3: Fallback to first Bengali voice
-          if (!selectedVoice && bnVoices.length > 0) {
-            selectedVoice = bnVoices[0];
-          }
+        if (selectedVoiceName) {
+          selectedVoice = voices.find(v => v.name === selectedVoiceName);
         }
-  
-        // Prioritize soft, warm, premium English voices if no Bangla selected or if speaking English
+
         if (!selectedVoice) {
-          const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
-          
-          // Pass 1: Look for ultra-realistic natural neural voices (e.g., Safari's Natural, Edge's Neural, Chrome's Online)
-          const premiumKeys = ['natural', 'neural', 'online', 'premium', 'google'];
-          for (const key of premiumKeys) {
-            selectedVoice = enVoices.find(v => v.name.toLowerCase().includes(key));
-            if (selectedVoice) break;
-          }
-          
-          // Pass 2: Look for soft, warm, friendly human names
-          if (!selectedVoice) {
-            const friendlyKeys = ['samantha', 'aria', 'jenny', 'sara', 'zira', 'female', 'google us english', 'microsoft'];
-            for (const key of friendlyKeys) {
-              selectedVoice = enVoices.find(v => v.name.toLowerCase().includes(key));
+          if (hasBengali) {
+            // Filter to get all available Bengali voices first (accept bn-BD, bn-IN, or lang containing bengali/bangla)
+            const bnVoices = voices.filter(v => 
+              v.lang.toLowerCase().startsWith('bn') || 
+              v.lang.toLowerCase().includes('bengali') || 
+              v.lang.toLowerCase().includes('bangla')
+            );
+            
+            // Exclude known male voice profiles to secure a warm, soft female vocal profile
+            const femaleBnVoices = bnVoices.filter(v => 
+              !v.name.toLowerCase().includes('male') && 
+              !v.name.toLowerCase().includes('hemant') && 
+              !v.name.toLowerCase().includes('pradeep') &&
+              !v.name.toLowerCase().includes('niloy') &&
+              !v.name.toLowerCase().includes('giri')
+            );
+            
+            // Pass 1: Prioritize sweet female/girl voices & names across all platforms (Kalpana, Nabanita, etc.)
+            const premiumKeys = ['kalpana', 'nabanita', 'tanishaa', 'sabina', 'shreya', 'ananya', 'dilara', 'female', 'girl', 'woman', 'natural', 'neural', 'online', 'premium', 'google বাংলা', 'google'];
+            for (const key of premiumKeys) {
+              selectedVoice = femaleBnVoices.find(v => v.name.toLowerCase().includes(key));
               if (selectedVoice) break;
             }
+            
+            // Pass 2: Look for standard comforting names
+            if (!selectedVoice) {
+              const comfortingKeys = ['microsoft', 'bengali', 'bangla'];
+              for (const key of comfortingKeys) {
+                selectedVoice = femaleBnVoices.find(v => v.name.toLowerCase().includes(key));
+                if (selectedVoice) break;
+              }
+            }
+            
+            // Pass 3: Fallback to first female Bengali voice, or first general Bengali if none
+            if (!selectedVoice) {
+              selectedVoice = femaleBnVoices[0] || bnVoices[0];
+            }
           }
-          
-          // Pass 3: Fallback to first English voice
-          if (!selectedVoice && enVoices.length > 0) {
-            selectedVoice = enVoices[0];
+    
+          // Prioritize soft, warm, premium English voices if no Bangla selected or if speaking English
+          if (!selectedVoice) {
+            const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+            
+            // Exclude known male voice names to guarantee a soft, natural female voice profile
+            const femaleEnVoices = enVoices.filter(v => 
+              !v.name.toLowerCase().includes('male') && 
+              !v.name.toLowerCase().includes('david') && 
+              !v.name.toLowerCase().includes('george') && 
+              !v.name.toLowerCase().includes('ravi') && 
+              !v.name.toLowerCase().includes('james') &&
+              !v.name.toLowerCase().includes('mark') && 
+              !v.name.toLowerCase().includes('richard') &&
+              !v.name.toLowerCase().includes('microsoft default')
+            );
+            
+            // Pass 1: Prioritize premium, natural neural English female/girl voices (e.g., Samantha, Aria, Jenny, Sara, Hazel)
+            const femaleKeys = ['samantha', 'aria', 'jenny', 'sara', 'zira', 'female', 'girl', 'woman', 'karen', 'moira', 'tessa', 'veena', 'hazel', 'susan', 'heera'];
+            for (const key of femaleKeys) {
+              selectedVoice = femaleEnVoices.find(v => v.name.toLowerCase().includes(key) && (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('neural') || v.name.toLowerCase().includes('online')));
+              if (selectedVoice) break;
+            }
+            
+            // Pass 2: Standard/built-in female English voices
+            if (!selectedVoice) {
+              for (const key of femaleKeys) {
+                selectedVoice = femaleEnVoices.find(v => v.name.toLowerCase().includes(key));
+                if (selectedVoice) break;
+              }
+            }
+            
+            // Pass 3: Any neural/premium English voice that is not a known male
+            if (!selectedVoice) {
+              const premiumKeys = ['natural', 'neural', 'online', 'premium', 'google'];
+              for (const key of premiumKeys) {
+                selectedVoice = femaleEnVoices.find(v => v.name.toLowerCase().includes(key));
+                if (selectedVoice) break;
+              }
+            }
+            
+            // Pass 4: Fallback to the first non-male English voice
+            if (!selectedVoice && enVoices.length > 0) {
+              selectedVoice = femaleEnVoices[0] || enVoices.find(v => !v.name.toLowerCase().includes('male')) || enVoices[0];
+            }
           }
         }
   
@@ -1050,7 +1204,7 @@ export default function XoroAssistant({
       
       idleTimer = setTimeout(() => {
         triggerClimbAndFlySequence();
-      }, 3000); // 3 seconds idle threshold
+      }, 7000); // Trigger rope climbing and rocket jet flying every 7 seconds (7 sec por por)
     };
 
     const handleUserActivity = () => {
@@ -1059,23 +1213,19 @@ export default function XoroAssistant({
       }
     };
 
-    // User activity listeners
-    window.addEventListener('mousemove', handleUserActivity);
+    // Keep Xoro extremely active: only reset on explicit clicks, keys, or touches
     window.addEventListener('click', handleUserActivity);
     window.addEventListener('keydown', handleUserActivity);
     window.addEventListener('touchstart', handleUserActivity);
-    window.addEventListener('scroll', handleUserActivity);
 
     // Initial trigger
     startIdleTimer();
 
     return () => {
       clearTimeout(idleTimer);
-      window.removeEventListener('mousemove', handleUserActivity);
       window.removeEventListener('click', handleUserActivity);
       window.removeEventListener('keydown', handleUserActivity);
       window.removeEventListener('touchstart', handleUserActivity);
-      window.removeEventListener('scroll', handleUserActivity);
     };
   }, [isOpen, isClimbing, isFlyingJet]);
 
@@ -1272,7 +1422,7 @@ export default function XoroAssistant({
           dragListener={false}
           dragMomentum={false}
           dragElastic={0.05}
-          className="fixed left-6 top-[40%] z-50 flex flex-col items-start select-none touch-none"
+          className="fixed left-6 top-[40%] z-[100] flex flex-col items-start select-none touch-none"
         >
         
         {/* SPEECH BUBBLE OUTLET */}
@@ -1298,6 +1448,43 @@ export default function XoroAssistant({
               <p className="text-[11px] leading-relaxed text-zinc-100 font-sans pr-3">
                 {speechBubbleText}
               </p>
+              
+              {/* DIRECT TEXT QUERY INPUT */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!bubbleInput.trim()) return;
+                  const query = bubbleInput;
+                  setBubbleInput('');
+                  setIsOpen(true);
+                  setShowSpeechBubble(false);
+                  handleSendMessage(query);
+                }}
+                onClick={(e) => {
+                  // Prevent opening the drawer by clicking the bubble
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                  // Prevent drag listener from stealing focus/events
+                  e.stopPropagation();
+                }}
+                className="mt-3.5 flex items-center gap-1.5 border-t border-white/5 pt-3"
+              >
+                <input 
+                  type="text"
+                  value={bubbleInput}
+                  onChange={(e) => setBubbleInput(e.target.value)}
+                  placeholder="Xoro-কে প্রশ্ন করুন..."
+                  className="flex-1 bg-zinc-900 border border-white/10 hover:border-white/20 focus:border-luxury-gold/75 focus:outline-none rounded-xl text-[10px] px-2.5 py-1.5 font-sans text-white transition-all"
+                />
+                <button 
+                  type="submit"
+                  disabled={!bubbleInput.trim()}
+                  className="h-7 w-7 bg-luxury-gold hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-luxury-black rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border-0 outline-none"
+                >
+                  <Send size={10} />
+                </button>
+              </form>
               {/* Little arrow pointing at button */}
               <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-zinc-950 border-r border-b border-luxury-gold/50 rotate-45"></div>
             </motion.div>
@@ -1538,7 +1725,7 @@ export default function XoroAssistant({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ type: 'spring', damping: 20 }}
-              className="absolute bottom-20 left-0 w-[290px] sm:w-[310px] h-[410px] bg-zinc-950 border border-luxury-gold/35 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95),0_10px_25px_rgba(212,175,55,0.2)] overflow-hidden flex flex-col z-50"
+              className="fixed bottom-4 left-4 right-4 h-[420px] max-w-[calc(100vw-2rem)] sm:absolute sm:bottom-22 sm:left-0 sm:w-[320px] sm:h-[440px] bg-zinc-950 border border-luxury-gold/35 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95),0_10px_25px_rgba(212,175,55,0.2)] overflow-hidden flex flex-col z-[100]"
             >
               {/* DRAWER HEADER */}
               <div className="p-3 bg-gradient-to-r from-luxury-black via-[#0d0d0d] to-luxury-black border-b border-white/5 flex items-center justify-between relative">
@@ -1625,12 +1812,89 @@ export default function XoroAssistant({
                   <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                 
                 {/* Brand introduction banner card */}
-                <div className="p-2.5 bg-gradient-to-br from-[#121212] to-black border border-white/5 rounded-xl flex flex-col items-center text-center space-y-1">
-                  <span className="text-lg">🤖</span>
+                <div className="p-3 bg-gradient-to-br from-[#111112] via-[#09090a] to-black border border-white/5 rounded-xl flex flex-col items-center text-center space-y-2.5">
+                  <span className="text-lg animate-bounce">🤖</span>
                   <p className="text-[8px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Virtual Fashion Concierge</p>
                   <p className="text-[10px] text-zinc-400 leading-normal font-sans max-w-[210px]">
                     Hello, I am Xoro! Let's find your ultimate ensemble.
                   </p>
+
+                  {/* Voice Pitch Controls */}
+                  <div className="w-full pt-2 border-t border-white/5 flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <Sparkles size={8} className="text-luxury-gold animate-pulse" />
+                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-400">Xoro's Voice Pitch Settings</span>
+                    </div>
+                    <div className="flex gap-1 bg-black p-0.5 rounded-lg border border-white/5 w-full max-w-[220px]">
+                      {(['low', 'normal', 'high'] as const).map((pitch) => (
+                        <button
+                          key={pitch}
+                          onClick={() => {
+                            setVoicePitch(pitch);
+                            const textMap = {
+                              low: "আমার নতুন গম্ভীর ও গুরুগম্ভীর কণ্ঠস্বর সেট করা হয়েছে।",
+                              normal: "আমার স্বাভাবিক এবং স্পষ্ট কণ্ঠস্বর সেট করা হয়েছে।",
+                              high: "আমার মিষ্টি এবং সুন্দর প্রিমিয়াম কণ্ঠস্বর সেট করা হয়েছে।"
+                            };
+                            // Delay slightly to allow state to settle
+                            setTimeout(() => {
+                              speakText(textMap[pitch]);
+                            }, 50);
+                          }}
+                          className={`flex-1 py-1 text-[8.5px] font-mono rounded uppercase tracking-wider transition-all cursor-pointer ${
+                            voicePitch === pitch
+                              ? 'bg-luxury-gold text-black font-bold shadow-sm shadow-luxury-gold/20'
+                              : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                          }`}
+                        >
+                          {pitch}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Voice Selector Dropdown */}
+                  <div className="w-full pt-2 border-t border-white/5 flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <Sparkles size={8} className="text-luxury-gold animate-pulse" />
+                      <span className="text-[8px] font-mono uppercase tracking-wider text-zinc-400">Select Voice (কণ্ঠস্বর পরিবর্তন করুন)</span>
+                    </div>
+                    {systemVoices.length > 0 ? (
+                      <select
+                        value={selectedVoiceName || ''}
+                        onChange={(e) => {
+                          const vName = e.target.value;
+                          setSelectedVoiceName(vName || null);
+                          const voice = systemVoices.find(v => v.name === vName);
+                          if (voice) {
+                            const sampleText = voice.lang.toLowerCase().startsWith('bn') || voice.lang.toLowerCase().includes('bengali') || voice.lang.toLowerCase().includes('bangla')
+                              ? `আমি ${voice.name}। এখন থেকে আমি আপনার সাথে কথা বলব।`
+                              : `Hello! I am ${voice.name}. I will be speaking with you from now on.`;
+                            // Delay slightly to ensure voice changes
+                            setTimeout(() => {
+                              speakText(sampleText);
+                            }, 100);
+                          } else {
+                            setTimeout(() => {
+                              speakText("কণ্ঠস্বর অটোমেটিক সেট করা হয়েছে।");
+                            }, 100);
+                          }
+                        }}
+                        className="w-full max-w-[220px] bg-zinc-950 text-zinc-300 text-[10px] font-mono rounded border border-white/10 px-1.5 py-1 focus:outline-none focus:border-luxury-gold/50 cursor-pointer text-center"
+                      >
+                        <option value="">-- Auto-Match Best Voice --</option>
+                        {systemVoices.map((voice) => (
+                          <option key={voice.name} value={voice.name}>
+                            {voice.name} ({voice.lang.toUpperCase()})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="w-full max-w-[220px] bg-zinc-950 text-zinc-500 text-[9px] font-mono rounded border border-white/10 px-1.5 py-1 text-center italic">
+                        Loading system voice profiles...
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Messages map */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -291,6 +291,20 @@ export default function ProductCard({
           <span className={`w-1 h-1 rounded-full ${product.stock === 0 ? "bg-red-500" : product.trending ? "bg-luxury-gold animate-ping" : "bg-luxury-gold"}`}></span>
           <span>{product.stock === 0 ? "ARCHIVED" : product.trending ? "TRENDING" : "EXCLUSIVE"}</span>
         </div>
+
+        {/* Floating Ask Xoro button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const event = new CustomEvent('ask-xoro', { detail: product });
+            window.dispatchEvent(event);
+          }}
+          className="absolute bottom-1 right-1 bg-black/95 hover:bg-luxury-gold text-luxury-gold hover:text-black border border-luxury-gold/60 hover:border-transparent font-mono uppercase text-[7px] sm:text-[9px] px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-md tracking-wider flex items-center gap-1.5 transition-all duration-300 shadow-lg shadow-black/80 hover:scale-105 z-30 cursor-pointer font-bold"
+          title="Ask Xoro Assistant about this"
+        >
+          <Sparkles size={9} className="animate-pulse" />
+          <span>Ask Xoro</span>
+        </button>
       </div>
 
       {/* Product Information */}

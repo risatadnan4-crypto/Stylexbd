@@ -89,6 +89,11 @@ export default function CustomerProfileModal({
       return;
     }
 
+    if (!phone.trim()) {
+      setSaveError('WhatsApp Mobile Reference cannot be empty.');
+      return;
+    }
+
     const updatedCustomer: Customer = {
       ...customer,
       name: name.trim(),
@@ -704,7 +709,9 @@ export default function CustomerProfileModal({
                     </div>
 
                     <div>
-                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">WhatsApp Mobile Reference</label>
+                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">
+                        WhatsApp Mobile Reference <span className="text-red-400">*</span>
+                      </label>
                       <div className="relative">
                         <Phone size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
                         <input 

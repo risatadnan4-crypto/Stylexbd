@@ -1807,6 +1807,86 @@ async function sendAdminEmail({ subject, text, html }: { subject: string, text: 
   throw new Error(finalErrorMessage);
 }
 
+app.post("/api/checkout-step1-notify", express.json(), async (req, res) => {
+  const { 
+    customerName, 
+    customerPhone, 
+    customerAddress, 
+    customerCity, 
+    customerDistrict,
+    customerEmail,
+    items,
+    estimatedTotal
+  } = req.body;
+
+  if (!customerName || !customerPhone || !customerAddress) {
+    return res.status(400).json({ message: "Missing required details." });
+  }
+
+  const orderItemsText = items && Array.isArray(items) 
+    ? items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n")
+    : "No items specified";
+
+  const emailSubject = `📋 Step 1 Form Submitted by: ${customerName}`;
+  const emailBody = `
+========================================
+📋 STEP 1 CHECKOUT FORM DETAILS
+========================================
+👤 Customer Name: ${customerName}
+📞 Mobile Number: ${customerPhone}
+✉️ Email: ${customerEmail || 'Guest'}
+🏠 Delivery Address: ${customerAddress}
+🏙️ City/District: ${customerCity || 'N/A'} / ${customerDistrict || 'N/A'}
+💰 Estimated Total: ৳${estimatedTotal || 'N/A'}
+📦 Selected Items:
+${orderItemsText}
+⏰ Clicked Time: ${new Date().toLocaleString()}
+========================================
+  `;
+
+  const emailHtml = `
+    <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1.5px dashed #d4af37; border-radius: 8px; background-color: #0f0a1c; color: #fff;">
+      <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 10px; margin-top: 0;">📋 Step 1 Form Submitted</h2>
+      <p style="font-size: 14px; color: #eaeaea;">The customer has filled out the primary checkout form and clicked the button to proceed to payment.</p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; color: #fff;">
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); width: 150px; color: #d4af37;">Customer Name:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Mobile Number:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerPhone}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Email:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerEmail || 'Guest'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; vertical-align: top;">Selected Items:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); white-space: pre-line;">${orderItemsText}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Delivery Address:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerAddress}, ${customerCity || ''}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Estimated Total:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: #22c55e;">৳${estimatedTotal}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  try {
+    await sendAdminEmail({ subject: emailSubject, text: emailBody, html: emailHtml });
+    res.json({ success: true, message: "Step 1 notification sent successfully to admin email." });
+  } catch (err: any) {
+    console.error("Step 1 email dispatch failed:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
   const { fullName, mobileNumber, email, signupTime, userId, browser, device, country } = req.body;
   if (!fullName || !mobileNumber || !email) {
@@ -2308,10 +2388,12 @@ app.post("/api/orders", async (req, res) => {
     traceLogs.push(`[PAYMENT_TRACE]   - Session registered for Amount: ৳${calculatedTotalAmount}`);
 
     // Step 6: bKash payment request
+    const amountToPay = payType === 'delivery_charge' ? calculatedDeliveryCharge : calculatedTotalAmount;
+
     if (payType !== 'cod' && payMethod === 'bkash') {
       traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request initiated...`);
-      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${calculatedTotalAmount}, currency: "BDT", intent: "sale", merchantInvoiceNumber: "${paymentSessionId}" }`);
-      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to bKash Gateway: ৳${calculatedTotalAmount}`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${amountToPay}, currency: "BDT", intent: "sale", merchantInvoiceNumber: "${paymentSessionId}" }`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to bKash Gateway: ৳${amountToPay}`);
     } else {
       traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request bypassed (not selected).`);
     }
@@ -2319,8 +2401,8 @@ app.post("/api/orders", async (req, res) => {
     // Step 7: Nagad payment request
     if (payType !== 'cod' && payMethod === 'nagad') {
       traceLogs.push(`[PAYMENT_TRACE] Step 7: Nagad payment request initiated...`);
-      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${calculatedTotalAmount}, orderId: "${paymentSessionId}", serviceType: "merchant_pay" }`);
-      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to Nagad Gateway: ৳${calculatedTotalAmount}`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${amountToPay}, orderId: "${paymentSessionId}", serviceType: "merchant_pay" }`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to Nagad Gateway: ৳${amountToPay}`);
     } else {
       traceLogs.push(`[PAYMENT_TRACE] Step 7: Nagad payment request bypassed (not selected).`);
     }
@@ -2329,11 +2411,11 @@ app.post("/api/orders", async (req, res) => {
     if (payType !== 'cod') {
       traceLogs.push(`[PAYMENT_TRACE] Step 8: Payment callback verification received...`);
       traceLogs.push(`[PAYMENT_TRACE]   - Callback values: paidAmount=৳${cliPaid}, status="success", tracking_id="${paymentSessionId}"`);
-      if (Math.round(Number(cliPaid)) !== Math.round(calculatedTotalAmount)) {
-        traceLogs.push(`[PAYMENT_TRACE]   - [ERROR] Callback amount mismatch! Received ৳${cliPaid}, expected ৳${calculatedTotalAmount}`);
-        return { success: false, finalCheckoutTotal: calculatedTotalAmount, logs: traceLogs, error: `Advance paid amount mismatch! Received ৳${cliPaid}, expected ৳${calculatedTotalAmount}` };
+      if (Math.round(Number(cliPaid)) !== Math.round(amountToPay)) {
+        traceLogs.push(`[PAYMENT_TRACE]   - [ERROR] Callback amount mismatch! Received ৳${cliPaid}, expected ৳${amountToPay}`);
+        return { success: false, finalCheckoutTotal: calculatedTotalAmount, logs: traceLogs, error: `Advance paid amount mismatch! Received ৳${cliPaid}, expected ৳${amountToPay}` };
       }
-      traceLogs.push(`[PAYMENT_TRACE]   - Payment verified successfully for Amount: ৳${calculatedTotalAmount}`);
+      traceLogs.push(`[PAYMENT_TRACE]   - Payment verified successfully for Amount: ৳${amountToPay}`);
     } else {
       traceLogs.push(`[PAYMENT_TRACE] Step 8: Payment callback verification bypassed (Cash on Delivery).`);
     }
@@ -2524,7 +2606,7 @@ app.post("/api/orders", async (req, res) => {
 ${orderItemsText}
 🏠 Delivery Address: ${orderLocation}
 💳 Payment Method: ${paymentDetailText}
-💰 Total Price: ৳${newOrder.totalAmount}
+${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionId || 'N/A'}\n` : ''}${newOrder.paymentScreenshot ? `📸 Payment Screenshot: ${newOrder.paymentScreenshot}\n` : ''}💰 Total Price: ৳${newOrder.totalAmount}
 ⏰ Order Time: ${new Date().toLocaleString()}
 ========================================
     `;
@@ -2559,6 +2641,22 @@ ${orderItemsText}
             <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Payment Method:</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee;">${paymentDetailText}</td>
           </tr>
+          ${newOrder.paymentType !== 'cod' ? `
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; color: #ef4444;">Transaction ID:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #ef4444;">${newOrder.transactionId || 'N/A'}</td>
+          </tr>
+          ` : ''}
+          ${newOrder.paymentScreenshot ? `
+          <tr>
+            <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; color: #3b82f6;">Payment Screenshot:</td>
+            <td style="padding: 8px; border-bottom: 1px solid #eee;">
+              <a href="${newOrder.paymentScreenshot}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">View Screenshot</a>
+              <br/>
+              <img src="${newOrder.paymentScreenshot}" style="max-width: 100%; max-height: 250px; border-radius: 4px; margin-top: 8px; border: 1px solid #ddd;" alt="Payment Screenshot" />
+            </td>
+          </tr>
+          ` : ''}
           <tr>
             <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; color: #d4af37; font-size: 16px;">Total Price:</td>
             <td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; color: #d4af37; font-size: 16px;">৳${newOrder.totalAmount}</td>

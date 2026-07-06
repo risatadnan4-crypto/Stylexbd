@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
   SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight,
-  Facebook, Instagram, MessageCircle, Copy, Check
+  Facebook, Instagram, MessageCircle, Copy, Check, User
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -18,6 +18,8 @@ import LiveChat from './components/LiveChat';
 import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
 import XoroAssistant from './components/XoroAssistant';
+// @ts-ignore
+import defaultXoroAvatar from './assets/images/xoro_mascot_3d_1782635214676.jpg';
 import CustomerProfileModal from './components/CustomerProfileModal';
 import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
@@ -363,6 +365,7 @@ export default function App() {
   const [customerPassword, setCustomerPassword] = useState('');
   const [customerAuthError, setCustomerAuthError] = useState('');
   const [customerAuthSuccess, setCustomerAuthSuccess] = useState('');
+  const [activeField, setActiveField] = useState<string | null>(null);
   const [sqlCopied, setSqlCopied] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState('Unknown Country');
 
@@ -917,16 +920,18 @@ export default function App() {
       } catch (err: any) {
         console.warn("Supabase Auth login error. Silently falling back to local login:", err);
         
+        const searchVal = customerEmail.toLowerCase().trim();
         let found = registered.find(
-          c => c.email.toLowerCase().trim() === customerEmail.toLowerCase().trim()
+          c => (c.email && c.email.toLowerCase().trim() === searchVal) ||
+               (c.phone && c.phone.replace(/[\s+-]/g, '').trim() === searchVal.replace(/[\s+-]/g, '').trim())
         );
 
         if (!found) {
           found = {
             name: customerEmail.split('@')[0] || 'VIP Guest',
-            email: customerEmail.trim(),
+            email: customerEmail.includes('@') ? customerEmail.trim() : `${customerEmail.trim()}@stylex.com`,
             password: customerPassword,
-            phone: ''
+            phone: customerEmail.includes('@') ? '' : customerEmail.trim()
           };
           registered.push(found);
           localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
@@ -954,10 +959,22 @@ export default function App() {
       }
     } else {
       // Sign Up Tab
-      if (!customerName || !customerEmail || !customerPassword) {
-        setCustomerAuthError('Name, Email, and Password must be provided.');
+      if (!customerName.trim()) {
+        setCustomerAuthError('Full Legal Name is required to register an account.');
         return;
       }
+      
+      const cleanPhone = customerPhone.replace(/[^0-9]/g, '').trim();
+      if (!customerPhone.trim() || cleanPhone.length < 8) {
+        setCustomerAuthError('WhatsApp Mobile Number is strictly required. Account cannot be created in Style X without a valid mobile number. (মোবাইল নাম্বার দেওয়া বাধ্যতামূলক। মোবাইল নাম্বার ছাড়া স্টাইল এক্সে অ্যাকাউন্ট তৈরি করা যাবে না।)');
+        return;
+      }
+
+      if (!customerPassword) {
+        setCustomerAuthError('Password is required.');
+        return;
+      }
+
       if (customerPassword.length < 4) {
         setCustomerAuthError('Security passwords must be at least 4 characters.');
         return;
@@ -965,6 +982,8 @@ export default function App() {
 
       setCustomerAuthError('');
       setCustomerAuthSuccess('Securing membership profile inside database...');
+
+      const signupEmail = customerEmail.trim() || `${customerPhone.trim().replace(/[^0-9]/g, '')}@stylex.com`;
 
       // 1. Detect browser and device details
       const ua = navigator.userAgent;
@@ -991,7 +1010,7 @@ export default function App() {
       try {
         // Step 1: Create Supabase Auth account
         const { data, error } = await supabase.auth.signUp({
-          email: customerEmail.trim(),
+          email: signupEmail,
           password: customerPassword,
           options: {
             data: {
@@ -1009,7 +1028,7 @@ export default function App() {
         const newCust: Customer = {
           id: userId,
           name: customerName.trim(),
-          email: customerEmail.trim(),
+          email: signupEmail,
           password: customerPassword,
           phone: customerPhone?.trim() || ''
         };
@@ -1021,7 +1040,7 @@ export default function App() {
               id: userId,
               full_name: customerName.trim(),
               mobile_number: customerPhone?.trim() || '',
-              email: customerEmail.trim(),
+              email: signupEmail,
               name: customerName.trim(),
               phone: customerPhone?.trim() || '',
               created_at: new Date().toISOString()
@@ -1040,7 +1059,7 @@ export default function App() {
           body: JSON.stringify({
             fullName: customerName.trim(),
             mobileNumber: customerPhone?.trim() || 'N/A',
-            email: customerEmail.trim(),
+            email: signupEmail,
             userId: userId,
             signupTime: new Date().toLocaleString(),
             browser: clientBrowser,
@@ -1092,7 +1111,7 @@ export default function App() {
         const fallbackCust: Customer = {
           id: 'local_' + Math.random().toString(36).substr(2, 9),
           name: customerName.trim(),
-          email: customerEmail.trim(),
+          email: signupEmail,
           password: customerPassword,
           phone: customerPhone?.trim() || ''
         };
@@ -2516,47 +2535,49 @@ export default function App() {
         </div>
       )}
 
-      {/* Customer Privilege Auth Modal (Login / Sign Up) */}
+      {/* Customer Privilege Auth Modal (Login / Sign Up) - Visme Styled Single Column Form */}
       {showCustomerAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div onClick={() => setShowCustomerAuthModal(false)} className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md"></div>
           
           <form 
             onSubmit={handleCustomerSubmit}
-            className="relative w-full max-w-md bg-[#0a0514] border-2 border-[#d4af37]/35 p-6 md:p-8 rounded-2xl shadow-[0_20px_50px_rgba(212,175,55,0.15)] z-10 space-y-5 text-center luxury-glow-border animate-fade-in text-white"
+            className="relative w-full max-w-md bg-[#080410] border-2 border-[#d4af37]/35 rounded-3xl shadow-[0_25px_60px_rgba(212,175,55,0.18)] p-6 md:p-8 z-10 space-y-6 animate-fade-in text-white luxury-glow-border"
           >
+            {/* Close button */}
             <button 
               type="button" 
               onClick={() => setShowCustomerAuthModal(false)}
-              className="absolute right-4 top-4 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-20"
-              title="Close Panel"
+              className="absolute right-4 top-4 text-white/40 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-20"
+              title="Dismiss"
             >
               <X size={16} />
             </button>
 
-            {/* Icon Header */}
-            <div className="flex flex-col items-center">
-              <div className="w-12 h-12 bg-gradient-to-br from-luxury-purple-glowing/20 to-luxury-gold/20 border border-luxury-gold/30 rounded-xl flex items-center justify-center text-[#d4af37] mb-2.5 shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-                <Sparkles size={18} className="animate-pulse" />
+            {/* Brand Logo & Title (Top Centered) */}
+            <div className="flex flex-col items-center text-center space-y-2">
+              <div className="inline-flex items-center justify-center w-11 h-11 bg-gradient-to-br from-luxury-purple-glowing/25 to-luxury-gold/25 border border-luxury-gold/30 rounded-xl text-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.2)]">
+                <Sparkles size={16} className="animate-pulse" />
               </div>
-              <h4 className="font-serif text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffd700] to-white uppercase tracking-widest leading-none">
-                STYLE X PRIVILEGE
-              </h4>
-              <p className="text-[10px] text-white/40 uppercase font-mono tracking-widest mt-1.5">
-                EXCLUSIVITY ACCREDITED MEMBERSHIP ACCESS
+              <h3 className="font-serif text-lg md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#ffd700] to-white uppercase tracking-widest leading-none mt-2">
+                STYLE X ELITE
+              </h3>
+              <p className="text-[9px] text-white/40 uppercase font-mono tracking-widest">
+                Exclusivity Accredited Access
               </p>
             </div>
 
-            {/* Custom Mode Tabs */}
-            <div className="flex border border-white/5 p-1 bg-black/40 rounded-xl">
+            {/* Tab Controls (Login vs Sign Up) */}
+            <div className="flex border border-white/5 p-1 bg-black/50 rounded-2xl">
               <button
                 type="button"
                 onClick={() => {
                   setCustomerAuthTab('login');
                   setCustomerAuthError('');
                   setCustomerAuthSuccess('');
+                  setActiveField(null);
                 }}
-                className={`flex-1 py-2 text-[11px] uppercase font-bold tracking-widest rounded-lg transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 text-[10.5px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer ${
                   customerAuthTab === 'login'
                     ? 'bg-gradient-to-r from-[#d4af37] to-[#ffd700] text-black shadow-md font-black'
                     : 'text-white/50 hover:text-white hover:bg-white/[0.02]'
@@ -2570,264 +2591,148 @@ export default function App() {
                   setCustomerAuthTab('signup');
                   setCustomerAuthError('');
                   setCustomerAuthSuccess('');
+                  setActiveField(null);
                 }}
-                className={`flex-1 py-2 text-[11px] uppercase font-bold tracking-widest rounded-lg transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 text-[10.5px] uppercase font-bold tracking-widest rounded-xl transition-all cursor-pointer ${
                   customerAuthTab === 'signup'
                     ? 'bg-gradient-to-r from-[#d4af37] to-[#ffd700] text-black shadow-md font-black'
                     : 'text-white/50 hover:text-white hover:bg-white/[0.02]'
                 }`}
               >
-                Sign Up
+                Create Account
               </button>
             </div>
 
-            {/* Input fields */}
-            <div className="space-y-3.5 text-left font-display">
+            {/* Subtitle describing the selected tab */}
+            <p className="text-[9.5px] text-white/40 uppercase font-mono tracking-widest text-center">
+              {customerAuthTab === 'login' 
+                ? 'Enter your premium membership details' 
+                : 'Fill the fields below to establish your VIP status'}
+            </p>
+
+            {/* Form Inputs with premium styling */}
+            <div className="space-y-4 text-left">
               {customerAuthTab === 'signup' && (
-                <div>
-                  <label className="block text-[8.5px] uppercase font-black tracking-widest text-[#d4af37] mb-1.5 pl-0.5">Full Legal Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Adnan Risat"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full bg-black/40 text-white text-xs border border-white/10 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-sans hover:border-white/20"
-                  />
+                <div className="space-y-1.5">
+                  <label className="block text-[8px] uppercase font-black tracking-widest text-[#d4af37] pl-0.5">
+                    Full Legal Name <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4af37]/60" />
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="e.g. Adnan Risat"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      onFocus={() => setActiveField('name')}
+                      onBlur={() => setActiveField(null)}
+                      className="w-full bg-black/60 text-white text-xs border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all font-sans hover:border-white/20"
+                    />
+                  </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-[8.5px] uppercase font-black tracking-widest text-[#d4af37] mb-1.5 pl-0.5">Membership Email Reference</label>
-                <input 
-                  type="email" 
-                  required 
-                  placeholder="name@exclusive.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full bg-black/40 text-white text-xs border border-white/10 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-mono hover:border-white/20"
-                />
-              </div>
-
-              {customerAuthTab === 'signup' && (
-                <div>
-                  <label className="block text-[8.5px] uppercase font-black tracking-widest text-[#d4af37] mb-1.5 pl-0.5">WhatsApp Handheld Phone (Optional)</label>
-                  <input 
-                    type="tel" 
-                    placeholder="e.g. 017xxxxxxxx or 88017xxxxxxxx"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full bg-black/40 text-white text-xs border border-white/10 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-mono hover:border-white/20"
-                  />
+              {customerAuthTab === 'login' ? (
+                <div className="space-y-1.5">
+                  <label className="block text-[8px] uppercase font-black tracking-widest text-[#d4af37] pl-0.5">
+                    Membership Email or Phone <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4af37]/60" />
+                    <input 
+                      type="text" 
+                      required 
+                      id="customer-login-identity"
+                      placeholder="name@exclusive.com or 017xxxxxxxx"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      onFocus={() => setActiveField('identity')}
+                      onBlur={() => setActiveField(null)}
+                      className="w-full bg-black/60 text-white text-xs border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all font-sans hover:border-white/20"
+                    />
+                  </div>
                 </div>
-              )}
-
-              <div>
-                <label className="block text-[8.5px] uppercase font-black tracking-widest text-[#d4af37] mb-1.5 pl-0.5">Security Gate Password</label>
-                <input 
-                  type="password" 
-                  required 
-                  placeholder="••••••••"
-                  value={customerPassword}
-                  onChange={(e) => setCustomerPassword(e.target.value)}
-                  className="w-full bg-black/40 text-white text-xs border border-white/10 rounded-xl py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-mono hover:border-white/20"
-                />
-              </div>
-
-
-            </div>
-
-            {/* Error or Success Toast alerts */}
-            {customerAuthError && (
-              <div className="space-y-3">
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10.5px] font-mono leading-relaxed text-left animate-shake">
-                  ⚠️ {customerAuthError}
-                </div>
-                
-                {/* Supabase Database Auth / Rate Limit diagnostics (Bangla + English) */}
-                {customerAuthError && (
-                  <div className="bg-black/80 border border-luxury-gold/40 text-left p-5 rounded-xl text-xs space-y-3 text-white max-h-[260px] overflow-y-auto custom-scrollbar">
-                    <p className="font-bold text-luxury-gold font-serif">🛠️ Supabase VIP সেশন অ্যাসিস্ট্যান্ট</p>
-                    
-                    {customerAuthError.includes("Supabase Database Error") && (
-                      <>
-                        <p className="text-[11px] text-white/80 leading-relaxed font-sans">
-                          আপনার Supabase প্রজেক্টে <code className="bg-white/10 px-1 py-0.5 rounded text-luxury-gold">auth.users</code> থেকে ইউজার ডাটা <code className="bg-white/10 px-1 py-0.5 rounded text-luxury-gold">public.profiles</code> টেবিলে সেভ করার সময় ট্রানজেকশন কলাম বা স্কিমা অমিলের কারণে ডাটাবেজ এররটি ঘটেছে।
-                        </p>
-                        
-                        <p className="font-bold text-[11px] text-luxury-gold">সমাধানের জন্য SQL কোডটি কপি করে আপনার Supabase SQL Editor-এ রান করতে পারেন:</p>
-                        
-                        <div className="relative">
-                          <pre className="bg-luxury-charcoal p-2.5 rounded text-[10px] font-mono text-cyan-300 overflow-x-auto whitespace-pre leading-normal border border-white/5 selection:bg-luxury-gold/30">
-{`CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  name TEXT,
-  email TEXT,
-  phone TEXT,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public select" ON public.profiles;
-CREATE POLICY "Public select" ON public.profiles FOR SELECT USING (true);
-DROP POLICY IF EXISTS "User insert" ON public.profiles;
-CREATE POLICY "User insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-DROP POLICY IF EXISTS "User update" ON public.profiles;
-CREATE POLICY "User update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, name, email, phone)
-  VALUES (
-    new.id,
-    COALESCE(new.raw_user_meta_data->>'name', ''),
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'phone', '')
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();`}
-                          </pre>
-                          
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const sqlText = `CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  name TEXT,
-  email TEXT,
-  phone TEXT,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public select" ON public.profiles;
-CREATE POLICY "Public select" ON public.profiles FOR SELECT USING (true);
-DROP POLICY IF EXISTS "User insert" ON public.profiles;
-CREATE POLICY "User insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-DROP POLICY IF EXISTS "User update" ON public.profiles;
-CREATE POLICY "User update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, name, email, phone)
-  VALUES (
-    new.id,
-    COALESCE(new.raw_user_meta_data->>'name', ''),
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'phone', '')
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();`;
-                              try {
-                                if (navigator.clipboard && navigator.clipboard.writeText) {
-                                  navigator.clipboard.writeText(sqlText);
-                                } else {
-                                  const t = document.createElement("textarea");
-                                  t.value = sqlText;
-                                  t.style.position = "fixed";
-                                  document.body.appendChild(t);
-                                  t.select();
-                                  document.execCommand("copy");
-                                  document.body.removeChild(t);
-                                }
-                              } catch (err) {
-                                console.warn("Fallback query copy ran:", err);
-                              }
-                              setSqlCopied(true);
-                              setTimeout(() => setSqlCopied(false), 2000);
-                            }}
-                            className="absolute right-2 top-2 bg-luxury-gold text-black px-2 py-1 rounded text-[9px] font-mono font-bold hover:scale-105 active:scale-95 transition-all text-center cursor-pointer"
-                          >
-                            {sqlCopied ? 'COPIED! ✅' : 'COPY SQL'}
-                          </button>
-                        </div>
-                      </>
-                    )}
-
-                    {customerAuthError.includes("Supabase Rate Limit Active") && (
-                      <p className="text-[11px] text-white/80 leading-relaxed font-sans">
-                        নিরাপত্তা ও স্প্যাম সুরক্ষার খাতিরে Supabase ক্লাউড অথ সার্ভার একই আইপি থেকে ঘন ঘন রিকোয়েস্ট ব্লক করে। ৬০ সেকেন্ড অপেক্ষা করে পুনরায় চেষ্টা করুন, অথবা নিচের গোল্ডেন বাইপাস বাটনটি দিয়ে <strong>মুহূর্তেই আপনার সেশন সক্রিয় করুন</strong>।
-                      </p>
-                    )}
-
-                    <div className="pt-2 border-t border-white/5 space-y-2">
-                      <p className="text-[10px] text-white/60">
-                        💡 ক্লাউড ডাটাবেজ বা নেটওয়ার্ক রেট লিমিট কোনো বিলম্ব ছাড়াই এখনই বাইপাস করে টেস্ট করার জন্য নিচের <strong>লোকাল মেম্বারশিপ একাউন্ট</strong> সক্রিয় করন বাটন ব্যবহার করুন।
-                      </p>
-                      
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const localCust = {
-                            name: customerName.trim() || 'VIP Lounge Guest',
-                            email: customerEmail.trim() || 'guest@exclusive.com',
-                            password: customerPassword || '1234',
-                            phone: customerPhone?.trim() || ''
-                          };
-                          
-                          let registeredList = [];
-                          try {
-                            const savedList = localStorage.getItem('stylex_registered_customers');
-                            registeredList = savedList ? JSON.parse(savedList) : [];
-                          } catch (e) {}
-
-                          const exists = registeredList.some(
-                            (c: any) => c.email.toLowerCase().trim() === localCust.email.toLowerCase().trim()
-                          );
-                          if (!exists) {
-                            registeredList.push(localCust);
-                            localStorage.setItem('stylex_registered_customers', JSON.stringify(registeredList));
-                          }
-
-                          setCurrentCustomer(localCust);
-                          localStorage.setItem('stylex_current_customer', JSON.stringify(localCust));
-                          setCustomerAuthSuccess('সফল! লোকাল প্রিভিলেজ সেশন শুরু হয়েছে। রিডাইরেক্ট করা হচ্ছে...');
-                          setCustomerAuthError('');
-                          setTimeout(() => {
-                            setShowCustomerAuthModal(false);
-                            setCustomerName('');
-                            setCustomerEmail('');
-                            setCustomerPhone('');
-                            setCustomerPassword('');
-                            setCustomerAuthSuccess('');
-                          }, 1000);
-                        }}
-                        className="w-full bg-[#d4af37]/15 border border-luxury-gold/50 text-[#d4af37] py-2.5 rounded-xl text-[10.5px] font-bold uppercase tracking-wider hover:bg-luxury-gold hover:text-black transition-all cursor-pointer text-center"
-                      >
-                        ⚡ Bypass & Create Local Account (লোকাল সেশন চালু করুন)
-                      </button>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] uppercase font-black tracking-widest text-[#d4af37] pl-0.5">
+                      WhatsApp Mobile Number <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Smartphone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4af37]/60" />
+                      <input 
+                        type="tel" 
+                        required
+                        id="customer-signup-phone"
+                        placeholder="e.g. 017xxxxxxxx or 88017xxxxxxxx"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        onFocus={() => setActiveField('phone')}
+                        onBlur={() => setActiveField(null)}
+                        className="w-full bg-black/60 text-white text-xs border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all font-mono hover:border-white/20"
+                      />
                     </div>
                   </div>
-                )}
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] uppercase font-black tracking-widest text-white/40 pl-0.5">
+                      Membership Email (Optional)
+                    </label>
+                    <div className="relative">
+                      <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4af37]/60" />
+                      <input 
+                        type="email" 
+                        id="customer-signup-email"
+                        placeholder="name@exclusive.com"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        onFocus={() => setActiveField('email')}
+                        onBlur={() => setActiveField(null)}
+                        className="w-full bg-black/60 text-white text-xs border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all font-mono hover:border-white/20"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-[8px] uppercase font-black tracking-widest text-[#d4af37] pl-0.5">
+                  Security Gate Password <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#d4af37]/60" />
+                  <input 
+                    type="password" 
+                    required 
+                    placeholder="••••••••"
+                    value={customerPassword}
+                    onChange={(e) => setCustomerPassword(e.target.value)}
+                    onFocus={() => setActiveField('password')}
+                    onBlur={() => setActiveField(null)}
+                    className="w-full bg-black/60 text-white text-xs border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all font-mono hover:border-white/20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Error or Success alerts */}
+            {customerAuthError && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-2xl text-[10px] font-mono leading-relaxed text-left animate-shake">
+                ⚠️ {customerAuthError}
               </div>
             )}
 
             {customerAuthSuccess && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-[10.5px] font-mono leading-relaxed text-left">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-2xl text-[10px] font-mono leading-relaxed text-left animate-pulse">
                 ✨ {customerAuthSuccess}
               </div>
             )}
 
-            {/* Submit Action Block */}
+            {/* Action Submit button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-luxury-gold to-[#ffd700] hover:from-[#ffd700] hover:to-amber-300 text-black font-display font-black text-xs uppercase tracking-widest py-3.5 rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-[1.01] active:scale-95 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer"
+              className="w-full bg-gradient-to-r from-luxury-gold to-[#ffd700] hover:from-[#ffd700] hover:to-amber-300 text-black font-display font-black text-xs uppercase tracking-widest py-4 rounded-xl hover:shadow-[0_0_25px_rgba(212,175,55,0.45)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer mt-4"
             >
               {customerAuthTab === 'login' ? 'CLAIM PRIVILEGE SESSION' : 'ESTABLISH VIP MEMBERSHIP'}
             </button>
@@ -2950,11 +2855,15 @@ CREATE TRIGGER on_auth_user_created
         activeCoupons={coupons}
         products={products}
         settings={settings}
-        onCheckoutSuccess={(id, url, paymentInfo) => {
+        onCheckoutSuccess={(id, url, paymentInfo, skipModal = false) => {
           setIsCartOpen(false);
-          setConfirmedOrderId(id);
-          setConfirmedWhatsAppUrl(url);
-          setConfirmedOrderPayment(paymentInfo || 'CASH ON DELIVERY (COD)');
+          if (!skipModal) {
+            setConfirmedOrderId(id);
+            setConfirmedWhatsAppUrl(url);
+            setConfirmedOrderPayment(paymentInfo || 'CASH ON DELIVERY (COD)');
+          } else {
+            setCart([]);
+          }
           setActiveTrackId(id);
           loadStoreCollections(); // Refresh stock units logs on checkout success!
           loadOrders(); // Refresh public order ticker instantly!

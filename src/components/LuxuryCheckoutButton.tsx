@@ -350,7 +350,26 @@ export default function LuxuryCheckoutButton({
           transform-style: preserve-3d;
           backface-visibility: hidden;
           will-change: transform, box-shadow, border-color;
-          transition: border-color 0.8s cubic-bezier(0.1, 0.9, 0.1, 1), box-shadow 0.8s cubic-bezier(0.1, 0.9, 0.1, 1);
+          transition: border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
+          border-color: rgba(234, 208, 128, 0.85);
+          box-shadow: 
+              0 25px 50px rgba(0, 0, 0, 0.95), 
+              0 0 35px rgba(234, 208, 128, 0.4),
+              inset 0 2px 4px rgba(255, 240, 208, 0.35),
+              inset 0 -2px 4px rgba(0, 0, 0, 0.95);
+        }
+
+        .luxury-btn:active {
+          border-color: rgba(212, 175, 55, 1);
+          box-shadow: 
+              0 15px 30px rgba(0, 0, 0, 0.95), 
+              0 0 45px rgba(212, 175, 55, 0.65),
+              inset 0 2px 4px rgba(255, 240, 208, 0.5),
+              inset 0 -2px 4px rgba(0, 0, 0, 0.95);
+          transform: scale(0.985);
         }
 
         @media (max-width: 480px) {
@@ -418,8 +437,16 @@ export default function LuxuryCheckoutButton({
         }
 
         @keyframes absolute-luxury-cycle {
-          0%, 100% { transform: translateZ(0) scale(1); box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95), 0 0 30px rgba(192, 132, 252, 0.15); border-color: rgba(192, 132, 252, 0.3); }
-          50% { transform: translateZ(12px) scale(1.008); box-shadow: 0 25px 55px rgba(0, 0, 0, 1), 0 0 55px rgba(233, 213, 255, 0.4); border-color: rgba(234, 208, 128, 0.5); }
+          0%, 100% { 
+            transform: translateZ(0) scale(1); 
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95), 0 0 30px rgba(192, 132, 252, 0.15); 
+            border-color: rgba(192, 132, 252, 0.3); 
+          }
+          50% { 
+            transform: translateZ(12px) scale(1.008); 
+            box-shadow: 0 25px 55px rgba(0, 0, 0, 1), 0 0 55px rgba(234, 208, 128, 0.55); 
+            border-color: rgba(234, 208, 128, 0.7); 
+          }
         }
 
         .lens-sapphire {

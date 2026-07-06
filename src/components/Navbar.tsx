@@ -110,7 +110,7 @@ export default function Navbar({
             <button
               onClick={customer ? () => setShowPortalMenu(!showPortalMenu) : onCustomerAuthClick}
               className="text-[#d4af37] p-2 relative bg-luxury-charcoal/50 border border-[#d4af37]/20 rounded-lg cursor-pointer hover:border-[#d4af37] transition-all hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] active:scale-95 duration-200"
-              title={customer ? "My Profile" : "Log In / Sign Up"}
+              title={customer ? "My Profile" : "Log In / Create Account"}
             >
               <User size={18} className={customer ? "text-emerald-400" : "text-[#d4af37]"} />
             </button>
@@ -341,7 +341,7 @@ export default function Navbar({
                   className="flex items-center gap-2 bg-[#090212] border border-[#d4af37]/40 hover:border-[#d4af37] px-5 py-2 rounded-full text-[10px] font-display uppercase tracking-[0.18em] text-white hover:text-[#ffd700] hover:shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:scale-[1.02] active:scale-95 transition-all duration-300 relative overflow-hidden luxury-reflection cursor-pointer font-black"
                 >
                   <LogIn size={12} className="text-[#d4af37]" />
-                  <span>Log In / Sign Up</span>
+                  <span>Log In / Create Account</span>
                 </button>
               )}
             </div>

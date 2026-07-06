@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, Tag, ChevronDown, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
+import { 
+  X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, 
+  Tag, ChevronDown, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare 
+} from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity } from '../utils';
 import { getValidatedTotal, getProductActivePrice, getAdvancePaymentAmount } from '../utils/totalHelper';
@@ -30,11 +34,75 @@ interface CartDrawerProps {
     globalPaymentMethod?: string;
     globalDeliveryDays?: string;
   };
-  onCheckoutSuccess: (orderId: string, whatsappUrl: string, paymentInfo?: string) => void;
+  onCheckoutSuccess: (orderId: string, whatsappUrl: string, paymentInfo?: string, skipModal?: boolean) => void;
   initialShowCheckout?: boolean;
   customer?: Customer | null;
   isLoading?: boolean;
   onRequireLogin?: () => void;
+}
+
+// High performance inline Canvas Confetti component
+function CanvasConfetti() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const container = canvas.parentElement;
+    canvas.width = container?.clientWidth || 500;
+    canvas.height = container?.clientHeight || 600;
+
+    const colors = ['#d4af37', '#aa8323', '#c084fc', '#e9d5ff', '#9333ea', '#fcd34d', '#10b981'];
+    const particles = Array.from({ length: 80 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -100 - 20,
+      size: Math.random() * 6 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speedX: (Math.random() - 0.5) * 3,
+      speedY: Math.random() * 2.5 + 1.5,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 4,
+    }));
+
+    let animId: number;
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let active = false;
+
+      particles.forEach((p) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotationSpeed;
+
+        if (p.y < canvas.height) {
+          active = true;
+        } else {
+          // loop back top optionally for continuous elegance
+          p.y = -20;
+          p.x = Math.random() * canvas.width;
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      });
+
+      if (active) {
+        animId = requestAnimationFrame(draw);
+      }
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-10 w-full h-full" />;
 }
 
 export default function CartDrawer({
@@ -53,121 +121,117 @@ export default function CartDrawer({
   isLoading = false,
   onRequireLogin
 }: CartDrawerProps) {
-  // Coupon State
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
+  // Navigation & Step State: 'cart' (bag) | 'step1' (info form) | 'step2' (premium verification/checkout) | 'success' (success window)
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'step1' | 'step2' | 'success'>('cart');
+  const [isTransitioningStep, setIsTransitioningStep] = useState(false);
 
-  // Checkout Form State
-  const [showCheckoutForm, setShowCheckoutForm] = useState(initialShowCheckout);
+  // Form Fields
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerCity, setCustomerCity] = useState('Dhaka');
   const [customerDistrict, setCustomerDistrict] = useState('Dhaka');
-  const [customerArea, setCustomerArea] = useState('');
-  const [customerNotes, setCustomerNotes] = useState('');
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [showLocalSuccessToast, setShowLocalSuccessToast] = useState(false);
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
 
-  // Payment integration state
-  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad'>(() => {
-    return settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash';
-  });
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  const [showCouponSuccessAnimation, setShowCouponSuccessAnimation] = useState(false);
 
-  useEffect(() => {
-    if (settings?.globalPaymentSystem === 'always_nagad') {
-      setPaymentMethod('nagad');
-    } else if (settings?.globalPaymentSystem === 'always_bkash') {
-      setPaymentMethod('bkash');
-    }
-  }, [settings?.globalPaymentSystem]);
-
+  // Payment State
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bkash' | 'nagad'>('cod');
   const [transactionId, setTransactionId] = useState('');
   const [transactionError, setTransactionError] = useState('');
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [screenshotBase64, setScreenshotBase64] = useState<string | null>(null);
-  const [usedTransactionIds, setUsedTransactionIds] = useState<string[]>(() => {
+  const [usedTransactionIds, setUsedTransactionIds] = useState<string[]>([]);
+
+  // Checkout submission states
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  // Placement data
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedWhatsAppUrl, setPlacedWhatsAppUrl] = useState('');
+  const [placedPaymentLabel, setPlacedPaymentLabel] = useState('');
+  const [placedDeliveryDate, setPlacedDeliveryDate] = useState('');
+
+  // Ripple Click state
+  const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
+  const rippleCount = useRef(0);
+
+  // Input Focus Refs
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const citySelectRef = useRef<HTMLSelectElement>(null);
+  const addressTextRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load saved progress from localStorage on mount
+  useEffect(() => {
     try {
-      return JSON.parse(sessionStorage.getItem('stylex_used_txids') || '[]');
-    } catch {
-      return [];
-    }
-  });
+      const savedName = localStorage.getItem('stylex_checkout_name');
+      const savedPhone = localStorage.getItem('stylex_checkout_phone');
+      const savedAddress = localStorage.getItem('stylex_checkout_address');
+      const savedCity = localStorage.getItem('stylex_checkout_city');
+      const savedUsedTx = sessionStorage.getItem('stylex_used_txids');
 
-  const validateTransactionId = (txId: string) => {
-    if (!txId) {
-      return 'অনলাইন ভেরিফিকেশনের জন্য ট্রানজেকশন আইডি (TrxID) আবশ্যিক।';
+      if (savedName) setCustomerName(savedName);
+      if (savedPhone) setCustomerPhone(savedPhone);
+      if (savedAddress) setCustomerAddress(savedAddress);
+      if (savedCity) setCustomerCity(savedCity);
+      if (savedUsedTx) setUsedTransactionIds(JSON.parse(savedUsedTx));
+    } catch (e) {
+      console.warn('Error reading storage progress: ', e);
     }
-    const cleanId = txId.trim();
-    if (cleanId.length < 8) {
-      return 'ট্রানজেকশন আইডি অবশ্যই কমপক্ষে ৮ অক্ষরের হতে হবে।';
-    }
-    if (cleanId.length > 30) {
-      return 'ট্রানজেকশন আইডি ৩০ অক্ষরের বেশি হতে পারবে না।';
-    }
-    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
-    if (!alphanumericRegex.test(cleanId)) {
-      return 'ট্রানজেকশন আইডি শুধুমাত্র ইংরেজি অক্ষর এবং সংখ্যা হতে হবে (কোনো স্পেস বা বিশেষ চিহ্ন ছাড়া)।';
-    }
-    if (usedTransactionIds.includes(cleanId.toUpperCase())) {
-      return 'এই ট্রানজেকশন আইডিটি এই সেশনে ইতিমধ্যেই ব্যবহার করা হয়েছে।';
-    }
-    return '';
-  };
+  }, []);
 
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotPreview(reader.result as string);
-        setScreenshotBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Save progress dynamically
+  useEffect(() => { localStorage.setItem('stylex_checkout_name', customerName); }, [customerName]);
+  useEffect(() => { localStorage.setItem('stylex_checkout_phone', customerPhone); }, [customerPhone]);
+  useEffect(() => { localStorage.setItem('stylex_checkout_address', customerAddress); }, [customerAddress]);
+  useEffect(() => { localStorage.setItem('stylex_checkout_city', customerCity); setCustomerDistrict(customerCity); }, [customerCity]);
 
-  // Auto pre-fill vip credentials
+  // Synchronize when customer logs in
   useEffect(() => {
     if (customer && isOpen) {
-      setCustomerName(customer.name);
-      if (customer.phone) {
-        setCustomerPhone(customer.phone);
-      }
+      setCustomerName(customer.name || '');
+      if (customer.phone) setCustomerPhone(customer.phone);
     }
   }, [customer, isOpen]);
 
-  useEffect(() => {
-    setCustomerDistrict(customerCity);
-  }, [customerCity]);
-
+  // Sync step state when drawer opens
   useEffect(() => {
     if (isOpen) {
-      setShowCheckoutForm(initialShowCheckout);
+      setCheckoutStep(initialShowCheckout ? 'step1' : 'cart');
+      setErrorMessage('');
     }
   }, [isOpen, initialShowCheckout]);
 
-  // Compute values
+  // Auto-focus next field in Step 1
+  useEffect(() => {
+    if (isOpen && checkoutStep === 'step1') {
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [checkoutStep, isOpen]);
+
+  // Pricing calculations
   const itemsTotal = cartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
-  
   let discountAmount = 0;
   let couponDetailsNote = "";
   const lotteryPrefix = (settings?.lotteryCouponPrefix || 'RISAT').trim().toUpperCase();
 
   if (appliedCoupon) {
     if (appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
-      // Lottery coupon - applies only to items where lotteryEligible is true
       const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
         return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
       }, 0);
       discountAmount = Math.round((lotteryEligibleTotal * appliedCoupon.value) / 100);
       couponDetailsNote = `(-${appliedCoupon.value}% on eligible items)`;
     } else {
-      // Find if we have a matching product-specific coupon active in the store
       const specificProd = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === appliedCoupon.code.toUpperCase());
       if (specificProd) {
         const matchingCartItems = cartItems.filter(item => item.product.id === specificProd.id);
@@ -176,7 +240,6 @@ export default function CartDrawer({
         discountAmount = Math.round((specificTotal * discountVal) / 100);
         couponDetailsNote = `(-${discountVal}% on ${specificProd.title})`;
       } else {
-        // Global coupon
         if (appliedCoupon.type === 'PERCENTAGE') {
           discountAmount = Math.round((itemsTotal * appliedCoupon.value) / 100);
         } else {
@@ -186,13 +249,12 @@ export default function CartDrawer({
     }
   }
 
-  // Delivery charge - calculated dynamically from custom product attributes resolved via 8-division mapping
+  // Delivery Charge calculation based on Division mapping
   const shippingDivision = getDivisionForCity(customerCity);
   const deliveryCharge = cartItems.length === 0
     ? (shippingDivision === "Dhaka" ? 100 : 150)
     : cartItems.reduce((max, item) => {
-        let customPrice = 150; // default for country/outside
-        
+        let customPrice = 150;
         switch (shippingDivision) {
           case "Dhaka":
             customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 100;
@@ -222,29 +284,23 @@ export default function CartDrawer({
             customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 150;
             break;
         }
-        
         return customPrice > max ? customPrice : max;
       }, 0);
 
-  // Resolve governing product settings (prefer any product that requires advance payment)
   const governingProduct = cartItems.find(item => item.product.paymentType && item.product.paymentType !== 'cod')?.product || cartItems[0]?.product;
-  
-  // Apply Global Payment Method Overrides
   let paymentType = governingProduct?.paymentType || 'cod';
   if (settings?.globalPaymentMethod === 'cod_only') {
     paymentType = 'cod';
   } else if (settings?.globalPaymentMethod === 'prepay_only') {
-    if (paymentType === 'cod') {
-      paymentType = 'full_advance';
-    }
+    if (paymentType === 'cod') paymentType = 'full_advance';
   }
 
   const bkashNumber = governingProduct?.bkashNumber || '';
   const nagadNumber = governingProduct?.nagadNumber || '';
-  
+
   const isDeliveryEnabled = governingProduct?.deliveryCharge !== undefined && governingProduct?.deliveryCharge !== null
     ? governingProduct.deliveryCharge > 0
-    : true; // Default to enabled if not explicitly specified
+    : true;
 
   const resolvedDeliveryCharge = isDeliveryEnabled
     ? (governingProduct?.deliveryCharge !== undefined && governingProduct.deliveryCharge > 0
@@ -255,7 +311,43 @@ export default function CartDrawer({
   const grandTotal = getValidatedTotal(cartItems, resolvedDeliveryCharge, discountAmount);
   const advancePaymentAmount = getAdvancePaymentAmount(paymentType, resolvedDeliveryCharge, grandTotal);
 
-  // Validate and Apply Coupon
+  // Set initial payment method when paymentType overrides change
+  useEffect(() => {
+    if (paymentType === 'cod') {
+      setPaymentMethod('cod');
+    } else {
+      setPaymentMethod(settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash');
+    }
+  }, [paymentType, settings?.globalPaymentSystem]);
+
+  // Date generators
+  const getEstimatedDeliveryDate = () => {
+    const today = new Date();
+    const deliveryMin = new Date(today);
+    deliveryMin.setDate(today.getDate() + (shippingDivision === 'Dhaka' ? 1 : 2));
+    const deliveryMax = new Date(today);
+    deliveryMax.setDate(today.getDate() + (shippingDivision === 'Dhaka' ? 2 : 4));
+
+    const options: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+    return `${deliveryMin.toLocaleDateString('en-US', options)} to ${deliveryMax.toLocaleDateString('en-US', options)}`;
+  };
+
+  // Real-time Validations
+  const isNameValid = customerName.trim().length >= 3;
+  const isPhoneValid = /^01[3-9]\d{8}$/.test(customerPhone.trim().replace(/[^0-9]/g, ''));
+  const isAddressValid = customerAddress.trim().length >= 8;
+  const isStep1Valid = isNameValid && isPhoneValid && isAddressValid;
+
+  const validateTransactionId = (txId: string) => {
+    if (!txId) return 'Transaction ID is required for verification.';
+    const cleanId = txId.trim();
+    if (cleanId.length < 8) return 'Must be at least 8 alphanumeric characters.';
+    if (cleanId.length > 25) return 'Cannot exceed 25 characters.';
+    if (!/^[a-zA-Z0-9]+$/.test(cleanId)) return 'Alphanumeric letters and numbers only.';
+    if (usedTransactionIds.includes(cleanId.toUpperCase())) return 'This transaction ID has already been used.';
+    return '';
+  };
+
   const handleApplyCoupon = (overrideCode?: string) => {
     setCouponError('');
     setCouponSuccess('');
@@ -268,11 +360,9 @@ export default function CartDrawer({
     }
 
     let matched = activeCoupons.find(c => c.code === codeUpper && c.active);
-    
-    // Dynamic support for lottery codes (one-time lottery offer)
     if (!matched && codeUpper.startsWith(lotteryPrefix)) {
       if (localStorage.getItem('has_used_lottery_code') === 'true') {
-        setCouponError('YOU HAVE ALREADY USED THIS ONE-TIME EXCLUSIVE LOTTERY VOUCHER');
+        setCouponError('YOU HAVE ALREADY REDEEMED THIS EXCLUSIVE VOUCHER');
         setAppliedCoupon(null);
         return;
       }
@@ -280,13 +370,12 @@ export default function CartDrawer({
       const pctStr = codeUpper.replace(lotteryPrefix, '');
       const pctVal = Number(pctStr);
       if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
-        // Enforce that at least one product in the shopping bag is lottery-eligible
         const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
           return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
         }, 0);
 
         if (lotteryEligibleTotal === 0) {
-          setCouponError('NONE OF THE PRODUCTS IN YOUR SHOPPING BAG ARE ELIGIBLE FOR DISCOUNTS WITH THIS WHEEL CODE');
+          setCouponError('NO ITEMS IN SHOPPING BAG ARE ELIGIBLE FOR DISCOUNTS WITH THIS CODE');
           setAppliedCoupon(null);
           return;
         }
@@ -301,88 +390,57 @@ export default function CartDrawer({
       }
     }
 
-    // Dynamic support for single product custom coupon code configurations
-    if (!matched) {
-      const matchProductCoupon = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === codeUpper);
-      if (matchProductCoupon) {
-        const isInCart = cartItems.some(i => i.product.id === matchProductCoupon.id);
-        if (!isInCart) {
-          setCouponError(`THIS COUPON (${codeUpper}) CAN ONLY BE USED FOR "${matchProductCoupon.title.toUpperCase()}". ADD IT TO YOUR SHOPPING BAG FIRST!`);
-          setAppliedCoupon(null);
-          return;
-        }
-
-        matched = {
-          id: `product-coupon-${matchProductCoupon.id}`,
-          code: codeUpper,
-          type: 'PERCENTAGE',
-          value: matchProductCoupon.couponDiscountPercent || 15,
-          active: true
-        } as any;
-      }
-    }
-
     if (matched) {
-      if (matched.maxUses !== undefined && matched.maxUses > 0) {
-        const used = matched.usedCount || 0;
-        if (used >= matched.maxUses) {
-          setCouponError(`THIS VIP CODE HAS REACHED ITS MAXIMUM USAGE LIMIT (${matched.maxUses} USES)`);
-          setAppliedCoupon(null);
-          return;
-        }
-      }
       setAppliedCoupon(matched);
-      setCouponSuccess(`EXCLUSIVE CODE APPLIED (-${matched.type === 'PERCENTAGE' ? matched.value + '%' : '৳' + matched.value})`);
+      setCouponSuccess(`MEMBERSHIP VOUCHER VALIDATED: -${matched.type === 'PERCENTAGE' ? matched.value + '%' : '৳' + matched.value}`);
+      setShowCouponSuccessAnimation(true);
+      setTimeout(() => setShowCouponSuccessAnimation(false), 2500);
     } else {
-      setCouponError('INVALID OR EXPIRED VIP CODE');
+      setCouponError('INVALID OR EXPIRED EXCLUSIVE CODE');
       setAppliedCoupon(null);
     }
   };
 
-  // Submit Order Details
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotPreview(reader.result as string);
+        setScreenshotBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Keyboard Navigation Helpers
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<any>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nextRef.current?.focus();
+    }
+  };
+
+  // Step 1 to Step 2 Transition
+  const handleContinueToCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-
-    if (cartItems.length === 0) {
-      setErrorMessage('YOUR SHOPPING BAG IS CURRENTLY EMPTY');
+    if (!isStep1Valid) {
+      setErrorMessage('Please ensure all required customer fields are valid.');
       return;
     }
-
-    if (!customerName || !customerPhone || !customerAddress) {
-      setErrorMessage('PLEASE PROVIDE ALL REQUIRED DELIVERIES FIELDS');
-      return;
-    }
-
-    // Basic BD Phone validation: should contain numbers
-    if (customerPhone.replace(/[^0-9]/g, '').length < 8) {
-      setErrorMessage('PLEASE ENTER A VALID PHONE / MOBILE NUMBER');
-      return;
-    }
-
-    let resolvedPaidAmount = 0;
-    if (paymentType !== 'cod') {
-      const txError = validateTransactionId(transactionId);
-      if (txError) {
-        setErrorMessage(txError);
-        return;
-      }
-      resolvedPaidAmount = advancePaymentAmount;
-    }
-
-    setIsCheckingOut(true);
+    setIsTransitioningStep(true);
 
     try {
-      const startTime = Date.now();
-      const dbFormatItems = cartItems.map(item => ({
-        productId: item.product.id,
+      const formattedItems = cartItems.map(item => ({
         title: item.product.title,
-        price: getProductActivePrice(item.product),
         selectedSize: item.selectedSize,
-        quantity: item.quantity
+        quantity: item.quantity,
+        price: getProductActivePrice(item.product)
       }));
 
-      const res = await fetch('/api/orders', {
+      // Fire off the Step 1 notification to the server so it dispatches the email
+      fetch('/api/checkout-step1-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -391,948 +449,933 @@ export default function CartDrawer({
           customerAddress,
           customerCity,
           customerDistrict,
-          customerArea,
-          customerNotes,
+          customerEmail: customer?.email || 'guest@example.com',
+          items: formattedItems,
+          estimatedTotal: itemsTotal - discountAmount
+        })
+      }).catch(err => {
+        console.warn('Silent warning: Step 1 notify failed to send:', err);
+      });
+    } catch (err) {
+      console.warn('Silent warning: Error preparing Step 1 notification:', err);
+    }
+
+    setTimeout(() => {
+      setIsTransitioningStep(false);
+      setCheckoutStep('step2');
+    }, 3800);
+  };
+
+  // Mouse absolute ripple builder
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = rippleCount.current++;
+    setRipples(prev => [...prev, { x, y, id }]);
+    setTimeout(() => {
+      setRipples(prev => prev.filter(r => r.id !== id));
+    }, 600);
+  };
+
+  // Step 2 Submission (Final Place Order)
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (paymentMethod !== 'cod') {
+      const txErr = validateTransactionId(transactionId);
+      if (txErr) {
+        setErrorMessage(txErr);
+        return;
+      }
+    }
+
+    setIsCheckingOut(true);
+
+    try {
+      const dbFormatItems = cartItems.map(item => ({
+        productId: item.product.id,
+        title: item.product.title,
+        price: getProductActivePrice(item.product),
+        selectedSize: item.selectedSize,
+        quantity: item.quantity
+      }));
+
+      // Initiate both the API call and the checkout button's 3.6s driving animation delay in parallel
+      const apiPromise = fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName,
+          customerPhone,
+          customerAddress,
+          customerCity,
+          customerDistrict,
+          customerArea: '',
+          customerNotes: '',
           customerEmail: customer?.email,
           userId: customer?.id,
           items: dbFormatItems,
           totalAmount: grandTotal,
           couponCode: appliedCoupon ? appliedCoupon.code : undefined,
           paymentType,
-          paymentMethod: paymentType === 'cod' ? 'COD' : paymentMethod,
-          paidAmount: resolvedPaidAmount,
-          transactionId: paymentType === 'cod' ? '' : transactionId.trim().toUpperCase(),
+          paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod.toUpperCase(),
+          paidAmount: paymentMethod === 'cod' ? 0 : advancePaymentAmount,
+          transactionId: paymentMethod === 'cod' ? '' : transactionId.trim().toUpperCase(),
           paymentScreenshot: screenshotBase64 || undefined
         })
       });
 
+      const animationDelayPromise = new Promise(resolve => setTimeout(resolve, 3800));
+
+      // Wait for both the API response to return and the delivery truck to complete its full road trip across the runway
+      const [res] = await Promise.all([apiPromise, animationDelayPromise]);
+
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'ORDER CREATION FAILED');
+        throw new Error(data.message || 'COULD NOT REGISTER DISPATCH');
       }
 
-      // Record transaction ID in session to prevent duplicates
-      if (paymentType !== 'cod' && transactionId) {
-        const txUpper = transactionId.trim().toUpperCase();
-        const updatedTxIds = [...usedTransactionIds, txUpper];
+      // Record transaction
+      if (paymentMethod !== 'cod' && transactionId) {
+        const updatedTxIds = [...usedTransactionIds, transactionId.trim().toUpperCase()];
         setUsedTransactionIds(updatedTxIds);
         try {
           sessionStorage.setItem('stylex_used_txids', JSON.stringify(updatedTxIds));
-        } catch (storageErr) {
-          console.warn('Session storage write error: ', storageErr);
-        }
+        } catch {}
       }
 
-      // Success
-      if (appliedCoupon && appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
+      // Clear local promo details
+      if (appliedCoupon?.code.toUpperCase().startsWith(lotteryPrefix)) {
         localStorage.setItem('has_used_lottery_code', 'true');
       }
-      setAppliedCoupon(null);
-      setCouponCode('');
-      setTransactionId('');
-      setScreenshotPreview(null);
-      setScreenshotBase64(null);
+
+      setPlacedOrderId(data.order.id);
+      setPlacedWhatsAppUrl(data.whatsappUrl);
       
-      // Store guest checkout details in localStorage so notifications can match them for status updates
+      const pLabel = paymentMethod === 'cod' 
+        ? 'Cash on Delivery (COD)' 
+        : `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : 'Full Advance'} (${paymentMethod.toUpperCase()})`;
+      setPlacedPaymentLabel(pLabel);
+      setPlacedDeliveryDate(getEstimatedDeliveryDate());
+
+      // Save phone and tracking context
       try {
         const prevOrderIds = JSON.parse(localStorage.getItem('stylex_placed_order_ids') || '[]');
         if (!prevOrderIds.includes(data.order.id)) {
           prevOrderIds.push(data.order.id);
           localStorage.setItem('stylex_placed_order_ids', JSON.stringify(prevOrderIds));
         }
-        if (customerPhone) {
-          localStorage.setItem('stylex_guest_phone', customerPhone);
-        }
-        if (customer?.email) {
-          localStorage.setItem('stylex_guest_email', customer.email);
-        }
-        // Instantly reload app notifications
-        if (typeof (window as any).refreshAppNotifications === 'function') {
-          (window as any).refreshAppNotifications();
-        }
-      } catch (err) {
-        console.warn('Error saving guest order context: ', err);
-      }
+        localStorage.setItem('stylex_guest_phone', customerPhone);
+      } catch {}
 
-      // Set order id locally so we can show it in our gorgeous notification toast
-      setPlacedOrderId(data.order.id);
-
-      // Transition the button to success and show the local notification toast exactly after 3.6s
-      const elapsedTime = Date.now() - startTime;
-      
-      setTimeout(() => {
-        setShowLocalSuccessToast(true);
-      }, Math.max(0, 3600 - elapsedTime));
-
-      // Wait a total of 8.0 seconds to let the user enjoy the success animation and read the VIP alert
-      const totalDelay = 8000;
-      const remainingTime = Math.max(0, totalDelay - elapsedTime);
-
-      setTimeout(() => {
-        let paymentLabel = 'Cash on Delivery (COD)';
-        if (paymentType !== 'cod') {
-          paymentLabel = `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : 'Full Advance Payment'} (${paymentMethod === 'bkash' ? 'bKash' : 'Nagad'})`;
-        }
-        onCheckoutSuccess(data.order.id, data.whatsappUrl, paymentLabel);
-        setIsCheckingOut(false);
-        // Reset local notifications state for subsequent checkouts
-        setShowLocalSuccessToast(false);
-        setPlacedOrderId(null);
-      }, remainingTime);
+      // Open Success Step inside Drawer
+      setCheckoutStep('success');
 
     } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected database error occurred');
+      setErrorMessage(err.message || 'A database network anomaly occurred. Try again.');
+    } finally {
       setIsCheckingOut(false);
     }
   };
 
+  const finalizePurchase = (url?: string) => {
+    // Call background success callbacks to trigger state reloading, but skip App.tsx's redundant popups
+    onCheckoutSuccess(placedOrderId || 'N/A', url || placedWhatsAppUrl || '', placedPaymentLabel, true);
+    setCheckoutStep('cart');
+    onClose();
+  };
+
+  // Custom premium keyframe style tags
+  const inlineStyles = (
+    <style>{`
+      @keyframes ripple-anim {
+        0% { transform: scale(0.4); opacity: 1; }
+        100% { transform: scale(8); opacity: 0; }
+      }
+      .btn-ripple {
+        animation: ripple-anim 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+      }
+      .luxury-glass-input {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .luxury-glass-input:focus {
+        border-color: #d4af37;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+      }
+      .luxury-purple-gold-btn {
+        background: linear-gradient(135deg, #7b2cbf 0%, #aa8323 100%);
+        box-shadow: 0 0 20px rgba(123, 44, 191, 0.3), 0 0 40px rgba(170, 131, 35, 0.15);
+        transition: all 0.3s ease;
+      }
+      .luxury-purple-gold-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 0 25px rgba(123, 44, 191, 0.5), 0 0 50px rgba(170, 131, 35, 0.3);
+      }
+      .scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hidden {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    `}</style>
+  );
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${showCheckoutForm ? 'items-center justify-center p-3 sm:p-6' : 'justify-end'}`}>
-          {/* Absolute dim backdrop */}
+        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-0 sm:p-6' : 'justify-end'}`}>
+          {inlineStyles}
+          {/* Dimmed glass background */}
           <motion.div 
-            onClick={onClose}
+            onClick={checkoutStep === 'success' ? undefined : onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-luxury-black/95 backdrop-blur-md cursor-pointer"
-          ></motion.div>
+            className="absolute inset-0 bg-black/90 backdrop-blur-md cursor-pointer"
+          />
 
-          {/* Cart Drawer Panel */}
+          {/* Premium Drawer/Modal Panel */}
           <motion.div 
-            key={showCheckoutForm ? 'checkout-form-panel' : 'cart-items-panel'}
-            initial={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
-            animate={showCheckoutForm ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
-            exit={showCheckoutForm ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
-            transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className={`relative w-full bg-gradient-to-b from-[#0f0420] via-[#080211] to-[#040108] border flex flex-col shadow-2xl z-10 overflow-hidden ${
-              showCheckoutForm 
-                ? 'max-w-2xl border border-luxury-gold/30 rounded-2xl h-[92vh] max-h-[92vh] sm:h-[88vh] sm:max-h-[88vh] shadow-[0_0_60px_rgba(212,175,55,0.25)] mx-auto' 
-                : 'max-w-lg border-l border-luxury-gold/15 h-full'
+            key={checkoutStep}
+            initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            animate={checkoutStep !== 'cart' ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
+            exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className={`relative w-full bg-[#05010a]/95 border flex flex-col shadow-2xl z-10 overflow-hidden ${
+              checkoutStep !== 'cart'
+                ? 'max-w-2xl border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[88vh] max-h-full sm:max-h-[88vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
+                : 'max-w-lg border-l border-white/5 h-full'
             }`}
           >
-        
-        {/* Header Title */}
-        <div className="flex items-center justify-between border-b border-white/5 p-5">
-          <div className="flex items-center gap-2">
-            <ShoppingBag size={18} className="text-luxury-gold animate-pulse" />
-            <h3 className="font-serif text-sm sm:text-base md:text-lg font-bold tracking-widest uppercase text-white">
-              {showCheckoutForm ? "⚜️ SECURE DISPATCH CHECKOUT" : "Your Selection"}
-            </h3>
-            {!showCheckoutForm && (
-              <span className="text-xs text-white/40 font-mono bg-luxury-charcoal/80 px-2 py-0.5 rounded">
-                {cartItems.length}
-              </span>
-            )}
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-white/60 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer"
-            title="Close Drawer"
-          >
-            <X size={18} />
-          </button>
-        </div>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5 relative shrink-0">
+              <div className="flex items-center gap-2">
+                <ShoppingBag size={18} className="text-luxury-gold animate-pulse" />
+                <h3 className="font-serif text-xs sm:text-sm font-black tracking-widest uppercase text-white">
+                  {checkoutStep === 'cart' && "Your Selection"}
+                  {checkoutStep === 'step1' && "⚜️ STEP 1: VIP INFORMATION"}
+                  {checkoutStep === 'step2' && "⚜️ STEP 2: PREMIUM CHECKOUT"}
+                  {checkoutStep === 'success' && "⚜️ ORDER COMPLETED SUCCESSFULLY"}
+                </h3>
+              </div>
+              {checkoutStep !== 'success' && (
+                <button 
+                  onClick={onClose}
+                  className="text-white/40 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/5 border border-transparent hover:border-white/10"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
 
-        {isLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="relative w-16 h-16 flex items-center justify-center mb-4">
-              <div className="absolute inset-0 border-2 border-luxury-gold/10 rounded-full" />
-              <div className="absolute inset-0 border-2 border-t-luxury-gold border-r-luxury-gold rounded-full animate-spin" />
-              <ShoppingBag size={20} className="text-luxury-gold animate-pulse" />
-            </div>
-            <h4 className="font-serif text-sm text-white/80 uppercase tracking-widest mb-1 font-bold">Synchronizing Cart</h4>
-            <p className="text-[11px] text-white/40 max-w-xs font-light">
-              Connecting with cloud storage to fetch your personal wardrobe archive...
-            </p>
-          </div>
-        ) : cartItems.length === 0 ? (
-          /* Empty Bag */
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 bg-luxury-charcoal border border-luxury-gold/20 rounded flex items-center justify-center text-luxury-gold mb-4">
-              <ShoppingBag size={24} />
-            </div>
-            <h4 className="font-serif text-base text-white/80 uppercase tracking-widest mb-2">Shopping Bag is Empty</h4>
-            <p className="text-xs text-white/40 max-w-xs mb-6 font-light">
-              Explore our curated drops collection and add pieces to your personal styling archive.
-            </p>
-            <button 
-              onClick={onClose}
-              className="border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black font-display text-[10px] uppercase font-bold tracking-widest py-2 px-6 rounded transition-all"
-            >
-              Continue Exploring
-            </button>
-          </div>
-        ) : !showCheckoutForm ? (
-          /* Step 1: Cart Items Selection & Coupon Verification */
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              {/* List Selection items - Fully visible without nested scroll boundaries */}
-              <div className="space-y-3">
-                {cartItems.map((item, idx) => (
-                  <div 
-                    key={`${item.product.id}-${item.selectedSize}`} 
-                    className="flex gap-3 bg-luxury-charcoal/30 border border-white/5 p-3 rounded hover:border-luxury-gold/20 transition-all animate-fade-in"
-                  >
-                    <img 
-                      src={item.product.imageUrl} 
-                      alt={item.product.title} 
-                      referrerPolicy="no-referrer"
-                      className="w-16 h-16 object-cover rounded border border-white/10 flex-shrink-0"
-                    />
-                    
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start gap-1">
-                          <h4 className="font-serif text-[13px] text-white font-medium line-clamp-1">{item.product.title}</h4>
-                          <div className="flex flex-col items-end">
-                            <AnimatePresence mode="popLayout">
-                              <motion.span 
-                                key={getProductActivePrice(item.product) * item.quantity}
-                                initial={{ opacity: 0, scale: 0.85, y: -4 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.85, y: 4 }}
-                                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                                className="luxury-animated-price text-luxury-gold text-[13px] font-bold"
-                              >
-                                {formatPrice(getProductActivePrice(item.product) * item.quantity)}
-                              </motion.span>
-                            </AnimatePresence>
-                            {getProductActivePrice(item.product) !== item.product.price && (
-                              <span className="text-[9px] text-white/40 line-through">
-                                {formatPrice(item.product.price * item.quantity)}
-                              </span>
+            {/* Step Progress Bar Indicator */}
+            {checkoutStep !== 'cart' && checkoutStep !== 'success' && (
+              <div className="px-6 pt-4 pb-2 bg-black/40 border-b border-white/5 flex items-center justify-between gap-2 text-[10px] font-mono tracking-wider shrink-0 select-none">
+                <div className="flex items-center gap-2">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${checkoutStep === 'step1' ? 'bg-[#d4af37] text-black font-black ring-2 ring-yellow-400/20' : 'bg-purple-900/40 text-purple-300'}`}>1</span>
+                  <span className={checkoutStep === 'step1' ? 'text-white font-extrabold' : 'text-white/40'}>CONTACT INFO</span>
+                </div>
+                <div className="flex-1 h-[1px] bg-white/10 mx-2" />
+                <div className="flex items-center gap-2">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${checkoutStep === 'step2' ? 'bg-[#d4af37] text-black font-black ring-2 ring-yellow-400/20' : 'bg-purple-900/40 text-purple-300'}`}>2</span>
+                  <span className={checkoutStep === 'step2' ? 'text-white font-extrabold' : 'text-white/40'}>PREMIUM SECURE</span>
+                </div>
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="relative w-16 h-16 flex items-center justify-center mb-4">
+                  <div className="absolute inset-0 border-2 border-white/5 rounded-full" />
+                  <div className="absolute inset-0 border-2 border-t-luxury-gold rounded-full animate-spin" />
+                  <ShoppingBag size={20} className="text-luxury-gold animate-pulse" />
+                </div>
+                <h4 className="font-serif text-xs text-white/80 uppercase tracking-widest mb-1 font-bold">Synchronizing</h4>
+                <p className="text-[10px] text-white/40 max-w-xs font-light">Retrieving bespoke catalog parameters...</p>
+              </div>
+            ) : cartItems.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-16 h-16 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center text-luxury-gold mb-4">
+                  <ShoppingBag size={24} />
+                </div>
+                <h4 className="font-serif text-sm text-white/80 uppercase tracking-widest mb-2 font-bold">Your bag is empty</h4>
+                <p className="text-xs text-white/40 max-w-xs mb-6 font-light">Select from our exclusive collection and drops to register checkout.</p>
+                <button 
+                  onClick={onClose}
+                  className="border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-black font-mono text-[9px] uppercase font-bold tracking-widest py-2 px-6 rounded-xl transition-all"
+                >
+                  Continue Exploring
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden relative">
+
+                {/* STEP 0: SHOPPING BAG REVIEW (DEFAULT) */}
+                {checkoutStep === 'cart' && (
+                  <div className="flex-1 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="space-y-3">
+                        {cartItems.map((item, idx) => (
+                          <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
+                            <img src={item.product.imageUrl} alt={item.product.title} className="w-16 h-16 object-cover rounded-xl border border-white/5 shrink-0" referrerPolicy="no-referrer" />
+                            <div className="flex-1 flex flex-col justify-between min-w-0">
+                              <div className="flex justify-between items-start gap-2">
+                                <h4 className="font-serif text-[12px] text-white font-medium truncate">{item.product.title}</h4>
+                                <span className="text-luxury-gold text-[12px] font-mono font-bold shrink-0">{formatPrice(getProductActivePrice(item.product) * item.quantity)}</span>
+                              </div>
+                              <p className="text-[9px] text-white/30 font-mono">SIZE: {item.selectedSize || 'STANDARD'}</p>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <div className="flex items-center bg-black border border-white/10 rounded-lg overflow-hidden shrink-0">
+                                  <button onClick={() => onUpdateQty(idx, item.quantity - 1)} className="p-1 text-white hover:text-luxury-gold hover:bg-white/5 transition-all"><Minus size={10} /></button>
+                                  <span className="px-2.5 text-[10px] font-mono text-white font-bold">{item.quantity}</span>
+                                  <button onClick={() => onUpdateQty(idx, item.quantity + 1)} className="p-1 text-white hover:text-luxury-gold hover:bg-white/5 transition-all"><Plus size={10} /></button>
+                                </div>
+                                <button onClick={() => onRemoveItem(idx)} className="text-white/30 hover:text-red-400 p-1 transition-all"><Trash2 size={12} /></button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Coupon Redemption in Cart view */}
+                      <div className="border-t border-white/5 pt-5 space-y-3">
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold block font-black">Membership Invitation Code</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="ENTER PROMO CODE"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 rounded-xl py-2.5 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/25 uppercase tracking-wider"
+                          />
+                          <button onClick={() => handleApplyCoupon()} className="bg-white/5 border border-white/10 hover:border-luxury-gold text-luxury-gold px-4 rounded-xl text-[10px] font-mono font-bold tracking-widest uppercase transition-all duration-300">REDEEM</button>
+                        </div>
+                        {couponError && <p className="text-[9px] font-mono text-red-400">⚠️ {couponError}</p>}
+                        {couponSuccess && <p className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">✓ {couponSuccess}</p>}
+                      </div>
+                    </div>
+
+                    {/* Cart Footer */}
+                    <div className="bg-black/60 border-t border-white/5 p-5 space-y-4 shrink-0">
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between text-zinc-400"><span>Segment Subtotal</span><span className="font-mono">{formatPrice(itemsTotal)}</span></div>
+                        {appliedCoupon && (
+                          <div className="flex justify-between text-emerald-400"><span>✓ Coupon Applied</span><span className="font-mono">-{formatPrice(discountAmount)}</span></div>
+                        )}
+                        <div className="flex justify-between text-white font-bold border-t border-white/5 pt-3.5">
+                          <span className="tracking-wider">GRAND TOTAL</span>
+                          <span className="text-luxury-gold font-mono text-sm font-black">{formatPrice(itemsTotal - discountAmount)}</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (!customer) {
+                            if (onRequireLogin) onRequireLogin();
+                          } else {
+                            setCheckoutStep('step1');
+                          }
+                        }}
+                        className="w-full bg-gradient-to-r from-purple-800 to-amber-600 hover:brightness-110 text-white text-[10px] font-mono font-extrabold tracking-[0.2em] py-3.5 rounded-xl uppercase transition-all flex items-center justify-center gap-2 group shadow-xl"
+                      >
+                        PROCEED TO SECURE DISPATCH
+                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 1: CUSTOMER INFORMATION FORM */}
+                {checkoutStep === 'step1' && (
+                  <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="flex items-center gap-2 pb-1 border-b border-white/5 mb-1">
+                        <User size={12} className="text-luxury-gold" />
+                        <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold">RECIPIENT CONTACT DETAIL RECORDS</span>
+                      </div>
+
+                      {/* Glassmorphism card of inputs */}
+                      <div className="bg-[#0f0a1c] border border-white/15 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Name Field */}
+                          <div className="relative group">
+                            <div className="absolute top-3.5 left-3 text-zinc-300 group-focus-within:text-luxury-gold transition-colors duration-300">
+                              <User size={14} />
+                            </div>
+                            <input 
+                              ref={nameInputRef}
+                              type="text"
+                              required
+                              id="customer_name"
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
+                              placeholder=" "
+                              className="peer block w-full rounded-xl border border-white/20 bg-black/60 pb-2 pt-5 pl-9 pr-9 text-xs text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 font-medium h-12"
+                            />
+                            <label htmlFor="customer_name" className="absolute left-9 top-1.5 text-[8.5px] text-zinc-400 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-300 peer-placeholder-shown:font-medium peer-focus:top-1.5 peer-focus:text-[8.5px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
+                              Full Name / আপনার নাম *
+                            </label>
+                            {customerName && (
+                              <span className="absolute right-3 top-3.5">{isNameValid ? <Check size={12} className="text-emerald-400" /> : <X size={12} className="text-red-400" />}</span>
+                            )}
+                          </div>
+
+                          {/* Mobile Number */}
+                          <div className="relative group">
+                            <div className="absolute top-3.5 left-3 text-zinc-300 group-focus-within:text-luxury-gold transition-colors duration-300">
+                              <Phone size={14} />
+                            </div>
+                            <input 
+                              ref={phoneInputRef}
+                              type="tel"
+                              required
+                              id="customer_phone"
+                              value={customerPhone}
+                              onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                              onKeyDown={(e) => handleKeyDown(e, citySelectRef)}
+                              placeholder=" "
+                              className="peer block w-full rounded-xl border border-white/20 bg-black/60 pb-2 pt-5 pl-9 pr-9 text-xs text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 font-mono font-medium h-12"
+                            />
+                            <label htmlFor="customer_phone" className="absolute left-9 top-1.5 text-[8.5px] text-zinc-400 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-300 peer-placeholder-shown:font-medium peer-focus:top-1.5 peer-focus:text-[8.5px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
+                              Mobile Number / মোবাইল নম্বর *
+                            </label>
+                            {customerPhone && (
+                              <span className="absolute right-3 top-3.5">{isPhoneValid ? <Check size={12} className="text-emerald-400" /> : <span className="text-[8px] font-mono text-red-400 font-bold">11 digits</span>}</span>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 text-[9px] text-white/40 font-mono mt-0.5">
-                          <span>SIZE: {item.selectedSize}</span>
-                          <span>•</span>
-                          <span>{item.product.code}</span>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between mt-2">
-                        {/* Qty edit buttons */}
-                        <div className="flex items-center bg-luxury-black border border-white/10 rounded overflow-hidden">
-                          <button 
-                            onClick={() => onUpdateQty(idx, item.quantity - 1)}
-                            className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
-                          >
-                            <Minus size={10} />
-                          </button>
-                          <span className="px-2.5 text-[10px] font-mono text-white font-bold">{item.quantity}</span>
-                          <button 
-                            onClick={() => onUpdateQty(idx, item.quantity + 1)}
-                            className="p-1 text-white hover:text-luxury-gold hover:bg-luxury-charcoal transition-colors cursor-pointer"
-                          >
-                            <Plus size={10} />
-                          </button>
-                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* City / District */}
+                          <div className="relative group">
+                            <div className="absolute top-3.5 left-3 text-zinc-300 group-focus-within:text-luxury-gold transition-colors duration-300">
+                              <MapPin size={14} />
+                            </div>
+                            <select
+                              ref={citySelectRef}
+                              id="customer_city"
+                              value={customerCity}
+                              onChange={(e) => setCustomerCity(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
+                              className="peer block w-full rounded-xl border border-white/20 bg-zinc-950 pb-2 pt-5 pl-9 pr-9 text-xs text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 appearance-none cursor-pointer font-medium h-12"
+                            >
+                              {CITIES_LIST.map(city => (
+                                <option key={city} value={city} className="bg-[#0c0613] text-white">{city}</option>
+                              ))}
+                            </select>
+                            <label htmlFor="customer_city" className="absolute left-9 top-1.5 text-[8.5px] text-[#d4af37] uppercase font-mono tracking-wider pointer-events-none font-bold">
+                              City/District / জেলা *
+                            </label>
+                            <div className="absolute right-3 top-3.5 text-white/60 pointer-events-none"><ChevronDown size={12} /></div>
+                          </div>
 
-                        {/* Remove trash */}
-                        <button 
-                          onClick={() => onRemoveItem(idx)}
-                          className="text-white/40 hover:text-red-400 transition-colors p-1"
-                          title="Remove piece"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* VIP Coupon Redeemer - High Premium Input Card */}
-              <div className="border-t border-white/[0.06] pt-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[10px] uppercase font-mono tracking-[0.2em] text-[#d4af37] font-black flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
-                    VIP ACCREDITED CONCIERGE CODE
-                  </label>
-                  <span className="text-[8px] uppercase font-mono text-white/30 tracking-widest bg-white/[0.04] px-1.5 py-0.5 rounded">
-                    PROMOTION SECURED
-                  </span>
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="relative group flex-1">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/20 group-focus-within:text-[#ffd700] transition-colors duration-300">
-                      <Tag size={13} strokeWidth={2.5} />
-                    </div>
-                    <input 
-                      type="text" 
-                      placeholder="ENTER VIP INVITATION CODE"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="w-full bg-black/40 text-white font-mono text-[11px] border border-white/10 hover:border-[#d4af37]/35 focus:border-[#d4af37] rounded-xl py-3.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-[#d4af37]/30 transition-all duration-300 placeholder-white/25 uppercase tracking-[0.14em]"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyCoupon()}
-                    className="bg-gradient-to-r from-[#d4af37] to-[#aa8323] hover:from-[#ffd700] hover:to-[#d4af37] text-black font-display text-[10.5px] uppercase font-black tracking-widest px-6 rounded-xl transition-all duration-300 shadow-[0_4px_12px_rgba(212,175,55,0.15)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)] transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                  >
-                    Redeem
-                  </button>
-                </div>
-                
-                {/* Active available coupons list for clicking */}
-                {activeCoupons && activeCoupons.filter(c => c.active).length > 0 && (
-                  <div className="bg-[#0f0a17]/80 border border-[#d4af37]/20 p-4 rounded-xl space-y-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        SELECTABLE MEMBERSHIP PRIVILEGES
-                      </span>
-                      <span className="text-[8px] text-white/40 font-mono">TAP TO ACTIVATE</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-0.5">
-                      {activeCoupons.filter(c => c.active).map(c => (
-                        <button
-                          key={c.code}
-                          type="button"
-                          onClick={() => handleApplyCoupon(c.code)}
-                          className={`border rounded-xl px-3 py-2 text-[10.5px] font-mono tracking-wider flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-                            appliedCoupon?.code === c.code 
-                              ? 'bg-emerald-500/10 border-emerald-400 text-emerald-400 font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.25)] scale-[1.02]' 
-                              : 'bg-white/[0.02] hover:bg-[#d4af37]/10 border-white/5 hover:border-[#d4af37]/40 text-[#d4af37] hover:text-[#ffd700] hover:scale-[1.01]'
-                          }`}
-                        >
-                          <span className="font-sans font-black uppercase text-xs">🎟️ {c.code}</span>
-                          <span className={`w-1 h-3 bg-white/10 ${appliedCoupon?.code === c.code ? 'bg-emerald-500/30' : ''}`}></span>
-                          <span className={`${appliedCoupon?.code === c.code ? 'text-emerald-300 font-black' : 'text-white/55'} font-bold`}>
-                            {c.type === 'PERCENTAGE' ? `-${c.value}% OFF` : `-৳${c.value}`}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {couponError && (
-                  <p className="text-[9.5px] font-mono text-red-400 mt-1.5 pl-1 animate-pulse flex items-center gap-1">
-                    <span>⚠️</span> {couponError}
-                  </p>
-                )}
-                {couponSuccess && (
-                  <p className="text-[10px] font-mono text-green-400 mt-1.5 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl animate-fade-in font-extrabold uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-                    <Check size={12} className="text-emerald-400" strokeWidth={3} /> {couponSuccess}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Step 1 Footer Action Board */}
-            <div className="bg-[#0b0b0b] border-t border-white/5 p-5 space-y-4">
-              <div className="space-y-2 font-display">
-                <div className="flex justify-between text-xs text-zinc-400">
-                  <span>Subtotal Segment</span>
-                  <span className="font-mono">{formatPrice(itemsTotal)}</span>
-                </div>
-                {appliedCoupon && (
-                  <div>
-                    <div className="flex justify-between text-xs text-green-400 font-semibold animate-fade-in">
-                      <span>🎟️ VIP Discount Applied ({appliedCoupon.code})</span>
-                      <span className="font-mono">-{formatPrice(discountAmount)}</span>
-                    </div>
-                    {couponDetailsNote && (
-                      <div className="text-[10px] text-emerald-400/60 font-mono text-right italic mt-0.5">
-                        {couponDetailsNote}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="flex justify-between text-sm text-white font-black border-t border-white/5 pt-3">
-                  <span className="uppercase tracking-[0.14em]">Items Total</span>
-                  <span className="luxury-animated-price text-luxury-gold text-lg font-mono">{formatPrice(itemsTotal - discountAmount)}</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (!customer) {
-                    if (onRequireLogin) onRequireLogin();
-                  } else {
-                    setShowCheckoutForm(true);
-                  }
-                }}
-                className="w-full bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] hover:brightness-110 text-black font-display font-black uppercase text-xs tracking-[0.22em] py-4 rounded-xl shadow-[0_5px_25px_rgba(212,175,55,0.25)] hover:shadow-[0_8px_35px_rgba(212,175,55,0.45)] transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 group relative overflow-hidden luxury-reflection"
-              >
-                <span>PROCEED TO SECURE CHECKOUT</span>
-                <ArrowRight size={14} className="text-black stroke-[2.5] group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Step 2: The Secure Order Delivery Form */
-          <div className="flex-1 flex flex-col justify-between overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-6">
-              
-              {/* Back navigation CTA */}
-              <button 
-                type="button"
-                onClick={() => setShowCheckoutForm(false)}
-                className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[#d4af37] hover:text-white transition-colors duration-200 cursor-pointer group mb-1"
-              >
-                <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
-                <span>Return to Shopping Bag</span>
-              </button>
-
-              <form onSubmit={handleFormSubmit} className="space-y-4 animate-fade-in bg-gradient-to-b from-[#110524]/20 via-[#04120a]/10 to-[#1e1403]/15 p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-white/[0.04] shadow-[0_10px_30px_rgba(9,3,18,0.5)]">
-                <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                  <h4 className="font-serif text-[13px] text-white/95 font-bold flex items-center gap-1.5">
-                    <span className="text-luxury-gold text-xs">📦</span>
-                    <span className="font-display tracking-wider text-[11px] sm:text-xs text-luxury-gold uppercase">
-                      Delivery Information (ডেলিভারি ঠিকানা)
-                    </span>
-                  </h4>
-                </div>
-
-                {/* Size Selection inside the Order Form */}
-                <div className="bg-black/30 border border-white/5 p-3 sm:p-4 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-white/90 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Selected Size (সাইজ সিলেক্ট করুন)
-                    </label>
-                  </div>
-
-                  <div className="space-y-3">
-                    {cartItems.map((item, idx) => (
-                      <div key={`${item.product.id}-${idx}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0617]/50 border border-white/5 p-3 rounded-lg">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img 
-                            src={item.product.imageUrl} 
-                            alt={item.product.title} 
-                            className="w-10 h-10 object-cover rounded-lg border border-white/10 flex-shrink-0"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="min-w-0">
-                            <p className="text-xs text-white font-medium truncate">{item.product.title}</p>
-                            <p className="text-[10px] text-zinc-400 font-mono mt-0.5">৳{getProductActivePrice(item.product)} x {item.quantity}</p>
+                          {/* Complete Address */}
+                          <div className="relative group">
+                            <div className="absolute top-3.5 left-3 text-zinc-300 group-focus-within:text-luxury-gold transition-colors duration-300">
+                              <MapPin size={14} />
+                            </div>
+                            <textarea 
+                              ref={addressTextRef}
+                              required
+                              id="customer_address"
+                              value={customerAddress}
+                              onChange={(e) => setCustomerAddress(e.target.value)}
+                              placeholder=" "
+                              className="peer block w-full rounded-xl border border-white/20 bg-black/60 pb-1 pt-5 pl-9 pr-9 text-xs text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 h-12 resize-none font-medium leading-normal scrollbar-hidden"
+                            />
+                            <label htmlFor="customer_address" className="absolute left-9 top-1.5 text-[8.5px] text-zinc-400 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-300 peer-placeholder-shown:font-medium peer-focus:top-1.5 peer-focus:text-[8.5px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
+                              Complete Address / সম্পূর্ণ ঠিকানা *
+                            </label>
+                            {customerAddress && (
+                              <span className="absolute right-3 top-3.5">{isAddressValid ? <Check size={12} className="text-emerald-400" /> : <X size={12} className="text-red-400" />}</span>
+                            )}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Size buttons to select */}
-                        <div className="flex flex-wrap items-center gap-1">
-                          {(item.product.sizes && item.product.sizes.length > 0 ? item.product.sizes : ['Standard', 'M', 'L', 'XL', 'XXL']).map((sz) => {
-                            const isSelected = item.selectedSize === sz || (!item.selectedSize && sz === 'Standard');
+                      {/* Quantity & Size adjuster inside Step 1 */}
+                      <div className="bg-[#0f0a1c] border border-white/10 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+                        <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
+                          <ShoppingBag size={11} className="text-luxury-gold animate-pulse" />
+                          <span className="text-[9px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
+                        </div>
+                        <div className="space-y-2">
+                          {cartItems.map((item, idx) => {
+                            const availableSizes = item.product.sizes && item.product.sizes.length > 0 
+                              ? item.product.sizes 
+                              : ['S', 'M', 'L', 'XL', 'XXL'];
+                            
                             return (
-                              <button
-                                key={sz}
-                                type="button"
-                                onClick={() => {
-                                  if (onUpdateSize) {
-                                    onUpdateSize(idx, sz);
-                                  }
-                                }}
-                                className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-md border transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-[#d4af37] border-transparent text-black font-extrabold shadow-sm'
-                                    : 'bg-zinc-900/60 border-white/10 text-zinc-300 hover:border-luxury-gold/50 hover:text-white'
-                                }`}
-                              >
-                                {sz}
-                              </button>
+                              <div key={idx} className="flex items-center gap-2.5 bg-black/40 p-2 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
+                                {/* Product Photo */}
+                                <div className="w-11 h-11 rounded-lg overflow-hidden border border-white/10 shrink-0 relative">
+                                  <img 
+                                    src={item.product.imageUrl} 
+                                    alt={item.product.title} 
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+
+                                {/* Item Info & Size preference inline */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  <h4 className="text-[11px] font-bold text-white leading-tight truncate">{item.product.title}</h4>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[8px] font-mono text-zinc-400 uppercase tracking-wider">Size:</span>
+                                    <div className="flex gap-0.5">
+                                      {availableSizes.map((size) => (
+                                        <button
+                                          key={size}
+                                          type="button"
+                                          onClick={() => onUpdateSize && onUpdateSize(idx, size)}
+                                          className={`h-4.5 px-1.5 rounded text-[8.5px] font-mono font-bold cursor-pointer transition-all ${
+                                            item.selectedSize === size
+                                              ? 'bg-[#d4af37] text-black font-black shadow-[0_0_8px_rgba(212,175,55,0.3)]'
+                                              : 'bg-black/60 text-white/60 border border-white/5 hover:text-white'
+                                          }`}
+                                        >
+                                          {size}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Quantity & Price Adjuster inline */}
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <span className="text-[11px] font-mono font-bold text-[#d4af37]">
+                                    {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                  </span>
+                                  <div className="flex items-center bg-black/60 border border-white/10 rounded overflow-hidden h-4.5">
+                                    <button 
+                                      type="button" 
+                                      onClick={() => onUpdateQty(idx, item.quantity - 1)} 
+                                      className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
+                                    >
+                                      <Minus size={7} />
+                                    </button>
+                                    <span className="px-1 text-[9px] font-mono font-bold text-white min-w-[12px] text-center">
+                                      {item.quantity}
+                                    </span>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => onUpdateQty(idx, item.quantity + 1)} 
+                                      className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
+                                    >
+                                      <Plus size={7} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Recipient Full Name */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-white/90">
-                    Your Name / আপনার নাম <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                      <User size={14} />
-                    </div>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="আপনার নাম লিখুন"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-[#130724]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold rounded-xl py-3 pl-10 pr-4 focus:outline-none transition-all duration-300 placeholder-white/25"
-                    />
-                  </div>
-                </div>
-
-                {/* Contact Mobile Number */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-white/90">
-                    Mobile Number / মোবাইল নাম্বার <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                      <Phone size={14} />
-                    </div>
-                    <input 
-                      type="tel" 
-                      required
-                      placeholder="১১ ডিজিটের মোবাইল নাম্বার দিন"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full bg-[#0a1811]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold rounded-xl py-3 pl-10 pr-4 focus:outline-none transition-all duration-300 placeholder-white/25"
-                    />
-                  </div>
-                </div>
-
-                {/* City select and Complete Address */}
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-white/90">
-                      City/District / জেলা <span className="text-red-400">*</span>
-                    </label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                        <MapPin size={14} />
-                      </div>
-                      <select
-                        value={customerCity}
-                        onChange={(e) => setCustomerCity(e.target.value)}
-                        className="w-full bg-[#130724]/55 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold rounded-xl py-3 pl-10 pr-10 focus:outline-none appearance-none cursor-pointer"
-                      >
-                        {CITIES_LIST.map(city => (
-                          <option key={city} value={city} className="bg-[#0b0611] text-white font-sans">{city}</option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/40">
-                        <ChevronDown size={14} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-white/90">
-                      Complete Address / সম্পূর্ণ ঠিকানা <span className="text-red-400">*</span>
-                    </label>
-                    <div className="relative group">
-                      <div className="absolute top-3.5 left-0 pl-3.5 flex items-start pointer-events-none text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                        <MapPin size={14} className="mt-0.5" />
-                      </div>
-                      <textarea 
-                        required
-                        placeholder="আপনার থানা, গ্রাম, রোড এবং বাড়ির ঠিকানা লিখুন"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        className="w-full bg-[#130724]/40 text-white font-sans text-xs border border-white/10 hover:border-white/20 focus:border-luxury-gold rounded-xl py-3 pl-10 pr-4 focus:outline-none resize-none h-16 placeholder-white/25"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coupon Redeemer */}
-                <div className="bg-black/30 border border-white/5 p-3.5 rounded-xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-[#d4af37] flex items-center gap-1.5">
-                      🎟️ Discount Coupon (কুপন কোড)
-                    </label>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="relative group flex-1">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/20">
-                        <Tag size={12} />
-                      </div>
-                      <input 
-                        type="text" 
-                        placeholder="কুপন কোড লিখুন (যেমন: SAVE10)"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        className="w-full bg-[#0a0510] text-white text-xs border border-white/10 hover:border-[#d4af37]/35 focus:border-luxury-gold rounded-xl py-2 pl-9 pr-3 focus:outline-none placeholder-white/20 uppercase"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleApplyCoupon()}
-                      className="bg-gradient-to-r from-zinc-800 to-black hover:from-[#d4af37] hover:to-[#ffd700] hover:text-black text-[#d4af37] border border-[#d4af37]/30 hover:border-transparent text-xs font-bold px-4 rounded-xl transition-all duration-300 cursor-pointer"
-                    >
-                      Apply
-                    </button>
-                  </div>
-
-                  {/* Active available coupons list in Step 2 */}
-                  {activeCoupons && activeCoupons.filter(c => c.active).length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-[8.5px] uppercase font-mono text-white/40 tracking-wider block font-bold">
-                        Available VIP Privileges:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
-                        {activeCoupons.filter(c => c.active).map(c => (
-                          <button
-                            key={'step2-' + c.code}
-                            type="button"
-                            onClick={() => handleApplyCoupon(c.code)}
-                            className={`border rounded-lg px-2 py-1 text-[9.5px] font-mono tracking-wider flex items-center gap-1.5 transition-all duration-300 cursor-pointer ${
-                              appliedCoupon?.code === c.code 
-                                ? 'bg-emerald-500/10 border-emerald-400 text-emerald-400 font-extrabold scale-[1.01]' 
-                                : 'bg-white/[0.01] hover:bg-[#d4af37]/10 border-white/5 hover:border-[#d4af37]/30 text-[#d4af37] hover:text-[#ffd700]'
-                            }`}
-                          >
-                            <span>🎫 {c.code}</span>
-                            <span className="opacity-40">|</span>
-                            <span className={`${appliedCoupon?.code === c.code ? 'text-emerald-300' : 'text-white/40'}`}>
-                              {c.type === 'PERCENTAGE' ? `-${c.value}%` : `-৳${c.value}`}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {couponError && (
-                    <p className="text-[9px] font-mono text-red-400 pl-1 animate-pulse flex items-center gap-1">
-                      <span>⚠️</span> {couponError}
-                    </p>
-                  )}
-                  {couponSuccess && (
-                    <p className="text-[9px] font-mono text-green-400 flex items-center gap-1 bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg animate-fade-in font-extrabold uppercase tracking-wider">
-                      <Check size={10} className="text-emerald-400" strokeWidth={3} /> {couponSuccess}
-                    </p>
-                  )}
-                </div>
-
-                {/* Dynamic Style X Premium Payment Engine */}
-                {paymentType === 'cod' ? (
-                  /* Cash on Delivery (COD) Option */
-                  <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3.5 space-y-1">
-                    <div className="flex items-center gap-2 text-emerald-400">
-                      <ShieldCheck size={16} className="flex-shrink-0" />
-                      <p className="text-xs font-bold uppercase tracking-wider">
-                        Cash on Delivery (ক্যাশ অন ডেলিভারি)
-                      </p>
-                    </div>
-                    <p className="text-[11px] text-zinc-300 leading-normal pl-6">
-                      অর্ডারটি সফল করতে কোনো অগ্রিম টাকা লাগবে না। পণ্য হাতে পেয়ে সম্পূর্ণ টাকা পরিশোধ করবেন।
-                    </p>
-                  </div>
-                ) : (
-                  /* Online Verification required: Delivery Charge Only or Full Advance Payment */
-                  <div className="bg-gradient-to-b from-[#1c0f30]/65 to-[#0b0414]/90 border border-luxury-gold/20 rounded-xl p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 shadow-xl relative overflow-hidden">
-                    <div className="absolute -right-6 -bottom-6 text-luxury-gold/5 pointer-events-none">
-                      <ShieldCheck size={72} />
-                    </div>
-                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#d4af37]">⚜️</span>
-                        <h4 className="font-serif text-[12px] text-white/90 uppercase tracking-widest font-bold">
-                          {paymentType === 'delivery_charge' ? "ডেলিভারি চার্জ অগ্রিম পরিশোধ করুন" : "সম্পূর্ণ মূল্য অগ্রিম পরিশোধ করুন"}
-                        </h4>
-                      </div>
-                      <span className="text-[8px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-wider font-extrabold animate-pulse">
-                        অনলাইন ভেরিফিকেশন
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-zinc-300 leading-relaxed">
-                      আপনার অর্ডারটি নিশ্চিত করতে অনুগ্রহ করে {paymentType === 'delivery_charge' ? 'ডেলিভারি চার্জ অগ্রিম' : 'সম্পূর্ণ মূল্য অগ্রিম'} বাবদ{' '}
-                      <span className="text-[#ffd700] font-black font-mono text-xs">৳{advancePaymentAmount}</span> বিকাশ বা নগদে সেন্ড মানি করুন এবং নিচে ট্রানজেকশন আইডি দিন।
-                    </p>
-
-                    {/* bKash / Nagad Toggle segmented control */}
-                    {settings?.globalPaymentSystem !== 'always_bkash' && settings?.globalPaymentSystem !== 'always_nagad' ? (
-                      <div className="grid grid-cols-2 gap-2 bg-black/40 p-1 rounded-xl border border-white/5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPaymentMethod('bkash');
-                            setTransactionId('');
-                            setTransactionError('');
-                          }}
-                          className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                            paymentMethod === 'bkash'
-                              ? 'bg-[#e2136e]/15 text-[#e2136e] border border-[#e2136e]/40 font-black shadow-[0_0_15px_rgba(226,19,110,0.25)]'
-                              : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
-                          }`}
-                        >
-                          {settings?.bkashLogoUrl ? (
-                            <img 
-                              src={settings.bkashLogoUrl} 
-                              alt="bKash" 
-                              className="h-5 w-5 rounded object-contain flex-shrink-0"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <svg 
-                              viewBox="0 0 100 100" 
-                              className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <rect width="100" height="100" rx="20" fill="#e2136e" />
-                              <g transform="translate(10, 10) scale(0.8)" fill="#ffffff">
-                                <polygon points="50,15 42,28 58,28" />
-                                <polygon points="50,32 38,55 50,75" opacity="0.9" />
-                                <polygon points="50,32 62,55 50,75" />
-                                <polygon points="34,34 15,50 38,50" opacity="0.8" />
-                                <polygon points="66,34 85,50 62,50" opacity="0.95" />
-                                <polygon points="50,78 45,90 55,90" />
-                              </g>
-                            </svg>
-                          )}
-                          <span>bKash (বিকাশ)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPaymentMethod('nagad');
-                            setTransactionId('');
-                            setTransactionError('');
-                          }}
-                          className={`py-2 rounded-lg text-xs font-mono tracking-widest uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                            paymentMethod === 'nagad'
-                              ? 'bg-[#f45c24]/15 text-[#f45c24] border border-[#f45c24]/40 font-black shadow-[0_0_15px_rgba(244,92,36,0.25)]'
-                              : 'text-zinc-400 hover:text-white hover:bg-white/[0.02]'
-                          }`}
-                        >
-                          {settings?.nagadLogoUrl ? (
-                            <img 
-                              src={settings.nagadLogoUrl} 
-                              alt="Nagad" 
-                              className="h-5 w-5 rounded object-contain flex-shrink-0"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <svg 
-                              viewBox="0 0 100 100" 
-                              className="h-5 w-5 rounded-md shadow-sm flex-shrink-0" 
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <rect width="100" height="100" rx="20" fill="#f45c24" />
-                              <g transform="translate(15, 15) scale(0.7)">
-                                <path d="M20,60 C40,60 70,40 80,10 C60,40 30,50 20,60 Z" fill="#ffffff" />
-                                <path d="M10,75 C30,75 60,55 70,25 C55,50 25,60 10,75 Z" fill="#a3e635" />
-                                <path d="M35,45 C45,45 60,35 65,15 C55,30 45,35 35,45 Z" fill="#ffffff" opacity="0.8" />
-                              </g>
-                            </svg>
-                          )}
-                          <span>Nagad (নগদ)</span>
-                        </button>
-                      </div>
-                    ) : (
-                      /* Display active channel notice */
-                      <div className="py-2.5 px-3.5 bg-luxury-gold/5 border border-luxury-gold/20 rounded-xl text-center">
-                        <span className="text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-bold">
-                          ⚜️ Governing Payment Channel Active: {paymentMethod === 'bkash' ? 'bKash (বিকাশ) Only' : 'Nagad (নগদ) Only'}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Recipient Account Details with quick copy button */}
-                    <div className="bg-black/60 border border-white/5 rounded-xl p-3.5 space-y-2 relative">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-400 font-bold">এই নাম্বারে টাকা পাঠান (Send Money):</span>
-                        <span className="text-[9px] bg-white/5 text-white/60 px-2 py-0.5 rounded">পার্সোনাল অ্যাকাউন্ট</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-mono text-sm font-black text-white tracking-widest">
-                          {paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766')}
+                      {errorMessage && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10px] font-mono">
+                          ⚠️ {errorMessage}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const num = paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
-                            navigator.clipboard.writeText(num);
-                          }}
-                          className="text-[10px] text-[#d4af37] hover:text-white hover:underline transition-all cursor-pointer bg-[#d4af37]/5 px-2.5 py-1 rounded border border-[#d4af37]/25"
-                        >
-                          নম্বর কপি করুন
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-center pt-1.5 border-t border-white/5 text-[11px]">
-                        <span className="text-zinc-400">পরিশোধের পরিমাণ:</span>
-                        <span className="text-luxury-gold font-mono font-black text-xs">
-                          ৳{advancePaymentAmount}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Transaction ID Input */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] font-bold text-white/95 flex items-center justify-between">
-                        <span>Transaction ID (ট্রানজেকশন আইডি) <span className="text-red-400">*</span></span>
-                      </label>
-                      <div className="relative group">
-                        <input
-                          type="text"
-                          required
-                          value={transactionId}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\s+/g, ''); // strip spaces automatically
-                            setTransactionId(val);
-                            setTransactionError(validateTransactionId(val));
-                          }}
-                          placeholder="যেমন: A1B2C3D4E5"
-                          className={`w-full bg-[#0a0511] text-white font-mono text-xs border rounded-xl py-3 px-4 focus:outline-none transition-all duration-300 placeholder-white/15 uppercase tracking-widest ${
-                            transactionError
-                              ? 'border-red-500/40 focus:border-red-500/80 focus:ring-1 focus:ring-red-500/20'
-                              : 'border-white/10 hover:border-luxury-gold/30 focus:border-luxury-gold'
-                          }`}
-                        />
-                        <div className="absolute top-0 right-0 py-3 pr-3.5 flex items-center pointer-events-none text-[8px] font-mono text-[#d4af37]/30 group-focus-within:text-luxury-gold">
-                          ৮-৩০ ডিজিট
-                        </div>
-                      </div>
-                      {transactionError && (
-                        <p className="text-[10px] font-mono text-red-400 pl-1 mt-1 animate-pulse">
-                          ⚠️ ভুল: {transactionError}
-                        </p>
                       )}
                     </div>
 
-                    {/* Screenshot Upload with live preview thumbnail */}
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-bold text-white/95 flex items-center justify-between">
-                        <span>পেমেন্টের স্ক্রিনশট আপলোড করুন</span>
-                        <span className="text-zinc-500 text-[9px]">• ঐচ্ছিক</span>
-                      </label>
-                      
-                      {screenshotPreview ? (
-                        <div className="relative bg-black/40 border border-white/10 p-3 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={screenshotPreview}
-                              alt="Payment proof screenshot"
-                              referrerPolicy="no-referrer"
-                              className="w-10 h-10 object-cover rounded border border-white/10"
-                            />
-                            <div className="space-y-0.5">
-                              <span className="text-[10px] text-white/80 block">স্ক্রিনশট আপলোড হয়েছে</span>
-                              <span className="text-[9px] text-emerald-400 flex items-center gap-1">
-                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" /> সম্পূর্ণ
-                              </span>
+                    {/* Step 1 Footer */}
+                    <div className="bg-[#0b0413] border-t border-white/5 p-4 sm:p-5 flex flex-col gap-2.5 sm:gap-3 shrink-0">
+                      <div className="flex justify-between items-center text-xs">
+                        <button type="button" onClick={() => setCheckoutStep('cart')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
+                          <ArrowLeft size={13} /> Back to selection
+                        </button>
+                        <div className="text-right">
+                          <span className="text-[10px] text-white/40 font-mono uppercase block">Estimated total</span>
+                          <span className="text-[#d4af37] font-mono font-black text-sm">{formatPrice(itemsTotal - discountAmount)}</span>
+                        </div>
+                      </div>
+                      <LuxuryCheckoutButton
+                        isCheckingOut={isTransitioningStep}
+                        disabled={isTransitioningStep}
+                        label="CONTINUE TO PREMIUM SECURE CHECKOUT"
+                      />
+                    </div>
+                  </form>
+                )}
+
+                {/* STEP 2: PREMIUM CHECKOUT */}
+                {checkoutStep === 'step2' && (
+                  <form onSubmit={handlePlaceOrder} className="flex-1 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                        
+                        {/* Left column: Order items and Coupon box */}
+                        <div className="md:col-span-6 space-y-4">
+                          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 space-y-3 shadow-md">
+                            <span className="text-[10px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1.5">ITEMIZATION REPORT</span>
+                            <div className="space-y-3">
+                              {cartItems.map((item, idx) => (
+                                <div key={idx} className="flex gap-2.5 items-center">
+                                  <img src={item.product.imageUrl} className="w-12 h-12 object-cover rounded-lg border border-white/5 shrink-0" referrerPolicy="no-referrer" />
+                                  <div className="flex-1 min-w-0">
+                                    <h5 className="text-[11px] text-white font-medium truncate font-serif">{item.product.title}</h5>
+                                    <p className="text-[9px] text-zinc-400 font-mono mt-0.5">
+                                      Size: <span className="text-[#d4af37] font-bold">{item.selectedSize}</span> | Qty: <span className="text-white font-bold">{item.quantity}</span>
+                                    </p>
+                                    <p className="text-[9px] text-white/30 font-mono mt-0.5">Unit Price: ৳{getProductActivePrice(item.product)}</p>
+                                  </div>
+                                  <div className="text-right font-mono text-[11px] font-bold text-white">
+                                    {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setScreenshotPreview(null);
-                              setScreenshotBase64(null);
-                            }}
-                            className="text-[10px] text-red-400 hover:text-red-300 transition-all cursor-pointer bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded border border-red-500/20"
-                          >
-                            মুছে ফেলুন
-                          </button>
+
+                          {/* Coupon Box in Step 2 with success animation trigger */}
+                          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 space-y-2.5 shadow-md relative overflow-hidden">
+                            {showCouponSuccessAnimation && (
+                              <div className="absolute inset-0 bg-emerald-500/10 backdrop-blur-sm flex items-center justify-center animate-fade-in z-10 text-emerald-400 font-mono text-[10px] font-black uppercase tracking-wider">
+                                <Sparkles size={16} className="mr-1 animate-pulse" /> COUPON APPLIED SECURELY!
+                              </div>
+                            )}
+                            <span className="text-[10px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">PROMOTION CODES</span>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="ENTER COUPON CODE"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 rounded-xl py-2 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/20 uppercase"
+                              />
+                              <button type="button" onClick={() => handleApplyCoupon()} className="bg-gradient-to-r from-zinc-800 to-black hover:from-[#d4af37] hover:to-[#ffd700] text-[#d4af37] hover:text-black text-[10px] font-mono font-bold px-4 rounded-xl transition-all">APPLY</button>
+                            </div>
+                            {couponError && <p className="text-[9px] font-mono text-red-400">⚠️ {couponError}</p>}
+                            {couponSuccess && <p className="text-[9px] font-mono text-emerald-400">✓ {couponSuccess}</p>}
+                          </div>
+
+                          {/* Delivery Guidelines */}
+                          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 space-y-2.5 shadow-md">
+                            <span className="text-[10px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">DELIVERY PROFILE</span>
+                            <div className="space-y-1.5 text-[10.5px] leading-relaxed text-zinc-300">
+                              <p className="flex items-center justify-between text-white border-b border-white/5 pb-1">
+                                <span className="flex items-center gap-1.5"><Clock size={12} className="text-[#d4af37]" /> ETA Range:</span>
+                                <span className="font-mono font-bold text-[#d4af37]">{placedDeliveryDate || getEstimatedDeliveryDate()}</span>
+                              </p>
+                              <p className="flex items-center justify-between border-b border-white/5 pb-1">
+                                <span>Delivery Time:</span>
+                                <span className="font-mono text-white">10:00 AM - 08:00 PM</span>
+                              </p>
+                              <p className="text-[9.5px] text-white/40 italic leading-snug">
+                                * Our concierge logistics agent will call you prior to arrival. Kindly ensure your cellular network coverage is active.
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <label className="border border-dashed border-white/10 hover:border-[#d4af37]/30 bg-black/30 hover:bg-black/50 p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleScreenshotChange}
-                            className="hidden"
+
+                        {/* Right column: Payments, Trust, and Placement */}
+                        <div className="md:col-span-6 space-y-4">
+                          
+                          {/* Payment selector */}
+                          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 space-y-3 shadow-md">
+                            <span className="text-[10px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">PAYMENT CHANNEL REGISTRY</span>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              {paymentType === 'cod' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPaymentMethod('cod')}
+                                  className={`p-2.5 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer ${
+                                    paymentMethod === 'cod'
+                                      ? 'bg-emerald-500/10 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                                      : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                  }`}
+                                >
+                                  <ShieldCheck size={16} className="text-emerald-400" />
+                                  <span className="text-[10.5px] font-bold text-white">COD</span>
+                                  <span className="text-[8.5px] text-zinc-400">Cash on Delivery</span>
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setPaymentMethod('bkash'); setTransactionId(''); setTransactionError(''); }}
+                                    className={`p-2.5 rounded-xl border transition-all text-left flex flex-col gap-2 cursor-pointer h-24 justify-between ${
+                                      paymentMethod === 'bkash'
+                                        ? 'bg-[#e2136e]/10 border-[#e2136e] shadow-[0_0_15px_rgba(226,19,110,0.15)] scale-[1.02]'
+                                        : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center w-full">
+                                      <img 
+                                        src={settings?.bkashLogoUrl || 'https://download.logo.wine/logo/BKash/BKash-Logo.wine.svg'} 
+                                        alt="bKash" 
+                                        referrerPolicy="no-referrer"
+                                        className="h-6 w-auto max-w-[55px] object-contain rounded"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                      <Smartphone size={14} className="text-[#e2136e]" />
+                                    </div>
+                                    <div>
+                                      <span className="text-[10.5px] font-bold text-white block">bKash (বিকাশ)</span>
+                                      <span className="text-[8.5px] text-zinc-400 block">Send Money</span>
+                                    </div>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => { setPaymentMethod('nagad'); setTransactionId(''); setTransactionError(''); }}
+                                    className={`p-2.5 rounded-xl border transition-all text-left flex flex-col gap-2 cursor-pointer h-24 justify-between ${
+                                      paymentMethod === 'nagad'
+                                        ? 'bg-[#f45c24]/10 border-[#f45c24] shadow-[0_0_15px_rgba(244,92,36,0.15)] scale-[1.02]'
+                                        : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center w-full">
+                                      <img 
+                                        src={settings?.nagadLogoUrl || 'https://download.logo.wine/logo/Nagad/Nagad-Logo.wine.svg'} 
+                                        alt="Nagad" 
+                                        referrerPolicy="no-referrer"
+                                        className="h-6 w-auto max-w-[55px] object-contain rounded"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                      <Landmark size={14} className="text-[#f45c24]" />
+                                    </div>
+                                    <div>
+                                      <span className="text-[10.5px] font-bold text-white block">Nagad (নগদ)</span>
+                                      <span className="text-[8.5px] text-zinc-400 block">Send Money</span>
+                                    </div>
+                                  </button>
+
+                                 </>
+                               )}
+                             </div>
+                            {paymentMethod === 'cod' && (
+                              <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl text-[10.5px] text-emerald-400/90 leading-relaxed">
+                                ✓ No advance required. Handover full billing of <strong className="text-white font-mono">{formatPrice(grandTotal)}</strong> to couriers during home dispatch.
+                              </div>
+                            )}
+
+                            {paymentMethod !== 'cod' && (
+                              <div className="bg-black/50 border border-white/5 rounded-xl p-3.5 space-y-3 animate-fade-in text-[10.5px]">
+                                <div className="flex justify-between items-center text-zinc-400">
+                                  <span>Transfer Type:</span>
+                                  <span className="bg-white/5 text-white/70 px-2 py-0.5 rounded text-[8.5px] uppercase tracking-wider font-mono">Personal Account (Send Money)</span>
+                                </div>
+                                <div className="flex justify-between items-center bg-white/[0.02] p-2 rounded-lg border border-white/5">
+                                  <div>
+                                    <span className="text-[8px] text-zinc-500 block uppercase tracking-wider">RECIPIENT NUMBER</span>
+                                    <span className="font-mono font-black text-white text-xs tracking-wider">
+                                      {paymentMethod === 'bkash' && (bkashNumber || '01777223344')}
+                                      {paymentMethod === 'nagad' && (nagadNumber || '01999887766')}
+                                      
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const num = paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
+                                      navigator.clipboard.writeText(num);
+                                    }}
+                                    className="text-[9px] text-luxury-gold border border-luxury-gold/30 hover:border-luxury-gold px-2.5 py-1 rounded-lg transition-all"
+                                  >
+                                    Copy Number
+                                  </button>
+                                </div>
+                                <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                                  <span>REQUIRED AMOUNT:</span>
+                                  <span className="text-luxury-gold font-mono font-black text-xs">৳{advancePaymentAmount}</span>
+                                </div>
+
+                                {/* Transaction ID Input */}
+                                <div className="space-y-1">
+                                  <label className="block text-[10px] font-mono uppercase text-white/70">Transaction ID *</label>
+                                  <input 
+                                    type="text"
+                                    required
+                                    placeholder="Enter TrxID"
+                                    value={transactionId}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/\s+/g, '').toUpperCase();
+                                      setTransactionId(val);
+                                      setTransactionError(validateTransactionId(val));
+                                    }}
+                                    className={`w-full bg-[#0a0511] text-white font-mono text-xs border rounded-xl py-2.5 px-3 focus:outline-none placeholder-white/10 tracking-widest ${
+                                      transactionError ? 'border-red-500/40 focus:border-red-500' : 'border-white/10 focus:border-luxury-gold'
+                                    }`}
+                                  />
+                                  {transactionError && <p className="text-[9px] font-mono text-red-400 mt-1">⚠️ {transactionError}</p>}
+                                </div>
+
+                                {/* Payment Screenshot */}
+                                <div className="space-y-1.5 pt-1">
+                                  <label className="block text-[10px] font-mono uppercase text-white/50">Transfer Screenshot Proof (Optional)</label>
+                                  {screenshotPreview ? (
+                                    <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-2 rounded-xl">
+                                      <img src={screenshotPreview} className="w-10 h-10 object-cover rounded-md" />
+                                      <button type="button" onClick={() => { setScreenshotPreview(null); setScreenshotBase64(null); }} className="text-[10px] text-red-400 hover:underline">Remove</button>
+                                    </div>
+                                  ) : (
+                                    <label className="border border-dashed border-white/10 hover:border-luxury-gold/30 bg-black/40 p-3 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all">
+                                      <input type="file" accept="image/*" onChange={handleScreenshotChange} className="hidden" />
+                                      <span className="text-[10px] text-luxury-gold font-bold">Select Screenshot</span>
+                                    </label>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Trust Badges */}
+                          <div className="grid grid-cols-3 gap-2 text-center text-white/50 text-[9px]">
+                            <div className="bg-white/[0.01] border border-white/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1">
+                              <ShieldCheck size={14} className="text-luxury-gold" />
+                              <span className="font-bold text-white/70">SECURE BILLING</span>
+                            </div>
+                            <div className="bg-white/[0.01] border border-white/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1">
+                              <Award size={14} className="text-luxury-gold" />
+                              <span className="font-bold text-white/70">100% ORIGINAL</span>
+                            </div>
+                            <div className="bg-white/[0.01] border border-white/5 p-2 rounded-xl flex flex-col items-center justify-center gap-1">
+                              <Undo2 size={14} className="text-luxury-gold" />
+                              <span className="font-bold text-white/70">7-DAY RETURN</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {errorMessage && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10px] font-mono">
+                          ⚠️ SYSTEM ALERT: {errorMessage}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Step 2 Footer Checkout Calculation Box */}
+                    <div className="bg-[#0b0413] border-t border-white/5 p-4 sm:p-5 space-y-2.5 sm:space-y-3 shrink-0">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between text-zinc-400"><span>Segment Subtotal</span><span className="font-mono">{formatPrice(itemsTotal)}</span></div>
+                        {appliedCoupon && (
+                          <div className="flex justify-between text-emerald-400"><span>✓ Coupon Applied</span><span className="font-mono">-{formatPrice(discountAmount)}</span></div>
+                        )}
+                        <div className="flex justify-between text-zinc-400"><span>Concierge Logistics Delivery</span><span className="font-mono">{formatPrice(resolvedDeliveryCharge)}</span></div>
+                        <div className="flex justify-between text-white font-extrabold border-t border-white/5 pt-2.5">
+                          <span className="tracking-wider">BILLING GRAND TOTAL</span>
+                          <span className="text-luxury-gold font-mono text-sm font-black">{formatPrice(grandTotal)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 items-center">
+                        <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono py-3">
+                          <ArrowLeft size={13} /> Back
+                        </button>
+                        
+                        <div className="flex-1">
+                          <LuxuryCheckoutButton
+                            isCheckingOut={isCheckingOut}
+                            disabled={isCheckingOut}
+                            label="PLACE LUXURY ORDER"
                           />
-                          <span className="text-[11px] text-[#d4af37] font-bold mb-1">
-                            স্ক্রিনশট বা প্রুফ ফাইল সিলেক্ট করুন
-                          </span>
-                          <span className="text-[9px] text-zinc-500">
-                            JPG, PNG, WebP সর্বোচ্চ ৫ মেগাবাইট
-                          </span>
-                        </label>
-                      )}
-                    </div>
-
-                    {/* Informative warning text if transaction validation fails */}
-                    {(!transactionId || !!transactionError) && (
-                      <div className="bg-amber-500/5 border border-amber-500/15 text-amber-400/90 text-[10.5px] px-3.5 py-3 rounded-xl leading-relaxed shadow-sm">
-                        ⚜️ <span className="font-bold text-amber-300">দয়া করে পেমেন্ট সম্পূর্ণ করুন</span> এবং অর্ডার কনফার্ম করার পূর্বে সঠিক ট্রানজেকশন আইডি প্রবেশ করান।
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {errorMessage && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3.5 rounded-xl text-[11px] font-mono animate-pulse">
-                    ⚠️ SYSTEM ALARM: {errorMessage}
-                  </div>
-                )}
-
-                {/* Calculation Matrix and Checkout Core trigger */}
-                <div className="border-t border-white/5 pt-4 space-y-2.5 font-display">
-                  <div className="flex justify-between text-[11.5px] text-zinc-400">
-                    <span>পণ্যের উপমোট মূল্য (Subtotal)</span>
-                    <span className="font-mono">{formatPrice(itemsTotal)}</span>
-                  </div>
-                  {appliedCoupon && (
-                    <div>
-                      <div className="flex justify-between text-[11.5px] text-green-400 font-semibold animate-fade-in">
-                        <span className="flex items-center gap-1">🎟️ কুপন ডিসকাউন্ট ({appliedCoupon.code})</span>
-                        <span className="font-mono">-{formatPrice(discountAmount)}</span>
-                      </div>
-                      {couponDetailsNote && (
-                        <div className="text-[9.5px] text-emerald-400/60 font-mono text-right italic mt-0.5">
-                          {couponDetailsNote}
                         </div>
-                      )}
+                      </div>
                     </div>
-                  )}
-                  <div className="flex justify-between text-[11.5px] text-zinc-400">
-                    <span>ডেলিভারি চার্জ ({customerCity})</span>
-                    <span className="font-mono">{formatPrice(resolvedDeliveryCharge)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm text-white font-extrabold border-t border-white/10 pt-3.5 mb-4">
-                    <span className="uppercase tracking-[0.14em]">সর্বমোট মূল্য (Grand Total)</span>
-                    <span className="luxury-animated-price text-luxury-gold text-base font-mono">{formatPrice(grandTotal)}</span>
-                  </div>
+                  </form>
+                )}
 
-                  {showLocalSuccessToast && placedOrderId && (
-                    <div className="bg-gradient-to-br from-[#0c051a] via-[#05010c] to-[#120726] border-2 border-luxury-gold p-4 rounded-xl shadow-[0_15px_30px_rgba(154,77,255,0.3)] animate-fade-in flex items-start gap-3 text-left mb-4 relative overflow-hidden">
-                      {/* Real-time pulse locator dot */}
-                      <div className="w-2 h-2 rounded-full bg-luxury-gold animate-ping absolute top-4 right-4"></div>
+                {/* STEP 3: SUCCESS / THANK YOU WINDOW */}
+                {checkoutStep === 'success' && (
+                  <div className="flex-1 flex flex-col justify-between overflow-hidden relative">
+                    <CanvasConfetti />
+
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center space-y-6 scrollbar-hidden">
                       
-                      <div className="w-9 h-9 rounded-full bg-luxury-gold/10 border border-luxury-gold/40 flex items-center justify-center text-base shrink-0 text-luxury-gold relative">
-                        <span className="absolute inset-0 rounded-full border border-luxury-gold/20 animate-pulse"></span>
-                        🔔
+                      {/* Scale bouncing checkmark */}
+                      <motion.div 
+                        initial={{ scale: 0.3, opacity: 0 }}
+                        animate={{ scale: [1, 1.15, 1], opacity: 1 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-black border-4 border-emerald-400/20 shadow-[0_0_30px_rgba(16,185,129,0.3)] shrink-0"
+                      >
+                        <Check size={32} className="stroke-[3.5]" />
+                      </motion.div>
+
+                      <div className="space-y-2">
+                        <h3 className="font-serif text-xl font-bold text-white tracking-wide">Aesthetic dispatch secured</h3>
+                        <p className="text-[10px] text-luxury-gold font-mono uppercase tracking-[0.2em]">Thank you for your trust in Style X</p>
                       </div>
 
-                      <div className="space-y-1 text-left min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[7.5px] font-mono uppercase tracking-widest text-luxury-gold bg-luxury-gold/10 px-1 py-0.5 rounded border border-luxury-gold/30 font-bold">VIP Status Alert</span>
-                          <span className="text-[7px] font-mono text-white/50 tracking-wider">#{placedOrderId}</span>
+                      <p className="text-xs text-white/70 max-w-sm font-light leading-relaxed">
+                        Your bespoke order request has been logged successfully inside the Style X VIP private registry. A concierge agent will finalize delivery tracking codes.
+                      </p>
+
+                      {/* Receipt Card */}
+                      <div className="w-full max-w-sm bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-left font-mono text-[11px] space-y-2.5 relative shadow-md">
+                        <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                          <span className="text-zinc-500">ORDER TRACKID:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-luxury-gold font-black select-all">{placedOrderId}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (placedOrderId) navigator.clipboard.writeText(placedOrderId);
+                              }}
+                              className="text-white/40 hover:text-white transition-all"
+                              title="Copy ID"
+                            >
+                              <Copy size={11} />
+                            </button>
+                          </div>
                         </div>
-                        <h5 className="font-serif text-xs font-bold text-white tracking-wide">
-                          Bespoke Order Secured!
-                        </h5>
-                        <p className="text-[10px] text-[#ebd9fc]/90 leading-relaxed font-sans">
-                          Your custom order is fully registered in our VIP private vault. Proceed to WhatsApp to finalize concierge verification.
-                        </p>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-500">Estimated Dispatch:</span>
+                          <span className="text-white font-bold">{placedDeliveryDate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-500">Bespoke Address:</span>
+                          <span className="text-white font-bold truncate max-w-[160px]">{customerAddress}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-white/5 pt-2 text-[10px]">
+                          <span className="text-zinc-500 uppercase">Billing Scheme:</span>
+                          <span className="text-luxury-gold font-black uppercase">{placedPaymentLabel}</span>
+                        </div>
                       </div>
                     </div>
-                  )}
 
-                  {(() => {
-                    const isFormInvalid = 
-                      cartItems.length === 0 ||
-                      !customerName.trim() ||
-                      customerPhone.replace(/[^0-9]/g, '').length < 8 ||
-                      !customerAddress.trim() ||
-                      (paymentType !== 'cod' && (!transactionId || !!validateTransactionId(transactionId)));
-                    return (
-                      <LuxuryCheckoutButton
-                        isCheckingOut={isCheckingOut}
-                        disabled={isCheckingOut || isFormInvalid}
-                        label={isFormInvalid ? "Fill Requirements" : "Confirm Order"}
-                      />
-                    );
-                  })()}
-                </div>
-              </form>
+                    {/* Step 3 Footer buttons */}
+                    <div className="bg-[#0b0413] border-t border-white/5 p-5 space-y-3 shrink-0 z-20">
+                      {placedWhatsAppUrl && (
+                        <a
+                          href={placedWhatsAppUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => finalizePurchase(placedWhatsAppUrl)}
+                          className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-black text-xs tracking-widest uppercase py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_25px_rgba(16,185,129,0.3)]"
+                        >
+                          Verify via WhatsApp
+                          <ExternalLink size={13} />
+                        </a>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={() => finalizePurchase()}
+                        className="w-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-white font-mono text-[10px] tracking-widest uppercase py-3.5 rounded-xl transition-all"
+                      >
+                        Continue Shopping
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-            </div>
-          </div>
-        )}
-
+              </div>
+            )}
           </motion.div>
         </div>
       )}
