@@ -8,6 +8,7 @@ import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./sr
 import { supabase } from "./src/lib/supabase.js";
 import { GoogleGenAI } from "@google/genai";
 import nodemailer from "nodemailer";
+import webPush from "web-push";
 
 
 export const app = express();
@@ -157,6 +158,8 @@ let db = {
   countedSessions: [] as string[],
   notifications: [] as any[],
   failed_notifications: [] as any[],
+  pushSubscriptions: [] as any[],
+  vapidKeys: null as { publicKey: string; privateKey: string } | null,
   seededCoupons: false,
   seededCampaigns: false,
   seededBanners: false,
@@ -181,12 +184,14 @@ let db = {
     deactivatedMessage: "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
     isLotteryDeactivated: false,
     isNotifyMeDeactivated: false,
+    isXoroVoiceDisabled: false,
     globalTimerEndTime: "",
     globalTimerMessage: "",
     globalTimerActive: false,
     globalPaymentSystem: "product_defined",
     globalPaymentMethod: "both",
     globalDeliveryDays: "",
+    accentColor: "#D4AF37",
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
       { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -213,6 +218,8 @@ if (fs.existsSync(DB_FILE)) {
     db.notifications = db.notifications || [];
     db.failed_notifications = parsedData.failed_notifications || [];
     db.backInStockAlerts = db.backInStockAlerts || [];
+    db.pushSubscriptions = parsedData.pushSubscriptions || [];
+    db.vapidKeys = parsedData.vapidKeys || null;
     db.seededCoupons = parsedData.seededCoupons !== undefined ? !!parsedData.seededCoupons : false;
     db.seededCampaigns = parsedData.seededCampaigns !== undefined ? !!parsedData.seededCampaigns : false;
     db.seededBanners = parsedData.seededBanners !== undefined ? !!parsedData.seededBanners : false;
@@ -249,12 +256,14 @@ if (fs.existsSync(DB_FILE)) {
       deactivatedMessage: db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.",
       isLotteryDeactivated: db.settings?.isLotteryDeactivated !== undefined ? !!db.settings.isLotteryDeactivated : false,
       isNotifyMeDeactivated: db.settings?.isNotifyMeDeactivated !== undefined ? !!db.settings.isNotifyMeDeactivated : false,
+      isXoroVoiceDisabled: db.settings?.isXoroVoiceDisabled !== undefined ? !!db.settings.isXoroVoiceDisabled : false,
       globalTimerEndTime: db.settings?.globalTimerEndTime || "",
       globalTimerMessage: db.settings?.globalTimerMessage || "",
       globalTimerActive: db.settings?.globalTimerActive !== undefined ? !!db.settings.globalTimerActive : false,
       globalPaymentSystem: db.settings?.globalPaymentSystem || "product_defined",
       globalPaymentMethod: db.settings?.globalPaymentMethod || "both",
       globalDeliveryDays: db.settings?.globalDeliveryDays || "",
+      accentColor: db.settings?.accentColor || "#D4AF37",
       lotteryPrizes: db.settings?.lotteryPrizes || [
         { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
         { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -269,6 +278,28 @@ if (fs.existsSync(DB_FILE)) {
   } catch (err) {
     console.error("Error parsing DB file, using default structure", err);
   }
+}
+
+// Initialize VAPID Keys for Web Push Notifications
+try {
+  if (!db.vapidKeys || !db.vapidKeys.publicKey || !db.vapidKeys.privateKey) {
+    console.log("Generating fresh VAPID keys for Web Push...");
+    const keys = webPush.generateVAPIDKeys();
+    db.vapidKeys = {
+      publicKey: keys.publicKey,
+      privateKey: keys.privateKey
+    };
+    // Save DB after modifying key fields
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
+  }
+  webPush.setVapidDetails(
+    "mailto:risatadnan4@gmail.com",
+    db.vapidKeys!.publicKey,
+    db.vapidKeys!.privateKey
+  );
+  console.log("Web Push VAPID keys successfully initialized and set.");
+} catch (vErr: any) {
+  console.error("Failed to initialize VAPID keys for Web Push:", vErr.message);
 }
 
 // Function to save database file
@@ -322,6 +353,7 @@ async function syncSettingsToCloud() {
           globalPaymentSystem: db.settings.globalPaymentSystem,
           globalPaymentMethod: db.settings.globalPaymentMethod,
           globalDeliveryDays: db.settings.globalDeliveryDays,
+          accentColor: db.settings.accentColor,
           lotteryPrizes: typeof db.settings.lotteryPrizes === "string" ? db.settings.lotteryPrizes : JSON.stringify(db.settings.lotteryPrizes)
         };
 
@@ -331,8 +363,9 @@ async function syncSettingsToCloud() {
 
         const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         if (upsertError && upsertError.message.includes("column")) {
-          // Retry without productPayments column if it doesn't exist
+          // Retry without productPayments or accentColor columns if they don't exist
           delete upsertPayload.productPayments;
+          delete upsertPayload.accentColor;
           await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         }
       }
@@ -362,6 +395,20 @@ async function syncFromSupabase() {
   try {
     console.log("🔄 Fetching latest collections from Supabase database in parallel...");
 
+    const safeSelect = async (table: string) => {
+      try {
+        const res = await supabase.from(table).select("*");
+        if (res.error) {
+          console.warn(`⚠️ Error selecting from ${table}:`, res.error.message);
+          return { data: null, error: res.error };
+        }
+        return res;
+      } catch (err: any) {
+        console.warn(`⚠️ Exception selecting from ${table}:`, err?.message || err);
+        return { data: null, error: err };
+      }
+    };
+
     const [
       productsResult,
       bannersResult,
@@ -372,14 +419,14 @@ async function syncFromSupabase() {
       chatsResult,
       settingsResult
     ] = await Promise.all([
-      supabase.from("products").select("*"),
-      supabase.from("banners").select("*"),
-      supabase.from("coupons").select("*"),
-      supabase.from("campaigns").select("*"),
-      supabase.from("reviews").select("*"),
-      supabase.from("orders").select("*"),
-      supabase.from("chats").select("*"),
-      supabase.from("settings").select("*")
+      safeSelect("products"),
+      safeSelect("banners"),
+      safeSelect("coupons"),
+      safeSelect("campaigns"),
+      safeSelect("reviews"),
+      safeSelect("orders"),
+      safeSelect("chats"),
+      safeSelect("settings")
     ]);
 
     // 0. Pre-parse settings & banners fallback to populate productPayments
@@ -441,6 +488,7 @@ async function syncFromSupabase() {
               bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
               nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
               paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
+              paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
               deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
               deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
               isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
@@ -520,6 +568,7 @@ async function syncFromSupabase() {
               if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
               if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
               if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+              if (fallbackSettings.isXoroVoiceDisabled !== undefined) db.settings.isXoroVoiceDisabled = fallbackSettings.isXoroVoiceDisabled === true || fallbackSettings.isXoroVoiceDisabled === "true";
               if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
               if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
               if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
@@ -736,6 +785,9 @@ async function syncFromSupabase() {
           if (configRow.isNotifyMeDeactivated !== undefined && configRow.isNotifyMeDeactivated !== null) {
             db.settings.isNotifyMeDeactivated = configRow.isNotifyMeDeactivated === true || configRow.isNotifyMeDeactivated === "true";
           }
+          if (configRow.isXoroVoiceDisabled !== undefined && configRow.isXoroVoiceDisabled !== null) {
+            db.settings.isXoroVoiceDisabled = configRow.isXoroVoiceDisabled === true || configRow.isXoroVoiceDisabled === "true";
+          }
           
           if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
           if (configRow.globalTimerMessage !== undefined && configRow.globalTimerMessage !== null) db.settings.globalTimerMessage = configRow.globalTimerMessage;
@@ -747,6 +799,7 @@ async function syncFromSupabase() {
           if (configRow.globalPaymentSystem !== undefined && configRow.globalPaymentSystem !== null) db.settings.globalPaymentSystem = configRow.globalPaymentSystem;
           if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
           if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
+          if (configRow.accentColor !== undefined && configRow.accentColor !== null) db.settings.accentColor = configRow.accentColor;
           
           if (configRow.lotteryPrizes) {
             try {
@@ -805,34 +858,44 @@ async function syncFromSupabase() {
 export async function ensureDbSynced() {
   const now = Date.now();
 
-  // If we have never synced successfully, block and execute sync
+  // If we have never synced successfully, run sync in background or wait at most 2.5 seconds
   if (lastSyncCompletedAt === 0) {
     if (!activeSyncPromise) {
       activeSyncPromise = (async () => {
         try {
           await syncFromSupabase();
           lastSyncCompletedAt = Date.now();
+        } catch (err: any) {
+          console.warn("⚠️ Initial background sync failed:", err?.message || err);
         } finally {
           activeSyncPromise = null;
         }
       })();
     }
-    return activeSyncPromise;
+    // Only await if we don't have cached products loaded yet to prevent cold-start hanging
+    if (!db.products || db.products.length === 0) {
+      await Promise.race([
+        activeSyncPromise,
+        new Promise(resolve => setTimeout(resolve, 2500))
+      ]);
+    }
+    return;
   }
 
-  // If last complete sync was more than 5 seconds ago, block and fetch fresh data
-  if (now - lastSyncCompletedAt > 5000) {
+  // If last complete sync was more than 15 seconds ago, trigger a background sync (completely non-blocking)
+  if (now - lastSyncCompletedAt > 15000) {
     if (!activeSyncPromise) {
       activeSyncPromise = (async () => {
         try {
           await syncFromSupabase();
           lastSyncCompletedAt = Date.now();
+        } catch (err: any) {
+          console.warn("⚠️ Background sync failed:", err?.message || err);
         } finally {
           activeSyncPromise = null;
         }
       })();
     }
-    await activeSyncPromise;
   }
 }
 
@@ -896,34 +959,47 @@ app.get("/api/visitor-ping", (req, res) => {
   try {
     const visitorId = (req.query.visitorId as string) || "";
     const sessionId = (req.query.sessionId as string) || "";
+    const isNew = req.query.isNew === "true" || !req.query.isNew;
 
     const now = Date.now();
+    const ua = (req.headers["user-agent"] || "").toLowerCase();
+    
+    // Strict Bot/Crawler Filter to prevent automated crawlers from inflating visits count
+    const isBot = /bot|googlebot|crawler|spider|robot|crawling|slurp|bingbot|yandex|applebot|baidu|duckduck|discordbot|telegrambot|whatsapp/i.test(ua);
 
-    // Register active heartbeat presence
+    // Register active heartbeat presence for live metrics
     if (sessionId) {
       activeSessions.set(sessionId, now);
     } else if (visitorId) {
       activeSessions.set(visitorId, now);
     }
 
-    // Handle unique visitor views counting accuracy using session-based and device-based tracking
-    const trackingKey = sessionId || visitorId;
-    if (trackingKey) {
+    // Prioritize persistent visitorId (device-based) over session-specific keys for counting accuracy
+    const trackingKey = visitorId || sessionId;
+    let counted = false;
+
+    if (trackingKey && !isBot) {
       if (!db.countedSessions) {
         db.countedSessions = [];
       }
 
-      if (!db.countedSessions.includes(trackingKey)) {
+      const isAlreadyInArray = db.countedSessions.includes(trackingKey);
+
+      if (!isNew || isAlreadyInArray) {
+        counted = true;
+      } else {
+        // Truly a new unique visitor on both client-side and server-side
         db.countedSessions.push(trackingKey);
         
-        // Cap the size of countedSessions to prevent memory/storage blowup over time (max 5000)
-        if (db.countedSessions.length > 5000) {
+        // Increase cap to 15,000 for high-capacity database cushion
+        if (db.countedSessions.length > 15000) {
           db.countedSessions.shift();
         }
 
-        // Monotonically increase visits so that it never decreases and counts forever
+        // Monotonically increment unique visits safely
         db.visits = Math.max((db.visits || 125) + 1, db.countedSessions.length);
         saveDB();
+        counted = true;
 
         // Asynchronously back up the visitor metrics to Supabase
         if (isSettingsTableAvailable) {
@@ -947,7 +1023,8 @@ app.get("/api/visitor-ping", (req, res) => {
     res.json({
       success: true,
       visits: Number(db.visits || 0),
-      liveViews: liveCount
+      liveViews: liveCount,
+      counted: counted
     });
   } catch (err: any) {
     res.json({
@@ -1031,6 +1108,9 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.isNotifyMeDeactivated !== undefined && configRow.isNotifyMeDeactivated !== null) {
             db.settings.isNotifyMeDeactivated = configRow.isNotifyMeDeactivated === true || configRow.isNotifyMeDeactivated === "true";
           }
+          if (configRow.isXoroVoiceDisabled !== undefined && configRow.isXoroVoiceDisabled !== null) {
+            db.settings.isXoroVoiceDisabled = configRow.isXoroVoiceDisabled === true || configRow.isXoroVoiceDisabled === "true";
+          }
           
           if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
           if (configRow.globalTimerMessage !== undefined && configRow.globalTimerMessage !== null) db.settings.globalTimerMessage = configRow.globalTimerMessage;
@@ -1042,6 +1122,7 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.globalPaymentSystem !== undefined && configRow.globalPaymentSystem !== null) db.settings.globalPaymentSystem = configRow.globalPaymentSystem;
           if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
           if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
+          if (configRow.accentColor !== undefined && configRow.accentColor !== null) db.settings.accentColor = configRow.accentColor;
           
           if (configRow.lotteryPrizes) {
             try {
@@ -1082,6 +1163,7 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
             if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
             if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+            if (fallbackSettings.isXoroVoiceDisabled !== undefined) db.settings.isXoroVoiceDisabled = fallbackSettings.isXoroVoiceDisabled === true || fallbackSettings.isXoroVoiceDisabled === "true";
             if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
             if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
             if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
@@ -1090,6 +1172,7 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
             if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
             if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
+            if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
           }
@@ -1172,7 +1255,7 @@ app.post("/api/settings", async (req, res) => {
       paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, 
       isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl,
       globalTimerEndTime, globalTimerMessage, globalTimerActive, globalPaymentSystem, 
-      globalPaymentMethod, globalDeliveryDays
+      globalPaymentMethod, globalDeliveryDays, accentColor, isXoroVoiceDisabled
     } = req.body;
     
     db.settings = {
@@ -1194,12 +1277,14 @@ app.post("/api/settings", async (req, res) => {
       deactivatedMessage: deactivatedMessage !== undefined ? deactivatedMessage.trim() : (db.settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops."),
       isLotteryDeactivated: isLotteryDeactivated !== undefined ? !!isLotteryDeactivated : (db.settings?.isLotteryDeactivated || false),
       isNotifyMeDeactivated: isNotifyMeDeactivated !== undefined ? !!isNotifyMeDeactivated : (db.settings?.isNotifyMeDeactivated || false),
+      isXoroVoiceDisabled: isXoroVoiceDisabled !== undefined ? !!isXoroVoiceDisabled : (db.settings?.isXoroVoiceDisabled || false),
       globalTimerEndTime: globalTimerEndTime !== undefined ? globalTimerEndTime.trim() : (db.settings?.globalTimerEndTime || ""),
       globalTimerMessage: globalTimerMessage !== undefined ? globalTimerMessage.trim() : (db.settings?.globalTimerMessage || ""),
       globalTimerActive: globalTimerActive !== undefined ? !!globalTimerActive : (db.settings?.globalTimerActive || false),
       globalPaymentSystem: globalPaymentSystem !== undefined ? globalPaymentSystem.trim() : (db.settings?.globalPaymentSystem || "product_defined"),
       globalPaymentMethod: globalPaymentMethod !== undefined ? globalPaymentMethod.trim() : (db.settings?.globalPaymentMethod || "both"),
       globalDeliveryDays: globalDeliveryDays !== undefined ? globalDeliveryDays.trim() : (db.settings?.globalDeliveryDays || ""),
+      accentColor: accentColor !== undefined ? accentColor.trim() : (db.settings?.accentColor || "#D4AF37"),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
       productPayments: db.settings?.productPayments || {}
     };
@@ -1236,6 +1321,7 @@ app.get("/api/products", async (req, res) => {
           bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
           nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
           paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
+          paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
           deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
           deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
           isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
@@ -1274,6 +1360,7 @@ app.get("/api/products/:id", async (req, res) => {
         bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (data.bkashNumber || localProduct?.bkashNumber || ""),
         nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (data.nagadNumber || localProduct?.nagadNumber || ""),
         paymentType: pm.paymentType !== undefined ? pm.paymentType : (data.paymentType || localProduct?.paymentType || "cod"),
+        paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (data.paymentPercentage !== undefined && data.paymentPercentage !== null ? Number(data.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
         deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))),
         deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (data.deliveryDays || localProduct?.deliveryDays || "3-5"),
         isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
@@ -1351,6 +1438,7 @@ app.post("/api/products", async (req, res) => {
     bkashNumber: newProduct.bkashNumber || "",
     nagadNumber: newProduct.nagadNumber || "",
     paymentType: newProduct.paymentType || "cod",
+    paymentPercentage: newProduct.paymentPercentage !== undefined && newProduct.paymentPercentage !== null ? Number(newProduct.paymentPercentage) : null,
     deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
     deliveryDays: newProduct.deliveryDays || "",
     isPinned: !!newProduct.isPinned,
@@ -1394,6 +1482,7 @@ app.post("/api/products", async (req, res) => {
       bkashNumber: newProduct.bkashNumber || "",
       nagadNumber: newProduct.nagadNumber || "",
       paymentType: newProduct.paymentType || "cod",
+      paymentPercentage: newProduct.paymentPercentage !== undefined && newProduct.paymentPercentage !== null ? Number(newProduct.paymentPercentage) : null,
       deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
       deliveryDays: newProduct.deliveryDays || null
     };
@@ -1406,6 +1495,7 @@ app.post("/api/products", async (req, res) => {
       delete payload.bkashNumber;
       delete payload.nagadNumber;
       delete payload.paymentType;
+      delete payload.paymentPercentage;
       delete payload.deliveryCharge;
       delete payload.deliveryDays;
       delete payload.isPinned;
@@ -1426,6 +1516,18 @@ app.post("/api/products", async (req, res) => {
     if (process.env.VERCEL) {
       return res.status(500).json({ message: `Database connection error: ${err.message}` });
     }
+  }
+
+  // Dispatch Real-Time Push Notification for New Product Drop
+  try {
+    sendPushNotification({
+      title: "🎉 New Luxury Drop: " + newProduct.title,
+      body: `A magnificent new creation has been added to our custom catalog! Click to inspect and order now.`,
+      icon: newProduct.imageUrl || "/stylex_logo.jpg",
+      url: `https://stylex.premium.shop/#product-${newProduct.id}`
+    });
+  } catch (pErr: any) {
+    console.error("⚠️ Failed to dispatch push notification for new product:", pErr.message);
   }
 
   res.status(201).json(newProduct);
@@ -1471,6 +1573,7 @@ app.put("/api/products/:id", async (req, res) => {
       bkashNumber: target.bkashNumber || "",
       nagadNumber: target.nagadNumber || "",
       paymentType: target.paymentType || "cod",
+      paymentPercentage: target.paymentPercentage !== undefined && target.paymentPercentage !== null ? Number(target.paymentPercentage) : null,
       deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
       deliveryDays: target.deliveryDays || "",
       isPinned: !!target.isPinned,
@@ -1515,6 +1618,7 @@ app.put("/api/products/:id", async (req, res) => {
         bkashNumber: target.bkashNumber || "",
         nagadNumber: target.nagadNumber || "",
         paymentType: target.paymentType || "cod",
+        paymentPercentage: target.paymentPercentage !== undefined && target.paymentPercentage !== null ? Number(target.paymentPercentage) : null,
         deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
         deliveryDays: target.deliveryDays || null
       };
@@ -1527,6 +1631,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.bkashNumber;
         delete payload.nagadNumber;
         delete payload.paymentType;
+        delete payload.paymentPercentage;
         delete payload.deliveryCharge;
         delete payload.deliveryDays;
         delete payload.isPinned;
@@ -1694,8 +1799,8 @@ app.get("/api/orders/:id", async (req, res) => {
 });
 
 // --- Secured Admin Email System ---
-async function sendAdminEmail({ subject, text, html }: { subject: string, text: string, html: string }) {
-  const adminEmail = process.env.ADMIN_EMAIL || db.settings?.adminEmail || "risatadnan4@gmail.com";
+async function sendAdminEmail({ subject, text, html, toEmail }: { subject: string, text: string, html: string, toEmail?: string }) {
+  const adminEmail = toEmail || process.env.ADMIN_EMAIL || db.settings?.adminEmail || "risatadnan4@gmail.com";
   const timestamp = new Date().toISOString();
   console.log(`[EMAIL_SYSTEM] [${timestamp}] Dispatching email to admin: ${adminEmail}`);
 
@@ -1973,21 +2078,22 @@ app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
 
     // 1. Try sendAdminEmail (standard SMTP, Resend, or Google Apps Script Webhook fallback)
     try {
-      console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching via sendAdminEmail...`);
+      console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching via sendAdminEmail to risatadnan5@gmail.com...`);
       await sendAdminEmail({
         subject: `🔔 [SIGNUP NOTIFICATION] New Member Registered: ${fullName}`,
         text: emailBody,
-        html: emailHtml
+        html: emailHtml,
+        toEmail: "risatadnan5@gmail.com"
       });
       mailSuccess = true;
-      console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] sendAdminEmail succeeded.`);
+      console.log(`[SIGNUP_EMAIL] [SUCCESS] [ATTEMPT ${attemptCount}] sendAdminEmail to risatadnan5@gmail.com succeeded.`);
     } catch (err: any) {
       console.error(`[SIGNUP_EMAIL] [FAIL] [ATTEMPT ${attemptCount}] sendAdminEmail failed:`, err.message || err);
       executionError = err;
     }
 
     // 2. ALSO trigger Google Apps Script Webhook directly with rich order-like payload (just like /api/orders)
-    const adminEmail = process.env.ADMIN_EMAIL || db.settings?.adminEmail || "risatadnan4@gmail.com";
+    const adminEmail = "risatadnan5@gmail.com";
     const scriptUrl = db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec";
     
     console.log(`[SIGNUP_EMAIL] [ATTEMPT ${attemptCount}] Dispatching directly to Google Apps Script URL: ${scriptUrl}`);
@@ -2047,87 +2153,150 @@ app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
     }
   };
 
-  // Attempt 1
-  await tryEmailSend();
+  // Execute everything asynchronously in the background so the user registers instantly!
+  res.json({ 
+    success: true, 
+    message: "Admin notification queued successfully." 
+  });
 
-  // Retry once if failed
-  if (!sentSuccessfully) {
-    attemptCount++;
-    console.warn(`[SIGNUP_EMAIL] First attempt failed. Retrying in 1.2s...`);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    await tryEmailSend();
-  }
-
-  if (sentSuccessfully) {
-    res.json({ 
-      success: true, 
-      message: "Admin notification email sent successfully.", 
-      attempts: attemptCount 
-    });
-  } else {
-    const errorDetails = executionError?.message || "All custom SMTP/Resend providers failed";
-    console.error(`[SIGNUP_EMAIL] [ABORT] Both notification attempts failed for: ${email}. Error: ${errorDetails}`);
-
-    // Save failed notification in Supabase table
-    let savedToSupabase = false;
+  // Run in background
+  (async () => {
     try {
-      console.log(`[SIGNUP_EMAIL] Registering failed notification inside Supabase...`);
-      const { error: dbError } = await supabase.from("failed_notifications").insert({
-        user_id: userId || null,
-        full_name: fullName,
-        email: email,
-        mobile_number: mobileNumber,
-        browser: clientBrowser,
-        device: clientDevice,
-        country: finalCountry,
-        error_message: errorDetails,
-        retry_count: 1,
-        created_at: new Date().toISOString()
-      });
+      // Attempt 1
+      await tryEmailSend();
 
-      if (dbError) {
-        throw dbError;
+      // Retry once if failed
+      if (!sentSuccessfully) {
+        attemptCount++;
+        console.warn(`[SIGNUP_EMAIL] First attempt failed. Retrying in 1.2s in background...`);
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await tryEmailSend();
       }
-      savedToSupabase = true;
-      console.log(`[SIGNUP_EMAIL] Saved failed notification to 'failed_notifications' table on Supabase.`);
-    } catch (dbErr: any) {
-      console.error(`[SIGNUP_EMAIL] Supabase DB failed_notifications insert failed:`, dbErr.message || dbErr);
-    }
 
-    // Save locally as a secondary database backup
-    try {
-      db.failed_notifications = db.failed_notifications || [];
-      db.failed_notifications.push({
-        userId: userId || null,
-        fullName,
-        email,
-        mobileNumber,
-        browser: clientBrowser,
-        device: clientDevice,
-        country: finalCountry,
-        errorMessage: errorDetails,
-        createdAt: new Date().toISOString(),
-        savedToSupabase
-      });
-      saveDB();
-      console.log(`[SIGNUP_EMAIL] Backup stored in local database luxury_db.json successfully.`);
-    } catch (localSaveErr: any) {
-      console.error(`[SIGNUP_EMAIL] Backup local save failed:`, localSaveErr.message);
-    }
+      if (sentSuccessfully) {
+        console.log(`[SIGNUP_EMAIL] Background dispatch succeeded for: ${email}`);
+      } else {
+        const errorDetails = executionError?.message || "All custom SMTP/Resend providers failed";
+        console.error(`[SIGNUP_EMAIL] [ABORT] Both background notification attempts failed for: ${email}. Error: ${errorDetails}`);
 
-    // Return 500 error to indicate that the admin notification failed (which the frontend expects to check before showing success)
-    res.status(500).json({
-      success: false,
-      message: "User registration succeeded but the admin notification email failed to dispatch after multiple retries.",
-      error: errorDetails,
-      savedToDb: true
-    });
-  }
+        // Save failed notification in Supabase table
+        let savedToSupabase = false;
+        try {
+          console.log(`[SIGNUP_EMAIL] Registering failed notification inside Supabase...`);
+          const { error: dbError } = await supabase.from("failed_notifications").insert({
+            user_id: userId || null,
+            full_name: fullName,
+            email: email,
+            mobile_number: mobileNumber,
+            browser: clientBrowser,
+            device: clientDevice,
+            country: finalCountry,
+            error_message: errorDetails,
+            retry_count: 1,
+            created_at: new Date().toISOString()
+          });
+
+          if (dbError) {
+            throw dbError;
+          }
+          savedToSupabase = true;
+          console.log(`[SIGNUP_EMAIL] Saved failed notification to 'failed_notifications' table on Supabase.`);
+        } catch (dbErr: any) {
+          console.error(`[SIGNUP_EMAIL] Supabase DB failed_notifications insert failed:`, dbErr.message || dbErr);
+        }
+
+        // Save locally as a secondary database backup
+        try {
+          db.failed_notifications = db.failed_notifications || [];
+          db.failed_notifications.push({
+            userId: userId || null,
+            fullName,
+            email,
+            mobileNumber,
+            browser: clientBrowser,
+            device: clientDevice,
+            country: finalCountry,
+            errorMessage: errorDetails,
+            createdAt: new Date().toISOString(),
+            savedToSupabase
+          });
+          saveDB();
+          console.log(`[SIGNUP_EMAIL] Backup stored in local database luxury_db.json successfully.`);
+        } catch (localSaveErr: any) {
+          console.error(`[SIGNUP_EMAIL] Backup local save failed:`, localSaveErr.message);
+        }
+      }
+    } catch (bgErr: any) {
+      console.error(`[SIGNUP_EMAIL] Background processing exception:`, bgErr.message);
+    }
+  })();
 });
 
 app.get("/api/notifications", (req, res) => {
   res.json(db.notifications || []);
 });
+
+app.get("/api/push-public-key", (req, res) => {
+  if (db.vapidKeys && db.vapidKeys.publicKey) {
+    res.json({ publicKey: db.vapidKeys.publicKey });
+  } else {
+    res.status(404).json({ error: "VAPID keys not configured" });
+  }
+});
+
+app.post("/api/push-subscribe", (req, res) => {
+  const subscription = req.body;
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: "Invalid subscription" });
+  }
+  db.pushSubscriptions = db.pushSubscriptions || [];
+  const exists = db.pushSubscriptions.some((sub: any) => sub.endpoint === subscription.endpoint);
+  if (!exists) {
+    db.pushSubscriptions.push(subscription);
+    saveDB();
+  }
+  res.status(201).json({ success: true });
+});
+
+app.post("/api/push-dispatch", (req, res) => {
+  const { title, body, icon, url } = req.body;
+  if (!title || !body) {
+    return res.status(400).json({ error: "Missing title or body" });
+  }
+  sendPushNotification({ title, body, icon: icon || "/stylex_logo.jpg", url: url || "https://stylex.premium.shop" });
+  res.json({ success: true, count: (db.pushSubscriptions || []).length });
+});
+
+// Helper function to send push notifications
+function sendPushNotification(payload: { title: string; body: string; icon?: string; url?: string }) {
+  db.pushSubscriptions = db.pushSubscriptions || [];
+  const payloadStr = JSON.stringify(payload);
+  const removals: string[] = [];
+
+  console.log(`[PUSH_DISPATCH] Dispatching notification to ${db.pushSubscriptions.length} subscriptions...`);
+
+  db.pushSubscriptions.forEach((sub: any) => {
+    webPush.sendNotification(sub, payloadStr)
+      .then(() => {
+        console.log(`[PUSH_DISPATCH] Successfully sent to subscription endpoint: ${sub.endpoint.substring(0, 50)}...`);
+      })
+      .catch((err: any) => {
+        console.warn(`[PUSH_DISPATCH] Push subscription failed (statusCode: ${err.statusCode}):`, err.message);
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          removals.push(sub.endpoint);
+        }
+      });
+  });
+
+  // Clean up expired subscriptions after brief delay
+  setTimeout(() => {
+    if (removals.length > 0) {
+      db.pushSubscriptions = db.pushSubscriptions.filter((sub: any) => !removals.includes(sub.endpoint));
+      saveDB();
+      console.log(`[PUSH_DISPATCH] Pruned ${removals.length} inactive or expired subscriptions.`);
+    }
+  }, 3000);
+}
 
 app.post("/api/orders", async (req, res) => {
   const { 
@@ -2388,7 +2557,11 @@ app.post("/api/orders", async (req, res) => {
     traceLogs.push(`[PAYMENT_TRACE]   - Session registered for Amount: ৳${calculatedTotalAmount}`);
 
     // Step 6: bKash payment request
-    const amountToPay = payType === 'delivery_charge' ? calculatedDeliveryCharge : calculatedTotalAmount;
+    let amountToPay = payType === 'delivery_charge' ? calculatedDeliveryCharge : calculatedTotalAmount;
+    if (payType === 'percentage') {
+      const pct = resolvedGovProduct?.paymentPercentage !== undefined ? Number(resolvedGovProduct.paymentPercentage) : 10;
+      amountToPay = Math.round((pct / 100) * calculatedTotalAmount);
+    }
 
     if (payType !== 'cod' && payMethod === 'bkash') {
       traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request initiated...`);
@@ -3226,6 +3399,19 @@ app.post("/api/campaigns", async (req, res) => {
   } catch (err: any) {
     console.error("⚠️ Campaigns Supabase upsert failed:", err.message);
   }
+
+  // Dispatch Real-Time Push Notification for New Campaign / Update
+  try {
+    sendPushNotification({
+      title: "🔥 New Campaign Launch: " + newCampaign.title,
+      body: newCampaign.description,
+      icon: newCampaign.imageUrl || "/stylex_logo.jpg",
+      url: `https://stylex.premium.shop/#catalog`
+    });
+  } catch (pErr: any) {
+    console.error("⚠️ Failed to dispatch push notification for new campaign:", pErr.message);
+  }
+
   res.status(201).json(newCampaign);
 });
 

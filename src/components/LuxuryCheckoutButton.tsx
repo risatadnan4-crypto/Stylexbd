@@ -316,22 +316,44 @@ export default function LuxuryCheckoutButton({
       <style>{`
         .viewport-3d {
           position: relative;
-          padding: 12px 0;
+          padding: 8px 0;
           display: flex;
           justify-content: center;
           align-items: center;
           z-index: 10;
           perspective: 2000px;
           transform-style: preserve-3d;
+          max-width: 440px;
+          margin: 0 auto;
+          width: 100%;
+        }
+
+        @media (max-height: 850px) {
+          .viewport-3d {
+            padding: 3px 0 !important;
+          }
+          .luxury-btn {
+            height: 58px !important;
+            border-radius: 29px !important;
+          }
+          .delivery-vessel {
+            transform: scale(0.7) !important;
+            height: 58px !important;
+            top: 2px !important;
+          }
+          .label-text {
+            font-size: 11px !important;
+            letter-spacing: 2px !important;
+          }
         }
 
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 66px;
+          height: 72px;
           background: #060408;
           border: 0.75px solid rgba(192, 132, 252, 0.3);
-          border-radius: 33px;
+          border-radius: 36px;
           cursor: pointer;
           outline: none;
           overflow: hidden;

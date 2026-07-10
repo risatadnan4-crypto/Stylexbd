@@ -26,13 +26,18 @@ export function getValidatedTotal(
 export function getAdvancePaymentAmount(
   paymentType: string,
   deliveryCharge: number,
-  grandTotal: number
+  grandTotal: number,
+  paymentPercentage?: number
 ): number {
   if (paymentType === 'delivery_charge') {
     return deliveryCharge;
   }
   if (paymentType === 'full_advance') {
     return grandTotal;
+  }
+  if (paymentType === 'percentage') {
+    const pct = paymentPercentage !== undefined ? paymentPercentage : 10;
+    return Math.round((pct / 100) * grandTotal);
   }
   return 0;
 }

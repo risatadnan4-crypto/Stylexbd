@@ -241,7 +241,7 @@ export default function ProductDetailModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
           
           {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             <div 
               onMouseEnter={() => setIsZooming(true)}
               onMouseLeave={() => setIsZooming(false)}
@@ -293,23 +293,41 @@ export default function ProductDetailModal({
                 ))}
               </div>
             )}
+
+            {/* Title and Category Header positioned below the product image/thumbnails */}
+            <div className="space-y-2 border-t border-white/5 pt-4 mt-2 w-full">
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] font-mono tracking-normal text-luxury-gold uppercase bg-luxury-gold/10 border border-luxury-gold/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.1)]">
+                  {product.category.replace(/\s+/g, ' ')} COLLECTION
+                </span>
+                <span className="text-[10px] font-mono text-white/35 tracking-normal">{product.code.replace(/\s+/g, ' ')}</span>
+              </div>
+
+              <h2 
+                className="font-serif text-lg lg:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase"
+                style={{ 
+                  wordSpacing: 'normal', 
+                  letterSpacing: 'normal', 
+                  textAlign: 'left',
+                  whiteSpace: 'normal',
+                  wordBreak: 'normal',
+                  overflowWrap: 'break-word',
+                  display: 'block',
+                  width: '100%',
+                  maxWidth: 'none',
+                  padding: '0',
+                  margin: '0'
+                }}
+              >
+                {product.title.trim().replace(/\s+/g, ' ')}
+              </h2>
+            </div>
           </div>
 
           {/* Right Column: Detailed Product Specs */}
           <div className="flex flex-col justify-between space-y-5">
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-mono tracking-[0.2em] text-luxury-gold uppercase bg-luxury-gold/10 border border-luxury-gold/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.1)]">
-                  {product.category} COLLECTION
-                </span>
-                <span className="text-[10px] font-mono text-white/35 tracking-widest">{product.code}</span>
-              </div>
-
-              <h2 className="font-serif text-2xl lg:text-3.5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 tracking-wider leading-snug uppercase">
-                {product.title}
-              </h2>
-
               {hasActiveOffer ? (
                 <div className="space-y-2 animate-fade-in">
                   <div className="flex items-baseline gap-3">
@@ -333,19 +351,40 @@ export default function ProductDetailModal({
                         </div>
                       )}
                       
-                      <div className="flex items-center gap-2 font-mono text-xs text-white">
-                        <span className="text-white/50 text-[10px] uppercase tracking-wider font-display mr-1">Time Left:</span>
-                        {timeLeft.days > 0 && (
-                          <>
-                            <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-1 rounded text-luxury-gold font-bold">{timeLeft.days} Days</span>
-                            <span className="text-luxury-gold/50 animate-pulse">:</span>
-                          </>
-                        )}
-                        <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-                        <span className="text-luxury-gold/50 animate-pulse">:</span>
-                        <span className="bg-luxury-black/95 border border-luxury-gold/30 px-2 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-                        <span className="text-luxury-gold/50 animate-pulse">:</span>
-                        <span className="bg-luxury-black/95 border border-red-500/50 px-2 py-0.5 rounded text-red-400 font-extrabold animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
+                        <span className="text-white/60 text-[10px] sm:text-xs uppercase tracking-widest font-black flex items-center gap-1.5 shrink-0 justify-center sm:justify-start">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          TIME LEFT:
+                        </span>
+                        
+                        <div className="flex items-center gap-1.5 sm:gap-2.5 font-mono justify-center sm:justify-end w-full sm:w-auto">
+                          {timeLeft.days > 0 && (
+                            <>
+                              <div className="flex flex-col items-center">
+                                <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.days).padStart(2, '0')}</span>
+                                <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">days</span>
+                              </div>
+                              <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                            </>
+                          )}
+                          
+                          <div className="flex flex-col items-center">
+                            <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.hours).padStart(2, '0')}</span>
+                            <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">hours</span>
+                          </div>
+                          <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                          
+                          <div className="flex flex-col items-center">
+                            <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                            <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">mins</span>
+                          </div>
+                          <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                          
+                          <div className="flex flex-col items-center">
+                            <span className="bg-luxury-black/95 border border-red-500/50 px-2.5 py-1.5 rounded-lg text-red-400 font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_0_12px_rgba(239,68,68,0.25)]">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                            <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -410,6 +449,21 @@ export default function ProductDetailModal({
                       </div>
                     )}
                   </div>
+                ) : product.paymentType === 'percentage' ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-serif font-semibold text-purple-400 uppercase tracking-wider">
+                      💎 Partial Advance Payment Required ({product.paymentPercentage || 10}%)
+                    </p>
+                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                      Pay {product.paymentPercentage || 10}% of the grand total in advance to confirm booking; the rest is paid cash-on-delivery.
+                    </p>
+                    {(product.bkashNumber || product.nagadNumber) && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-1">
                     <p className="text-xs font-serif font-semibold text-emerald-400 uppercase tracking-wider">
@@ -441,10 +495,10 @@ export default function ProductDetailModal({
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`h-10 min-w-10 px-5 rounded-xl text-xs font-display border uppercase tracking-[0.2em] flex items-center justify-center transition-all duration-300 cursor-pointer ${
+                      className={`h-10 min-w-10 px-5 rounded-xl text-xs font-display border uppercase tracking-[0.2em] flex items-center justify-center cursor-pointer transition-all ${
                         selectedSize === size
-                          ? 'bg-gradient-to-r from-luxury-purple-glowing via-[#7b2cbf] to-[#5a189a] text-white font-black border-[#9a4dff] shadow-[0_0_20px_rgba(154,77,255,0.6)] scale-105'
-                          : 'bg-luxury-charcoal/30 text-white/60 border-white/5 hover:border-[#9a4dff]/40 hover:text-white hover:bg-[#100325]'
+                          ? 'luxury-size-btn-active scale-105 shadow-[0_0_20px_rgba(154,77,255,0.75)]'
+                          : 'luxury-size-btn-inactive'
                       }`}
                     >
                       {size}
@@ -542,10 +596,10 @@ export default function ProductDetailModal({
                       onAddToCart(product, selectedSize);
                       onClose();
                     }}
-                    className="w-full border border-[#9A4DFF]/40 hover:border-luxury-purple-glowing bg-black/60 hover:bg-black/80 text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.25)] relative overflow-hidden luxury-reflection cursor-pointer"
+                    className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                   >
-                    <ShoppingBag size={13} className="text-[#9A4DFF]" />
-                    Add to Bag
+                    <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
+                    <span className="relative z-10">Add to Bag</span>
                   </button>
 
                   <button
@@ -553,10 +607,10 @@ export default function ProductDetailModal({
                       onOrderNow(product, selectedSize);
                       onClose();
                     }}
-                    className="w-full bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] text-white hover:brightness-110 font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_15px_rgba(154,77,255,0.35)] hover:shadow-[0_0_30px_rgba(154,77,255,0.7)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 relative overflow-hidden luxury-reflection"
+                    className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>👑</span>
-                    <span>Buy Now</span>
+                    <span className="relative z-10">👑</span>
+                    <span className="relative z-10">Buy Now</span>
                   </button>
                 </div>
 
@@ -749,7 +803,7 @@ export default function ProductDetailModal({
 
             {/* Security Badge tags */}
             <div className="border-t border-white/5 pt-3.5 flex items-center justify-center gap-2.5 text-[10px] text-white/40 uppercase tracking-widest font-mono text-center">
-              <span>⚜️ {product.paymentType === 'full_advance' ? '100% SECURED PAYMENT' : product.paymentType === 'delivery_charge' ? 'DELIVERY CHARGE SECURED' : 'CASH ON DELIVERY AVAILABLE'}</span>
+              <span>⚜️ {product.paymentType === 'full_advance' ? '100% SECURED PAYMENT' : product.paymentType === 'delivery_charge' ? 'DELIVERY CHARGE SECURED' : product.paymentType === 'percentage' ? `${product.paymentPercentage || 10}% PARTIAL ADVANCE` : 'CASH ON DELIVERY AVAILABLE'}</span>
               <span>•</span>
               <span>VIP SHAPE ENGINE GUARANTEED ⚜️</span>
             </div>

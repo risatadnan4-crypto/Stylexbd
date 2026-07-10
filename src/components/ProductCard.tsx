@@ -30,12 +30,25 @@ export default function ProductCard({
   isNotifyMeDeactivated = false,
   globalDeliveryDays,
   currentCustomer,
-  onAuthRequired
+  onAuthRequired,
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [activeImage, setActiveImage] = useState(product.imageUrl);
+
+  // Out of stock notify states
+  const [showNotifyForm, setShowNotifyForm] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifySuccess, setNotifySuccess] = useState(false);
+  const [notifyError, setNotifyError] = useState('');
+  const [submittingNotify, setSubmittingNotify] = useState(false);
+
+  // Sync active image with product url changes
+  useEffect(() => {
+    setActiveImage(product.imageUrl);
+  }, [product.imageUrl]);
 
   // Real-time flash sale countdown timer ticking logic
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
@@ -82,12 +95,8 @@ export default function ProductCard({
 
     return () => clearInterval(interval);
   }, [product.timerEndTime]);
-  const [showNotifyForm, setShowNotifyForm] = useState(false);
-  const [notifyEmail, setNotifyEmail] = useState('');
-  const [notifySuccess, setNotifySuccess] = useState(false);
-  const [notifyError, setNotifyError] = useState('');
-  const [submittingNotify, setSubmittingNotify] = useState(false);
 
+  // Handle restock registration submit
   const handleNotifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notifyEmail || !notifyEmail.includes('@')) {
@@ -111,7 +120,7 @@ export default function ProductCard({
       });
 
       if (response.ok) {
-        // Save to localStorage as requested
+        // Save to localStorage
         try {
           const localKey = "style_x_restock_notifications";
           const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
@@ -127,7 +136,7 @@ export default function ProductCard({
             localStorage.setItem(localKey, JSON.stringify(existing));
           }
         } catch (storageErr) {
-          console.error("Failed to write to localStorage:", storageErr);
+          console.error("Failed to write restock notification to localStorage:", storageErr);
         }
 
         setNotifySuccess(true);
@@ -143,440 +152,402 @@ export default function ProductCard({
     }
   };
 
-  // Generate WhatsApp Direct link for this exact product
-  const handleWhatsAppDirect = () => {
-    if (!currentCustomer && onAuthRequired) {
-      onAuthRequired();
-      return;
-    }
-    const wsMessage = `👑 *STYLE X INQUIRY* 👑\n\nHello Style X Team, I am interested in: \n\n*Product:* ${product.title} (${product.code})\n*Price:* ৳${product.price}\n*Size Chosen:* ${selectedSize}\n\nCan you please check availability?\nThank you!`;
-    const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
-    window.open(finalUrl, '_blank');
-  };
+  const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+  const shareUrl = `${window.location.origin}/?productCode=${product.code}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
 
   return (
-    <div className="group luxury-glowing-card p-3 sm:p-3.5 lg:p-2.5 xl:p-2 flex flex-col justify-between hover:-translate-y-1 select-none overflow-visible relative">
-      {/* Dynamic ambient backdrop glowing aura that radiates out from inside the product card */}
-      <div className="absolute -inset-1.5 bg-gradient-to-r from-luxury-gold/25 via-luxury-purple-glowing/15 to-luxury-gold/25 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none -z-10 animate-pulse"></div>
-
-      {/* Premium glowing hover accent card background */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-gold/[0.08] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-0 shadow-[inset_0_0_20px_rgba(212,175,55,0.2)]"></div>
-
-      {/* Automatic QR Code overlay */}
-      {showQRCode && (() => {
-        let currentLogoUrl = "/stylex_logo.jpg";
-        try {
-          const saved = localStorage.getItem("stylex_settings");
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.logoUrl) {
-              currentLogoUrl = parsed.logoUrl;
-            }
-          }
-        } catch (e) {
-          // Ignore
-        }
-
-        return (
-          <div className="absolute inset-0 bg-[#07010e]/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-3 transition-all duration-300">
-            <button 
-              onClick={() => setShowQRCode(false)}
-              className="absolute top-3 right-3 text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all p-1 rounded-full hover:bg-white/5"
-              title="Close QR Scan Gateway"
-            >
-              <X size={16} />
-            </button>
-            <div className="bg-black p-2.5 rounded-xl border border-luxury-gold shadow-[0_0_20px_rgba(212,175,55,0.45)] mb-3 relative flex items-center justify-center">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&color=d4af37&bgcolor=000000&data=${encodeURIComponent(`${window.location.origin}/?productCode=${product.code}`)}`}
-                alt={`${product.title} QR`}
-                className="w-[110px] h-[110px] object-contain"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute w-[24px] h-[24px] bg-black rounded-md p-0.5 border border-luxury-gold/50 flex items-center justify-center overflow-hidden">
-                <img 
-                  src={currentLogoUrl} 
-                  alt="SX Logo" 
-                  className="w-full h-full object-contain rounded"
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/stylex_logo.jpg";
-                  }}
-                />
-              </div>
-            </div>
-            <h4 className="text-[9px] font-mono uppercase tracking-[0.2em] text-luxury-gold font-bold mb-1">IMPERIAL SCAN</h4>
-            <p className="text-[10px] text-zinc-300 text-center px-1 line-clamp-2 italic leading-normal">
-              Deep Link for <span className="font-semibold text-white">{product.title}</span>
-            </p>
-            <p className="text-[8px] text-luxury-gold font-mono mt-2.5 bg-black border border-[#d4af37]/20 px-2 py-0.5 rounded tracking-wide max-w-full truncate select-all">
-              {product.code}
-            </p>
-          </div>
-        );
-      })()}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ willChange: "transform, opacity" }}
+      className="group relative bg-[#090312]/90 backdrop-blur-md border border-luxury-gold/50 hover:border-luxury-gold rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between hover:shadow-[0_0_25px_rgba(212,175,55,0.25)] transition-all duration-300 select-none h-full shadow-[0_4px_30px_rgba(0,0,0,0.8)]"
+    >
       
-      {/* Upper blueprint markings */}
-      <div className="flex items-center justify-between text-[8px] sm:text-[10px] font-mono text-white/40 mb-1.5 sm:mb-2 gap-1 z-10">
-        <span className="tracking-wider">{product.code}</span>
-        <div className="flex items-center gap-1.5">
-          <button 
-            onClick={() => setShowQRCode(true)}
-            className="p-1 sm:p-1.5 rounded-full bg-black/60 hover:bg-luxury-gold/10 border border-white/5 hover:border-luxury-gold/30 text-luxury-gold hover:text-white transition-all cursor-pointer hover:scale-105"
-            title="Scan Product QR Code"
+      {/* Top Header bar with Product Code & Icons */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] sm:text-xs font-mono text-zinc-500 tracking-wider uppercase font-semibold">
+          {product.code}
+        </span>
+        <div className="flex items-center gap-1.5 z-20">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowQRCode(!showQRCode);
+            }}
+            className="p-1.5 rounded-full bg-black/80 border border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white transition-all shadow-md cursor-pointer"
+            title="Scan QR Code"
           >
-            <QrCode size={11} />
+            <QrCode size={13} />
           </button>
           <button 
-            onClick={() => onToggleWishlist(product)}
-            className={`p-1 sm:p-1.5 rounded-full bg-black/60 hover:bg-luxury-gold/10 border border-white/5 hover:border-luxury-gold/30 transition-all cursor-pointer ${
-              isWishlisted ? 'text-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'text-white/60'
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWishlist(product);
+            }}
+            className={`p-1.5 rounded-full bg-black/80 border border-luxury-gold/30 hover:border-luxury-gold transition-all cursor-pointer shadow-md ${
+              isWishlisted ? 'text-luxury-gold' : 'text-white/60 hover:text-white'
             }`}
             title="Wishlist piece"
           >
-            <Heart size={11} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
+            <Heart size={13} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
           </button>
         </div>
       </div>
 
-      {/* Image frame */}
+      {/* Product Image Frame with Solid Gold Border */}
       <div 
-        onClick={() => onProductClick(product)}
-        className="product-image-container relative aspect-square w-full overflow-hidden rounded-lg bg-[#0f0f12] cursor-pointer flex items-center justify-center border border-white/5 transition-all duration-300 group mb-1 lg:mb-1.5 p-1.5"
+        className="relative aspect-[1.15/1] sm:aspect-[1.25/1] w-full overflow-hidden rounded-xl bg-black/90 border border-luxury-gold flex items-center justify-center p-2 group cursor-pointer mb-2 shadow-inner"
       >
-        {/* Premium skeleton loading backdrop */}
+        <div className="absolute inset-0 z-0" onClick={() => onProductClick(product)} />
+        
         {!imageLoaded && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-[#0a0a0c] via-[#121217] to-[#0a0a0c]">
-            {/* Soft pulsing gold and purple glowing ring loader */}
-            <div className="relative w-10 h-10 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-luxury-gold/10 border-t-luxury-gold/80 animate-spin"></div>
-              <div className="absolute inset-1 rounded-full border border-luxury-purple-glowing/10 border-b-luxury-purple-glowing/60 animate-spin-slow"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></div>
-            </div>
-            {/* Elegant luxury loading shimmer effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"></div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-950">
+            <div className="w-8 h-8 rounded-full border-2 border-luxury-gold/20 border-t-luxury-gold animate-spin" />
           </div>
         )}
-
         <img 
-          src={product.imageUrl} 
+          src={activeImage} 
           alt={product.title} 
-          referrerPolicy="no-referrer"
           onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full object-contain object-center transition-all duration-1000 ease-out group-hover:scale-105 z-10 ${
-            imageLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-95 blur-md'
-          }`}
+          className="w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none p-1"
+          referrerPolicy="no-referrer"
         />
-        {/* Dark subtle gold color overlay behind the image to elevate realism */}
-        <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent opacity-60 z-0 pointer-events-none"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-luxury-gold/15 via-transparent to-luxury-purple-glowing/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-screen z-20"></div>
-        <div className="absolute inset-0 bg-luxury-gold/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-20"></div>
         
-        {/* Quick View absolute layer */}
-        <div className="absolute inset-0 bg-luxury-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-30">
-          <button 
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 z-10 pointer-events-none" />
+
+        {/* Floating Quick View (Eye icon) */}
+        <div className="absolute bottom-3 right-3 z-20 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onProductClick(product);
             }}
-            className="flex items-center gap-1 bg-gradient-to-r from-luxury-gold to-yellow-400 hover:brightness-110 text-luxury-black font-extrabold uppercase text-[8px] sm:text-[10px] px-2 py-1.5 rounded-lg tracking-widest transition-all shadow-md"
+            className="p-1.5 rounded bg-black/85 hover:bg-luxury-gold text-white hover:text-black border border-luxury-gold/40 transition-all shadow-md"
+            title="Quick View"
           >
-            <Eye size={10} />
-            Inspect
+            <Eye size={12} />
           </button>
         </div>
 
-        {/* Dynamic status badges */}
-        <div className="absolute bottom-1 left-1 bg-luxury-black/95 backdrop-blur-md border border-luxury-gold/20 text-[7px] sm:text-[9px] text-white rounded-md px-1 py-0.5 font-display uppercase tracking-widest font-semibold flex items-center gap-1 z-30">
-          <span className={`w-1 h-1 rounded-full ${product.stock === 0 ? "bg-red-500" : product.trending ? "bg-luxury-gold animate-ping" : "bg-luxury-gold"}`}></span>
-          <span>{product.stock === 0 ? "ARCHIVED" : product.trending ? "TRENDING" : "EXCLUSIVE"}</span>
+        {/* TRENDING Badge on the bottom-left of the image */}
+        <div className="absolute bottom-2 left-2 bg-black/85 border border-luxury-gold/30 rounded-full px-2 py-0.5 flex items-center gap-1 text-[8px] sm:text-[9px] font-mono tracking-widest text-white shadow-md z-20">
+          <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse shadow-[0_0_6px_#D4AF37]"></span>
+          <span>TRENDING</span>
         </div>
 
-        {/* Floating Ask Xoro button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const event = new CustomEvent('ask-xoro', { detail: product });
-            window.dispatchEvent(event);
-          }}
-          className="absolute bottom-1 right-1 bg-black/95 hover:bg-luxury-gold text-luxury-gold hover:text-black border border-luxury-gold/60 hover:border-transparent font-mono uppercase text-[7px] sm:text-[9px] px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-md tracking-wider flex items-center gap-1.5 transition-all duration-300 shadow-lg shadow-black/80 hover:scale-105 z-30 cursor-pointer font-bold"
-          title="Ask Xoro Assistant about this"
+        {/* ASK XORO Button on the bottom-right of the image */}
+        <button 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            window.dispatchEvent(new CustomEvent('ask-xoro', { detail: product })); 
+          }} 
+          className="absolute bottom-2 right-2 bg-black/85 hover:bg-luxury-gold/15 border border-luxury-gold/50 text-luxury-gold hover:text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] font-mono font-bold tracking-wider transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer z-20"
         >
-          <Sparkles size={9} className="animate-pulse" />
-          <span>Ask Xoro</span>
+          <Sparkles size={10} className="text-luxury-gold" />
+          <span>ASK XORO</span>
         </button>
+
+        {/* Thumbnail overlays on Hover (if multiple images exist) */}
+        {allImages.length > 1 && (
+          <div className="absolute bottom-8 left-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {allImages.slice(0, 3).map((img, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onMouseEnter={() => setActiveImage(img)}
+                className={`w-5 h-5 rounded-sm overflow-hidden border bg-black/50 p-0.5 transition-all ${
+                  activeImage === img ? 'border-luxury-gold scale-110' : 'border-white/10 hover:border-white/40'
+                }`}
+              >
+                <img src={img} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* QR Code Popover Overlay */}
+        <AnimatePresence>
+          {showQRCode && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="absolute inset-0 z-30 bg-black/95 flex flex-col items-center justify-center p-3 text-center rounded-lg border border-luxury-gold/40"
+            >
+              <button
+                type="button"
+                onClick={() => setShowQRCode(false)}
+                className="absolute top-2 right-2 text-white/60 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+              <span className="text-[9px] font-serif text-luxury-gold font-bold uppercase tracking-wider mb-1.5">SCAN TO DISCOVER / ORDER</span>
+              <div className="bg-white p-1 rounded border border-luxury-gold/25 shadow-lg">
+                <img src={qrCodeUrl} alt="Product QR Code" className="w-24 h-24" />
+              </div>
+              <span className="text-[7px] text-white/50 font-mono mt-1.5 tracking-tight break-all line-clamp-1">{product.code}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Product Information */}
-      <div className="mb-1.5 z-10">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-1 mb-1">
+      {/* Info Block */}
+      <div className="space-y-1 sm:space-y-1.5 flex-1 flex flex-col justify-between">
+        <div>
           <h3 
             onClick={() => onProductClick(product)}
-            className="font-serif text-[13px] sm:text-sm md:text-base lg:text-sm font-bold text-white hover:text-luxury-purple-glowing transition-colors duration-300 cursor-pointer line-clamp-1"
+            className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 cursor-pointer mb-0.5 text-left leading-tight"
           >
             {product.title}
           </h3>
-          {hasActiveOffer ? (
-            <div className="flex flex-col items-end flex-shrink-0">
-              <div className="flex items-center gap-1.5 flex-nowrap">
-                {/* Micro Ticking Timer Badge directly next to the price */}
-                {timeLeft && !timerExpired && (
-                  <span className="inline-flex items-center gap-1 bg-red-950/60 border border-red-500/30 px-1 py-0.5 rounded text-[8.5px] font-mono text-red-400 font-bold animate-pulse flex-shrink-0">
-                    <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-ping" />
-                    <span>
-                      {timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}
-                      {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-                    </span>
-                  </span>
-                )}
-                
-                <AnimatePresence mode="popLayout">
-                  <motion.span 
-                    key={product.offerPrice!}
-                    initial={{ opacity: 0, y: -4, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="luxury-animated-price text-luxury-gold text-[14px] sm:text-base lg:text-[14px] flex-shrink-0"
-                  >
-                    {formatPrice(product.offerPrice!)}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-              <span className="text-[9px] sm:text-[10px] lg:text-[9px] text-white/40 line-through">
-                {formatPrice(product.price)}
-              </span>
-            </div>
-          ) : (
-            <AnimatePresence mode="popLayout">
-              <motion.span 
-                key={product.price}
-                initial={{ opacity: 0, y: -4, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.9 }}
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                className="luxury-animated-price text-luxury-gold text-[14px] sm:text-base lg:text-[14px] flex-shrink-0"
-              >
-                {formatPrice(product.price)}
-              </motion.span>
-            </AnimatePresence>
-          )}
-        </div>
 
-        {/* Real-time Ticking Countdown Timer with Animated elements */}
-        {timeLeft && !timerExpired && (
-          <div className="my-2 p-2 bg-[#120a21]/80 border border-luxury-gold/30 rounded-lg flex flex-col gap-1.5 text-center shadow-[0_0_15px_rgba(212,175,55,0.15)] relative overflow-hidden animate-fade-in gold-glow-border">
-            {/* Ambient neon sweeping scanline overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
+          {/* Pricing & Exclusive tag / Flash Sale Badge */}
+          <div className="flex items-center justify-between gap-1 border-t border-white/5 pt-1.5">
+            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-[#facc15] font-serif font-black text-sm sm:text-base md:text-lg leading-none drop-shadow-[0_2px_12px_rgba(250,204,21,0.7)] transition-all duration-300 hover:scale-105 select-all">
+                ৳{hasActiveOffer ? product.offerPrice : product.price}
+              </span>
+              {hasActiveOffer && (
+                <span className="text-sm sm:text-base md:text-lg text-zinc-500/80 line-through font-serif font-black leading-none decoration-red-500/60 decoration-[1.5px] select-all">
+                  ৳{product.price}
+                </span>
+              )}
+            </div>
             
-            {product.timerMessage && (
-              <div className="text-[9px] uppercase font-mono tracking-wider text-luxury-gold font-black flex items-center justify-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                <span>{product.timerMessage}</span>
+            {!hasActiveOffer ? (
+              <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0">
+                ⚜️ EXCLUSIVE
+              </div>
+            ) : (
+              <div className="bg-red-950/85 border border-red-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 font-mono font-bold shrink-0">
+                <span className="w-1 h-1 rounded-full bg-red-500 animate-ping shadow-[0_0_4px_#ef4444]" />
+                <span>FLASH SALE</span>
               </div>
             )}
-            
-            <div className="flex items-center justify-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-white select-none">
-              {timeLeft.days > 0 && (
-                <>
-                  <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{timeLeft.days}d</span>
-                  <span className="text-luxury-gold/50 animate-pulse">:</span>
-                </>
-              )}
-              <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-              <span className="text-luxury-gold/50 animate-pulse">:</span>
-              <span className="bg-luxury-black/90 border border-luxury-gold/30 px-1.5 py-0.5 rounded text-luxury-gold font-bold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-              <span className="text-luxury-gold/50 animate-pulse">:</span>
-              <span className="bg-luxury-black/90 border border-red-500/50 px-1.5 py-0.5 rounded text-red-400 font-extrabold animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
-            </div>
           </div>
-        )}
 
-        <p className="text-[11px] sm:text-xs lg:text-[10px] text-white/60 line-clamp-1 sm:line-clamp-2 lg:line-clamp-1 italic mb-1 lg:mb-1 font-light">
-          {product.description}
-        </p>
+          {/* Large Countdown Timer Block - Perfect mobile-friendly full-width row */}
+          {hasActiveOffer && (
+            <div className="bg-red-950/30 hover:bg-red-950/50 border border-red-500/20 hover:border-red-500/45 rounded-xl px-2 py-1 flex items-center justify-between gap-1 mt-1 transition-all duration-300">
+              <div className="flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 uppercase tracking-widest font-extrabold shrink-0">
+                <span>HURRY:</span>
+              </div>
+              <div className="flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[11px] text-red-400 font-bold shrink-0 select-none">
+                {timeLeft ? (
+                  <>
+                    {timeLeft.days > 0 && (
+                      <>
+                        <span className="text-white font-extrabold">{timeLeft.days}d</span>
+                        <span className="text-red-500/40 font-bold">:</span>
+                      </>
+                    )}
+                    <span className="text-white font-extrabold">{String(timeLeft.hours).padStart(2, '0')}h</span>
+                    <span className="text-red-500/40 font-bold">:</span>
+                    <span className="text-white font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+                    <span className="text-red-500/40 font-bold">:</span>
+                    <span className="text-red-400 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                  </>
+                ) : (
+                  <span className="text-zinc-500">00:00:00</span>
+                )}
+              </div>
+            </div>
+          )}
 
-        {/* Sizes Selections */}
-        {product.sizes && product.sizes.length > 0 && (
-          <div className="mb-1 lg:mb-0.5">
-            <p className="text-[8px] sm:text-[9.5px] lg:text-[8px] text-white/40 uppercase font-mono tracking-wider mb-0.5">DIMENSIONS</p>
-            <div className="flex flex-wrap gap-1">
-              {product.sizes.map((size) => (
+          {/* Delivery Row Capsule */}
+          <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-emerald-400 my-0.5 tracking-wide shadow-sm">
+            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
+            <span>🚀 DELIVERY: {product.deliveryDays || globalDeliveryDays || '3-5 DAYS'} ({product.deliveryDays || globalDeliveryDays || '3-5 দিন'})</span>
+          </div>
+
+          {/* Sizes Row Selection */}
+          {product.sizes && product.sizes.length > 0 && (
+            <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none my-0.5">
+              <span className="text-[8px] font-mono text-white/40 uppercase shrink-0">SIZE:</span>
+              {product.sizes.map((sz) => (
                 <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`h-5.5 sm:h-7 lg:h-5.5 min-w-[22px] sm:min-w-[28px] lg:min-w-[22px] px-1.5 sm:px-2 lg:px-1 rounded text-[7.5px] sm:text-[9px] lg:text-[7.5px] font-display font-semibold border uppercase tracking-wider flex items-center justify-center transition-all ${
-                    selectedSize === size
-                      ? 'bg-gradient-to-br from-luxury-gold to-[#f0c742] text-luxury-black border-luxury-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]'
-                      : 'bg-black/40 text-white/70 border-white/5 hover:border-luxury-gold/30'
+                  key={sz}
+                  type="button"
+                  onClick={() => setSelectedSize(sz)}
+                  className={`h-5.5 min-w-[24px] px-1.5 rounded-md text-[9px] uppercase flex items-center justify-center shrink-0 cursor-pointer ${
+                    selectedSize === sz
+                      ? 'luxury-size-btn-active'
+                      : 'luxury-size-btn-inactive'
                   }`}
                 >
-                  {size}
+                  {sz}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Delivery Duration Indicator */}
-        <div className="mb-1.5 lg:mb-1 flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md p-1 px-1.5 w-full sm:w-fit justify-center sm:justify-start animate-fade-in">
-          <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-          <span className="text-[9px] sm:text-[9.5px] lg:text-[8px] font-mono text-emerald-400 font-bold uppercase tracking-wide sm:tracking-widest lg:tracking-wider leading-normal">
-            🚀 Delivery: {globalDeliveryDays || product.deliveryDays || "3-5"} Days ({globalDeliveryDays || product.deliveryDays || "3-5"} দিন)
-          </span>
-        </div>
-      </div>
-
-      {/* Order Actions and Collapsible Explain Panels */}
-      <div className="space-y-2 mt-auto z-10 w-full">
-        <div className="grid grid-cols-2 gap-[10px]">
-          {/* Add to Cart replaced with Notify Me if out of stock */}
-          {product.stock === 0 ? (
-            isNotifyMeDeactivated ? (
-              <button
-                disabled
-                className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-neutral-950 border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
-              >
-                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Out of</span>
-                <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Stock</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
-                className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-amber-950 via-[#271302] to-[#120801] border border-amber-500/50 hover:border-amber-400 rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group"
-              >
-                <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-amber-400/80 uppercase font-black group-hover:text-amber-300 transition-colors">Notify</span>
-                <span className="relative z-10 tracking-[0.12em] text-amber-100 font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(245,158,11,0.7)] mt-[1px] group-hover:text-white transition-colors">Me</span>
-              </button>
-            )
-          ) : (
-            <button
-              onClick={() => onAddToCart(product, selectedSize)}
-              disabled={product.stock === 0}
-              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-[#1b0833] via-[#0d041a] to-[#1b0833] border border-luxury-purple-glowing/50 hover:border-luxury-purple-glowing rounded-[14px] flex flex-col items-center justify-center transition-all duration-300 shadow-[0_4px_12px_rgba(154,77,255,0.15)] hover:shadow-[0_0_22px_rgba(154,77,255,0.45)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden leading-none py-1 group/btn"
-            >
-              <div className="absolute inset-0 bg-luxury-purple-glowing/5 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] text-luxury-purple-glowing uppercase font-black transition-colors">Add To</span>
-              <span className="relative z-10 tracking-[0.12em] text-white font-extrabold text-[11px] uppercase drop-shadow-[0_0_8px_rgba(154,77,255,0.6)] mt-[1px] group-hover/btn:scale-105 transition-transform">Cart</span>
-            </button>
           )}
-          
-          {/* Buy Now Premium Button */}
-          {product.stock === 0 ? (
-            <button
-              disabled
-              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-[#111] border border-neutral-800/60 rounded-[14px] flex flex-col items-center justify-center cursor-not-allowed opacity-50 text-neutral-500 w-full overflow-hidden leading-none py-1"
-            >
-              <span className="relative z-10 text-[7px] font-mono tracking-[0.3em] uppercase font-black text-neutral-500">Unavailable</span>
-              <span className="relative z-10 tracking-[0.12em] font-extrabold text-[11px] uppercase mt-[1px] text-neutral-400">Sold Out</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => onOrderNow(product, selectedSize)}
-              className="relative w-full h-[36px] sm:h-[40px] lg:h-[32px] bg-gradient-to-r from-[#9A4DFF] via-[#a855f7] to-[#7c3aed] border border-[#9A4DFF] text-white font-display font-black text-[11px] uppercase tracking-[0.15em] rounded-[14px] flex items-center justify-center transition-all duration-300 shadow-[0_4px_16px_rgba(154,77,255,0.35)] hover:shadow-[0_0_25px_rgba(154,77,255,0.65)] hover:scale-[1.03] active:scale-[0.97] cursor-pointer w-full overflow-hidden group/buy"
-            >
-              <div className="absolute inset-0 bg-white/15 opacity-0 group-hover/buy:opacity-100 transition-opacity duration-300" />
-              <span>Order Now</span>
-            </button>
-          )}
-        </div>
 
-        {/* WhatsApp Direct Order */}
-        <button
-          onClick={handleWhatsAppDirect}
-          className="w-full border border-emerald-500/35 hover:border-emerald-400 bg-gradient-to-r from-[#03140a] via-[#052814] to-[#03140a] text-emerald-400 hover:text-emerald-300 text-[9.5px] sm:text-[11.5px] lg:text-[10px] font-display font-extrabold uppercase tracking-[0.12em] py-1.5 sm:py-3 lg:py-1.5 rounded-lg sm:rounded-xl lg:rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 shadow-[0_4px_15px_rgba(16,185,129,0.12)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.35)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
-        >
-          <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
-          <Send size={13.5} className="text-emerald-400 group-hover/wa:translate-x-0.5 group-hover/wa:-translate-y-0.5 transition-transform" />
-          <span>Order Via WhatsApp</span>
-        </button>
-
-        {/* Collapsible Glow accent "আপনি কেন কিনবেন?" */}
-        <div className="border-t border-white/5 pt-1 mt-1 hidden sm:block">
-          <button
-            onClick={() => setShowWhyBuy(!showWhyBuy)}
-            className="w-full flex items-center justify-between text-[10px] text-luxury-gold/80 hover:text-luxury-gold py-1 uppercase tracking-wider font-display font-semibold"
-          >
-            <span className="flex items-center gap-1">
-              <span>✨</span> আপনি কেন কিনবেন?
-            </span>
-            {showWhyBuy ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-          
-          {showWhyBuy && (
-            <div className="mt-1 bg-luxury-gold/[0.03] border border-luxury-gold/10 p-2.5 rounded text-[11px] text-white/80 leading-relaxed font-sans font-light">
-              <span className="text-luxury-gold font-medium mb-1 block">বিলাসিতা ও অনন্যতার প্রতীক:</span>
-              {product.whyBuy}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Restock Notification Form Slide-up Overlay */}
-      {showNotifyForm && (
-        <div className="absolute inset-x-0 bottom-0 bg-[#0a0701] border-t-2 border-luxury-gold/30 p-3.5 rounded-b-xl z-20 transition-all duration-300 flex flex-col gap-2 shadow-[0_-10px_35px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-300">
-          <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-            <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[9px] uppercase tracking-wider font-extrabold">
-              <Bell size={11} className="animate-bounce text-amber-500" />
-              <span>Restock Intel Alert</span>
-            </div>
-            <button
-              onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
-              className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-all cursor-pointer"
-            >
-              <X size={13} />
-            </button>
-          </div>
-
-          {notifySuccess ? (
-            <div className="flex flex-col items-center justify-center py-5 text-center space-y-2">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
-                <Check size={16} />
-              </div>
-              <p className="text-[11px] text-emerald-300 font-mono font-semibold uppercase tracking-wider">ALERT LOCKED IN!</p>
-              <p className="text-[9.5px] text-white/70 max-w-[190px] leading-tight">We'll alert your secure private email channel the second restock lands.</p>
+          {/* Expandable Why Buy? Area */}
+          {product.whyBuy && (
+            <div className="border-t border-white/5 mt-1 pt-0.5">
               <button
-                onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); }}
-                className="text-[9px] uppercase font-mono tracking-widest text-luxury-gold hover:text-white pt-1 bg-transparent border-0 cursor-pointer"
+                type="button"
+                onClick={() => setShowWhyBuy(!showWhyBuy)}
+                className="w-full flex items-center justify-between text-[8px] sm:text-[9px] text-white/50 hover:text-luxury-gold transition-colors font-sans py-0.5"
               >
-                DISMISS
+                <span className="flex items-center gap-1 font-semibold">
+                  <Sparkles size={8} className="text-luxury-gold" />
+                  আপনি কেন এটি কিনবেন? (Why Buy This?)
+                </span>
+                {showWhyBuy ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
               </button>
-            </div>
-          ) : (
-            <form onSubmit={handleNotifySubmit} className="space-y-2.5">
-              <p className="text-[10px] text-zinc-300 leading-relaxed font-sans">
-                Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
-              </p>
               
-              <div className="relative">
-                <Mail size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-luxury-gold/70" />
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter your VIP email address"
-                  value={notifyEmail}
-                  onChange={(e) => setNotifyEmail(e.target.value)}
-                  className="w-full bg-[#120f08] border border-luxury-gold/30 rounded-lg pl-8 pr-2 py-1.5 text-[10.5px] text-white placeholder-amber-500/20 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold transition-all font-mono"
-                />
-              </div>
-
-              {notifyError && (
-                <p className="text-[9px] text-red-400 font-mono leading-tight">{notifyError}</p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submittingNotify}
-                className="w-full h-[32px] bg-gradient-to-r from-luxury-gold to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-luxury-black font-mono font-black text-[9.5px] uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(212,175,55,0.25)] hover:shadow-[0_2px_15px_rgba(212,175,55,0.45)] hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
-              >
-                {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
-              </button>
-            </form>
+              <AnimatePresence>
+                {showWhyBuy && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <p className="text-[8px] sm:text-[9px] text-white/70 bg-white/5 p-1.5 rounded border border-white/5 mt-1 leading-relaxed font-sans text-left">
+                      {product.whyBuy}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
-      )}
 
-    </div>
+        {/* Action Buttons Area */}
+        <div className="pt-0.5 mt-auto">
+          {product.stock === 0 ? (
+            <div className="space-y-1.5">
+              {!showNotifyForm ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isNotifyMeDeactivated) {
+                      const activePrice = hasActiveOffer ? product.offerPrice : product.price;
+                      const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I'm interested in restock updates for:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}`;
+                      const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
+                      window.open(finalUrl, '_blank');
+                    } else {
+                      setShowNotifyForm(true);
+                    }
+                  }}
+                  className="w-full h-[36px] sm:h-[40px] bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 hover:border-red-500/50 rounded-xl text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-red-200 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer animate-pulse"
+                >
+                  <Bell size={12} className="text-red-400" />
+                  <span>{isNotifyMeDeactivated ? 'Inquire Stock' : 'Notify Restock'}</span>
+                </button>
+              ) : (
+                <form onSubmit={handleNotifySubmit} className="flex gap-1">
+                  {notifySuccess ? (
+                    <div className="w-full flex items-center justify-center gap-1.5 text-[9px] sm:text-[10px] text-green-400 border border-green-500/20 bg-green-500/5 rounded-xl h-[36px] sm:h-[40px] font-semibold">
+                      <Check size={12} />
+                      <span>Alert Registered!</span>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="email"
+                        required
+                        placeholder="Your Email"
+                        value={notifyEmail}
+                        onChange={(e) => setNotifyEmail(e.target.value)}
+                        disabled={submittingNotify}
+                        className="flex-1 bg-black/60 border border-white/10 rounded-lg text-[9px] px-2 text-white placeholder-white/30 focus:outline-none focus:border-luxury-gold h-[32px] sm:h-[36px]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={submittingNotify}
+                        className="bg-luxury-gold hover:bg-yellow-500 text-black px-2 rounded-lg text-[9px] sm:text-xs font-bold transition-all h-[32px] sm:h-[36px]"
+                      >
+                        {submittingNotify ? '...' : <Send size={11} />}
+                      </button>
+                    </>
+                  )}
+                </form>
+              )}
+              {notifyError && (
+                <p className="text-[7px] text-red-400 text-left px-1 mt-0.5">{notifyError}</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5 mt-auto">
+              {/* Add to Cart and Order Now split row */}
+              <div className="grid grid-cols-2 gap-1.5">
+                {/* Add To Cart button with single-line text layout */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddToCart(product, selectedSize);
+                  }}
+                  className="running-glow-button rounded-xl py-1 px-1.5 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-300 h-[38px] sm:h-[42px] cursor-pointer active:scale-95 group/btn relative overflow-hidden"
+                >
+                  {/* Premium Luxury Aura & Shimmering Stars Background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#1e0a35] via-[#0b0318] to-[#2b0e4a] opacity-95 transition-all duration-300 group-hover/btn:opacity-100 z-0" />
+                  
+                  {/* Slow-moving soft gradient light overlay */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-luxury-gold/5 via-violet-600/15 to-luxury-gold/5 blur-sm opacity-60 z-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  
+                  {/* Elegant Golden Shimmer Sweep */}
+                  <div className="luxury-glow-shimmer" />
+
+                  {/* Sparkling premium celestial stars */}
+                  <svg className="absolute top-1 left-2 w-2 h-2 text-[#D4AF37] animate-premium-star z-10" style={{ animationDelay: '0.1s' }} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+                  </svg>
+                  <svg className="absolute bottom-1 right-2.5 w-2.5 h-2.5 text-[#D4AF37] animate-premium-star z-10" style={{ animationDelay: '1.2s' }} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+                  </svg>
+                  <svg className="absolute top-1.5 right-6 w-1.5 h-1.5 text-white animate-premium-star z-10" style={{ animationDelay: '0.5s' }} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+                  </svg>
+                  <svg className="absolute bottom-1.5 left-6 w-1.5 h-1.5 text-white animate-premium-star z-10" style={{ animationDelay: '1.8s' }} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+                  </svg>
+
+                  <Sparkles size={11} className="text-[#D4AF37] relative z-10 animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.7)]" />
+                  <span className="relative z-10 text-[8px] min-[350px]:text-[9px] sm:text-[11.5px] font-black tracking-normal min-[360px]:tracking-wide text-white uppercase leading-none drop-shadow-[0_0_4px_rgba(255,255,255,0.4)] whitespace-nowrap">
+                    ADD TO CART
+                  </span>
+                </button>
+                {/* Order Now gradient solid button with running glow */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOrderNow(product, selectedSize);
+                  }}
+                  className="running-glow-gold-filled text-white font-extrabold tracking-widest text-[11px] sm:text-[13px] uppercase rounded-xl flex items-center justify-center transition-all duration-300 h-[38px] sm:h-[42px] cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(154,77,255,0.45)]"
+                >
+                  <span className="relative z-10 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)] font-black">Order Now</span>
+                </button>
+              </div>
+
+              {/* Order via WhatsApp full-width block */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const activePrice = hasActiveOffer ? product.offerPrice : product.price;
+                  const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I'm interested in ordering:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}`;
+                  const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
+                  window.open(finalUrl, '_blank');
+                }}
+                className="w-full bg-[#051c11]/50 hover:bg-[#072d1b]/70 border border-emerald-500/40 hover:border-emerald-400 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-300 text-emerald-400 text-[10px] sm:text-[11.5px] font-black uppercase tracking-wider hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] cursor-pointer active:scale-95 h-[38px] sm:h-[42px]"
+              >
+                <Send size={13} className="text-emerald-400 -rotate-45" />
+                <span>ORDER VIA WHATSAPP</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }

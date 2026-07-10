@@ -4,8 +4,8 @@ import {
   Trophy, ShieldCheck, Mail, Send, CheckCircle, Smartphone, 
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
-  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight,
-  Facebook, Instagram, MessageCircle, Copy, Check, User
+  SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight, Plus,
+  Facebook, Instagram, MessageCircle, Copy, Check, User, LayoutGrid, List
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -57,6 +57,7 @@ export default function App() {
 
   // Search & Filtering
   const [searchQuery, setSearchQuery] = useState('');
+  
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
@@ -64,6 +65,22 @@ export default function App() {
   const [showInStockOnly, setShowInStockOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC'>('RELEVANCE');
   const [isFiltersExpanded, setIsFiltersExpanded] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Notifications panel states
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -108,6 +125,7 @@ export default function App() {
   const cartInitializedRef = React.useRef(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isRadialMenuOpen, setIsRadialMenuOpen] = useState(false);
   const [initialShowCheckout, setInitialShowCheckout] = useState(false);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -134,6 +152,111 @@ export default function App() {
 
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Web Push Notification States
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'subscribing' | 'subscribed'>('default');
+
+  // Convert Base64 VAPID public key to Uint8Array helper
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const handleSubscribePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Your browser does not support push notifications.');
+      return;
+    }
+
+    try {
+      setPushStatus('subscribing');
+      
+      // 1. Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushStatus('denied');
+        setShowPushPrompt(false);
+        localStorage.setItem('stylex_push_prompt_dismissed', 'true');
+        return;
+      }
+
+      setPushStatus('granted');
+
+      // 2. Register Service Worker
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered with scope:', registration.scope);
+
+      // 3. Fetch public VAPID key from backend
+      const keyResponse = await fetch('/api/push-public-key');
+      const keyData = await keyResponse.json();
+      if (!keyData.publicKey) {
+        throw new Error('Public key not found on server');
+      }
+
+      // 4. Subscribe
+      const convertedVapidKey = urlBase64ToUint8Array(keyData.publicKey);
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+
+      // 5. Send subscription to server
+      const saveResponse = await fetch('/api/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
+
+      if (saveResponse.ok) {
+        setPushStatus('subscribed');
+        setShowPushPrompt(false);
+        localStorage.setItem('stylex_push_prompt_dismissed', 'true');
+        
+        // Show success local notification instantly as a welcome feedback!
+        if (Notification.permission === 'granted') {
+          new Notification('🔔 Royal Alerts Activated', {
+            body: 'You are now officially registered for elite product drops & secret VIP coupons.',
+            icon: '/stylex_logo.jpg'
+          });
+        }
+      } else {
+        throw new Error('Failed to register subscription on backend');
+      }
+    } catch (err: any) {
+      console.error('Error subscribing to push notifications:', err);
+      setPushStatus('default');
+    }
+  };
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        setPushStatus('granted');
+      } else if (Notification.permission === 'denied') {
+        setPushStatus('denied');
+      } else {
+        // Show the elegant royal dialog after 3.5 seconds
+        const dismissed = localStorage.getItem('stylex_push_prompt_dismissed') === 'true';
+        if (!dismissed) {
+          const timer = setTimeout(() => {
+            setShowPushPrompt(true);
+          }, 3500);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -417,6 +540,7 @@ export default function App() {
     globalPaymentSystem?: string;
     globalPaymentMethod?: string;
     globalDeliveryDays?: string;
+    accentColor?: string;
   }>({
     whatsappNumber: "8801755104443",
     facebookUrl: "https://www.facebook.com/stylex24/",
@@ -441,6 +565,43 @@ export default function App() {
       console.error("Failed loading settings", err);
     }
   };
+
+  useEffect(() => {
+    if (settings?.accentColor) {
+      document.documentElement.style.setProperty('--color-luxury-gold', settings.accentColor);
+      
+      // Helper function to darken hex color by 15%
+      const darkenColor = (hex: string, percent: number) => {
+        let num = parseInt(hex.replace("#", ""), 16),
+          amt = Math.round(2.55 * percent),
+          R = (num >> 16) - amt,
+          G = ((num >> 8) & 0x00ff) - amt,
+          B = (num & 0x0000ff) - amt;
+        return (
+          "#" +
+          (
+            0x1000000 +
+            (R < 255 ? (R < 0 ? 0 : R) : 255) * 0x10000 +
+            (G < 255 ? (G < 0 ? 0 : G) : 255) * 0x100 +
+            (B < 255 ? (B < 0 ? 0 : B) : 255)
+          )
+            .toString(16)
+            .slice(1)
+        );
+      };
+
+      try {
+        if (/^#[0-9A-F]{6}$/i.test(settings.accentColor)) {
+          const darkColor = darkenColor(settings.accentColor, 15);
+          document.documentElement.style.setProperty('--color-luxury-gold-dark', darkColor);
+        } else {
+          document.documentElement.style.setProperty('--color-luxury-gold-dark', settings.accentColor);
+        }
+      } catch (e) {
+        document.documentElement.style.setProperty('--color-luxury-gold-dark', settings.accentColor);
+      }
+    }
+  }, [settings?.accentColor]);
 
   const loadOrders = async () => {
     try {
@@ -580,7 +741,8 @@ export default function App() {
 
     const pingSession = async () => {
       try {
-        const res = await fetch(`/api/visitor-ping?visitorId=${visitorId}&sessionId=${sessionId}`);
+        const isCounted = localStorage.getItem('stylex_counted_v2') === 'true';
+        const res = await fetch(`/api/visitor-ping?visitorId=${visitorId}&sessionId=${sessionId}&isNew=${!isCounted}`);
         const data = await res.json();
         if (data && data.success) {
           if (data.visits) {
@@ -588,6 +750,9 @@ export default function App() {
           }
           if (data.liveViews) {
             setLiveViews(data.liveViews);
+          }
+          if (!isCounted && data.counted) {
+            localStorage.setItem('stylex_counted_v2', 'true');
           }
         }
       } catch (err) {
@@ -1007,174 +1172,156 @@ export default function App() {
         clientDevice = "Tablet";
       }
 
-      try {
-        // Step 1: Create Supabase Auth account
-        const { data, error } = await supabase.auth.signUp({
-          email: signupEmail,
-          password: customerPassword,
-          options: {
-            data: {
-              name: customerName.trim(),
-              phone: customerPhone?.trim() || ''
-            }
-          }
-        });
+      // INSTANT USER FLOW: Create and log in the customer immediately with zero network lag
+      const localId = 'local_' + Math.random().toString(36).substring(2, 11);
+      const newCust: Customer = {
+        id: localId,
+        name: customerName.trim(),
+        email: signupEmail,
+        password: customerPassword,
+        phone: customerPhone?.trim() || ''
+      };
 
-        if (error) {
-          throw error;
+      // Put in local registered list instantly
+      const existsIdx = registered.findIndex(
+        c => c.email.toLowerCase().trim() === newCust.email.toLowerCase().trim()
+      );
+      if (existsIdx === -1) {
+        registered.push(newCust);
+      } else {
+        registered[existsIdx] = newCust;
+      }
+      localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
+
+      // Log in instantly
+      setCurrentCustomer(newCust);
+      localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
+      setCustomerAuthSuccess('Membership profile created instantly! Active now. ✨');
+
+      // Snappy closing of auth modal (300ms instead of 1500ms for instant feedback)
+      setTimeout(() => {
+        setShowCustomerAuthModal(false);
+        setCustomerName('');
+        setCustomerEmail('');
+        setCustomerPhone('');
+        setCustomerPassword('');
+        setCustomerAuthSuccess('');
+
+        // Auto resume checkout if pending
+        if (pendingCheckoutAfterLogin) {
+          setPendingCheckoutAfterLogin(false);
+          setInitialShowCheckout(true);
+          setIsCartOpen(true);
         }
+      }, 300);
 
-        const userId = data.user?.id || '';
-        const newCust: Customer = {
-          id: userId,
-          name: customerName.trim(),
-          email: signupEmail,
-          password: customerPassword,
-          phone: customerPhone?.trim() || ''
-        };
-
-        // Step 2: Insert profile into public profiles table
-        if (userId) {
-          try {
-            await supabase.from('profiles').insert({
-              id: userId,
-              full_name: customerName.trim(),
-              mobile_number: customerPhone?.trim() || '',
-              email: signupEmail,
-              name: customerName.trim(),
-              phone: customerPhone?.trim() || '',
-              created_at: new Date().toISOString()
-            });
-          } catch (profileErr: any) {
-            console.warn("Profiles database table insert bypassed/failed:", profileErr.message);
-          }
-        }
-
-        setCustomerAuthSuccess('User profile created. Dispatching secure admin notification email...');
-
-        // Step 3: Trigger Admin Notification Email API & await success
-        const notifyRes = await fetch('/api/auth/signup-notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: customerName.trim(),
-            mobileNumber: customerPhone?.trim() || 'N/A',
-            email: signupEmail,
-            userId: userId,
-            signupTime: new Date().toLocaleString(),
-            browser: clientBrowser,
-            device: clientDevice,
-            country: detectedCountry
-          })
-        });
-
-        const notifyData = await notifyRes.json();
-        if (!notifyRes.ok || !notifyData.success) {
-          throw new Error(notifyData.message || 'The admin email notification dispatch failed.');
-        }
-
-        // Cache locally too
-        const exists = registered.some(
-          c => c.email.toLowerCase().trim() === newCust.email.toLowerCase().trim()
-        );
-        if (!exists) {
-          registered.push(newCust);
-          localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
-        }
-
-        setCustomerAuthSuccess('Membership profile created and admin notification dispatched! Active now.');
-        setCurrentCustomer(newCust);
-        localStorage.setItem('stylex_current_customer', JSON.stringify(newCust));
-
-        setTimeout(() => {
-          setShowCustomerAuthModal(false);
-          setCustomerName('');
-          setCustomerEmail('');
-          setCustomerPhone('');
-          setCustomerPassword('');
-          setCustomerAuthSuccess('');
-
-          // Auto resume checkout if pending
-          if (pendingCheckoutAfterLogin) {
-            setPendingCheckoutAfterLogin(false);
-            setInitialShowCheckout(true);
-            setIsCartOpen(true);
-          }
-        }, 1500);
-
-      } catch (err: any) {
-        console.warn("Supabase Signup failed, falling back to offline-resilient local flow. Reason:", err.message || err);
-        
-        // Show progress update for fallback route
-        setCustomerAuthSuccess('Supabase Auth offline. Dispatching secure fallback local signup...');
-
-        const fallbackCust: Customer = {
-          id: 'local_' + Math.random().toString(36).substr(2, 9),
-          name: customerName.trim(),
-          email: signupEmail,
-          password: customerPassword,
-          phone: customerPhone?.trim() || ''
-        };
-
-        // Cache in local registers
-        const existsIdx = registered.findIndex(
-          c => c.email.toLowerCase().trim() === fallbackCust.email.toLowerCase().trim()
-        );
-        if (existsIdx === -1) {
-          registered.push(fallbackCust);
-        } else {
-          registered[existsIdx] = fallbackCust;
-        }
-        localStorage.setItem('stylex_registered_customers', JSON.stringify(registered));
-
+      // ASYNCHRONOUS BACKGROUND INTEGRATIONS (Bypassing network lag entirely for the customer)
+      (async () => {
         try {
-          // Trigger Admin Notification Email API for local fallback flow & await success
-          const fallbackNotifyRes = await fetch('/api/auth/signup-notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fullName: customerName.trim(),
-              mobileNumber: customerPhone?.trim() || 'N/A',
-              email: customerEmail.trim(),
-              userId: fallbackCust.id,
-              signupTime: new Date().toLocaleString(),
-              browser: clientBrowser,
-              device: clientDevice,
-              country: detectedCountry
-            })
+          console.log("[BG_SIGNUP] Initiating background Supabase registration for:", signupEmail);
+          
+          // 1. Create Supabase Auth account
+          const { data, error } = await supabase.auth.signUp({
+            email: signupEmail,
+            password: customerPassword,
+            options: {
+              data: {
+                name: customerName.trim(),
+                phone: customerPhone?.trim() || ''
+              }
+            }
           });
 
-          const fallbackNotifyData = await fallbackNotifyRes.json();
-          if (!fallbackNotifyRes.ok || !fallbackNotifyData.success) {
-            throw new Error(fallbackNotifyData.message || 'The admin email notification dispatch failed on retry fallback.');
+          if (error) {
+            throw error;
           }
 
-          setCustomerAuthSuccess('Membership profile created and admin notification dispatched! Active now.');
-          setCurrentCustomer(fallbackCust);
-          localStorage.setItem('stylex_current_customer', JSON.stringify(fallbackCust));
+          const userId = data.user?.id || localId;
+          
+          // Update customer record in local state and localStorage with the real Supabase Auth ID if successful
+          if (data.user?.id) {
+            const updatedCust = { ...newCust, id: data.user.id };
+            setCurrentCustomer(prev => {
+              if (prev && prev.email.toLowerCase().trim() === signupEmail.toLowerCase().trim()) {
+                return updatedCust;
+              }
+              return prev;
+            });
+            localStorage.setItem('stylex_current_customer', JSON.stringify(updatedCust));
 
-          setTimeout(() => {
-            setShowCustomerAuthModal(false);
-            setCustomerName('');
-            setCustomerEmail('');
-            setCustomerPhone('');
-            setCustomerPassword('');
-            setCustomerAuthSuccess('');
-
-            // Auto resume checkout if pending
-            if (pendingCheckoutAfterLogin) {
-              setPendingCheckoutAfterLogin(false);
-              setInitialShowCheckout(true);
-              setIsCartOpen(true);
+            // Also update in registered list
+            const savedList = localStorage.getItem('stylex_registered_customers');
+            let registeredList = savedList ? JSON.parse(savedList) : [];
+            const idx = registeredList.findIndex((c: any) => c.email.toLowerCase().trim() === signupEmail.toLowerCase().trim());
+            if (idx !== -1) {
+              registeredList[idx] = updatedCust;
+            } else {
+              registeredList.push(updatedCust);
             }
-          }, 1500);
+            localStorage.setItem('stylex_registered_customers', JSON.stringify(registeredList));
 
-        } catch (fallbackErr: any) {
-          console.error("Critical: Admin notification failed even on local fallback:", fallbackErr.message || fallbackErr);
-          setCustomerAuthSuccess('');
-          setCustomerAuthError(fallbackErr.message || 'Registration failed because the admin notification email system is currently unconfigured or failing.');
+            // 2. Insert profile into profiles table
+            try {
+              await supabase.from('profiles').insert({
+                id: data.user.id,
+                full_name: customerName.trim(),
+                mobile_number: customerPhone?.trim() || '',
+                email: signupEmail,
+                name: customerName.trim(),
+                phone: customerPhone?.trim() || '',
+                created_at: new Date().toISOString()
+              });
+              console.log("[BG_SIGNUP] Profile inserted successfully into Supabase profiles.");
+            } catch (profileErr: any) {
+              console.warn("[BG_SIGNUP] Profiles database table insert bypassed/failed:", profileErr.message);
+            }
+          }
+
+          // 3. Trigger Admin Notification Email API in background
+          try {
+            await fetch('/api/auth/signup-notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fullName: customerName.trim(),
+                mobileNumber: customerPhone?.trim() || 'N/A',
+                email: signupEmail,
+                userId: userId,
+                signupTime: new Date().toLocaleString(),
+                browser: clientBrowser,
+                device: clientDevice,
+                country: detectedCountry
+              })
+            });
+            console.log("[BG_SIGNUP] Admin notification sent successfully in background.");
+          } catch (notifyErr: any) {
+            console.warn("[BG_SIGNUP] Background notification api failed:", notifyErr.message);
+          }
+
+        } catch (err: any) {
+          console.warn("[BG_SIGNUP] Supabase Signup background flow bypassed or failed. Using pure offline registration details.", err.message || err);
+          
+          // Trigger fallback admin notification anyway
+          try {
+            await fetch('/api/auth/signup-notify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fullName: customerName.trim(),
+                mobileNumber: customerPhone?.trim() || 'N/A',
+                email: signupEmail,
+                userId: localId,
+                signupTime: new Date().toLocaleString(),
+                browser: clientBrowser,
+                device: clientDevice,
+                country: detectedCountry
+              })
+            });
+          } catch (fallbackNotifyErr: any) {
+            console.error("[BG_SIGNUP] Background fallback notification api failed:", fallbackNotifyErr.message || fallbackNotifyErr);
+          }
         }
-      }
+      })();
     }
   };
 
@@ -1663,24 +1810,38 @@ export default function App() {
 
             {/* Results Grid block */}
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5">
-                {filteredProducts.map((product) => (
-                  <ProductCard 
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    onOrderNow={handleOrderNow}
-                    onProductClick={(p: Product) => { setSelectedProduct(p); }}
-                    isWishlisted={wishlist.includes(product.id)}
-                    onToggleWishlist={handleToggleWishlist}
-                    whatsappNumber={settings.whatsappNumber}
-                    isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
-                    globalDeliveryDays={settings?.globalDeliveryDays}
-                    currentCustomer={currentCustomer}
-                    onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
-                  />
-                ))}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={`products-grid-catalog-${viewMode}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className={viewMode === 'GRID' 
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    : "grid grid-cols-2 gap-3 sm:gap-6"
+                  }
+                >
+                  {filteredProducts.map((product) => (
+                    <ProductCard 	
+                      key={product.id}
+                      product={product}
+                      onAddToCart={handleAddToCart}
+                      onOrderNow={handleOrderNow}
+                      onProductClick={(p: Product) => {
+                        setSelectedProduct(p);
+                      }}
+                      isWishlisted={wishlist.includes(product.id)}
+                      onToggleWishlist={handleToggleWishlist}
+                      whatsappNumber={settings.whatsappNumber}
+                      isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+                      globalDeliveryDays={settings?.globalDeliveryDays}
+                      currentCustomer={currentCustomer}
+                      onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
+                    />
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             ) : (
               <div className="text-center py-24 px-6 border border-white/5 rounded-3xl bg-[#090312]/40 max-w-2xl mx-auto space-y-4">
                 <span className="text-4xl">⚜️</span>
@@ -1724,26 +1885,35 @@ export default function App() {
               </div>
 
               {/* Responsive pills sliders */}
-              <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-luxury-gold/10 scrollbar-track-transparent py-1.5 -mx-4 px-4 md:mx-0 md:px-0 flex gap-2 sm:gap-3 snap-x snap-mandatory">
+              <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-purple-500/10 scrollbar-track-transparent py-1.5 -mx-4 px-4 md:mx-0 md:px-0 flex gap-2 sm:gap-3 snap-x snap-mandatory">
                 {[
                   { id: 'ALL', label: '⚜️ All archives' },
                   { id: 'MEN', label: '🕶️ Gentlemen' },
                   { id: 'WOMEN', label: '💃 Haute Couture' },
                   { id: 'UNISEX', label: '💎 Co-Ed Line' },
                   { id: 'ACCESSORIES', label: '👑 Ensemble' }
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95 flex items-center justify-center shrink-0 relative overflow-hidden luxury-reflection ${
-                      activeCategory === cat.id
-                        ? 'bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#fcf1cc] text-[#030107] border-transparent shadow-[0_4px_18px_rgba(212,175,55,0.4)] font-black'
-                        : 'bg-[#10031f]/35 text-white/70 border-white/5 hover:border-[#d4af37]/45 hover:text-white hover:bg-[#180530]/65 shadow-inner'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+                ].map((cat) => {
+                  const isActive = activeCategory === cat.id;
+                  return (
+                    <motion.button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer flex items-center justify-center shrink-0 relative overflow-hidden ${
+                        isActive
+                          ? 'bg-gradient-to-r from-luxury-purple via-purple-600 to-luxury-purple-glowing text-white border-transparent shadow-[0_0_20px_rgba(154,77,255,0.65)]'
+                          : 'bg-[#10031f]/35 text-purple-200/70 border-purple-900/20 hover:border-luxury-purple-glowing/40 hover:text-white hover:bg-[#180530]/65 shadow-inner'
+                      }`}
+                    >
+                      {/* Active glowing ring or background reflection sweep */}
+                      {isActive && (
+                        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-luxury-pulse pointer-events-none" />
+                      )}
+                      <span className="relative z-10">{cat.label}</span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1767,24 +1937,62 @@ export default function App() {
                 </button>
 
                 {/* Quick info display of filtered results */}
-                <span className="text-[10px] text-white/40 uppercase tracking-wider">
-                  Showcase Allocation: <strong className="text-white">{filteredProducts.length}</strong> of <strong className="text-white/60">{products.length}</strong> variations
+                <span className="text-xs sm:text-[13px] text-zinc-300 font-sans tracking-wide font-medium flex items-center gap-1.5 flex-wrap">
+                  Showcase Allocation: 
+                  <strong className="text-luxury-gold bg-luxury-gold/10 px-2 py-0.5 rounded border border-luxury-gold/30 font-black font-mono">
+                    {filteredProducts.length}
+                  </strong> 
+                  <span className="text-zinc-500 text-[10.5px] uppercase tracking-wider font-mono">of</span> 
+                  <strong className="text-white bg-white/5 px-2 py-0.5 rounded border border-white/10 font-bold font-mono">
+                    {products.length}
+                  </strong> 
+                  <span className="text-zinc-400 font-mono text-xs">exclusive variations</span>
                 </span>
               </div>
 
-              {/* Quick sort selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] text-white/30 uppercase tracking-widest hidden sm:inline">Sort Order:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-luxury-charcoal/40 border border-white/10 text-white text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded cursor-pointer focus:outline-none focus:border-luxury-gold transition-colors"
-                >
-                  <option value="RELEVANCE">⚜️ Relevance</option>
-                  <option value="PRICE_ASC">💵 Price: Low to High</option>
-                  <option value="PRICE_DESC">💵 Price: High to Low</option>
-                  <option value="STOCK_DESC">📦 Ready Stock Status</option>
-                </select>
+              {/* Quick sort & View Toggle selectors */}
+              <div className="flex items-center gap-3">
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-1.5 bg-[#090312]/90 border border-purple-500/35 p-1 rounded-xl shadow-[0_0_18px_rgba(154,77,255,0.25)]">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('GRID')}
+                    className={`w-8 h-8 rounded-lg transition-all cursor-pointer flex items-center justify-center relative overflow-hidden ${
+                      viewMode === 'GRID'
+                        ? 'running-glow-gold-filled text-white scale-[1.06] shadow-[0_0_15px_rgba(154,77,255,0.6)]'
+                        : 'text-purple-300/50 hover:text-white hover:bg-purple-950/45'
+                    }`}
+                    title="Grid View"
+                  >
+                    <LayoutGrid size={15} className="relative z-10" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('LIST')}
+                    className={`w-8 h-8 rounded-lg transition-all cursor-pointer flex items-center justify-center relative overflow-hidden ${
+                      viewMode === 'LIST'
+                        ? 'running-glow-gold-filled text-white scale-[1.06] shadow-[0_0_15px_rgba(154,77,255,0.6)]'
+                        : 'text-purple-300/50 hover:text-white hover:bg-purple-950/45'
+                    }`}
+                    title="List View"
+                  >
+                    <List size={15} className="relative z-10" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-white/30 uppercase tracking-widest hidden sm:inline">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="bg-luxury-charcoal/40 border border-white/10 text-white text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-lg cursor-pointer focus:outline-none focus:border-luxury-gold transition-colors"
+                  >
+                    <option value="RELEVANCE">⚜️ Relevance</option>
+                    <option value="PRICE_ASC">💵 Price: Low to High</option>
+                    <option value="PRICE_DESC">💵 Price: High to Low</option>
+                    <option value="STOCK_DESC">📦 Ready Stock Status</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1938,24 +2146,39 @@ export default function App() {
               </div>
             ) : (
               /* Core Grid */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-5 animate-fade-in">
-                {filteredProducts.map((prod) => (
-                  <ProductCard 
-                    key={prod.id}
-                    product={prod}
-                    onAddToCart={handleAddToCart}
-                    onOrderNow={handleOrderNow}
-                    onProductClick={(p: Product) => { setSelectedProduct(p); }}
-                    isWishlisted={wishlist.includes(prod.id)}
-                    onToggleWishlist={handleToggleWishlist}
-                    whatsappNumber={settings.whatsappNumber}
-                    isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
-                    globalDeliveryDays={settings?.globalDeliveryDays}
-                    currentCustomer={currentCustomer}
-                    onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
-                  />
-                ))}
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={`products-grid-catalog-2-${viewMode}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  style={{ willChange: "opacity" }}
+                  className={viewMode === 'GRID' 
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    : "grid grid-cols-2 gap-3 sm:gap-6"
+                  }
+                >
+                  {filteredProducts.map((prod) => (
+                    <ProductCard 	
+                      key={prod.id}
+                      product={prod}
+                      onAddToCart={handleAddToCart}
+                      onOrderNow={handleOrderNow}
+                      onProductClick={(p: Product) => {
+                        setSelectedProduct(p);
+                      }}
+                      isWishlisted={wishlist.includes(prod.id)}
+                      onToggleWishlist={handleToggleWishlist}
+                      whatsappNumber={settings.whatsappNumber}
+                      isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+                      globalDeliveryDays={settings?.globalDeliveryDays}
+                      currentCustomer={currentCustomer}
+                      onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
+                    />
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             )}
 
             {/* LUXURY EXPERIENCES STORIES / REVIEWS CATALOG */}
@@ -2146,7 +2369,7 @@ export default function App() {
                   setLastReadTimestamp(now);
                   localStorage.setItem('stylex_notif_last_read_ts', String(now));
               }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn"
               title="VIP Dispatch & Product Alerts Hub"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2167,7 +2390,7 @@ export default function App() {
                   </span>
                 </span>
               )}
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 NOTICES
               </span>
             </button>
@@ -2175,7 +2398,7 @@ export default function App() {
             {/* Claim Discount Option */}
             <button 
               onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn"
               title="Request Campaign Discount Coupon"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2188,7 +2411,7 @@ export default function App() {
               </div>
               
               <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 GET DISCOUNT
               </span>
             </button>
@@ -2197,7 +2420,7 @@ export default function App() {
             {!settings?.isLotteryDeactivated && (
               <button 
                 onClick={() => setIsLotteryOpen(true)}
-                className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3"
+                className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn"
                 title="Imperial Fortune Game"
               >
                 {/* Animated multi-layered running glow border around the button */}
@@ -2214,7 +2437,7 @@ export default function App() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
                 </span>
-                <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                   VOUCHER WHEEL
                 </span>
               </button>
@@ -2223,7 +2446,7 @@ export default function App() {
             {/* Track Existing Receipts */}
             <button 
               onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn"
               title="Track Existing Receipts"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2236,7 +2459,7 @@ export default function App() {
               </div>
               
               <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 TRACK RECEIPT
               </span>
             </button>
@@ -2244,7 +2467,7 @@ export default function App() {
             {/* View Current Bag */}
             <button 
               onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn"
               title="View Current Luxury Bag"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2259,11 +2482,10 @@ export default function App() {
               <motion.div
                 key={cart.reduce((sum, item) => sum + item.quantity, 0)}
                 animate={cart.length > 0 ? {
-                  scale: [1, 1.35, 0.95, 1.05, 1],
-                  rotate: [0, -8, 8, -4, 0]
+                  scale: [1, 1.25, 1],
+                  rotate: [0, -10, 10, -5, 5, 0]
                 } : {}}
                 transition={{ duration: 0.55, ease: "easeInOut" }}
-                className="relative z-10 flex items-center justify-center"
               >
                 <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
               </motion.div>
@@ -2272,7 +2494,7 @@ export default function App() {
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 LUXURY BAG
               </span>
             </button>
@@ -2282,7 +2504,7 @@ export default function App() {
               href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn"
               title="WhatsApp Live Concierge"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2297,7 +2519,7 @@ export default function App() {
               {/* Pulsing visual halo rings */}
               <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
               <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 WHATSAPP
               </span>
             </a>
@@ -2307,7 +2529,7 @@ export default function App() {
               href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn"
               title="Facebook Official Collection"
             >
               {/* Animated border */}
@@ -2318,7 +2540,7 @@ export default function App() {
               </div>
               
               <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 FACEBOOK
               </span>
             </a>
@@ -2328,7 +2550,7 @@ export default function App() {
               href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] hover:scale-110 active:scale-95 transition-all outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4"
+              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn"
               title="Instagram Gallery Reel"
             >
               {/* Animated border */}
@@ -2339,7 +2561,7 @@ export default function App() {
               </div>
               
               <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-all font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
                 INSTAGRAM
               </span>
             </a>
@@ -3269,6 +3491,53 @@ export default function App() {
             type="button"
             onClick={() => setShowPersonalToast(false)}
             className="text-white/45 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 cursor-pointer flex items-center justify-center shrink-0"
+            title="Dismiss Alert"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* ROYAL WEB PUSH NOTIFICATION PROMPT */}
+      {showPushPrompt && (
+        <div className="fixed bottom-24 left-6 z-50 max-w-sm bg-gradient-to-br from-[#0d0d0d] via-[#121212] to-[#0a0a0a] border-2 border-luxury-gold p-5 rounded-xl shadow-[0_25px_50px_rgba(212,175,55,0.25)] animate-fade-in flex items-start gap-4 backdrop-blur-lg">
+          <div className="w-11 h-11 rounded-full bg-luxury-gold/10 border border-luxury-gold/40 flex items-center justify-center text-lg shrink-0 text-luxury-gold relative">
+            <span className="absolute inset-0 rounded-full border border-luxury-gold/20 animate-pulse"></span>
+            🔔
+          </div>
+          <div className="space-y-1.5 text-left min-w-0 flex-1">
+            <h5 className="font-serif text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
+              🔔 Enable Royal Updates
+            </h5>
+            <p className="text-[11px] text-white/70 leading-relaxed font-sans">
+              Stay updated on private custom drops, sneaker releases, and secret coupon codes instantly. Receive updates even when Chrome is closed or you are browsing Facebook!
+            </p>
+            <div className="flex items-center gap-2 mt-4">
+              <button 
+                onClick={handleSubscribePush}
+                disabled={pushStatus === 'subscribing'}
+                className="bg-luxury-gold hover:bg-white text-luxury-black transition-all text-[9.5px] font-mono font-extrabold uppercase tracking-widest px-3 py-1.5 rounded cursor-pointer shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50"
+              >
+                {pushStatus === 'subscribing' ? 'Activating...' : 'Allow Updates'}
+              </button>
+              <button 
+                onClick={() => {
+                  setShowPushPrompt(false);
+                  localStorage.setItem('stylex_push_prompt_dismissed', 'true');
+                }}
+                className="text-white/50 hover:text-white transition-all text-[9.5px] font-mono font-bold uppercase tracking-widest px-3 py-1.5 cursor-pointer bg-transparent border-none outline-none"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => {
+              setShowPushPrompt(false);
+              localStorage.setItem('stylex_push_prompt_dismissed', 'true');
+            }}
+            className="text-white/45 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1 rounded-full hover:bg-white/5 cursor-pointer flex items-center justify-center shrink-0"
             title="Dismiss Alert"
           >
             <X size={14} />

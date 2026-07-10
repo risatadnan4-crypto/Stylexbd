@@ -30,6 +30,7 @@ interface AdminPanelProps {
     paymentBadgeTitle?: string; 
     paymentBadgeDescription?: string; 
     isCatalogDeactivated?: boolean; 
+    isXoroVoiceDisabled?: boolean; 
     deactivatedMessage?: string; 
     isLotteryDeactivated?: boolean; 
     isNotifyMeDeactivated?: boolean; 
@@ -41,6 +42,7 @@ interface AdminPanelProps {
     globalPaymentSystem?: string;
     globalPaymentMethod?: string;
     globalDeliveryDays?: string;
+    accentColor?: string;
   };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
@@ -77,6 +79,12 @@ export default function AdminPanel({
   const [adminReplyText, setAdminReplyText] = useState('');
   const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Custom Web Push dispatcher states
+  const [pushTitleInput, setPushTitleInput] = useState('');
+  const [pushBodyInput, setPushBodyInput] = useState('');
+  const [pushLinkInput, setPushLinkInput] = useState('');
+  const [isDispatchingPush, setIsDispatchingPush] = useState(false);
+
   // Settings State Management
   const [whatsappNumberInput, setWhatsappNumberInput] = useState(settings?.whatsappNumber || "8801755104443");
   const [adminEmailInput, setAdminEmailInput] = useState(settings?.adminEmail || "risatadnan4@gmail.com");
@@ -94,6 +102,7 @@ export default function AdminPanel({
   const [paymentBadgeTitleInput, setPaymentBadgeTitleInput] = useState(settings?.paymentBadgeTitle || "SECURE CASH ON DELIVERY GUARANTEED");
   const [paymentBadgeDescriptionInput, setPaymentBadgeDescriptionInput] = useState(settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.");
   const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
+  const [isXoroVoiceDisabledInput, setIsXoroVoiceDisabledInput] = useState(settings?.isXoroVoiceDisabled || false);
   const [deactivatedMessageInput, setDeactivatedMessageInput] = useState(settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.");
   const [isLotteryDeactivatedInput, setIsLotteryDeactivatedInput] = useState(settings?.isLotteryDeactivated || false);
   const [isNotifyMeDeactivatedInput, setIsNotifyMeDeactivatedInput] = useState(settings?.isNotifyMeDeactivated || false);
@@ -103,6 +112,8 @@ export default function AdminPanel({
   const [globalPaymentSystemInput, setGlobalPaymentSystemInput] = useState(settings?.globalPaymentSystem || "product_defined");
   const [globalPaymentMethodInput, setGlobalPaymentMethodInput] = useState(settings?.globalPaymentMethod || "both");
   const [globalDeliveryDaysInput, setGlobalDeliveryDaysInput] = useState(settings?.globalDeliveryDays || "");
+  const [accentColorInput, setAccentColorInput] = useState(settings?.accentColor || "#D4AF37");
+  const [showAccentConfig, setShowAccentConfig] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -163,6 +174,9 @@ export default function AdminPanel({
     if (settings?.isCatalogDeactivated !== undefined) {
       setIsCatalogDeactivatedInput(settings.isCatalogDeactivated);
     }
+    if (settings?.isXoroVoiceDisabled !== undefined) {
+      setIsXoroVoiceDisabledInput(settings.isXoroVoiceDisabled);
+    }
     if (settings?.deactivatedMessage !== undefined) {
       setDeactivatedMessageInput(settings.deactivatedMessage);
     }
@@ -189,6 +203,9 @@ export default function AdminPanel({
     }
     if (settings?.globalDeliveryDays !== undefined) {
       setGlobalDeliveryDaysInput(settings.globalDeliveryDays);
+    }
+    if (settings?.accentColor !== undefined) {
+      setAccentColorInput(settings.accentColor);
     }
   }, [settings]);
 
@@ -217,6 +234,7 @@ export default function AdminPanel({
           paymentBadgeTitle: paymentBadgeTitleInput,
           paymentBadgeDescription: paymentBadgeDescriptionInput,
           isCatalogDeactivated: isCatalogDeactivatedInput,
+          isXoroVoiceDisabled: isXoroVoiceDisabledInput,
           deactivatedMessage: deactivatedMessageInput,
           isLotteryDeactivated: isLotteryDeactivatedInput,
           isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
@@ -225,7 +243,8 @@ export default function AdminPanel({
           globalTimerActive: globalTimerActiveInput,
           globalPaymentSystem: globalPaymentSystemInput,
           globalPaymentMethod: globalPaymentMethodInput,
-          globalDeliveryDays: globalDeliveryDaysInput
+          globalDeliveryDays: globalDeliveryDaysInput,
+          accentColor: accentColorInput
         })
       });
       if (res.ok) {
@@ -539,6 +558,7 @@ export default function AdminPanel({
         paymentBadgeTitle: paymentBadgeTitleInput,
         paymentBadgeDescription: paymentBadgeDescriptionInput,
         isCatalogDeactivated: isCatalogDeactivatedInput,
+        isXoroVoiceDisabled: isXoroVoiceDisabledInput,
         deactivatedMessage: deactivatedMessageInput,
         isLotteryDeactivated: isLotteryDeactivatedInput,
         isNotifyMeDeactivated: isNotifyMeDeactivatedInput
@@ -611,11 +631,13 @@ export default function AdminPanel({
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
+  const [formOfferDiscountPercent, setFormOfferDiscountPercent] = useState<number | ''>('');
   const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
   const [formTimerMessage, setFormTimerMessage] = useState<string>('');
   const [formBkashNumber, setFormBkashNumber] = useState<string>('');
   const [formNagadNumber, setFormNagadNumber] = useState<string>('');
-  const [formPaymentType, setFormPaymentType] = useState<'cod' | 'delivery_charge' | 'full_advance'>('cod');
+  const [formPaymentType, setFormPaymentType] = useState<'cod' | 'delivery_charge' | 'full_advance' | 'percentage'>('cod');
+  const [formPaymentPercentage, setFormPaymentPercentage] = useState<number>(10);
   const [formDeliveryCharge, setFormDeliveryCharge] = useState<number>(100);
   const [formDeliveryDays, setFormDeliveryDays] = useState<string>('3-5');
   const [uploadProgress, setUploadProgress] = useState('');
@@ -663,6 +685,13 @@ export default function AdminPanel({
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (formPrice > 0 && formOfferDiscountPercent !== '') {
+      const calculatedPrice = Math.round(formPrice * (1 - Number(formOfferDiscountPercent) / 100));
+      setFormOfferPrice(calculatedPrice);
+    }
+  }, [formPrice]);
 
   const fetchAnalytics = async () => {
     try {
@@ -748,6 +777,43 @@ export default function AdminPanel({
       }
     } catch (e) {
       console.error("Error archiving restock alert:", e);
+    }
+  };
+
+  const handleDispatchPush = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pushTitleInput || !pushBodyInput) {
+      setAdminToast({ message: "Please provide both title and message.", type: "error" });
+      return;
+    }
+    try {
+      setIsDispatchingPush(true);
+      const res = await fetch('/api/push-dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pushTitleInput,
+          body: pushBodyInput,
+          url: pushLinkInput || undefined
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminToast({ 
+          message: `Royal Push alert dispatched to ${data.count} subscribed devices successfully!`, 
+          type: "success" 
+        });
+        setPushTitleInput('');
+        setPushBodyInput('');
+        setPushLinkInput('');
+      } else {
+        setAdminToast({ message: "Failed to dispatch push notification.", type: "error" });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAdminToast({ message: `Exception: ${err.message}`, type: "error" });
+    } finally {
+      setIsDispatchingPush(false);
     }
   };
 
@@ -974,6 +1040,7 @@ export default function AdminPanel({
       bkashNumber: formBkashNumber,
       nagadNumber: formNagadNumber,
       paymentType: formPaymentType,
+      paymentPercentage: Number(formPaymentPercentage || 10),
       deliveryCharge: Number(formDeliveryCharge || 100),
       deliveryDays: formDeliveryDays || '3-5'
     };
@@ -1013,11 +1080,13 @@ export default function AdminPanel({
         setFormCouponCode('');
         setFormCouponDiscountPercent(15);
         setFormOfferPrice('');
+        setFormOfferDiscountPercent('');
         setFormTimerEndTime('');
         setFormTimerMessage('');
         setFormBkashNumber('');
         setFormNagadNumber('');
         setFormPaymentType('cod');
+        setFormPaymentPercentage(10);
         setFormDeliveryCharge(100);
         setFormDeliveryDays('3-5');
         setUploadProgress('');
@@ -1066,11 +1135,14 @@ export default function AdminPanel({
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
     setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
+    const calculatedPercent = prod.offerPrice && prod.price ? Math.round(((prod.price - prod.offerPrice) / prod.price) * 100) : '';
+    setFormOfferDiscountPercent(calculatedPercent);
     setFormTimerEndTime(prod.timerEndTime || '');
     setFormTimerMessage(prod.timerMessage || '');
     setFormBkashNumber(prod.bkashNumber || '');
     setFormNagadNumber(prod.nagadNumber || '');
     setFormPaymentType(prod.paymentType || 'cod');
+    setFormPaymentPercentage(prod.paymentPercentage !== undefined ? prod.paymentPercentage : 10);
     setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
     setFormDeliveryDays(prod.deliveryDays !== undefined ? String(prod.deliveryDays) : '3-5');
     setShowProductForm(true);
@@ -2436,9 +2508,27 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         >
                           <option value="cod">Cash on Delivery (COD)</option>
                           <option value="delivery_charge">Delivery Charge Only</option>
+                          <option value="percentage">Partial Percentage Advance</option>
                           <option value="full_advance">Full Advance Payment</option>
                         </select>
                       </div>
+
+                      {/* Payment Percentage (only shown if Partial Percentage is selected) */}
+                      {formPaymentType === 'percentage' && (
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Payment Percentage (%)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            required
+                            value={formPaymentPercentage}
+                            onChange={(e) => setFormPaymentPercentage(Math.min(100, Math.max(1, Number(e.target.value || 10))))}
+                            placeholder="e.g. 15"
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                        </div>
+                      )}
 
                       {/* Delivery Charge */}
                       <div>
@@ -2637,17 +2727,62 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Offer Price */}
-                      <div>
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Offer / Discount Price (৳ BD Taka)</label>
-                        <input 
-                          type="number" 
-                          value={formOfferPrice} 
-                          onChange={(e) => setFormOfferPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                          placeholder="e.g. 850 (Leave blank for none)"
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
-                        />
-                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">Active price during the timer period. Restores to normal price when timer expires.</span>
+                      {/* Offer Price & Percentage Calculator */}
+                      <div className="bg-black/20 border border-white/5 p-3 rounded-xl col-span-1 space-y-2">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Offer / Discount Price</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[8px] uppercase font-mono text-zinc-400 mb-0.5">Offer Price (৳)</label>
+                            <input 
+                              type="number" 
+                              value={formOfferPrice} 
+                              onChange={(e) => {
+                                const valStr = e.target.value;
+                                if (valStr === '') {
+                                  setFormOfferPrice('');
+                                  setFormOfferDiscountPercent('');
+                                } else {
+                                  const valNum = Number(valStr);
+                                  setFormOfferPrice(valNum);
+                                  if (formPrice > 0) {
+                                    const pct = Math.round(((formPrice - valNum) / formPrice) * 100);
+                                    setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                                  }
+                                }
+                              }}
+                              placeholder="e.g. 850"
+                              className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[8px] uppercase font-mono text-zinc-400 mb-0.5">Discount (%)</label>
+                            <input 
+                              type="number" 
+                              value={formOfferDiscountPercent} 
+                              onChange={(e) => {
+                                const valStr = e.target.value;
+                                if (valStr === '') {
+                                  setFormOfferDiscountPercent('');
+                                  setFormOfferPrice('');
+                                } else {
+                                  const valNum = Number(valStr);
+                                  setFormOfferDiscountPercent(valNum);
+                                  if (formPrice > 0) {
+                                    const calculatedPrice = Math.round(formPrice * (1 - valNum / 100));
+                                    setFormOfferPrice(calculatedPrice);
+                                  }
+                                }
+                              }}
+                              placeholder="e.g. 15"
+                              min={1}
+                              max={100}
+                              className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
+                            />
+                          </div>
+                        </div>
+                        <span className="text-[9px] text-zinc-500 block leading-normal">
+                          Enter either field. The other will calculate instantly based on normal price (৳{formPrice}).
+                        </span>
                       </div>
 
                       {/* Timer End Time */}
@@ -3603,10 +3738,10 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               <div>
                 <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
                   <Bell size={18} className="text-luxury-gold" />
-                  Restock Alerts Hub
+                  Restock Alerts & Push Hub
                 </h2>
                 <p className="text-xs text-white/50 mt-1 font-sans">
-                  Monitor boutique back-in-stock alert registrations. View interested collectors and easily send notification lists.
+                  Manage restock registrations and dispatch direct push alerts to collectors.
                 </p>
               </div>
               <button 
@@ -3616,6 +3751,73 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 🔄 Refresh Registry
               </button>
             </div>
+
+            {/* DIRECT WEB PUSH DISPATCHER PANEL */}
+            <div className="border border-luxury-gold/20 bg-[#0d0d0d] p-6 rounded-lg shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="flex items-center gap-2.5 mb-4 border-b border-white/5 pb-3">
+                <Sparkles size={16} className="text-luxury-gold animate-pulse" />
+                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
+                  Global Web Push Campaign
+                </h3>
+              </div>
+              <p className="text-xs text-white/60 mb-5 max-w-2xl leading-relaxed font-sans">
+                This form dispatches an official real-time web push notification directly to the system background of all clients who opted in. They will receive the banner on their computer or mobile device even if they are currently browsing Facebook, outside Chrome, or in other applications.
+              </p>
+
+              <form onSubmit={handleDispatchPush} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Notification Title</label>
+                  <input
+                    type="text"
+                    value={pushTitleInput}
+                    onChange={(e) => setPushTitleInput(e.target.value)}
+                    placeholder="e.g. 🎉 Monarch Sneaker Drop!"
+                    className="w-full bg-[#151515] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-luxury-gold/50"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Action / Destination Link</label>
+                  <input
+                    type="text"
+                    value={pushLinkInput}
+                    onChange={(e) => setPushLinkInput(e.target.value)}
+                    placeholder="e.g. https://stylex.premium.shop/#catalog (leave empty for homepage)"
+                    className="w-full bg-[#151515] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-luxury-gold/50"
+                  />
+                </div>
+
+                <div className="space-y-1.5 md:col-span-3">
+                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Notification Message / Body</label>
+                  <textarea
+                    value={pushBodyInput}
+                    onChange={(e) => setPushBodyInput(e.target.value)}
+                    placeholder="Provide a luxurious and engaging description of the private update or sneaker release..."
+                    rows={2}
+                    className="w-full bg-[#151515] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-luxury-gold/50 font-sans"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-3 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isDispatchingPush}
+                    className="bg-luxury-gold hover:bg-white text-luxury-black font-display font-extrabold text-[10.5px] uppercase tracking-widest px-6 py-2.5 rounded transition-all shadow-lg shadow-luxury-gold/10 hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                  >
+                    {isDispatchingPush ? 'Dispatching Broadcast...' : '🚀 Dispatch System Broadcast'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="border-t border-white/5 my-6"></div>
+
+            <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
+              VIP Restock Registry
+            </h3>
 
             {backInStockAlerts.length === 0 ? (
               <div className="border border-white/5 bg-[#0a0a0a] p-12 rounded-lg text-center space-y-4 shadow-xl">
@@ -3749,7 +3951,13 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     <Settings size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-serif font-semibold text-white uppercase tracking-wider">Store Routing Parameters</h3>
+                    <h3 
+                      onDoubleClick={() => setShowAccentConfig(!showAccentConfig)}
+                      className="text-sm font-serif font-semibold text-white uppercase tracking-wider cursor-pointer select-none hover:text-luxury-gold transition-colors"
+                      title="Double-click to open advanced theme settings"
+                    >
+                      Store Routing Parameters <span className="inline-block w-1.5 h-1.5 bg-luxury-gold rounded-full opacity-60 ml-1 hover:opacity-100" onClick={(e) => { e.stopPropagation(); setShowAccentConfig(!showAccentConfig); }} title="Click for custom theme options"></span>
+                    </h3>
                     <p className="text-[10px] text-zinc-500 font-mono">REALTIME VIP NOTIFICATION DIRECTIVES</p>
                   </div>
                 </div>
@@ -3757,6 +3965,53 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 <p className="text-xs text-white/60 leading-relaxed font-sans mt-2">
                   Adjust target endpoints instantly. Changes safely propagate to customer click-to-chat targets, footer nodes, and the Google Apps Script email relay webhook.
                 </p>
+
+                {showAccentConfig && (
+                  <div className="space-y-3 p-4 bg-luxury-gold/5 border border-luxury-gold/20 rounded-lg animate-fade-in mt-2">
+                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-pulse"></span>
+                      Global Theme Accent Color:
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="color"
+                        value={accentColorInput}
+                        onChange={(e) => setAccentColorInput(e.target.value)}
+                        className="w-10 h-10 bg-transparent border border-white/10 rounded cursor-pointer"
+                        title="Choose custom color"
+                      />
+                      <input 
+                        type="text"
+                        value={accentColorInput}
+                        onChange={(e) => setAccentColorInput(e.target.value)}
+                        placeholder="#D4AF37"
+                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {[
+                        { name: "Luxury Gold", hex: "#D4AF37" },
+                        { name: "Emerald Green", hex: "#00C853" },
+                        { name: "Crimson Red", hex: "#FF1744" },
+                        { name: "Sapphire Blue", hex: "#2979FF" },
+                        { name: "Neon Violet", hex: "#AA00FF" },
+                        { name: "Pure Silver", hex: "#E0E0E0" },
+                        { name: "Amber Orange", hex: "#FF9100" }
+                      ].map((preset) => (
+                        <button
+                          key={preset.hex}
+                          type="button"
+                          onClick={() => setAccentColorInput(preset.hex)}
+                          className="w-5 h-5 rounded-full border border-white/20 transition-all hover:scale-110 cursor-pointer"
+                          style={{ backgroundColor: preset.hex }}
+                          title={`${preset.name} (${preset.hex})`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-zinc-500 font-mono">This dynamically updates <span className="text-luxury-gold">--color-luxury-gold</span> site-wide. Preserves full UI/UX.</p>
+                  </div>
+                )}
 
                 <div className="space-y-4 pt-2">
                   {/* BRAND CUSTOM LOGO URL */}
@@ -3847,6 +4102,28 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       </div>
                     )}
                     <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or upload a custom image for Xoro's avatar. Highly visible on the homepage assistant container.</p>
+                  </div>
+
+                  {/* XORO VOICE OVERLAY TOGGLE */}
+                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                          <span>🎙️ Xoro Voice Output</span>
+                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">SPEECH API</span>
+                        </label>
+                        <p className="text-[9px] text-zinc-500 font-mono">Toggle whether Xoro uses the browser's audio synthesizer voice output by default.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={!isXoroVoiceDisabledInput}
+                          onChange={(e) => setIsXoroVoiceDisabledInput(!e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
                   </div>
 
                   {/* bKash CUSTOM LOGO URL */}

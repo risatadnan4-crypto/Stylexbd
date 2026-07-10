@@ -39,16 +39,43 @@ export const DIVISIONS = [
   { key: 'Rangpur', name: 'Rangpur Division' }
 ];
 
+export const ALL_DISTRICTS_LIST = [
+  "Bagerhat", "Bandarban", "Barguna", "Barishal", "Bhola", "Bogura", "Brahmanbaria", 
+  "Chandpur", "Chattogram", "Chuadanga", "Cox's Bazar", "Cumilla", "Dhaka", "Dinajpur", 
+  "Faridpur", "Feni", "Gaibandha", "Gazipur", "Gopalganj", "Habiganj", "Jamalpur", 
+  "Jashore", "Jhalokati", "Jhenaidah", "Joypurhat", "Khagrachhari", "Khulna", "Kishoreganj", 
+  "Kurigram", "Kushtia", "Lakshmipur", "Lalmonirhat", "Madaripur", "Magura", "Manikganj", 
+  "Meherpur", "Moulvibazar", "Munshiganj", "Mymensingh", "Naogaon", "Narail", "Narayanganj", 
+  "Narsingdi", "Natore", "Netrokona", "Nilphamari", "Noakhali", "Pabna", "Panchagarh", 
+  "Patuakhali", "Pirojpur", "Rajbari", "Rajshahi", "Rangamati", "Rangpur", "Satkhira", 
+  "Shariatpur", "Sherpur", "Sirajganj", "Sunamganj", "Sylhet", "Tangail", "Thakurgaon"
+];
+
+const DIVISION_MAPS: Record<string, string[]> = {
+  "Dhaka": ["Dhaka", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Faridpur", "Tangail"],
+  "Chattogram": ["Chattogram", "Cox's Bazar", "Bandarban", "Khagrachhari", "Rangamati", "Noakhali", "Feni", "Lakshmipur", "Cumilla", "Chandpur", "Brahmanbaria"],
+  "Rajshahi": ["Rajshahi", "Bogura", "Joypurhat", "Naogaon", "Natore", "Chapainawabganj", "Pabna", "Sirajganj"],
+  "Khulna": ["Khulna", "Bagerhat", "Satkhira", "Jashore", "Narail", "Magura", "Jhenaidah", "Kushtia", "Chuadanga", "Meherpur"],
+  "Barishal": ["Barishal", "Jhalokati", "Pirojpur", "Bhola", "Patuakhali", "Barguna"],
+  "Sylhet": ["Sylhet", "Moulvibazar", "Habiganj", "Sunamganj"],
+  "Rangpur": ["Rangpur", "Gaibandha", "Kurigram", "Lalmonirhat", "Nilphamari", "Panchagarh", "Thakurgaon", "Dinajpur"],
+  "Mymensingh": ["Mymensingh", "Jamalpur", "Sherpur", "Netrokona"]
+};
+
 export function getDivisionForCity(city: string): string {
   const c = city.trim();
   
-  if (c === "Dhaka") return "Dhaka";
-  if (c === "Chattogram") return "Chattogram";
-  if (c === "Rajshahi") return "Rajshahi";
-  if (c === "Khulna") return "Khulna";
-  if (c === "Barishal") return "Barishal";
-  if (c === "Sylhet") return "Sylhet";
-  if (c === "Rangpur") return "Rangpur";
+  // Direct matches
+  if (["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"].includes(c)) {
+    return c;
+  }
+
+  // Map search
+  for (const [division, districts] of Object.entries(DIVISION_MAPS)) {
+    if (districts.some(d => d.toLowerCase() === c.toLowerCase())) {
+      return division;
+    }
+  }
   
   return "Outside"; // default fallback
 }

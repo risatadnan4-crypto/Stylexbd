@@ -264,9 +264,16 @@ export default function XoroAssistant({
   const [hasDismissedBubble, setHasDismissedBubble] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Audio state for robotic idle humming (always enabled by default)
-  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  // Audio state for robotic idle humming (respects admin settings first, defaults to enabled)
+  const [isSoundEnabled, setIsSoundEnabled] = useState(settings?.isXoroVoiceDisabled !== undefined ? !settings.isXoroVoiceDisabled : true);
   const [voicePitch, setVoicePitch] = useState<'low' | 'normal' | 'high'>('high');
+
+  // Synchronize sound enabled state with global admin settings
+  useEffect(() => {
+    if (settings?.isXoroVoiceDisabled !== undefined) {
+      setIsSoundEnabled(!settings.isXoroVoiceDisabled);
+    }
+  }, [settings?.isXoroVoiceDisabled]);
 
   // Selected custom system voice name and context product state
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
@@ -286,6 +293,16 @@ export default function XoroAssistant({
           v.lang.toLowerCase().startsWith('en')
         );
         setSystemVoices(filtered);
+
+        // Auto-select US English voice by default
+        const usVoice = filtered.find(v => {
+          const lang = v.lang.toLowerCase();
+          return lang === 'en-us' || lang === 'en_us' || lang.startsWith('en-us') || lang.startsWith('en_us');
+        }) || filtered.find(v => v.lang.toLowerCase().startsWith('en'));
+
+        if (usVoice) {
+          setSelectedVoiceName(prev => prev || usVoice.name);
+        }
       };
       updateVoices();
       window.speechSynthesis.onvoiceschanged = updateVoices;
@@ -993,54 +1010,19 @@ export default function XoroAssistant({
 
   // Trigger rope climb and jet engine sequence on idle
   const triggerClimbAndFlySequence = () => {
-    if (isOpen || isClimbing || isFlyingJet) return;
-
-    // Drop the rope
-    setShowRope(true);
-    setSpeechBubbleText("আইচ্ছা! আমি একটু রশি বেয়ে উপরে উটছি... 🧗");
-    setShowSpeechBubble(true);
-    playEmoRobotSound('think');
-    
-    // Start climbing
-    setTimeout(() => {
-      setIsClimbing(true);
-      playClimbBeeps();
-
-      // Finish climbing, ignite jet engine
-      setTimeout(() => {
-        setIsClimbing(false);
-        setShowRope(false);
-        setIsFlyingJet(true);
-        setSpeechBubbleText("উড়ছি জেট ইঞ্জিন দিয়ে! 🚀 জুম্ম্ম্ম্ম্ম্ম্ম্ম!");
-        playJetIgnitionSound();
-
-        // Hover around for 6 seconds, then land back down
-        setTimeout(() => {
-          setIsFlyingJet(false);
-          setSpeechBubbleText("হাফ! নিরাপদে ল্যান্ড করলাম। 😄");
-          playEmoRobotSound('happy');
-          
-          // Hide bubble after 3 seconds
-          setTimeout(() => {
-            setShowSpeechBubble(false);
-          }, 3000);
-        }, 6000);
-
-      }, 2500);
-    }, 500);
+    // Disabled: Xoro should not fly or climb ropes anymore
   };
 
   const handleNavigateToSection = async (section: string, customSpeech?: string) => {
-    // 1. Close chat window so user can see the website and Xoro flying
+    // 1. Close chat window so user can see the website
     setIsOpen(false);
     
-    // 2. Start rocket engine flying!
-    setIsFlyingJet(true);
-    playJetIgnitionSound();
+    // 2. Play standard robot sound
+    playEmoRobotSound('think');
     
     // 3. Set custom bubble speech text and show it
     const defaultSpeechMap: Record<string, string> = {
-      hero: "আসসালামু আলাইকুম! চলুন উড়ি! আমরা এখন স্টাইল এক্স-এর রাজকীয় হিরো সেকশনে প্রবেশ করছি! 🚀✨",
+      hero: "আসসালামু আলাইকুম! চলুন যাই! আমরা এখন স্টাইল এক্স-এর রাজকীয় হিরো সেকশনে প্রবেশ করছি! ✨",
       countdown: "⏳ এই জোনে লিমিটেড টাইম রয়েল ফ্ল্যাশ ইভেন্ট চলছে! মিস করবেন না কিন্তু!",
       catalog: "👔 এটি আমাদের স্টাইল এক্স সিগনেচার কালেকশন! চমৎকার ডিজাইন এবং নিখুঁত কাপড়ের মেলবন্ধন!",
       lottery: "🎟️ স্বাগতম রয়েল লাক্সারি স্পিন লটারিতে! কুপন এবং বিশেষ অফার জিতে নিতে এখানে ক্লিক করুন!",
@@ -1049,12 +1031,12 @@ export default function XoroAssistant({
       reviews: "✍️ আমাদের বৈশ্বিক গ্রাহকদের ভেরিফাইড এক্সপেরিয়েন্স লেজার বুক দেখুন! আপনার মতামতও জানাতে পারেন।"
     };
 
-    const speechText = customSpeech || defaultSpeechMap[section] || "উড়ছি জেট ইঞ্জিন দিয়ে! 🚀 জুম্ম্ম্ম্ম্ম্ম্ম্ম!";
+    const speechText = customSpeech || defaultSpeechMap[section] || "চলুন যাই! ✨";
     setSpeechBubbleText(speechText);
     setShowSpeechBubble(true);
 
-    // 4. Smoothly fly to the target
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    // 4. Smoothly navigate to the target
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     // Perform the actual navigation action in the website!
     switch (section) {
@@ -1106,9 +1088,8 @@ export default function XoroAssistant({
         break;
     }
 
-    // 5. Land / stop flying after showing off
+    // 5. Done navigating
     setTimeout(() => {
-      setIsFlyingJet(false);
       playEmoRobotSound('happy');
       
       // Hide speech bubble after 5 more seconds
@@ -1134,13 +1115,12 @@ export default function XoroAssistant({
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       
-      // Ignite rocket & set speech
-      setIsFlyingJet(true);
-      playJetIgnitionSound();
+      // Play robot sound & set speech
+      playEmoRobotSound('think');
       setSpeechBubbleText(step.speech);
       setShowSpeechBubble(true);
       
-      // Wait for flight thrill
+      // Wait for user to read
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Trigger action
@@ -1185,7 +1165,6 @@ export default function XoroAssistant({
     }
 
     // Done!
-    setIsFlyingJet(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setSpeechBubbleText("🎉 ওয়াও! স্টাইল এক্স-এর পুরো সফর সম্পন্ন হলো! আপনার কেনাকাটা দারুণ উপভোগ্য হোক। 😄");
     playEmoRobotSound('happy');
@@ -1197,37 +1176,8 @@ export default function XoroAssistant({
   };
 
   useEffect(() => {
-    let idleTimer: NodeJS.Timeout;
-    const startIdleTimer = () => {
-      if (idleTimer) clearTimeout(idleTimer);
-      if (isOpen || isClimbing || isFlyingJet) return;
-      
-      idleTimer = setTimeout(() => {
-        triggerClimbAndFlySequence();
-      }, 7000); // Trigger rope climbing and rocket jet flying every 7 seconds (7 sec por por)
-    };
-
-    const handleUserActivity = () => {
-      if (!isClimbing && !isFlyingJet) {
-        startIdleTimer();
-      }
-    };
-
-    // Keep Xoro extremely active: only reset on explicit clicks, keys, or touches
-    window.addEventListener('click', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
-    window.addEventListener('touchstart', handleUserActivity);
-
-    // Initial trigger
-    startIdleTimer();
-
-    return () => {
-      clearTimeout(idleTimer);
-      window.removeEventListener('click', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-      window.removeEventListener('touchstart', handleUserActivity);
-    };
-  }, [isOpen, isClimbing, isFlyingJet]);
+    // Idle timer is disabled so Xoro doesn't fly/climb on its own anymore
+  }, []);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -1811,6 +1761,46 @@ export default function XoroAssistant({
                   {/* MESSAGES BODY */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                 
+                {/* Highly Visible Sound On/Off Toggle for the customer */}
+                <div className="p-3 bg-gradient-to-r from-purple-950/20 via-[#101014] to-zinc-900/10 border border-purple-500/20 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/30">
+                      {isSoundEnabled ? (
+                        <Volume2 size={14} className="text-purple-400 animate-pulse" />
+                      ) : (
+                        <VolumeX size={14} className="text-zinc-500" />
+                      )}
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-purple-300">Xoro Voice Output</span>
+                      <span className="text-[7.5px] text-zinc-400 font-sans">
+                        {isSoundEnabled ? "কথা বলবে (Speaking Mode Active)" : "কথা বন্ধ (Silent Chat Only)"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      const nextSound = !isSoundEnabled;
+                      setIsSoundEnabled(nextSound);
+                      if (nextSound) {
+                        setTimeout(() => {
+                          speakText("আমি এখন কথা বলতে পারব।");
+                        }, 50);
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isSoundEnabled ? 'bg-purple-600' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        isSoundEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 {/* Brand introduction banner card */}
                 <div className="p-3 bg-gradient-to-br from-[#111112] via-[#09090a] to-black border border-white/5 rounded-xl flex flex-col items-center text-center space-y-2.5">
                   <span className="text-lg animate-bounce">🤖</span>

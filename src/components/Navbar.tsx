@@ -45,7 +45,7 @@ export default function Navbar({
   onCustomerLogout,
   onViewMyOrdersClick,
   isCatalogDeactivated,
-  isLotteryDeactivated
+  isLotteryDeactivated,
 }: NavbarProps) {
   const [showPortalMenu, setShowPortalMenu] = useState(false);
 

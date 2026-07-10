@@ -31,7 +31,8 @@ export interface Product {
   timerMessage?: string;
   bkashNumber?: string;
   nagadNumber?: string;
-  paymentType?: 'cod' | 'delivery_charge' | 'full_advance';
+  paymentType?: 'cod' | 'delivery_charge' | 'full_advance' | 'percentage';
+  paymentPercentage?: number;
   deliveryCharge?: number;
   deliveryDays?: string; // How many days for delivery
 }
