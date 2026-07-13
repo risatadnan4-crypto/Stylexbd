@@ -63,7 +63,7 @@ export default function App() {
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [selectedSize, setSelectedSize] = useState<string>('ALL');
   const [showInStockOnly, setShowInStockOnly] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC'>('RELEVANCE');
+  const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC' | 'TOP_RATED'>('RELEVANCE');
   const [isFiltersExpanded, setIsFiltersExpanded] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
 
@@ -139,6 +139,20 @@ export default function App() {
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
   const [copiedOrderId, setCopiedOrderId] = useState(false);
   const [confirmedWhatsAppUrl, setConfirmedWhatsAppUrl] = useState('');
+
+  // Track cart item count for custom cart-add shake/bounce animation
+  const totalCartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const prevCartCountRef = React.useRef(totalCartItemsCount);
+  const [shouldAnimateCartIcon, setShouldAnimateCartIcon] = useState(false);
+
+  React.useEffect(() => {
+    if (totalCartItemsCount > prevCartCountRef.current) {
+      setShouldAnimateCartIcon(true);
+      const timer = setTimeout(() => setShouldAnimateCartIcon(false), 900);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = totalCartItemsCount;
+  }, [totalCartItemsCount]);
   const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);
@@ -1422,6 +1436,22 @@ export default function App() {
     }
   };
 
+  // Calculate average rating for each product from the reviews data
+  const productAvgRatings = useMemo(() => {
+    const ratingsMap: Record<string, { sum: number; count: number; avg: number }> = {};
+    publicReviews.forEach(r => {
+      if (!ratingsMap[r.productId]) {
+        ratingsMap[r.productId] = { sum: 0, count: 0, avg: 0 };
+      }
+      ratingsMap[r.productId].sum += r.rating;
+      ratingsMap[r.productId].count += 1;
+    });
+    Object.keys(ratingsMap).forEach(id => {
+      ratingsMap[id].avg = ratingsMap[id].sum / ratingsMap[id].count;
+    });
+    return ratingsMap;
+  }, [publicReviews]);
+
   // Filter and sort products based on search, category, and advanced selectors
   const filteredProducts = products
     .filter(p => {
@@ -1446,6 +1476,16 @@ export default function App() {
       if (sortBy === 'PRICE_ASC') return a.price - b.price;
       if (sortBy === 'PRICE_DESC') return b.price - a.price;
       if (sortBy === 'STOCK_DESC') return b.stock - a.stock;
+      if (sortBy === 'TOP_RATED') {
+        const aAvg = productAvgRatings[a.id]?.avg || 0;
+        const bAvg = productAvgRatings[b.id]?.avg || 0;
+        if (bAvg !== aAvg) return bAvg - aAvg;
+        
+        // Secondary sort: number of reviews
+        const aCount = productAvgRatings[a.id]?.count || 0;
+        const bCount = productAvgRatings[b.id]?.count || 0;
+        if (bCount !== aCount) return bCount - aCount;
+      }
       
       // Default Relevance (Featured first, then trending, then by title)
       const aScore = (a.featured ? 3 : 0) + (a.trending ? 1 : 0);
@@ -1838,6 +1878,7 @@ export default function App() {
                       globalDeliveryDays={settings?.globalDeliveryDays}
                       currentCustomer={currentCustomer}
                       onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
+                      viewMode={viewMode}
                     />
                   ))}
                 </motion.div>
@@ -1991,6 +2032,7 @@ export default function App() {
                     <option value="PRICE_ASC">💵 Price: Low to High</option>
                     <option value="PRICE_DESC">💵 Price: High to Low</option>
                     <option value="STOCK_DESC">📦 Ready Stock Status</option>
+                    <option value="TOP_RATED">⭐ Popularity / Top Rated</option>
                   </select>
                 </div>
               </div>
@@ -2175,6 +2217,7 @@ export default function App() {
                       globalDeliveryDays={settings?.globalDeliveryDays}
                       currentCustomer={currentCustomer}
                       onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
+                      viewMode={viewMode}
                     />
                   ))}
                 </motion.div>
@@ -2480,12 +2523,16 @@ export default function App() {
               </div>
               
               <motion.div
-                key={cart.reduce((sum, item) => sum + item.quantity, 0)}
-                animate={cart.length > 0 ? {
-                  scale: [1, 1.25, 1],
-                  rotate: [0, -10, 10, -5, 5, 0]
+                key={totalCartItemsCount}
+                animate={shouldAnimateCartIcon ? {
+                  scale: [1, 1.45, 0.85, 1.25, 0.95, 1],
+                  y: [0, -14, 4, -3, 1, 0],
+                  rotate: [0, -18, 18, -10, 10, 0]
                 } : {}}
-                transition={{ duration: 0.55, ease: "easeInOut" }}
+                transition={{
+                  duration: 0.85,
+                  ease: "easeInOut"
+                }}
               >
                 <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
               </motion.div>

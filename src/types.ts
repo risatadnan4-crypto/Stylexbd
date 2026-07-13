@@ -35,6 +35,7 @@ export interface Product {
   paymentPercentage?: number;
   deliveryCharge?: number;
   deliveryDays?: string; // How many days for delivery
+  freeDelivery?: boolean;
 }
 
 export interface CartItem {

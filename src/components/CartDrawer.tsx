@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, 
   Tag, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
-  Smartphone, Landmark, Copy, ExternalLink, MessageSquare 
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST } from '../utils';
@@ -166,6 +166,9 @@ export default function CartDrawer({
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
   const rippleCount = useRef(0);
 
+  // Premium Lightbox Zoom State
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
+
   // Input Focus Refs
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
@@ -259,6 +262,9 @@ export default function CartDrawer({
   const deliveryCharge = cartItems.length === 0
     ? (shippingDivision === "Dhaka" ? 100 : 150)
     : cartItems.reduce((max, item) => {
+        if (item.product.freeDelivery) {
+          return max;
+        }
         let customPrice = 150;
         switch (shippingDivision) {
           case "Dhaka":
@@ -659,10 +665,14 @@ export default function CartDrawer({
             }`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 p-3.5 sm:py-3 sm:px-4.5 relative shrink-0">
+            <div className="flex items-center justify-between border-b-2 border-white/10 p-4 sm:py-3.5 sm:px-5 relative shrink-0 bg-[#0c0617]">
               <div className="flex items-center gap-2">
-                <ShoppingBag size={18} className="text-luxury-gold animate-pulse" />
-                <h3 className="font-serif text-xs sm:text-sm font-black tracking-widest uppercase text-white">
+                <ShoppingBag size={18} className="text-luxury-gold animate-pulse drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                <h3 className={`font-serif text-xs sm:text-[13px] font-black tracking-widest uppercase transition-all duration-300 ${
+                  checkoutStep !== 'cart' && checkoutStep !== 'success'
+                    ? 'bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(212,175,55,0.45)] scale-105'
+                    : 'text-white'
+                }`}>
                   {checkoutStep === 'cart' && "Your Selection"}
                   {checkoutStep === 'step1' && "⚜️ STEP 1: VIP INFORMATION"}
                   {checkoutStep === 'step2' && "⚜️ STEP 2: PREMIUM CHECKOUT"}
@@ -672,7 +682,7 @@ export default function CartDrawer({
               {checkoutStep !== 'success' && (
                 <button 
                   onClick={onClose}
-                  className="text-white/40 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/5 border border-transparent hover:border-white/10"
+                  className="text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/10 border border-transparent hover:border-white/15"
                 >
                   <X size={18} />
                 </button>
@@ -681,15 +691,15 @@ export default function CartDrawer({
 
             {/* Step Progress Bar Indicator */}
             {checkoutStep !== 'cart' && checkoutStep !== 'success' && (
-              <div className="px-5 py-2 bg-black/40 border-b border-white/5 flex items-center justify-between gap-2 text-[10px] font-mono tracking-wider shrink-0 select-none">
-                <div className="flex items-center gap-2">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${checkoutStep === 'step1' ? 'bg-[#d4af37] text-black font-black ring-2 ring-yellow-400/20' : 'bg-purple-900/40 text-purple-300'}`}>1</span>
-                  <span className={checkoutStep === 'step1' ? 'text-white font-extrabold' : 'text-white/40'}>CONTACT INFO</span>
+              <div className="px-6 py-2.5 bg-[#120926] border-b-2 border-[#d4af37]/35 flex items-center justify-between gap-2 text-[10px] font-mono tracking-wider shrink-0 select-none shadow-md">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-[9.5px] font-black transition-all duration-300 ${checkoutStep === 'step1' ? 'bg-gradient-to-r from-[#d4af37] to-[#f3e5ab] text-black ring-4 ring-yellow-400/30' : 'bg-purple-900/50 text-purple-200 border border-purple-500/30'}`}>1</span>
+                  <span className={`transition-colors duration-300 ${checkoutStep === 'step1' ? 'text-white font-black drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-white/35 font-semibold'}`}>CONTACT INFO</span>
                 </div>
-                <div className="flex-1 h-[1px] bg-white/10 mx-2" />
-                <div className="flex items-center gap-2">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${checkoutStep === 'step2' ? 'bg-[#d4af37] text-black font-black ring-2 ring-yellow-400/20' : 'bg-purple-900/40 text-purple-300'}`}>2</span>
-                  <span className={checkoutStep === 'step2' ? 'text-white font-extrabold' : 'text-white/40'}>PREMIUM SECURE</span>
+                <div className="flex-1 h-[2px] bg-gradient-to-r from-luxury-gold/50 to-purple-800/50 mx-2.5" />
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-[9.5px] font-black transition-all duration-300 ${checkoutStep === 'step2' ? 'bg-gradient-to-r from-[#d4af37] to-[#f3e5ab] text-black ring-4 ring-yellow-400/30' : 'bg-purple-900/50 text-purple-200 border border-purple-500/30'}`}>2</span>
+                  <span className={`transition-colors duration-300 ${checkoutStep === 'step2' ? 'text-white font-black drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-white/35 font-semibold'}`}>PREMIUM SECURE</span>
                 </div>
               </div>
             )}
@@ -728,7 +738,21 @@ export default function CartDrawer({
                       <div className="space-y-3">
                         {cartItems.map((item, idx) => (
                           <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
-                            <img src={item.product.imageUrl} alt={item.product.title} className="w-16 h-16 object-cover rounded-xl border border-white/5 shrink-0" referrerPolicy="no-referrer" />
+                            <div 
+                              onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
+                              className="w-16 h-16 rounded-xl border border-white/10 shrink-0 relative overflow-hidden group/img cursor-zoom-in bg-black/40 shadow-inner"
+                              title="Click to view full image"
+                            >
+                              <img 
+                                src={item.product.imageUrl} 
+                                alt={item.product.title} 
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
+                                referrerPolicy="no-referrer" 
+                              />
+                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                              </div>
+                            </div>
                             <div className="flex-1 flex flex-col justify-between min-w-0">
                               <div className="flex justify-between items-start gap-2">
                                 <h4 className="font-serif text-[12px] text-white font-medium truncate">{item.product.title}</h4>
@@ -757,7 +781,7 @@ export default function CartDrawer({
                             placeholder="ENTER PROMO CODE"
                             value={couponCode}
                             onChange={(e) => setCouponCode(e.target.value)}
-                            className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 rounded-xl py-2.5 px-3 focus:outline-none focus:border-luxury-gold placeholder-white/25 uppercase tracking-wider"
+                            className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 hover:border-white/20 rounded-xl py-2.5 px-3 focus:outline-none focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] transition-all duration-300 placeholder-white/25 uppercase tracking-wider"
                           />
                           <button onClick={() => handleApplyCoupon()} className="bg-white/5 border border-white/10 hover:border-luxury-gold text-luxury-gold px-4 rounded-xl text-[10px] font-mono font-bold tracking-widest uppercase transition-all duration-300">REDEEM</button>
                         </div>
@@ -799,204 +823,393 @@ export default function CartDrawer({
                 {checkoutStep === 'step1' && (
                   <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 items-start">
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-2 pb-1 border-b border-white/10">
-                            <User size={13} className="text-luxury-gold drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
-                            <span className="text-[10.5px] font-mono tracking-wider text-luxury-gold uppercase font-bold">RECIPIENT CONTACT DETAIL RECORDS</span>
+                        <div className="lg:col-span-8 space-y-2.5 relative">
+                          <div className="flex items-center justify-between pb-1.5 border-b border-luxury-gold/30">
+                            <div className="flex items-center gap-2">
+                              <User size={14} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
+                              <span className="text-[11px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent">
+                                SECURE CHECKOUT FORM
+                              </span>
+                            </div>
+                            {/* Static secure badge */}
+                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold text-emerald-400 uppercase tracking-wider select-none">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-0.5" />
+                              SECURE SSL
+                            </div>
                           </div>
 
-                          {/* Glassmorphism card of inputs */}
-                          <div className="bg-[#0f0a1c] border border-white/15 rounded-xl p-3.5 sm:p-4 space-y-3.5 shadow-xl">
-                            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
-                              {/* Name Field */}
-                              <div className="relative group">
-                                <div className="absolute top-3.5 left-3 text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                                  <User size={15} />
-                                </div>
-                                <input 
-                                  ref={nameInputRef}
-                                  type="text"
-                                  required
-                                  id="customer_name"
-                                  value={customerName}
-                                  onChange={(e) => setCustomerName(e.target.value)}
-                                  onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
-                                  placeholder=" "
-                                  className="peer block w-full rounded-lg border border-white/20 bg-black/70 pb-0.5 pt-4 pl-9.5 pr-8 text-sm text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 font-medium h-[48px]"
-                                />
-                                <label htmlFor="customer_name" className="absolute left-9.5 top-1 text-[9px] text-zinc-300 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-medium peer-focus:top-1 peer-focus:text-[9px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
-                                  Full Name *
-                                </label>
-                                {customerName && (
-                                  <span className="absolute right-3 top-4">{isNameValid ? <Check size={13} className="text-emerald-400" /> : <X size={13} className="text-red-400" />}</span>
-                                )}
+                          {/* Elegant, glassmorphic card groups of inputs with premium styling */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                            {/* Glassmorphic Sub-card 1: Contact details */}
+                            <motion.div 
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, ease: "easeOut" }}
+                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                            >
+                              <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
+                                <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
                               </div>
 
-                              {/* Mobile Number */}
-                              <div className="relative group">
-                                <div className="absolute top-3.5 left-3 text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                                  <Phone size={15} />
-                                </div>
-                                <input 
-                                  ref={phoneInputRef}
-                                  type="tel"
-                                  required
-                                  id="customer_phone"
-                                  value={customerPhone}
-                                  onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                                  onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
-                                  placeholder=" "
-                                  className="peer block w-full rounded-lg border border-white/20 bg-black/70 pb-0.5 pt-4 pl-9.5 pr-8 text-sm text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 font-mono font-medium h-[48px]"
-                                />
-                                <label htmlFor="customer_phone" className="absolute left-9.5 top-1 text-[9px] text-zinc-300 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-medium peer-focus:top-1 peer-focus:text-[9px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
-                                  Mobile Number *
-                                </label>
-                                {customerPhone && (
-                                  <span className="absolute right-3 top-4">{isPhoneValid ? <Check size={13} className="text-emerald-400" /> : <span className="text-[8px] font-mono text-red-400 font-bold">11 digits</span>}</span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-2.5">
-                              {/* City / District */}
-                              <div className="relative group bg-black/50 border border-white/15 rounded-xl p-2.5 flex flex-col justify-between">
-                                <span className="text-[9.5px] text-white uppercase font-mono tracking-wider font-extrabold mb-1 flex items-center gap-1.5 relative">
-                                  <MapPin size={12} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                  <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
-                                    City/District *
-                                  </span>
-                                  <svg className="w-2 h-2 text-[#D4AF37] animate-premium-star inline ml-1" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-                                  </svg>
-                                </span>
-                                
-                                {(() => {
-                                  const displayedCities = [...CITIES_LIST];
-                                  if (!CITIES_LIST.includes(customerCity)) {
-                                    displayedCities.push(customerCity);
-                                  }
-
-                                  const defaultToShowCount = 3;
-                                  let visibleCities = [...displayedCities];
-                                  if (!isDistrictsExpanded) {
-                                    const initialSelection = displayedCities.slice(0, defaultToShowCount);
-                                    if (customerCity && !initialSelection.includes(customerCity)) {
-                                      initialSelection.push(customerCity);
-                                    }
-                                    visibleCities = initialSelection;
-                                  }
-
-                                  const activeCityIndex = visibleCities.indexOf(customerCity);
-
-                                  return (
-                                    <div className="flex flex-col gap-1">
-                                      <div className="grid grid-cols-2 gap-1.5 mt-0.5">
-                                        {visibleCities.map((city) => {
-                                          const isSelected = customerCity === city;
-                                          return (
-                                            <div
-                                              key={city}
-                                              onClick={() => setCustomerCity(city)}
-                                              className={`relative py-1 px-1.5 rounded-lg text-[9.5px] font-mono uppercase tracking-wide cursor-pointer transition-all duration-300 flex items-center justify-between border ${
-                                                isSelected
-                                                  ? 'bg-luxury-gold/20 border-luxury-gold text-white font-black shadow-[0_0_12px_rgba(212,175,55,0.25)]'
-                                                  : 'bg-black/55 hover:bg-black/75 border-white/15 hover:border-white/30 text-zinc-300 hover:text-white'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-1 min-w-0 flex-1">
-                                                <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shrink-0 ${
-                                                  isSelected 
-                                                    ? 'bg-luxury-gold shadow-[0_0_6px_rgba(212,175,55,1)] scale-110' 
-                                                    : 'bg-zinc-600 border border-zinc-500/50'
-                                                }`} />
-                                                <span className="truncate ml-1 font-bold">{city}</span>
-                                              </div>
-
-                                              {city === 'Dhaka' && (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setIsDistrictsExpanded(!isDistrictsExpanded);
-                                                  }}
-                                                  className="py-0.5 px-1 text-[7.5px] font-mono text-white bg-[#160733]/90 border border-luxury-gold/40 hover:border-luxury-gold/80 rounded-md flex items-center gap-0.5 cursor-pointer transition-all duration-300 uppercase font-bold shadow-[0_0_6px_rgba(212,175,55,0.1)] active:scale-95 ml-1 shrink-0 relative overflow-hidden z-10"
-                                                >
-                                                  <div className="luxury-glow-shimmer" />
-                                                  
-                                                  {isDistrictsExpanded ? (
-                                                    <>
-                                                      <ChevronUp size={8} className="text-luxury-gold relative z-10" />
-                                                      <span className="relative z-10 text-[7.5px]">Less</span>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
-                                                      <span className="relative z-10 text-[7.5px]">More</span>
-                                                    </>
-                                                  )}
-                                                </button>
-                                              )}
+                              <div className="grid grid-cols-1 gap-3 relative z-10">
+                                {/* Name Field */}
+                                <div className="relative group/input">
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
+                                    customerName
+                                      ? isNameValid
+                                        ? 'text-emerald-400'
+                                        : 'text-red-400/80'
+                                      : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
+                                  }`}>
+                                    <User size={14} />
+                                  </div>
+                                  <input 
+                                    ref={nameInputRef}
+                                    type="text"
+                                    required
+                                    id="customer_name"
+                                    value={customerName}
+                                    onChange={(e) => setCustomerName(e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
+                                    placeholder=" "
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 font-bold h-[48px] shadow-sm focus:outline-none ${
+                                      customerName
+                                        ? isNameValid
+                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
+                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                    }`}
+                                  />
+                                  <label 
+                                    htmlFor="customer_name" 
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                      customerName
+                                        ? isNameValid
+                                          ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
+                                          : 'text-red-400/80 peer-focus:text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.5)]'
+                                        : 'text-zinc-400 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
+                                    }`}
+                                  >
+                                    Full Name *
+                                  </label>
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                    <AnimatePresence mode="wait">
+                                      {customerName && (
+                                        isNameValid ? (
+                                          <motion.div
+                                            key="name-valid"
+                                            initial={{ scale: 0, rotate: -20, opacity: 0, filter: "drop-shadow(0 0 0px rgba(52,211,153,0))" }}
+                                            animate={{ 
+                                              scale: 1, 
+                                              rotate: 0, 
+                                              opacity: 1,
+                                              filter: "drop-shadow(0 0 4px rgba(52,211,153,0.4))"
+                                            }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                            className="flex items-center justify-center"
+                                          >
+                                            <div className="bg-emerald-500/20 border border-emerald-400/30 p-0.5 rounded-full flex items-center justify-center">
+                                              <Check size={9} className="text-emerald-400 stroke-[3px]" />
                                             </div>
-                                          );
-                                        })}
-
-                                        {/* Other District button inside the grid */}
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setShowAllDistrictsModal(true);
-                                          }}
-                                          className="relative py-1 px-1.5 rounded-lg text-[9.5px] font-mono uppercase tracking-wide cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 border bg-luxury-gold/10 hover:bg-luxury-gold/15 border-luxury-gold/30 hover:border-luxury-gold/55 text-luxury-gold hover:text-white overflow-hidden"
-                                        >
-                                          <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                          <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                          <span className="font-black text-[8.5px] tracking-tight">Other District</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-
-                              {/* Complete Address */}
-                              <div className="relative group">
-                                <div className="absolute top-4 left-3 text-zinc-400 group-focus-within:text-luxury-gold transition-colors duration-300">
-                                  <MapPin size={15} />
+                                          </motion.div>
+                                        ) : (
+                                          <motion.div
+                                            key="name-invalid"
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                          >
+                                            <X size={12} className="text-red-400/80" />
+                                          </motion.div>
+                                        )
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
                                 </div>
-                                <textarea 
-                                  ref={addressTextRef}
-                                  required
-                                  id="customer_address"
-                                  value={customerAddress}
-                                  onChange={(e) => setCustomerAddress(e.target.value)}
-                                  placeholder=" "
-                                  className="peer block w-full rounded-lg border border-white/20 bg-black/70 pb-0.5 pt-4.5 pl-9.5 pr-8 text-sm text-white focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/30 focus:outline-none transition-all duration-300 h-[56px] resize-none font-medium leading-normal scrollbar-hidden"
-                                />
-                                <label htmlFor="customer_address" className="absolute left-9.5 top-1 text-[9px] text-zinc-300 transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-medium peer-focus:top-1 peer-focus:text-[9px] peer-focus:text-luxury-gold uppercase font-mono tracking-wider pointer-events-none">
-                                  Complete Address *
-                                </label>
-                                {customerAddress && (
-                                  <span className="absolute right-3 top-[18px]">{isAddressValid ? <Check size={13} className="text-emerald-400" /> : <X size={13} className="text-red-400" />}</span>
-                                )}
+
+                                {/* Mobile Number */}
+                                <div className="relative group/input">
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
+                                    customerPhone
+                                      ? isPhoneValid
+                                        ? 'text-emerald-400'
+                                        : 'text-red-400/80'
+                                      : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
+                                  }`}>
+                                    <Phone size={14} />
+                                  </div>
+                                  <input 
+                                    ref={phoneInputRef}
+                                    type="tel"
+                                    required
+                                    id="customer_phone"
+                                    value={customerPhone}
+                                    onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                                    onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
+                                    placeholder=" "
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 font-mono font-bold h-[48px] shadow-sm focus:outline-none ${
+                                      customerPhone
+                                        ? isPhoneValid
+                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
+                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                    }`}
+                                  />
+                                  <label 
+                                    htmlFor="customer_phone" 
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                      customerPhone
+                                        ? isPhoneValid
+                                          ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
+                                          : 'text-red-400/80 peer-focus:text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.5)]'
+                                        : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
+                                    }`}
+                                  >
+                                    Mobile Number *
+                                  </label>
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                    <AnimatePresence mode="wait">
+                                      {customerPhone && (
+                                        isPhoneValid ? (
+                                          <motion.div
+                                            key="phone-valid"
+                                            initial={{ scale: 0, rotate: -20, opacity: 0, filter: "drop-shadow(0 0 0px rgba(52,211,153,0))" }}
+                                            animate={{ 
+                                              scale: 1, 
+                                              rotate: 0, 
+                                              opacity: 1,
+                                              filter: "drop-shadow(0 0 4px rgba(52,211,153,0.4))"
+                                            }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                            className="flex items-center justify-center"
+                                          >
+                                            <div className="bg-emerald-500/20 border border-emerald-400/30 p-0.5 rounded-full flex items-center justify-center">
+                                              <Check size={9} className="text-emerald-400 stroke-[3px]" />
+                                            </div>
+                                          </motion.div>
+                                        ) : (
+                                          <motion.div
+                                            key="phone-invalid"
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                          >
+                                            <span className="text-[7.5px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">11 digits</span>
+                                          </motion.div>
+                                        )
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
+                            </motion.div>
+
+                            {/* Glassmorphic Sub-card 2: Shipping Destination */}
+                            <motion.div 
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                            >
+                              <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
+                                <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. SHIPPING DESTINATION</span>
+                              </div>
+
+                              <div className="space-y-3 relative z-10">
+                                {/* City / District */}
+                                <div className="relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
+                                  <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
+                                    <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
+                                    <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
+                                      City/District *
+                                    </span>
+                                  </span>
+                                  
+                                  {(() => {
+                                    const displayedCities = [...CITIES_LIST];
+                                    if (!CITIES_LIST.includes(customerCity)) {
+                                      displayedCities.push(customerCity);
+                                    }
+
+                                    const defaultToShowCount = 3;
+                                    let visibleCities = [...displayedCities];
+                                    if (!isDistrictsExpanded) {
+                                      const initialSelection = displayedCities.slice(0, defaultToShowCount);
+                                      if (customerCity && !initialSelection.includes(customerCity)) {
+                                        initialSelection.push(customerCity);
+                                      }
+                                      visibleCities = initialSelection;
+                                    }
+
+                                    return (
+                                      <div className="flex flex-col gap-1">
+                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                          {visibleCities.map((city) => {
+                                            const isSelected = customerCity === city;
+                                            return (
+                                              <div
+                                                key={city}
+                                                onClick={() => setCustomerCity(city)}
+                                                className={`relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-between border ${
+                                                  isSelected
+                                                    ? 'bg-gradient-to-r from-luxury-gold/25 via-luxury-gold/15 to-luxury-gold/25 border-luxury-gold text-white font-black shadow-[0_0_12px_rgba(212,175,55,0.35),_inset_0_0_4px_rgba(212,175,55,0.15)]'
+                                                    : 'bg-[#0a0614]/80 hover:bg-[#120a24]/90 border-white/5 hover:border-white/15 text-zinc-300 hover:text-white'
+                                                }`}
+                                              >
+                                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                  <div className={`w-2 h-2 rounded-full transition-all duration-300 shrink-0 ${
+                                                    isSelected 
+                                                      ? 'bg-luxury-gold shadow-[0_0_6px_rgba(212,175,55,1)] scale-110' 
+                                                      : 'bg-zinc-700 border border-zinc-600'
+                                                  }`} />
+                                                  <span className="truncate ml-1 font-bold">{city}</span>
+                                                </div>
+
+                                                {city === 'Dhaka' && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      e.stopPropagation();
+                                                      setIsDistrictsExpanded(!isDistrictsExpanded);
+                                                    }}
+                                                    className="py-0.5 px-1 text-[7.5px] font-mono text-white bg-[#1a0833] border border-luxury-gold/40 hover:border-luxury-gold rounded flex items-center gap-0.5 cursor-pointer transition-all duration-300 uppercase font-bold shadow-[0_0_4px_rgba(212,175,55,0.15)] active:scale-95 ml-1 shrink-0 relative overflow-hidden z-10"
+                                                  >
+                                                    <div className="luxury-glow-shimmer" />
+                                                    
+                                                    {isDistrictsExpanded ? (
+                                                      <>
+                                                        <ChevronUp size={8} className="text-luxury-gold relative z-10" />
+                                                        <span className="relative z-10 text-[7.5px]">Less</span>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
+                                                        <span className="relative z-10 text-[7.5px]">More</span>
+                                                      </>
+                                                    )}
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+
+                                          {/* Other District button inside the grid */}
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setShowAllDistrictsModal(true);
+                                            }}
+                                            className="relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 border bg-luxury-gold/10 hover:bg-luxury-gold/20 border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white overflow-hidden font-bold"
+                                          >
+                                            <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                            <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
+                                            <span className="font-bold text-[8.5px] tracking-wide">Other District</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+
+                                {/* Complete Address */}
+                                <div className="relative group/input">
+                                  <div className={`absolute top-3.5 left-3 transition-all duration-300 ${
+                                    customerAddress
+                                      ? isAddressValid
+                                        ? 'text-emerald-400'
+                                        : 'text-red-400/80'
+                                      : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
+                                  }`}>
+                                    <MapPin size={14} />
+                                  </div>
+                                  <textarea 
+                                    ref={addressTextRef}
+                                    required
+                                    id="customer_address"
+                                    value={customerAddress}
+                                    onChange={(e) => setCustomerAddress(e.target.value)}
+                                    placeholder=" "
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 h-[52px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                      customerAddress
+                                        ? isAddressValid
+                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
+                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                    }`}
+                                  />
+                                  <label 
+                                    htmlFor="customer_address" 
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                      customerAddress
+                                        ? isAddressValid
+                                          ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
+                                          : 'text-red-400/80 peer-focus:text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.5)]'
+                                        : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
+                                    }`}
+                                  >
+                                    Complete Address *
+                                  </label>
+                                  <div className="absolute right-3 top-3.5 flex items-center justify-center">
+                                    <AnimatePresence mode="wait">
+                                      {customerAddress && (
+                                        isAddressValid ? (
+                                          <motion.div
+                                            key="addr-valid"
+                                            initial={{ scale: 0, rotate: -20, opacity: 0, filter: "drop-shadow(0 0 0px rgba(52,211,153,0))" }}
+                                            animate={{ 
+                                              scale: 1, 
+                                              rotate: 0, 
+                                              opacity: 1,
+                                              filter: "drop-shadow(0 0 4px rgba(52,211,153,0.4))"
+                                            }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                            className="flex items-center justify-center"
+                                          >
+                                            <div className="bg-emerald-500/20 border border-emerald-400/30 p-0.5 rounded-full flex items-center justify-center">
+                                              <Check size={9} className="text-emerald-400 stroke-[3px]" />
+                                            </div>
+                                          </motion.div>
+                                        ) : (
+                                          <motion.div
+                                            key="addr-invalid"
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                          >
+                                            <X size={12} className="text-red-400/80" />
+                                          </motion.div>
+                                        )
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
                           </div>
                         </div>
 
                         {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
-                        <div className="space-y-2.5">
+                        <div className="lg:col-span-4 space-y-2.5">
                           <div className="flex items-center gap-2 pb-1 border-b border-white/10">
                             <ShoppingBag size={13} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
                             <span className="text-[10.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
                           </div>
                           
-                          <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 shadow-xl max-h-[160px] sm:max-h-[190px] md:max-h-[220px] overflow-y-auto scrollbar-hidden">
+                          <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 shadow-xl max-h-[160px] sm:max-h-[190px] md:max-h-[220px] lg:max-h-[340px] overflow-y-auto scrollbar-hidden">
                             {cartItems.map((item, idx) => {
                               const availableSizes = item.product.sizes && item.product.sizes.length > 0 
                                 ? item.product.sizes 
@@ -1005,13 +1218,20 @@ export default function CartDrawer({
                               return (
                                 <div key={idx} className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
                                   {/* Product Photo - Make it responsive and reasonably large, but perfectly fit */}
-                                  <div className="w-14 h-14 rounded-lg overflow-hidden border border-white/10 shrink-0 relative">
+                                  <div 
+                                    onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
+                                    className="w-11 h-11 rounded-lg overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    title="Click to view full image"
+                                  >
                                     <img 
                                       src={item.product.imageUrl} 
                                       alt={item.product.title} 
                                       referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110"
                                     />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                      <ZoomIn size={12} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                    </div>
                                   </div>
 
                                   {/* Item Info & Size preference inline */}
@@ -1093,6 +1313,7 @@ export default function CartDrawer({
                         isCheckingOut={isTransitioningStep}
                         disabled={isTransitioningStep}
                         label="CONTINUE TO PREMIUM SECURE CHECKOUT"
+                        vesselType="CART"
                       />
                     </div>
                   </form>
@@ -1106,10 +1327,10 @@ export default function CartDrawer({
                         
                         {/* Left column: Payments */}
                         <div className="md:col-span-6 space-y-3">
-                          
-                          {/* Payment selector */}
-                          <div className="bg-white/[0.01] border border-white/5 rounded-xl p-2.5 sm:p-3 space-y-2.5 shadow-md">
-                            <span className="text-[9.5px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">PAYMENT CHANNEL REGISTRY</span>
+                           {/* Payment selector */}
+                           {/* Payment selector */}
+                          <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-luxury-gold/25 rounded-xl p-3 sm:p-3.5 space-y-3 shadow-lg">
+                            <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase">PAYMENT CHANNEL REGISTRY</span>
                             
                             <div className="grid grid-cols-2 gap-2">
                               {paymentType === 'cod' ? (
@@ -1118,23 +1339,23 @@ export default function CartDrawer({
                                   onClick={() => setPaymentMethod('cod')}
                                   className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer ${
                                     paymentMethod === 'cod'
-                                      ? 'bg-emerald-500/10 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                                      : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                      ? 'bg-gradient-to-br from-emerald-500/25 via-emerald-500/15 to-emerald-500/25 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35),_inset_0_0_6px_rgba(16,185,129,0.15)] scale-[1.01] font-black'
+                                      : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                   }`}
                                 >
-                                  <ShieldCheck size={15} className="text-emerald-400" />
-                                  <span className="text-[10px] font-bold text-white">COD</span>
-                                  <span className="text-[8px] text-zinc-400">Cash on Delivery</span>
+                                  <ShieldCheck size={13} className="text-emerald-400" />
+                                  <span className="text-[9.5px] font-bold text-white">COD</span>
+                                  <span className="text-[7.5px] text-zinc-400">Cash on Delivery</span>
                                 </button>
                               ) : (
                                 <>
                                   <button
                                     type="button"
                                     onClick={() => { setPaymentMethod('bkash'); setTransactionId(''); setTransactionError(''); }}
-                                    className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1.5 cursor-pointer h-[72px] justify-between ${
+                                    className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer h-[58px] justify-between ${
                                       paymentMethod === 'bkash'
-                                        ? 'bg-e2136e]/10 border-[#e2136e] shadow-[0_0_12px_rgba(226,19,110,0.15)]'
-                                        : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                        ? 'bg-[#e2136e]/20 border-[#e2136e] shadow-[0_0_12px_rgba(226,19,110,0.35),_inset_0_0_6px_rgba(226,19,110,0.15)] scale-[1.01] font-black'
+                                        : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                     }`}
                                   >
                                     <div className="flex justify-between items-center w-full">
@@ -1142,26 +1363,26 @@ export default function CartDrawer({
                                         src={settings?.bkashLogoUrl || 'https://download.logo.wine/logo/BKash/BKash-Logo.wine.svg'} 
                                         alt="bKash" 
                                         referrerPolicy="no-referrer"
-                                        className="h-5 w-auto max-w-[45px] object-contain rounded"
+                                        className="h-4 w-auto max-w-[36px] object-contain rounded"
                                         onError={(e) => {
                                           e.currentTarget.style.display = 'none';
                                         }}
                                       />
-                                      <Smartphone size={13} className="text-[#e2136e]" />
+                                      <Smartphone size={11} className="text-[#e2136e]" />
                                     </div>
                                     <div>
-                                      <span className="text-[10px] font-bold text-white block leading-none">bKash</span>
-                                      <span className="text-[8px] text-zinc-400 block mt-0.5 leading-none">Send Money</span>
+                                      <span className="text-[9px] font-bold text-white block leading-none">bKash</span>
+                                      <span className="text-[7.5px] text-zinc-400 block mt-0.5 leading-none">Send Money</span>
                                     </div>
                                   </button>
 
                                   <button
                                     type="button"
                                     onClick={() => { setPaymentMethod('nagad'); setTransactionId(''); setTransactionError(''); }}
-                                    className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1.5 cursor-pointer h-[72px] justify-between ${
+                                    className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer h-[58px] justify-between ${
                                       paymentMethod === 'nagad'
-                                        ? 'bg-f45c24]/10 border-[#f45c24] shadow-[0_0_12px_rgba(244,92,36,0.15)]'
-                                        : 'bg-black/40 border-white/10 opacity-60 hover:opacity-100'
+                                        ? 'bg-[#f45c24]/20 border-[#f45c24] shadow-[0_0_12px_rgba(244,92,36,0.35),_inset_0_0_6px_rgba(244,92,36,0.15)] scale-[1.01] font-black'
+                                        : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                     }`}
                                   >
                                     <div className="flex justify-between items-center w-full">
@@ -1169,16 +1390,16 @@ export default function CartDrawer({
                                         src={settings?.nagadLogoUrl || 'https://download.logo.wine/logo/Nagad/Nagad-Logo.wine.svg'} 
                                         alt="Nagad" 
                                         referrerPolicy="no-referrer"
-                                        className="h-5 w-auto max-w-[45px] object-contain rounded"
+                                        className="h-4 w-auto max-w-[36px] object-contain rounded"
                                         onError={(e) => {
                                           e.currentTarget.style.display = 'none';
                                         }}
                                       />
-                                      <Landmark size={13} className="text-[#f45c24]" />
+                                      <Landmark size={11} className="text-[#f45c24]" />
                                     </div>
                                     <div>
-                                      <span className="text-[10px] font-bold text-white block leading-none">Nagad</span>
-                                      <span className="text-[8px] text-zinc-400 block mt-0.5 leading-none">Send Money</span>
+                                      <span className="text-[9px] font-bold text-white block leading-none">Nagad</span>
+                                      <span className="text-[7.5px] text-zinc-400 block mt-0.5 leading-none">Send Money</span>
                                     </div>
                                   </button>
 
@@ -1186,21 +1407,20 @@ export default function CartDrawer({
                               )}
                             </div>
                             {paymentMethod === 'cod' && (
-                              <div className="bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-xl text-[10px] text-emerald-400/90 leading-relaxed">
+                              <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl text-[10px] text-emerald-400/90 leading-relaxed">
                                 ✓ No advance required. Handover full billing of <strong className="text-white font-mono">{formatPrice(grandTotal)}</strong> to couriers during home dispatch.
                               </div>
                             )}
-
                             {paymentMethod !== 'cod' && (
                               <div className="bg-black/50 border border-white/5 rounded-xl p-2.5 space-y-2.5 animate-fade-in text-[10px]">
                                 <div className="flex justify-between items-center text-zinc-400">
                                   <span>Transfer Type:</span>
                                   <span className="bg-white/5 text-white/70 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider font-mono">Personal (Send Money)</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-white/[0.02] p-1.5 rounded-lg border border-white/5">
+                                <div className="flex justify-between items-center bg-gradient-to-r from-luxury-gold/10 via-black/40 to-luxury-gold/10 p-2.5 rounded-xl border border-luxury-gold/30 shadow-md">
                                   <div>
-                                    <span className="text-[7.5px] text-zinc-500 block uppercase tracking-wider">RECIPIENT NUMBER</span>
-                                    <span className="font-mono font-black text-white text-xs tracking-wider">
+                                    <span className="text-[7.5px] text-luxury-gold font-mono font-bold block uppercase tracking-wider">RECIPIENT NUMBER</span>
+                                    <span className="font-mono font-black text-white text-[12.5px] tracking-widest block drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
                                       {paymentMethod === 'bkash' && (bkashNumber || '01777223344')}
                                       {paymentMethod === 'nagad' && (nagadNumber || '01999887766')}
                                     </span>
@@ -1211,48 +1431,100 @@ export default function CartDrawer({
                                       const num = paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
                                       navigator.clipboard.writeText(num);
                                     }}
-                                    className="text-[8.5px] text-luxury-gold border border-luxury-gold/30 hover:border-luxury-gold px-2 py-0.5 rounded-md transition-all font-bold"
+                                    className="text-[8.5px] bg-luxury-gold hover:bg-white text-black px-3 py-1.5 rounded-lg transition-all duration-300 font-extrabold border-0 cursor-pointer"
                                   >
                                     Copy Number
                                   </button>
                                 </div>
-                                <div className="flex justify-between items-center border-t border-white/5 pt-2">
+                                <div className="flex justify-between items-center border-t border-white/5 pt-1.5 text-zinc-300">
                                   <span>REQUIRED AMOUNT:</span>
                                   <span className="text-luxury-gold font-mono font-black text-xs">৳{advancePaymentAmount}</span>
                                 </div>
 
                                 {/* Transaction ID Input */}
-                                <div className="space-y-1">
-                                  <label className="block text-[9.5px] font-mono uppercase text-white/70">Transaction ID *</label>
-                                  <input 
-                                    type="text"
-                                    required
-                                    placeholder="Enter TrxID"
-                                    value={transactionId}
-                                    onChange={(e) => {
-                                      const val = e.target.value.replace(/\s+/g, '').toUpperCase();
-                                      setTransactionId(val);
-                                      setTransactionError(validateTransactionId(val));
-                                    }}
-                                    className={`w-full bg-[#0a0511] text-white font-mono text-xs border rounded-lg py-1.5 px-2.5 focus:outline-none placeholder-white/10 tracking-widest h-[36px] ${
-                                      transactionError ? 'border-red-500/40 focus:border-red-500' : 'border-white/10 focus:border-luxury-gold'
-                                    }`}
-                                  />
+                                <div className="space-y-1 relative">
+                                  <label className={`block text-[8px] font-mono uppercase tracking-[0.15em] transition-colors duration-300 ${
+                                    transactionId
+                                      ? !transactionError
+                                        ? 'text-emerald-400'
+                                        : 'text-red-400'
+                                      : 'text-white/70'
+                                  }`}>Transaction ID *</label>
+                                  <div className="relative">
+                                    <input 
+                                      type="text"
+                                      required
+                                      placeholder="Enter TrxID"
+                                      value={transactionId}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\s+/g, '').toUpperCase();
+                                        setTransactionId(val);
+                                        setTransactionError(validateTransactionId(val));
+                                      }}
+                                      className={`w-full text-white font-mono text-[12px] font-bold border rounded-lg py-1.5 px-2.5 focus:outline-none placeholder-white/40 tracking-widest h-[34px] transition-all duration-300 ${
+                                        transactionId
+                                          ? !transactionError
+                                            ? 'bg-emerald-500/[0.12] border-emerald-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-400/20 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                                            : 'bg-red-500/[0.08] border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+                                          : 'bg-[#15102a]/95 border-luxury-gold/40 hover:border-luxury-gold focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)]'
+                                      }`}
+                                    />
+                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                      <AnimatePresence mode="wait">
+                                        {transactionId && (
+                                          !transactionError ? (
+                                            <motion.div
+                                              key="tx-valid"
+                                              initial={{ scale: 0, rotate: -20, opacity: 0, filter: "drop-shadow(0 0 0px rgba(52,211,153,0))" }}
+                                              animate={{ 
+                                                scale: 1, 
+                                                rotate: 0, 
+                                                opacity: 1,
+                                                filter: "drop-shadow(0 0 4px rgba(52,211,153,0.4))"
+                                              }}
+                                              exit={{ scale: 0, opacity: 0 }}
+                                              transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                              className="flex items-center justify-center"
+                                            >
+                                              <div className="bg-emerald-500/20 border border-emerald-400/30 p-1 rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-emerald-400 stroke-[3px]" />
+                                              </div>
+                                            </motion.div>
+                                          ) : (
+                                            <motion.div
+                                              key="tx-invalid"
+                                              initial={{ scale: 0, opacity: 0 }}
+                                              animate={{ scale: 1, opacity: 1 }}
+                                              exit={{ scale: 0, opacity: 0 }}
+                                              transition={{ duration: 0.15 }}
+                                            >
+                                              <X size={10} className="text-red-400/80" />
+                                            </motion.div>
+                                          )
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
                                   {transactionError && <p className="text-[8.5px] font-mono text-red-400 mt-0.5">⚠️ {transactionError}</p>}
                                 </div>
 
                                 {/* Payment Screenshot */}
-                                <div className="space-y-1">
-                                  <label className="block text-[9.5px] font-mono uppercase text-white/50">Transfer Screenshot Proof (Optional)</label>
+                                 <div className="space-y-1">
+                                  <label className="block text-[8px] font-mono uppercase tracking-[0.12em] text-white/40">Transfer Screenshot Proof (Optional)</label>
                                   {screenshotPreview ? (
-                                    <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-1.5 rounded-lg">
-                                      <img src={screenshotPreview} className="w-8 h-8 object-cover rounded" />
-                                      <button type="button" onClick={() => { setScreenshotPreview(null); setScreenshotBase64(null); }} className="text-[9px] text-red-400 hover:underline">Remove</button>
+                                    <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-1 rounded-lg">
+                                      <img src={screenshotPreview} className="w-7 h-7 object-cover rounded" />
+                                      <button type="button" onClick={() => { setScreenshotPreview(null); setScreenshotBase64(null); }} className="text-[8px] text-red-400 hover:underline border-0 bg-transparent cursor-pointer">Remove</button>
                                     </div>
                                   ) : (
-                                    <label className="border border-dashed border-white/10 hover:border-luxury-gold/30 bg-black/40 p-2 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all">
+                                    <label className="border border-dashed border-luxury-gold/30 hover:border-luxury-gold bg-luxury-gold/[0.03] hover:bg-luxury-gold/[0.08] p-2.5 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300">
                                       <input type="file" accept="image/*" onChange={handleScreenshotChange} className="hidden" />
-                                      <span className="text-[9px] text-luxury-gold font-bold">Select Screenshot</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <svg className="w-3 h-3 text-luxury-gold" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                        </svg>
+                                        <span className="text-[8.5px] text-luxury-gold font-bold uppercase tracking-wider">Upload Screenshot Proof</span>
+                                      </div>
                                     </label>
                                   )}
                                 </div>
@@ -1263,23 +1535,46 @@ export default function CartDrawer({
                         </div>
 
                         {/* Right column: Order items, Coupon box, Delivery Guidelines and Trust badges */}
-                        <div className="md:col-span-6 space-y-3">
+                        <div className="md:col-span-6 space-y-2.5">
                           
                           {/* Itemization Report */}
-                          <div className="bg-white/[0.01] border border-white/5 rounded-xl p-2.5 sm:p-3 space-y-2 shadow-md">
-                            <span className="text-[9.5px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
-                            <div className="space-y-2">
+                          <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
+                            <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[130px] md:max-h-[220px] overflow-y-auto scrollbar-hidden pr-1">
                               {cartItems.map((item, idx) => (
-                                <div key={idx} className="flex gap-3 items-center">
-                                  <img src={item.product.imageUrl} className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-xl border border-white/5 shrink-0" referrerPolicy="no-referrer" />
-                                  <div className="flex-1 min-w-0">
-                                    <h5 className="text-[11px] sm:text-[11.5px] text-white font-medium truncate font-serif">{item.product.title}</h5>
-                                    <p className="text-[9.5px] text-zinc-400 font-mono mt-0.5">
+                                <div key={idx} className="flex flex-row md:flex-col gap-2.5 md:gap-2 items-center md:items-stretch bg-white/[0.01] md:bg-white/[0.03] md:p-2.5 md:rounded-lg md:border md:border-white/5 transition-all duration-300">
+                                  <div 
+                                    onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
+                                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-full md:h-22 lg:h-24 xl:h-26 rounded-lg overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    title="Click to view full image"
+                                  >
+                                    <img 
+                                      src={item.product.imageUrl} 
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
+                                      referrerPolicy="no-referrer" 
+                                    />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                      <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0 flex flex-col md:mt-1">
+                                    <h5 className="text-[10px] sm:text-[10.5px] md:text-xs text-white font-semibold truncate font-serif">{item.product.title}</h5>
+                                    <p className="text-[8.5px] md:text-[9px] text-zinc-400 font-mono mt-0.5">
                                       Size: <span className="text-[#d4af37] font-bold">{item.selectedSize}</span> | Qty: <span className="text-white font-bold">{item.quantity}</span>
                                     </p>
-                                    <p className="text-[9.5px] text-white/30 font-mono mt-0.5">Unit Price: ৳{getProductActivePrice(item.product)}</p>
+                                    <p className="text-[8.5px] md:text-[9px] text-white/30 font-mono">Unit Price: ৳{getProductActivePrice(item.product)}</p>
+                                    
+                                    {/* Desktop-only total price inside details */}
+                                    <div className="hidden md:flex justify-between items-center mt-1 pt-1 border-t border-white/5">
+                                      <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Total Price</span>
+                                      <span className="font-mono text-xs font-black text-[#d4af37]">
+                                        {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="text-right font-mono text-[11px] sm:text-xs font-bold text-white">
+                                  
+                                  {/* Mobile-only total price layout */}
+                                  <div className="md:hidden text-right font-mono text-[10px] sm:text-xs font-bold text-white">
                                     {formatPrice(getProductActivePrice(item.product) * item.quantity)}
                                   </div>
                                 </div>
@@ -1288,58 +1583,61 @@ export default function CartDrawer({
                           </div>
 
                           {/* Coupon Box in Step 2 with success animation trigger */}
-                          <div className="bg-white/[0.01] border border-white/5 rounded-xl p-2.5 sm:p-3 space-y-2 shadow-md relative overflow-hidden">
+                          <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2 shadow-lg relative overflow-hidden">
                             {showCouponSuccessAnimation && (
-                              <div className="absolute inset-0 bg-emerald-500/10 backdrop-blur-sm flex items-center justify-center animate-fade-in z-10 text-emerald-400 font-mono text-[9px] font-black uppercase tracking-wider">
-                                <Sparkles size={14} className="mr-1 animate-pulse" /> COUPON APPLIED SECURELY!
+                              <div className="absolute inset-0 bg-emerald-500/10 backdrop-blur-sm flex items-center justify-center animate-fade-in z-10 text-emerald-400 font-mono text-[8px] font-black uppercase tracking-wider">
+                                <Sparkles size={12} className="mr-1 animate-pulse" /> COUPON SECURED!
                               </div>
                             )}
-                            <span className="text-[9.5px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">PROMOTION CODES</span>
+                            <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase">PROMOTION CODES</span>
                             <div className="flex gap-2">
                               <input 
                                 type="text" 
                                 placeholder="ENTER COUPON CODE"
                                 value={couponCode}
                                 onChange={(e) => setCouponCode(e.target.value)}
-                                className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-luxury-gold placeholder-white/20 uppercase h-[36px]"
+                                className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 hover:border-white/20 rounded-lg py-1.5 px-2.5 focus:outline-none focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/20 transition-all duration-300 placeholder-white/20 uppercase h-[32px] tracking-wider"
                               />
-                              <button type="button" onClick={() => handleApplyCoupon()} className="bg-gradient-to-r from-zinc-800 to-black hover:from-[#d4af37] hover:to-[#ffd700] text-[#d4af37] hover:text-black text-[9.5px] font-mono font-bold px-3.5 rounded-lg transition-all h-[36px]">APPLY</button>
+                              <button type="button" onClick={() => handleApplyCoupon()} className="bg-gradient-to-r from-zinc-800 to-black hover:from-[#d4af37] hover:to-[#ffd700] text-[#d4af37] hover:text-black text-[9px] font-mono font-bold px-3 rounded-lg transition-all h-[32px] tracking-widest border border-luxury-gold/20 cursor-pointer">APPLY</button>
                             </div>
-                            {couponError && <p className="text-[8.5px] font-mono text-red-400">⚠️ {couponError}</p>}
-                            {couponSuccess && <p className="text-[8.5px] font-mono text-emerald-400">✓ {couponSuccess}</p>}
+                            {couponError && <p className="text-[8px] font-mono text-red-400">⚠️ {couponError}</p>}
+                            {couponSuccess && <p className="text-[8px] font-mono text-emerald-400">✓ {couponSuccess}</p>}
                           </div>
 
-                          {/* Delivery Guidelines */}
-                          <div className="bg-white/[0.01] border border-white/5 rounded-xl p-2.5 sm:p-3 space-y-2 shadow-md">
-                            <span className="text-[9.5px] font-mono tracking-widest text-[#d4af37] block font-bold uppercase">DELIVERY PROFILE</span>
-                            <div className="space-y-1 text-[10px] leading-relaxed text-zinc-300">
-                              <p className="flex items-center justify-between text-white border-b border-white/5 pb-0.5">
-                                <span className="flex items-center gap-1.5"><Clock size={11} className="text-[#d4af37]" /> ETA Range:</span>
-                                <span className="font-mono font-bold text-[#d4af37]">{placedDeliveryDate || getEstimatedDeliveryDate()}</span>
-                              </p>
-                              <p className="flex items-center justify-between border-b border-white/5 pb-0.5">
-                                <span>Delivery Time:</span>
-                                <span className="font-mono text-white">10:00 AM - 08:00 PM</span>
-                              </p>
-                              <p className="text-[9px] text-white/40 italic leading-snug">
-                                * Our logistics agent will call you prior to arrival. Kindly ensure active network coverage.
-                              </p>
+                          {/* Side-by-Side Delivery Profile & Trust Badges */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {/* Delivery Guidelines */}
+                            <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-2.5 space-y-1.5 shadow-lg flex flex-col justify-between">
+                              <span className="text-[8px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase">DELIVERY PROFILE</span>
+                              <div className="space-y-1 text-[9px] leading-normal text-zinc-300 flex-1 flex flex-col justify-center">
+                                <p className="flex items-center justify-between text-white border-b border-white/5 pb-0.5">
+                                  <span className="flex items-center gap-1"><Clock size={9} className="text-[#d4af37]" /> ETA Range:</span>
+                                  <span className="font-mono font-bold text-[#d4af37]">{placedDeliveryDate || getEstimatedDeliveryDate()}</span>
+                                </p>
+                                <p className="flex items-center justify-between border-b border-white/5 pb-0.5 mt-0.5">
+                                  <span>Delivery Time:</span>
+                                  <span className="font-mono text-white">10 AM - 8 PM</span>
+                                </p>
+                                <p className="text-[7.5px] text-white/30 italic leading-snug mt-1">
+                                  * Our concierge agent will call prior to arrival.
+                                </p>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Trust Badges */}
-                          <div className="grid grid-cols-3 gap-1.5 text-center text-white/50 text-[8.5px]">
-                            <div className="bg-white/[0.01] border border-white/5 p-1.5 rounded-lg flex flex-col items-center justify-center gap-0.5">
-                              <ShieldCheck size={13} className="text-luxury-gold" />
-                              <span className="font-bold text-white/70">SECURE BILLING</span>
-                            </div>
-                            <div className="bg-white/[0.01] border border-white/5 p-1.5 rounded-lg flex flex-col items-center justify-center gap-0.5">
-                              <Award size={13} className="text-luxury-gold" />
-                              <span className="font-bold text-white/70">100% ORIGINAL</span>
-                            </div>
-                            <div className="bg-white/[0.01] border border-white/5 p-1.5 rounded-lg flex flex-col items-center justify-center gap-0.5">
-                              <Undo2 size={13} className="text-luxury-gold" />
-                              <span className="font-bold text-white/70">7-DAY RETURN</span>
+                            {/* Trust Badges */}
+                            <div className="grid grid-cols-3 gap-1 text-center text-white/50 text-[7.5px] items-stretch">
+                              <div className="bg-white/[0.01] border border-white/5 p-1 rounded-xl flex flex-col items-center justify-center gap-1">
+                                <ShieldCheck size={11} className="text-luxury-gold shrink-0" />
+                                <span className="font-bold text-white/70 leading-none">SECURE<br/>BILLING</span>
+                              </div>
+                              <div className="bg-white/[0.01] border border-white/5 p-1 rounded-xl flex flex-col items-center justify-center gap-1">
+                                <Award size={11} className="text-luxury-gold shrink-0" />
+                                <span className="font-bold text-white/70 leading-none">100%<br/>ORIGINAL</span>
+                              </div>
+                              <div className="bg-white/[0.01] border border-white/5 p-1 rounded-xl flex flex-col items-center justify-center gap-1">
+                                <Undo2 size={11} className="text-luxury-gold shrink-0" />
+                                <span className="font-bold text-white/70 leading-none">7-DAY<br/>RETURN</span>
+                              </div>
                             </div>
                           </div>
 
@@ -1370,6 +1668,7 @@ export default function CartDrawer({
                             isCheckingOut={isCheckingOut}
                             disabled={isCheckingOut}
                             label="PLACE LUXURY ORDER"
+                            vesselType={initialShowCheckout ? "CAR" : "CART"}
                           />
                         </div>
                       </div>
@@ -1487,6 +1786,69 @@ export default function CartDrawer({
               </div>
             )}
           </motion.div>
+
+          {/* Elegant Product Image Lightbox Modal */}
+          <AnimatePresence>
+            {lightboxImage && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[1000] flex flex-col items-center justify-center p-4 sm:p-6 bg-black/95 backdrop-blur-md"
+              >
+                {/* Backdrop Click to Close */}
+                <div 
+                  className="absolute inset-0 cursor-pointer" 
+                  onClick={() => setLightboxImage(null)}
+                />
+
+                {/* Lightbox Panel */}
+                <motion.div
+                  initial={{ scale: 0.9, y: 15, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.9, y: 15, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                  className="relative max-w-lg w-full bg-gradient-to-b from-[#120822] to-[#04010a] border-2 border-luxury-gold/50 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.3)] z-10 p-4 flex flex-col items-center gap-3.5"
+                >
+                  {/* Close button top right */}
+                  <button
+                    type="button"
+                    onClick={() => setLightboxImage(null)}
+                    className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 border border-white/10 hover:border-luxury-gold hover:text-luxury-gold transition-all duration-300 z-20 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+
+                  {/* Header info */}
+                  <div className="w-full text-center border-b border-white/15 pb-2">
+                    <span className="text-[8px] font-mono tracking-[0.25em] text-[#d4af37] uppercase font-bold">bespoke preview</span>
+                    <h3 className="font-serif text-[13px] font-bold text-white tracking-wide truncate mt-0.5">{lightboxImage.title}</h3>
+                  </div>
+
+                  {/* Enlarged Image container with subtle inner shadow & border */}
+                  <div className="relative w-full aspect-square max-h-[60vh] rounded-xl overflow-hidden border border-white/10 bg-black/30 flex items-center justify-center">
+                    <img
+                      src={lightboxImage.url}
+                      alt={lightboxImage.title}
+                      referrerPolicy="no-referrer"
+                      className="max-w-full max-h-full object-contain selection:bg-transparent"
+                    />
+                  </div>
+
+                  {/* Instructions Footer */}
+                  <div className="text-center w-full">
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(null)}
+                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-luxury-gold to-[#f3e5ab] text-black font-mono text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] cursor-pointer"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* All Districts Search Modal */}
           <AnimatePresence>

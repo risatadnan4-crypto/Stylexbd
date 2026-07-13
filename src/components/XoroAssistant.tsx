@@ -2057,21 +2057,21 @@ export default function XoroAssistant({
                   e.preventDefault();
                   handleSendMessage(inputValue);
                 }}
-                className="p-3 bg-black border-t border-white/5 flex gap-2"
+                className="p-4 bg-black border-t border-white/10 flex gap-2.5 items-center"
               >
                 <input 
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Ask Xoro styling tips, track order..."
-                  className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded-2xl text-xs px-3.5 py-2.5 font-sans text-white transition-all"
+                  className="flex-1 h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans"
                 />
                 <button 
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="h-9 w-9 bg-luxury-gold hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-luxury-black rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 outline-none"
+                  className="h-[56px] w-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 disabled:opacity-40 text-black rounded-[16px] flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0"
                 >
-                  <Send size={14} />
+                  <Send size={18} />
                 </button>
               </form>
             </>

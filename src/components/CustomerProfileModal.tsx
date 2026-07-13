@@ -647,11 +647,11 @@ export default function CustomerProfileModal({
 
               {/* TAB 2: MANAGE PROFILE FORM */}
               {activeTab === 'profile' && (
-                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full space-y-6 text-left py-4">
+                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full p-6 sm:p-8 space-y-6 text-left py-6 bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
                   
                   <div className="text-center space-y-1.5">
-                    <div className="w-14 h-14 bg-gradient-to-tr from-luxury-purple-glowing/10 to-luxury-gold/10 border border-luxury-gold/30 rounded-full flex items-center justify-center text-luxury-gold mx-auto shadow-lg animate-pulse">
-                      <User size={22} />
+                    <div className="w-14 h-14 bg-gradient-to-tr from-luxury-purple-glowing/10 to-luxury-gold/10 border border-luxury-gold/30 rounded-full flex items-center justify-center text-luxury-gold mx-auto shadow-lg">
+                      <User size={22} className="text-luxury-gold" />
                     </div>
                     <h4 className="font-serif text-base font-black text-white uppercase tracking-widest">
                       Bespoke VIP credentials
@@ -660,129 +660,137 @@ export default function CustomerProfileModal({
                       Manage exclusive credential records
                     </p>
                   </div>
-
-                  <form onSubmit={handleProfileSave} className="space-y-4 font-display">
+ 
+                   <form onSubmit={handleProfileSave} className="space-y-5 font-display">
                     
-                    {saveSuccess && (
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-[10.5px] font-mono flex items-center gap-2 animate-fade-in">
-                        <CheckCircle size={14} className="shrink-0" />
-                        <span>VIP Membership profile records updated successfully!</span>
-                      </div>
-                    )}
-
-                    {saveError && (
-                      <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10.5px] font-mono flex items-center gap-2 animate-shake">
-                        <AlertTriangle size={14} className="shrink-0" />
-                        <span>⚠️ {saveError}</span>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">VIP Member Email (Immutable)</label>
-                      <div className="relative">
-                        <Mail size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
-                        <input 
-                          type="email" 
-                          disabled
-                          value={customer.email}
-                          className="w-full bg-white/[0.02] text-white/50 text-xs border border-white/5 rounded-xl py-3 pl-10 pr-3.5 focus:outline-none cursor-not-allowed font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">Full Legal Name</label>
-                      <div className="relative">
-                        <User size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
-                        <input 
-                          type="text" 
-                          required 
-                          disabled={!isEditing}
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="Adnan Risat"
-                          className={`w-full bg-black/40 text-white text-xs border rounded-xl py-3 pl-10 pr-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-sans ${
-                            isEditing ? 'border-white/20 hover:border-white/30' : 'border-white/5 cursor-not-allowed text-white/80'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">
-                        WhatsApp Mobile Reference <span className="text-red-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <Phone size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
-                        <input 
-                          type="tel" 
-                          disabled={!isEditing}
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="e.g. 017xxxxxxxx"
-                          className={`w-full bg-black/40 text-white text-xs border rounded-xl py-3 pl-10 pr-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-mono ${
-                            isEditing ? 'border-white/20 hover:border-white/30' : 'border-white/5 cursor-not-allowed text-white/80'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[8.5px] uppercase font-black tracking-widest text-luxury-gold mb-1.5 pl-0.5">Security Gate Password</label>
-                      <div className="relative">
-                        <Lock size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
-                        <input 
-                          type="password" 
-                          disabled={!isEditing}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className={`w-full bg-black/40 text-white text-xs border rounded-xl py-3 pl-10 pr-3.5 focus:outline-none focus:border-luxury-gold transition-colors font-mono ${
-                            isEditing ? 'border-white/20 hover:border-white/30' : 'border-white/5 cursor-not-allowed text-white/80'
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Action Panel */}
-                    <div className="pt-2">
-                      {!isEditing ? (
-                        <button
-                          type="button"
-                          onClick={() => setIsEditing(true)}
-                          className="w-full bg-gradient-to-r from-luxury-purple/40 to-luxury-purple-glowing/30 border border-luxury-purple-glowing/40 text-white font-display font-black text-xs uppercase tracking-widest py-3 rounded-xl hover:bg-luxury-purple-glowing/20 hover:border-luxury-gold/50 transition-all cursor-pointer text-center"
-                        >
-                          Modify Personal Credentials
-                        </button>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsEditing(false);
-                              if (customer) {
-                                setName(customer.name || '');
-                                setPhone(customer.phone || '');
-                                setPassword(customer.password || '');
-                              }
-                            }}
-                            className="w-full bg-white/5 border border-white/10 text-white font-display font-bold text-xs uppercase tracking-widest py-3 rounded-xl hover:bg-white/10 transition-all cursor-pointer text-center"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-luxury-gold to-[#ffd700] text-black font-display font-black text-xs uppercase tracking-widest py-3 rounded-xl hover:shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all cursor-pointer text-center"
-                          >
-                            Save Changes
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                  </form>
-                </div>
-              )}
+                     {saveSuccess && (
+                       <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-[10.5px] font-mono flex items-center gap-2 animate-fade-in shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                         <CheckCircle size={14} className="shrink-0 text-emerald-400" />
+                         <span className="font-semibold">VIP Membership profile records updated successfully!</span>
+                       </div>
+                     )}
+ 
+                     {saveError && (
+                       <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[10.5px] font-mono flex items-center gap-2 animate-shake shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                         <AlertTriangle size={14} className="shrink-0 text-red-400" />
+                         <span className="font-semibold">⚠️ {saveError}</span>
+                       </div>
+                     )}
+ 
+                     <div className="space-y-1.5">
+                       <label className="block text-xs font-semibold text-white pl-0.5">
+                         VIP Member Email (Immutable)
+                       </label>
+                       <div className="relative">
+                         <Mail size={16} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-white/40" />
+                         <input 
+                           type="email" 
+                           disabled
+                           value={customer.email}
+                           className="w-full h-[54px] bg-white/[0.02] text-white/50 text-[15px] border border-white/5 rounded-2xl py-[14px] pl-[46px] pr-[18px] focus:outline-none cursor-not-allowed font-mono shadow-sm"
+                         />
+                       </div>
+                     </div>
+ 
+                     <div className="space-y-1.5">
+                       <label className="block text-xs font-semibold text-white pl-0.5">
+                         Full Legal Name <span className="text-luxury-gold font-bold">*</span>
+                       </label>
+                       <div className="relative group/input">
+                         <User size={16} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within/input:text-luxury-gold transition-colors duration-300" />
+                         <input 
+                           type="text" 
+                           required 
+                           disabled={!isEditing}
+                           value={name}
+                           onChange={(e) => setName(e.target.value)}
+                           placeholder="Your full legal name"
+                           className={`w-full h-[54px] bg-white/[0.04] text-white text-[15px] border rounded-2xl py-[14px] pl-[46px] pr-[18px] transition-all duration-300 ease-out focus:bg-white/[0.08] focus:border-luxury-gold/50 focus:shadow-[0_0_20px_rgba(212,175,55,0.15)] focus:outline-none placeholder-white/40 font-sans font-medium ${
+                             isEditing ? 'border-white/15 hover:border-white/25' : 'border-white/5 cursor-not-allowed text-white/70'
+                           }`}
+                         />
+                       </div>
+                     </div>
+ 
+                     <div className="space-y-1.5">
+                       <label className="block text-xs font-semibold text-white pl-0.5">
+                         WhatsApp Mobile Reference <span className="text-luxury-gold font-bold">*</span>
+                       </label>
+                       <div className="relative group/input">
+                         <Phone size={16} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within/input:text-luxury-gold transition-colors duration-300" />
+                         <input 
+                           type="tel" 
+                           required
+                           disabled={!isEditing}
+                           value={phone}
+                           onChange={(e) => setPhone(e.target.value)}
+                           placeholder="e.g. 017xxxxxxxx"
+                           className={`w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 rounded-[16px] py-[16px] pl-[46px] pr-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-mono font-medium ${
+                             isEditing ? 'border-white/15 hover:border-white/25' : 'border-white/5 cursor-not-allowed text-white/70'
+                           }`}
+                         />
+                       </div>
+                     </div>
+ 
+                     <div className="space-y-1.5">
+                       <label className="block text-xs font-semibold text-white pl-0.5">
+                         Security Gate Password <span className="text-luxury-gold font-bold">*</span>
+                       </label>
+                       <div className="relative group/input">
+                         <Lock size={16} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within/input:text-luxury-gold transition-colors duration-300" />
+                         <input 
+                           type="password" 
+                           required
+                           disabled={!isEditing}
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           placeholder="••••••••"
+                           className={`w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 rounded-[16px] py-[16px] pl-[46px] pr-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-mono font-medium ${
+                             isEditing ? 'border-white/15 hover:border-white/25' : 'border-white/5 cursor-not-allowed text-white/70'
+                           }`}
+                         />
+                       </div>
+                     </div>
+ 
+                     {/* Action Panel */}
+                     <div className="pt-3">
+                       {!isEditing ? (
+                         <button
+                           type="button"
+                           onClick={() => setIsEditing(true)}
+                           className="w-full h-[56px] bg-gradient-to-r from-luxury-purple/40 to-luxury-purple-glowing/30 border border-luxury-purple-glowing/40 text-white font-display font-black text-sm uppercase tracking-widest rounded-[18px] hover:bg-luxury-purple-glowing/20 hover:border-luxury-gold/50 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(192,132,252,0.3)] transition-all duration-300 cursor-pointer text-center"
+                         >
+                           Modify Personal Credentials
+                         </button>
+                       ) : (
+                         <div className="grid grid-cols-2 gap-4">
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setIsEditing(false);
+                               if (customer) {
+                                 setName(customer.name || '');
+                                 setPhone(customer.phone || '');
+                                 setPassword(customer.password || '');
+                               }
+                             }}
+                             className="w-full h-[56px] bg-white/5 border border-white/10 text-white font-display font-bold text-sm uppercase tracking-widest rounded-[18px] hover:bg-white/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center"
+                           >
+                             Cancel
+                           </button>
+                           <button
+                             type="submit"
+                             className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-display font-black text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] transition-all duration-300 cursor-pointer text-center"
+                           >
+                             Save Changes
+                           </button>
+                         </div>
+                       )}
+                     </div>
+ 
+                   </form>
+                 </div>
+               )}
 
               {/* TAB 3: WISHLIST PIECES */}
               {activeTab === 'wishlist' && (

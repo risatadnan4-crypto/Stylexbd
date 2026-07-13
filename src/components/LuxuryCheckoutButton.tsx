@@ -6,13 +6,15 @@ interface LuxuryCheckoutButtonProps {
   disabled: boolean;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   label?: string;
+  vesselType?: 'CAR' | 'CART';
 }
 
 export default function LuxuryCheckoutButton({
   isCheckingOut,
   disabled,
   onClick,
-  label = "Confirm Order"
+  label = "Confirm Order",
+  vesselType = 'CAR'
 }: LuxuryCheckoutButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -717,20 +719,61 @@ export default function LuxuryCheckoutButton({
             <svg className="van-body-svg" viewBox="0 0 140 70" fill="none" xmlns="http://www.w3.org/2000/svg">
               <ellipse cx="70" cy="63" rx="48" ry="2" fill="rgba(0,0,0,0.95)"/>
               
-              {/* Chameleon Liquid Titanium Dynamic Coating Chassis */}
-              <path d="M12 16H95V55H12V16Z" fill="#050308" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
-              <path d="M95 23H110L124 37V55H95V23Z" fill="#08050D" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
-              <path d="M106 26H114L119 34H106V26Z" fill="#020104" stroke="rgba(233,213,255,0.2)" strokeWidth="0.5"/>
+              {vesselType === 'CAR' ? (
+                <>
+                  {/* Chameleon Liquid Titanium Dynamic Coating Chassis */}
+                  <path d="M12 16H95V55H12V16Z" fill="#050308" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
+                  <path d="M95 23H110L124 37V55H95V23Z" fill="#08050D" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
+                  <path d="M106 26H114L119 34H106V26Z" fill="#020104" stroke="rgba(233,213,255,0.2)" strokeWidth="0.5"/>
+                  
+                  <line x1="12" y1="45" x2="95" y2="45" stroke="rgba(192, 132, 252, 0.45)" strokeWidth="0.5"/>
+                  
+                  {/* Laser Engraved Core Logo Matrix */}
+                  <text x="32" y="36" fill="url(#gold-mirror-matrix)" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fontWeight="700" fontSize="11" letterSpacing="1">Style X</text>
+                  
+                  <g id="van-door">
+                    <rect x="5" y="18" width="2.5" height="35" fill="#030105" stroke="rgba(233, 213, 255, 0.4)" strokeWidth="0.5"/>
+                  </g>
+                </>
+              ) : (
+                <>
+                  {/* Premium Luxury Shopping Cart Wireframe Basket */}
+                  {/* Main Outer Rim & Frame */}
+                  <path d="M25 20 H98 L85 48 H35 Z" fill="#050308" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  
+                  {/* Slanted Handle */}
+                  <path d="M25 20 L15 14 H8" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="8" cy="14" r="2.5" fill="url(#gold-mirror-matrix)"/>
+                  
+                  {/* Sleek Under-chassis Base Bar */}
+                  <path d="M24 55 H93" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round"/>
+                  
+                  {/* Struts connecting basket to base */}
+                  <path d="M35 48 L24 55" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5"/>
+                  <path d="M85 48 L93 55" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5"/>
+                  <path d="M55 48 L24 55" stroke="rgba(192, 132, 252, 0.3)" strokeWidth="1"/>
+                  <path d="M70 48 L93 55" stroke="rgba(192, 132, 252, 0.3)" strokeWidth="1"/>
+                  
+                  {/* Elegant Basket Grid Lines for Swiss/Modern Tech feel */}
+                  {/* Horizontals */}
+                  <line x1="28" y1="28" x2="94" y2="28" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
+                  <line x1="31" y1="38" x2="89" y2="38" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
+                  
+                  {/* Verticals */}
+                  <line x1="43" y1="20" x2="43" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
+                  <line x1="61" y1="20" x2="61" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
+                  <line x1="79" y1="20" x2="79" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
+                  
+                  {/* Laser Engraved Style X Logo on a gold-rimmed center plate */}
+                  <rect x="38" y="24" width="46" height="18" rx="3" fill="#08050D" stroke="url(#gold-mirror-matrix)" strokeWidth="0.75" />
+                  <text x="43" y="37" fill="url(#gold-mirror-matrix)" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fontWeight="900" fontSize="8" letterSpacing="0.8">STYLE X</text>
+                  
+                  {/* Glowing Luxury Cargo Items inside the cart */}
+                  <path d="M48 20 L58 12 L68 20 Z" fill="#08050D" stroke="#EAD080" strokeWidth="0.75"/>
+                  <path d="M68 20 L74 15 L80 20 Z" fill="#08050D" stroke="#C084FC" strokeWidth="0.75"/>
+                </>
+              )}
               
-              <line x1="12" y1="45" x2="95" y2="45" stroke="rgba(192, 132, 252, 0.45)" strokeWidth="0.5"/>
-              
-              {/* Laser Engraved Core Logo Matrix */}
-              <text x="32" y="36" fill="url(#gold-mirror-matrix)" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fontWeight="700" fontSize="11" letterSpacing="1">Style X</text>
-              
-              <g id="van-door">
-                <rect x="5" y="18" width="2.5" height="35" fill="#030105" stroke="rgba(233, 213, 255, 0.4)" strokeWidth="0.5"/>
-              </g>
-
               <defs>
                 <linearGradient id="liquid-metallic-chameleon" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#C084FC"/>

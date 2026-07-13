@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -17,6 +17,7 @@ interface ProductCardProps {
   globalDeliveryDays?: string;
   currentCustomer?: any;
   onAuthRequired?: () => void;
+  viewMode?: 'GRID' | 'LIST';
 }
 
 export default function ProductCard({
@@ -31,12 +32,15 @@ export default function ProductCard({
   globalDeliveryDays,
   currentCustomer,
   onAuthRequired,
+  viewMode = 'GRID',
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeImage, setActiveImage] = useState(product.imageUrl);
+
+  const isMobileListMode = viewMode === 'LIST';
 
   // Out of stock notify states
   const [showNotifyForm, setShowNotifyForm] = useState(false);
@@ -171,7 +175,7 @@ export default function ProductCard({
         <span className="text-[10px] sm:text-xs font-mono text-zinc-500 tracking-wider uppercase font-semibold">
           {product.code}
         </span>
-        <div className="flex items-center gap-1.5 z-20">
+        <div className={`items-center gap-1.5 z-20 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
           <button
             type="button"
             onClick={(e) => {
@@ -201,9 +205,21 @@ export default function ProductCard({
 
       {/* Product Image Frame with Solid Gold Border */}
       <div 
-        className="relative aspect-[1.15/1] sm:aspect-[1.25/1] w-full overflow-hidden rounded-xl bg-black/90 border border-luxury-gold flex items-center justify-center p-2 group cursor-pointer mb-2 shadow-inner"
+        className={`relative w-full overflow-hidden rounded-xl bg-black/90 border border-luxury-gold flex items-center justify-center group cursor-pointer mb-2 shadow-inner ${
+          isMobileListMode 
+            ? 'aspect-square sm:aspect-[1.25/1] p-0.5 sm:p-2' 
+            : 'aspect-[1.15/1] sm:aspect-[1.25/1] p-2'
+        }`}
       >
         <div className="absolute inset-0 z-0" onClick={() => onProductClick(product)} />
+        
+        {/* Premium Floating Free Delivery Badge */}
+        {product.freeDelivery && (
+          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-emerald-500/90 backdrop-blur-md text-white text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] border border-emerald-400/30 select-none">
+            <Truck size={9} className="animate-bounce" />
+            <span>FREE DELIVERY</span>
+          </div>
+        )}
         
         {!imageLoaded && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-950">
@@ -214,14 +230,16 @@ export default function ProductCard({
           src={activeImage} 
           alt={product.title} 
           onLoad={() => setImageLoaded(true)}
-          className="w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none p-1"
+          className={`w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none ${
+            isMobileListMode ? 'p-0.5 sm:p-1' : 'p-1'
+          }`}
           referrerPolicy="no-referrer"
         />
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 z-10 pointer-events-none" />
 
         {/* Floating Quick View (Eye icon) */}
-        <div className="absolute bottom-3 right-3 z-20 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className={`absolute bottom-3 right-3 z-20 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
           <button
             type="button"
             onClick={(e) => {
@@ -247,7 +265,7 @@ export default function ProductCard({
             e.stopPropagation(); 
             window.dispatchEvent(new CustomEvent('ask-xoro', { detail: product })); 
           }} 
-          className="absolute bottom-2 right-2 bg-black/85 hover:bg-luxury-gold/15 border border-luxury-gold/50 text-luxury-gold hover:text-white px-2 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] font-mono font-bold tracking-wider transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer z-20"
+          className={`absolute bottom-2 right-2 bg-black/85 hover:bg-luxury-gold/15 border border-luxury-gold/50 text-luxury-gold hover:text-white px-2 py-0.5 rounded-full items-center gap-1 text-[8px] sm:text-[9px] font-mono font-bold tracking-wider transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer z-20 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}
         >
           <Sparkles size={10} className="text-luxury-gold" />
           <span>ASK XORO</span>
@@ -255,7 +273,7 @@ export default function ProductCard({
 
         {/* Thumbnail overlays on Hover (if multiple images exist) */}
         {allImages.length > 1 && (
-          <div className="absolute bottom-8 left-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className={`absolute bottom-8 left-2 z-20 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
             {allImages.slice(0, 3).map((img, idx) => (
               <button
                 key={idx}
@@ -314,7 +332,7 @@ export default function ProductCard({
                 ৳{hasActiveOffer ? product.offerPrice : product.price}
               </span>
               {hasActiveOffer && (
-                <span className="text-sm sm:text-base md:text-lg text-zinc-500/80 line-through font-serif font-black leading-none decoration-red-500/60 decoration-[1.5px] select-all">
+                <span className="hidden sm:inline text-sm sm:text-base md:text-lg text-rose-500 line-through font-serif font-black leading-none decoration-white/30 decoration-[1.5px] select-all">
                   ৳{product.price}
                 </span>
               )}
@@ -361,14 +379,21 @@ export default function ProductCard({
           )}
 
           {/* Delivery Row Capsule */}
-          <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-emerald-400 my-0.5 tracking-wide shadow-sm">
-            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
-            <span>🚀 DELIVERY: {product.deliveryDays || globalDeliveryDays || '3-5 DAYS'} ({product.deliveryDays || globalDeliveryDays || '3-5 দিন'})</span>
-          </div>
+          {product.freeDelivery ? (
+            <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-emerald-400 my-0.5 tracking-wide shadow-sm">
+              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
+              <span>🚀 DELIVERY: FREE - {product.deliveryDays || globalDeliveryDays || '3-5 DAYS'} (ফ্রি ডেলিভারি)</span>
+            </div>
+          ) : (
+            <div className="bg-purple-950/20 border border-purple-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-purple-400 my-0.5 tracking-wide shadow-sm">
+              <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_#a78bfa]"></span>
+              <span>🚀 DELIVERY: ৳{product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100} (Dhaka) / ৳{product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150} (Outside)</span>
+            </div>
+          )}
 
           {/* Sizes Row Selection */}
           {product.sizes && product.sizes.length > 0 && (
-            <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none my-0.5">
+            <div className={`items-center gap-1 overflow-x-auto py-1 scrollbar-none my-0.5 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
               <span className="text-[8px] font-mono text-white/40 uppercase shrink-0">SIZE:</span>
               {product.sizes.map((sz) => (
                 <button
@@ -389,7 +414,7 @@ export default function ProductCard({
 
           {/* Expandable Why Buy? Area */}
           {product.whyBuy && (
-            <div className="border-t border-white/5 mt-1 pt-0.5">
+            <div className={`border-t border-white/5 mt-1 pt-0.5 ${isMobileListMode ? 'hidden sm:block' : 'block'}`}>
               <button
                 type="button"
                 onClick={() => setShowWhyBuy(!showWhyBuy)}
@@ -421,7 +446,7 @@ export default function ProductCard({
         </div>
 
         {/* Action Buttons Area */}
-        <div className="pt-0.5 mt-auto">
+        <div className={`pt-0.5 mt-auto ${isMobileListMode ? 'hidden sm:block' : 'block'}`}>
           {product.stock === 0 ? (
             <div className="space-y-1.5">
               {!showNotifyForm ? (
@@ -443,10 +468,10 @@ export default function ProductCard({
                   <span>{isNotifyMeDeactivated ? 'Inquire Stock' : 'Notify Restock'}</span>
                 </button>
               ) : (
-                <form onSubmit={handleNotifySubmit} className="flex gap-1">
+                <form onSubmit={handleNotifySubmit} className="flex gap-2">
                   {notifySuccess ? (
-                    <div className="w-full flex items-center justify-center gap-1.5 text-[9px] sm:text-[10px] text-green-400 border border-green-500/20 bg-green-500/5 rounded-xl h-[36px] sm:h-[40px] font-semibold">
-                      <Check size={12} />
+                    <div className="w-full flex items-center justify-center gap-1.5 text-[9px] sm:text-[10px] text-green-400 border-2 border-emerald-500/20 bg-emerald-500/10 rounded-[12px] h-[40px] sm:h-[44px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                      <Check size={14} className="text-emerald-400" />
                       <span>Alert Registered!</span>
                     </div>
                   ) : (
@@ -458,14 +483,14 @@ export default function ProductCard({
                         value={notifyEmail}
                         onChange={(e) => setNotifyEmail(e.target.value)}
                         disabled={submittingNotify}
-                        className="flex-1 bg-black/60 border border-white/10 rounded-lg text-[9px] px-2 text-white placeholder-white/30 focus:outline-none focus:border-luxury-gold h-[32px] sm:h-[36px]"
+                        className="flex-1 h-[40px] sm:h-[44px] bg-white/[0.08] text-white font-sans text-xs sm:text-sm border-2 border-white/15 rounded-[12px] px-3.5 transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60"
                       />
                       <button
                         type="submit"
                         disabled={submittingNotify}
-                        className="bg-luxury-gold hover:bg-yellow-500 text-black px-2 rounded-lg text-[9px] sm:text-xs font-bold transition-all h-[32px] sm:h-[36px]"
+                        className="h-[40px] sm:h-[44px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 hover:-translate-y-0.5 text-black px-4 rounded-[12px] text-xs font-bold transition-all duration-300 flex items-center justify-center shrink-0"
                       >
-                        {submittingNotify ? '...' : <Send size={11} />}
+                        {submittingNotify ? '...' : <Send size={13} className="text-black" />}
                       </button>
                     </>
                   )}

@@ -57,7 +57,31 @@ export default function Navbar({
       {/* Premium running laser glow bottom border */}
       <div className="absolute bottom-0 left-0 right-0 h-[2.5px] luxury-navbar-running-glow-bottom"></div>
       
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-1">
+      <motion.div 
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0,
+          boxShadow: [
+            "0 4px 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(212, 175, 55, 0.05), inset 0 0 10px rgba(212, 175, 55, 0.02)",
+            "0 4px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(154, 77, 255, 0.25), inset 0 0 15px rgba(154, 77, 255, 0.1)",
+            "0 4px 20px rgba(0, 0, 0, 0.4), 0 0 10px rgba(212, 175, 55, 0.05), inset 0 0 10px rgba(212, 175, 55, 0.02)"
+          ]
+        }}
+        transition={{ 
+          opacity: { duration: 0.8 },
+          y: { duration: 0.8, ease: "easeOut" },
+          boxShadow: {
+            duration: 4,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut"
+          }
+        }}
+        className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-2.5 pb-1.5 px-4 md:px-6 rounded-2xl border border-white/10 bg-[#0e071e]/50 backdrop-blur-md relative overflow-hidden"
+      >
+        {/* Dynamic ambient moving neon glow behind navigation */}
+        <div className="absolute inset-0 bg-gradient-to-r from-luxury-purple/5 via-luxury-gold/5 to-luxury-purple/5 opacity-40 blur-xl rounded-2xl pointer-events-none -z-10 animate-pulse duration-[5000ms]" />
         
         {/* Brand Logo Group */}
         <div className="flex items-center justify-between">
@@ -181,10 +205,11 @@ export default function Navbar({
               <motion.div
                 key={cartCount}
                 animate={cartCount > 0 ? {
-                  scale: [1, 1.35, 0.95, 1.05, 1],
-                  rotate: [0, -8, 8, -4, 0]
+                  scale: [1, 1.45, 0.85, 1.25, 0.95, 1],
+                  y: [0, -12, 4, -3, 1, 0],
+                  rotate: [0, -18, 18, -10, 10, 0]
                 } : {}}
-                transition={{ duration: 0.55, ease: "easeInOut" }}
+                transition={{ duration: 0.85, ease: "easeInOut" }}
                 className="flex items-center justify-center"
               >
                 <ShoppingCart size={18} />
@@ -354,10 +379,11 @@ export default function Navbar({
               <motion.div
                 key={cartCount}
                 animate={cartCount > 0 ? {
-                  scale: [1, 1.3, 0.95, 1.05, 1],
-                  rotate: [0, -6, 6, -3, 0]
+                  scale: [1, 1.45, 0.85, 1.25, 0.95, 1],
+                  y: [0, -12, 4, -3, 1, 0],
+                  rotate: [0, -18, 18, -10, 10, 0]
                 } : {}}
-                transition={{ duration: 0.55, ease: "easeInOut" }}
+                transition={{ duration: 0.85, ease: "easeInOut" }}
                 className="flex items-center justify-center"
               >
                 <ShoppingCart size={14} className="text-luxury-gold" />
@@ -371,7 +397,7 @@ export default function Navbar({
 
         </div>
 
-      </div>
+      </motion.div>
     </nav>
   );
 }

@@ -292,17 +292,17 @@ export default function OrderTracker({
         <div className="relative mt-8 max-w-md mx-auto">
           <input 
             type="text" 
-            placeholder="ENTER ORDER ID (E.G. STX-123456) OR MOBILE..."
+            placeholder="ENTER ORDER ID OR MOBILE..."
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
-            className="w-full bg-[#0e0e0e] text-white font-mono text-xs border border-luxury-gold/30 rounded-lg py-3.5 pl-4 pr-12 focus:outline-none focus:border-luxury-gold shadow-lg uppercase placeholder-white/25"
+            className="w-full h-[54px] bg-white/[0.04] text-white font-mono text-[15px] border border-white/10 rounded-2xl py-[14px] pl-[18px] pr-[56px] transition-all duration-300 ease-out focus:bg-white/[0.08] focus:border-luxury-gold/50 focus:shadow-[0_0_20px_rgba(212,175,55,0.15)] focus:outline-none placeholder-white/40 uppercase"
           />
           <button 
             onClick={() => handleTrackQuery()}
             disabled={loading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-gradient-to-r from-luxury-gold to-yellow-400 hover:scale-105 text-black rounded-lg cursor-pointer transition-all disabled:opacity-50 shadow-md"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-[44px] h-[44px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 text-black rounded-[12px] cursor-pointer transition-all disabled:opacity-50 shadow-md flex items-center justify-center border-0"
           >
-            <Search size={14} />
+            <Search size={16} />
           </button>
         </div>
       </div>
@@ -593,27 +593,27 @@ export default function OrderTracker({
           )}
 
           {/* VIP SMS status alerts preferences and simulated mobile inbox */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-gradient-to-br from-[#0c0a0f] via-[#050307] to-[#0a080d] border border-white/5 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[24px] p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
             
             {/* Form Section */}
-            <div className="lg:col-span-7 space-y-5 flex flex-col justify-between">
+            <div className="lg:col-span-7 space-y-6 flex flex-col justify-between">
               <div>
-                <div className="inline-flex items-center gap-1.5 bg-luxury-gold/10 border border-luxury-gold/30 text-[10px] text-luxury-gold px-2.5 py-1 rounded font-mono uppercase tracking-wider mb-2">
+                <div className="inline-flex items-center gap-1.5 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[10px] text-[#FFD700] px-2.5 py-1 rounded font-mono uppercase tracking-wider mb-2">
                   🔒 Bespoke Integrations Active
                 </div>
                 <h4 className="font-serif text-lg font-bold text-white tracking-wide">
                   VIP Mobile Notification Center
                 </h4>
-                <p className="text-xs text-white/55 leading-relaxed mt-1 text-left">
+                <p className="text-xs text-white/60 leading-relaxed mt-1 text-left">
                   Keep in lockstep with our atelier. Choose to receive real-time SMS status changes and instant notifications sent directly to your mobile whenever magnificent new creations are dropped.
                 </p>
               </div>
 
-              <form onSubmit={handleSaveSmsPrefs} className="space-y-4">
+              <form onSubmit={handleSaveSmsPrefs} className="space-y-5">
                 {/* Inputs Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="text-left">
-                    <label className="block text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1.5">
+                  <div className="text-left space-y-1.5">
+                    <label className="block text-xs font-semibold text-white pl-0.5">
                       Recipient Name
                     </label>
                     <input
@@ -621,57 +621,57 @@ export default function OrderTracker({
                       value={smsName}
                       onChange={(e) => setSmsName(e.target.value)}
                       placeholder="e.g. Lord Byron"
-                      className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs font-serif text-white focus:outline-none focus:border-luxury-gold/50 transition-colors"
+                      className="w-full h-[54px] bg-white/[0.04] text-white text-[15px] border border-white/10 rounded-2xl py-[14px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.08] focus:border-luxury-gold/50 focus:shadow-[0_0_20px_rgba(212,175,55,0.15)] focus:outline-none placeholder-white/40 font-sans font-medium"
                     />
                   </div>
-                  <div className="text-left">
-                    <label className="block text-[10px] font-mono uppercase tracking-widest text-white/40 mb-1.5">
-                      Mobile Phone Number
+                  <div className="text-left space-y-1.5">
+                    <label className="block text-xs font-semibold text-white pl-0.5">
+                      Mobile Phone Number <span className="text-luxury-gold font-bold">*</span>
                     </label>
                     <input
                       type="tel"
                       value={smsPhone}
                       onChange={(e) => setSmsPhone(e.target.value)}
                       placeholder="e.g. +8801755104443"
-                      className="w-full bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-luxury-gold/50 transition-colors"
+                      className="w-full h-[54px] bg-white/[0.04] text-white text-[15px] border border-white/10 rounded-2xl py-[14px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.08] focus:border-luxury-gold/50 focus:shadow-[0_0_20px_rgba(212,175,55,0.15)] focus:outline-none placeholder-white/40 font-mono font-medium"
                       required
                     />
                   </div>
                 </div>
 
                 {/* Preference Checkboxes */}
-                <div className="space-y-3 bg-white/[0.01] border border-white/[0.03] p-4 rounded-xl">
+                <div className="space-y-4 bg-white/[0.04] border border-white/10 p-5 rounded-[16px] shadow-sm">
                   {/* Pref 1: Order Status SMS */}
-                  <label className="flex items-start gap-3 cursor-pointer select-none group">
+                  <label className="flex items-start gap-3.5 cursor-pointer select-none group">
                     <input
                       type="checkbox"
                       checked={optInSMS}
                       onChange={(e) => setOptInSMS(e.target.checked)}
-                      className="mt-0.5 rounded border-white/20 bg-transparent text-luxury-gold focus:ring-0 focus:ring-offset-0"
+                      className="mt-1 rounded-md border-white/20 bg-transparent text-[#FFD700] focus:ring-0 focus:ring-offset-0 h-4 w-4 accent-[#FFD700]"
                     />
                     <div className="text-left">
-                      <span className="block text-xs font-bold text-white group-hover:text-luxury-gold transition-colors">
+                      <span className="block text-xs font-bold text-white group-hover:text-[#FFD700] transition-colors duration-200">
                         Order Status Tracking SMS
                       </span>
-                      <span className="block text-[10px] text-white/45 mt-0.5">
+                      <span className="block text-[10.5px] text-white/50 mt-0.5 leading-relaxed">
                         Opt-in to automated simulated dispatch, courier allocation, and physical delivery status confirmations.
                       </span>
                     </div>
                   </label>
 
                   {/* Pref 2: New Product Alerts SMS */}
-                  <label className="flex items-start gap-3 cursor-pointer select-none group pt-3 border-t border-white/[0.04]">
+                  <label className="flex items-start gap-3.5 cursor-pointer select-none group pt-4 border-t border-white/10">
                     <input
                       type="checkbox"
                       checked={optInNewProducts}
                       onChange={(e) => setOptInNewProducts(e.target.checked)}
-                      className="mt-0.5 rounded border-white/20 bg-transparent text-luxury-gold focus:ring-0 focus:ring-offset-0"
+                      className="mt-1 rounded-md border-white/20 bg-transparent text-[#FFD700] focus:ring-0 focus:ring-offset-0 h-4 w-4 accent-[#FFD700]"
                     />
                     <div className="text-left">
-                      <span className="block text-xs font-bold text-white group-hover:text-luxury-gold transition-colors">
+                      <span className="block text-xs font-bold text-white group-hover:text-[#FFD700] transition-colors duration-200">
                         Catalog Release SMS Notifications
                       </span>
-                      <span className="block text-[10px] text-white/45 mt-0.5">
+                      <span className="block text-[10.5px] text-white/50 mt-0.5 leading-relaxed">
                         Receive dynamic mobile SMS warnings the split-second new bespoke items or rare collections are added to the shop!
                       </span>
                     </div>
@@ -680,33 +680,33 @@ export default function OrderTracker({
 
                 {/* Success / Error Banners */}
                 {smsSuccessMsg && (
-                  <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg flex items-center gap-2 text-left">
-                    <CheckCircle size={14} className="shrink-0" />
-                    <span>{smsSuccessMsg}</span>
+                  <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex items-center gap-2 text-left shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                    <CheckCircle size={14} className="shrink-0 text-emerald-400" />
+                    <span className="font-semibold">{smsSuccessMsg}</span>
                   </div>
                 )}
                 {smsErrorMsgState && (
-                  <div className="text-[11px] font-mono text-red-400 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg flex items-center gap-2 text-left">
-                    <span className="font-bold">⚠️</span>
-                    <span>{smsErrorMsgState}</span>
+                  <div className="text-[11px] font-mono text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl flex items-center gap-2 text-left shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                    <span className="font-bold text-red-400">⚠️</span>
+                    <span className="font-semibold">{smsErrorMsgState}</span>
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 pt-1.5">
                   <button
                     type="submit"
                     disabled={smsSubmitting}
-                    className="flex-1 bg-luxury-gold hover:bg-[#ffd700] text-luxury-black font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                    className="flex-1 h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 cursor-pointer"
                   >
                     {smsSubmitting ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                         <span>Synchronizing...</span>
                       </>
                     ) : (
                       <>
-                        <ShieldCheck size={14} />
+                        <ShieldCheck size={16} />
                         <span>Activate VIP Alert Credentials</span>
                       </>
                     )}
@@ -715,10 +715,10 @@ export default function OrderTracker({
                   <button
                     type="button"
                     onClick={handleSimulateNewProductSms}
-                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-mono text-[10px] py-2.5 px-3.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="h-[56px] bg-white/5 border border-white/10 hover:bg-white/10 text-white font-mono text-[11px] px-5 rounded-[18px] flex items-center justify-center gap-2 transition-all duration-300 hover:-translate-y-1 cursor-pointer whitespace-nowrap shrink-0"
                     title="Simulates adding a brand new product in the admin panel to trigger and test instant customer SMS notifications."
                   >
-                    <span>⚡ Simulate New Product Drop SMS</span>
+                    <span>⚡ Simulate New Drop</span>
                   </button>
                 </div>
               </form>

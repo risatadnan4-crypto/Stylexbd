@@ -1444,7 +1444,8 @@ app.post("/api/products", async (req, res) => {
     isPinned: !!newProduct.isPinned,
     offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
     timerEndTime: newProduct.timerEndTime || null,
-    timerMessage: newProduct.timerMessage || null
+    timerMessage: newProduct.timerMessage || null,
+    freeDelivery: !!newProduct.freeDelivery
   };
   syncSettingsToCloud();
 
@@ -1484,7 +1485,8 @@ app.post("/api/products", async (req, res) => {
       paymentType: newProduct.paymentType || "cod",
       paymentPercentage: newProduct.paymentPercentage !== undefined && newProduct.paymentPercentage !== null ? Number(newProduct.paymentPercentage) : null,
       deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
-      deliveryDays: newProduct.deliveryDays || null
+      deliveryDays: newProduct.deliveryDays || null,
+      freeDelivery: !!newProduct.freeDelivery
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1499,6 +1501,7 @@ app.post("/api/products", async (req, res) => {
       delete payload.deliveryCharge;
       delete payload.deliveryDays;
       delete payload.isPinned;
+      delete payload.freeDelivery;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -1579,7 +1582,8 @@ app.put("/api/products/:id", async (req, res) => {
       isPinned: !!target.isPinned,
       offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
       timerEndTime: target.timerEndTime || null,
-      timerMessage: target.timerMessage || null
+      timerMessage: target.timerMessage || null,
+      freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false
     };
     syncSettingsToCloud();
 
@@ -1620,7 +1624,8 @@ app.put("/api/products/:id", async (req, res) => {
         paymentType: target.paymentType || "cod",
         paymentPercentage: target.paymentPercentage !== undefined && target.paymentPercentage !== null ? Number(target.paymentPercentage) : null,
         deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
-        deliveryDays: target.deliveryDays || null
+        deliveryDays: target.deliveryDays || null,
+        freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1635,6 +1640,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.deliveryCharge;
         delete payload.deliveryDays;
         delete payload.isPinned;
+        delete payload.freeDelivery;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }

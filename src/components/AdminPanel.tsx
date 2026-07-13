@@ -628,6 +628,7 @@ export default function AdminPanel({
   const [secondaryUrlInput, setSecondaryUrlInput] = useState('');
   const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
   const [formIsPinned, setFormIsPinned] = useState<boolean>(false);
+  const [formFreeDelivery, setFormFreeDelivery] = useState<boolean>(false);
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
@@ -1031,6 +1032,7 @@ export default function AdminPanel({
       trending: true,
       featured: true,
       isPinned: formIsPinned,
+      freeDelivery: formFreeDelivery,
       lotteryEligible: formLotteryEligible,
       couponCode: formCouponCode,
       couponDiscountPercent: Number(formCouponDiscountPercent),
@@ -1077,6 +1079,7 @@ export default function AdminPanel({
         setSecondaryUrlInput('');
         setFormLotteryEligible(true);
         setFormIsPinned(false);
+        setFormFreeDelivery(false);
         setFormCouponCode('');
         setFormCouponDiscountPercent(15);
         setFormOfferPrice('');
@@ -1132,6 +1135,7 @@ export default function AdminPanel({
     setSecondaryUrlInput('');
     setFormLotteryEligible(prod.lotteryEligible !== false);
     setFormIsPinned(prod.isPinned || false);
+    setFormFreeDelivery(prod.freeDelivery || false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
     setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
@@ -1998,6 +2002,7 @@ export default function AdminPanel({
                   setFormWhyBuy('');
                   setFormOfferPrice('');
                   setFormIsPinned(false);
+                  setFormFreeDelivery(false);
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
                   setUploadProgress('');
@@ -2682,6 +2687,21 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         <label htmlFor="formIsPinned" className="text-xs text-zinc-300 font-sans cursor-pointer select-none">
                           <span className="block text-[11px] font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1">📌 Pin to Top (সবার উপরে দেখান)</span>
                           <span className="text-[9.5px] text-white/50 block mt-0.5 leading-relaxed">প্যাভিলিয়ন বা শোরুমের প্রোডাক্ট লিস্টের সবার উপরে এই আইটেমটি পিন করে রাখা হবে।</span>
+                        </label>
+                      </div>
+
+                      {/* Free Delivery Toggle */}
+                      <div className="flex items-start space-x-3 bg-luxury-black/60 p-3 rounded-lg border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.05)]">
+                        <input
+                          type="checkbox"
+                          id="formFreeDelivery"
+                          checked={formFreeDelivery}
+                          onChange={(e) => setFormFreeDelivery(e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-500 bg-luxury-charcoal border-white/10 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#10b981] mt-1"
+                        />
+                        <label htmlFor="formFreeDelivery" className="text-xs text-zinc-300 font-sans cursor-pointer select-none">
+                          <span className="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">🚚 Free Delivery (ফ্রি ডেলিভারি)</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-relaxed">এই প্রোডাক্টটির জন্য গ্রাহককে কোনো ডেলিভারি চার্জ দিতে হবে না।</span>
                         </label>
                       </div>
 

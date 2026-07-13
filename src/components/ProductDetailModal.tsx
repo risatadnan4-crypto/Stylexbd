@@ -334,7 +334,7 @@ export default function ProductDetailModal({
                     <span className="luxury-animated-price text-4xl font-black text-emerald-400 tracking-widest animate-pulse">
                       {formatPrice(product.offerPrice!)}
                     </span>
-                    <span className="text-sm text-white/40 line-through">
+                    <span className="text-sm text-rose-500 line-through font-serif font-black decoration-white/30 decoration-[1.5px]">
                       {formatPrice(product.price)}
                     </span>
                   </div>
@@ -509,12 +509,21 @@ export default function ProductDetailModal({
             )}
 
             {/* Delivery Duration Indicator */}
-            <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 px-4 w-full sm:w-fit justify-center sm:justify-start animate-fade-in mt-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-              <span className="text-[11px] sm:text-xs font-mono text-emerald-300 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
-                🚀 Delivery: {globalDeliveryDays || product.deliveryDays || "3-5"} Days (ডেলিভারি {globalDeliveryDays || product.deliveryDays || "3-5"} দিন)
-              </span>
-            </div>
+            {product.freeDelivery ? (
+              <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 px-4 w-full sm:w-fit justify-center sm:justify-start animate-fade-in mt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                <span className="text-[11px] sm:text-xs font-mono text-emerald-300 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
+                  🚀 Delivery: FREE - {globalDeliveryDays || product.deliveryDays || "3-5"} Days (ফ্রি ডেলিভারি)
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 px-4 w-full sm:w-fit justify-center sm:justify-start animate-fade-in mt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />
+                <span className="text-[11px] sm:text-xs font-mono text-purple-300 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
+                  🚀 Delivery: ৳{product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100} (Dhaka) / ৳{product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150} (Outside) - {globalDeliveryDays || product.deliveryDays || "3-5"} Days
+                </span>
+              </div>
+            )}
 
             {/* Direct ordering actions */}
             {product.stock === 0 ? (
@@ -527,52 +536,55 @@ export default function ProductDetailModal({
                     👑 Sold Out / Unavailable
                   </button>
                 ) : showNotifyForm ? (
-                  <div className="bg-[#100522] border border-purple-500/30 p-4 rounded-xl space-y-3 shadow-[0_4px_25px_rgba(154,77,255,0.15)] animate-fade-in">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                      <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[9px] uppercase tracking-wider font-extrabold">
+                  <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-5 rounded-[24px] space-y-4 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <div className="flex items-center gap-1.5 text-[#FFD700] font-mono text-[10px] uppercase tracking-wider font-extrabold">
                         <span>Restock Intel Alert</span>
                       </div>
                       <button
                         onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
-                        className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-all cursor-pointer"
+                        className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all cursor-pointer"
                       >
-                        <X size={13} />
+                        <X size={14} />
                       </button>
                     </div>
 
                     {notifySuccess ? (
-                      <div className="flex flex-col items-center justify-center py-3 text-center space-y-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
-                          <Check size={16} />
+                      <div className="flex flex-col items-center justify-center py-4 text-center space-y-2.5">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
+                          <Check size={20} />
                         </div>
-                        <p className="text-[11px] text-emerald-300 font-mono font-semibold uppercase tracking-wider">ALERT LOCKED IN!</p>
-                        <p className="text-[9.5px] text-white/70 leading-tight">We'll alert your secure private email channel the second restock lands.</p>
+                        <p className="text-xs text-emerald-300 font-mono font-bold uppercase tracking-wider">ALERT LOCKED IN!</p>
+                        <p className="text-[11px] text-white/70 leading-relaxed px-4">We'll alert your secure private email channel the second restock lands.</p>
                       </div>
                     ) : (
-                      <form onSubmit={handleNotifySubmit} className="space-y-2.5">
-                        <p className="text-[10px] text-purple-200/80 leading-relaxed font-sans">
+                      <form onSubmit={handleNotifySubmit} className="space-y-4">
+                        <p className="text-[11px] text-white/60 leading-relaxed font-sans">
                           Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
                         </p>
                         
-                        <div className="relative">
+                        <div className="relative text-left">
+                          <label className="block text-xs font-semibold text-white pl-0.5 mb-1.5">
+                            VIP Email Address
+                          </label>
                           <input
                             type="email"
                             required
                             placeholder="Enter your VIP email address"
                             value={notifyEmail}
                             onChange={(e) => setNotifyEmail(e.target.value)}
-                            className="w-full bg-[#150a24] border border-purple-500/30 rounded-lg pl-3 pr-2 py-1.5 text-[10.5px] text-white placeholder-purple-400/30 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all font-mono"
+                            className="w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
                           />
                         </div>
 
                         {notifyError && (
-                          <p className="text-[9px] text-red-400 font-mono leading-tight">{notifyError}</p>
+                          <p className="text-[10px] text-red-400 font-mono leading-tight pl-0.5">⚠️ {notifyError}</p>
                         )}
 
                         <button
                           type="submit"
                           disabled={submittingNotify}
-                          className="w-full h-[36px] bg-gradient-to-r from-purple-600 to-luxury-purple-glowing hover:from-purple-500 hover:to-purple-400 text-white font-mono font-black text-[10px] uppercase tracking-wider rounded-lg flex items-center justify-center gap-1 shadow-[0_2px_8px_rgba(168,85,247,0.35)] hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                          className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
                         >
                           {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
                         </button>
