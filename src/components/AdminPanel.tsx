@@ -3,7 +3,7 @@ import {
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
-  Facebook, Instagram, Menu, LogOut, ExternalLink
+  Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
@@ -31,6 +31,12 @@ interface AdminPanelProps {
     paymentBadgeDescription?: string; 
     isCatalogDeactivated?: boolean; 
     isXoroVoiceDisabled?: boolean; 
+    isXoroVoiceAndAnswerDisabled?: boolean;
+    smsProvider?: 'mock' | 'greenweb' | 'twilio';
+    twilioAccountSid?: string;
+    twilioAuthToken?: string;
+    twilioFromNumber?: string;
+    greenwebToken?: string;
     deactivatedMessage?: string; 
     isLotteryDeactivated?: boolean; 
     isNotifyMeDeactivated?: boolean; 
@@ -57,7 +63,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts' | 'sms'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -75,6 +81,12 @@ export default function AdminPanel({
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [backInStockAlerts, setBackInStockAlerts] = useState<any[]>([]);
+  const [smsLogs, setSmsLogs] = useState<any[]>([]);
+  const [fetchingSmsLogs, setFetchingSmsLogs] = useState(false);
+  const [manualSmsPhone, setManualSmsPhone] = useState('');
+  const [manualSmsMsg, setManualSmsMsg] = useState('');
+  const [sendingManualSms, setSendingManualSms] = useState(false);
+  const [savingSmsGateway, setSavingSmsGateway] = useState(false);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
   const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -103,6 +115,12 @@ export default function AdminPanel({
   const [paymentBadgeDescriptionInput, setPaymentBadgeDescriptionInput] = useState(settings?.paymentBadgeDescription || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk.");
   const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
   const [isXoroVoiceDisabledInput, setIsXoroVoiceDisabledInput] = useState(settings?.isXoroVoiceDisabled || false);
+  const [isXoroVoiceAndAnswerDisabledInput, setIsXoroVoiceAndAnswerDisabledInput] = useState(settings?.isXoroVoiceAndAnswerDisabled || false);
+  const [smsProviderInput, setSmsProviderInput] = useState<'mock' | 'greenweb' | 'twilio'>(settings?.smsProvider || 'mock');
+  const [twilioAccountSidInput, setTwilioAccountSidInput] = useState(settings?.twilioAccountSid || '');
+  const [twilioAuthTokenInput, setTwilioAuthTokenInput] = useState(settings?.twilioAuthToken || '');
+  const [twilioFromNumberInput, setTwilioFromNumberInput] = useState(settings?.twilioFromNumber || '');
+  const [greenwebTokenInput, setGreenwebTokenInput] = useState(settings?.greenwebToken || '');
   const [deactivatedMessageInput, setDeactivatedMessageInput] = useState(settings?.deactivatedMessage || "The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active — contact via WhatsApp for custom order loops.");
   const [isLotteryDeactivatedInput, setIsLotteryDeactivatedInput] = useState(settings?.isLotteryDeactivated || false);
   const [isNotifyMeDeactivatedInput, setIsNotifyMeDeactivatedInput] = useState(settings?.isNotifyMeDeactivated || false);
@@ -177,6 +195,24 @@ export default function AdminPanel({
     if (settings?.isXoroVoiceDisabled !== undefined) {
       setIsXoroVoiceDisabledInput(settings.isXoroVoiceDisabled);
     }
+    if (settings?.isXoroVoiceAndAnswerDisabled !== undefined) {
+      setIsXoroVoiceAndAnswerDisabledInput(settings.isXoroVoiceAndAnswerDisabled);
+    }
+    if (settings?.smsProvider !== undefined) {
+      setSmsProviderInput(settings.smsProvider);
+    }
+    if (settings?.twilioAccountSid !== undefined) {
+      setTwilioAccountSidInput(settings.twilioAccountSid);
+    }
+    if (settings?.twilioAuthToken !== undefined) {
+      setTwilioAuthTokenInput(settings.twilioAuthToken);
+    }
+    if (settings?.twilioFromNumber !== undefined) {
+      setTwilioFromNumberInput(settings.twilioFromNumber);
+    }
+    if (settings?.greenwebToken !== undefined) {
+      setGreenwebTokenInput(settings.greenwebToken);
+    }
     if (settings?.deactivatedMessage !== undefined) {
       setDeactivatedMessageInput(settings.deactivatedMessage);
     }
@@ -235,6 +271,12 @@ export default function AdminPanel({
           paymentBadgeDescription: paymentBadgeDescriptionInput,
           isCatalogDeactivated: isCatalogDeactivatedInput,
           isXoroVoiceDisabled: isXoroVoiceDisabledInput,
+          isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+          smsProvider: smsProviderInput,
+          twilioAccountSid: twilioAccountSidInput,
+          twilioAuthToken: twilioAuthTokenInput,
+          twilioFromNumber: twilioFromNumberInput,
+          greenwebToken: greenwebTokenInput,
           deactivatedMessage: deactivatedMessageInput,
           isLotteryDeactivated: isLotteryDeactivatedInput,
           isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
@@ -559,6 +601,12 @@ export default function AdminPanel({
         paymentBadgeDescription: paymentBadgeDescriptionInput,
         isCatalogDeactivated: isCatalogDeactivatedInput,
         isXoroVoiceDisabled: isXoroVoiceDisabledInput,
+        isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+        smsProvider: smsProviderInput,
+        twilioAccountSid: twilioAccountSidInput,
+        twilioAuthToken: twilioAuthTokenInput,
+        twilioFromNumber: twilioFromNumberInput,
+        greenwebToken: greenwebTokenInput,
         deactivatedMessage: deactivatedMessageInput,
         isLotteryDeactivated: isLotteryDeactivatedInput,
         isNotifyMeDeactivated: isNotifyMeDeactivatedInput
@@ -633,6 +681,7 @@ export default function AdminPanel({
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
   const [formOfferDiscountPercent, setFormOfferDiscountPercent] = useState<number | ''>('');
+  const [formOldPriceField, setFormOldPriceField] = useState<number | ''>('');
   const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
   const [formTimerMessage, setFormTimerMessage] = useState<string>('');
   const [formBkashNumber, setFormBkashNumber] = useState<string>('');
@@ -676,12 +725,14 @@ export default function AdminPanel({
     fetchCampaigns();
     fetchChats();
     fetchAlerts();
+    fetchSmsLogs();
 
     const interval = setInterval(() => {
       // Periodic poll for dynamic admin updates (e.g. Chat alerts)
       fetchAnalytics();
       fetchChats();
       fetchAlerts();
+      fetchSmsLogs();
     }, 8000);
 
     return () => clearInterval(interval);
@@ -767,6 +818,119 @@ export default function AdminPanel({
       }
     } catch (e) {
       console.warn("⚠️ Failed to load restock alerts:", e);
+    }
+  };
+
+  const fetchSmsLogs = async () => {
+    try {
+      setFetchingSmsLogs(true);
+      const res = await fetch('/api/sms-logs');
+      if (res.ok) {
+        setSmsLogs(await res.json());
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to load SMS logs:", e);
+    } finally {
+      setFetchingSmsLogs(false);
+    }
+  };
+
+  const handleClearSmsLogs = async () => {
+    if (!window.confirm("আপনি কি সমস্ত SMS লগ মুছে ফেলতে চান? (Are you sure you want to purge all SMS logs?)")) return;
+    try {
+      const res = await fetch('/api/sms-logs', { method: 'DELETE' });
+      if (res.ok) {
+        setSmsLogs([]);
+        setAdminToast({ message: "সমস্ত SMS লগ মুছে ফেলা হয়েছে! (All SMS logs cleared!)", type: 'success' });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSendManualSms = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualSmsPhone || !manualSmsMsg) {
+      setAdminToast({ message: "ফোন নম্বর ও বার্তা প্রদান করুন। (Please enter phone & message.)", type: 'error' });
+      return;
+    }
+    try {
+      setSendingManualSms(true);
+      const res = await fetch('/api/sms-logs/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: manualSmsPhone, message: manualSmsMsg })
+      });
+      if (res.ok) {
+        setAdminToast({ message: "বাংলা SMS সফলভাবে পাঠানো হয়েছে! (Bangla SMS Sent Successfully!)", type: 'success' });
+        setManualSmsPhone('');
+        setManualSmsMsg('');
+        fetchSmsLogs();
+      } else {
+        setAdminToast({ message: "SMS পাঠাতে সমস্যা হয়েছে।", type: 'error' });
+      }
+    } catch (e: any) {
+      setAdminToast({ message: `ত্রুটি: ${e.message}`, type: 'error' });
+    } finally {
+      setSendingManualSms(false);
+    }
+  };
+
+  const handleSaveSmsGatewaySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingSmsGateway(true);
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsappNumber: whatsappNumberInput,
+          adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
+          appsScriptUrl: appsScriptUrlInput,
+          logoUrl: logoUrlInput,
+          xoroAvatarUrl: xoroAvatarUrlInput,
+          bkashLogoUrl: bkashLogoUrlInput,
+          nagadLogoUrl: nagadLogoUrlInput,
+          lotteryPrizes: lotteryPrizesInput,
+          lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
+          paymentBadgeTitle: paymentBadgeTitleInput,
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          isXoroVoiceDisabled: isXoroVoiceDisabledInput,
+          isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+          globalTimerEndTime: globalTimerEndTimeInput,
+          globalTimerMessage: globalTimerMessageInput,
+          globalTimerActive: globalTimerActiveInput,
+          globalPaymentSystem: globalPaymentSystemInput,
+          globalPaymentMethod: globalPaymentMethodInput,
+          globalDeliveryDays: globalDeliveryDaysInput,
+          accentColor: accentColorInput,
+          smsProvider: smsProviderInput,
+          twilioAccountSid: twilioAccountSidInput,
+          twilioAuthToken: twilioAuthTokenInput,
+          twilioFromNumber: twilioFromNumberInput,
+          greenwebToken: greenwebTokenInput,
+        })
+      });
+      if (res.ok) {
+        setAdminToast({ message: "SMS গেটওয়ে কনফিগারেশন সংরক্ষিত হয়েছে! (SMS Gateway Saved!)", type: 'success' });
+        if (onRefreshSettings) {
+          onRefreshSettings();
+        }
+      } else {
+        setAdminToast({ message: "সংরক্ষণ করতে ব্যর্থ হয়েছে।", type: 'error' });
+      }
+    } catch (err: any) {
+      setAdminToast({ message: `ত্রুটি: ${err.message}`, type: 'error' });
+    } finally {
+      setSavingSmsGateway(false);
     }
   };
 
@@ -1009,10 +1173,14 @@ export default function AdminPanel({
     setLoading(true);
     const parsedSizes = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
+    const isDiscountFromOldField = formOldPriceField !== '' && Number(formOldPriceField) > 0;
+    const finalPrice = isDiscountFromOldField ? Number(formOldPriceField) : Number(formPrice);
+    const finalOfferPrice = isDiscountFromOldField ? Number(formPrice) : (formOfferPrice !== '' ? Number(formOfferPrice) : null);
+
     const productPayload = {
       title: formTitle,
       description: formDescription,
-      price: Number(formPrice),
+      price: finalPrice,
       deliveryPrice: Number(formDeliveryPrice || 100),
       deliveryPriceDhaka: Number(formDeliveryPriceDhaka || 100),
       deliveryPriceChattogram: Number(formDeliveryPriceChattogram || 150),
@@ -1036,7 +1204,7 @@ export default function AdminPanel({
       lotteryEligible: formLotteryEligible,
       couponCode: formCouponCode,
       couponDiscountPercent: Number(formCouponDiscountPercent),
-      offerPrice: formOfferPrice !== '' ? Number(formOfferPrice) : null,
+      offerPrice: finalOfferPrice,
       timerEndTime: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
       bkashNumber: formBkashNumber,
@@ -1115,7 +1283,17 @@ export default function AdminPanel({
     setEditingProduct(prod);
     setFormTitle(prod.title);
     setFormDescription(prod.description);
-    setFormPrice(prod.price);
+    
+    if (prod.offerPrice !== undefined && prod.offerPrice !== null) {
+      setFormPrice(prod.offerPrice);
+      setFormOldPriceField(prod.price);
+      setFormOfferPrice(prod.offerPrice);
+    } else {
+      setFormPrice(prod.price);
+      setFormOldPriceField('');
+      setFormOfferPrice('');
+    }
+    
     setFormDeliveryPrice(prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100);
     setFormDeliveryPriceDhaka(prod.deliveryPriceDhaka !== undefined ? prod.deliveryPriceDhaka : 100);
     setFormDeliveryPriceChattogram(prod.deliveryPriceChattogram !== undefined ? prod.deliveryPriceChattogram : 150);
@@ -1537,6 +1715,7 @@ export default function AdminPanel({
           {activeTab === 'chat' && "Support"}
           {activeTab === 'seo' && "SEO"}
           {activeTab === 'alerts' && "Alerts"}
+          {activeTab === 'sms' && "SMS Gateway"}
           {activeTab === 'settings' && "Settings"}
         </div>
       </header>
@@ -1701,6 +1880,21 @@ export default function AdminPanel({
             </button>
 
             <button 
+              onClick={() => { setActiveTab('sms'); setSelectedChat(null); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'sms' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Mail size={13} className={activeTab === 'sms' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              SMS Gateway logs
+              {smsLogs.length > 0 && (
+                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold bg-[#14b8a6]/20 text-[#2dd4bf] border-[#14b8a6]/30`}>
+                  {smsLogs.length}
+                </span>
+              )}
+            </button>
+
+            <button 
               onClick={() => { setActiveTab('settings'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
                 activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -1803,6 +1997,7 @@ export default function AdminPanel({
               {activeTab === 'seo' && "Search Optimizations"}
               {activeTab === 'settings' && "VIP System Settings"}
               {activeTab === 'alerts' && "Restock Intel Alert Hub"}
+              {activeTab === 'sms' && "Bangla SMS Gateway Dashboard"}
             </h1>
             <p className="text-xs text-white/40 mt-0.5">Welcome, Risat Adnan. (Admin Account)</p>
           </div>
@@ -2001,6 +2196,7 @@ export default function AdminPanel({
                   setSecondaryUrlInput('');
                   setFormWhyBuy('');
                   setFormOfferPrice('');
+                  setFormOldPriceField('');
                   setFormIsPinned(false);
                   setFormFreeDelivery(false);
                   setFormTimerEndTime('');
@@ -2407,12 +2603,25 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
 
                   {/* Price */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Price (৳ BD Taka)</label>
-                    <input 
-                      type="number" required value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))}
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                    />
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Price (৳ BD Taka)</label>
+                      <input 
+                        type="number" required value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))}
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Old Price / Original Price (৳) (Optional)</label>
+                      <input 
+                        type="number" value={formOldPriceField} onChange={(e) => {
+                          const valStr = e.target.value;
+                          setFormOldPriceField(valStr === '' ? '' : Number(valStr));
+                        }}
+                        placeholder="e.g. 1500"
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                      />
+                    </div>
                   </div>
 
                   {/* Delivery Pricing Matrix */}
@@ -3948,6 +4157,453 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
           </div>
         )}
 
+        {activeTab === 'alerts' && (
+          <div className="space-y-6 max-w-5xl animate-fade-in text-white">
+            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
+                  <Bell size={18} className="text-luxury-gold" />
+                  Restock Alerts & Push Hub
+                </h2>
+                <p className="text-xs text-white/50 mt-1 font-sans">
+                  Manage restock registrations and dispatch direct push alerts to collectors.
+                </p>
+              </div>
+              <button 
+                onClick={fetchAlerts}
+                className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer self-start sm:self-auto"
+              >
+                🔄 Refresh Registry
+              </button>
+            </div>
+
+            {/* DIRECT WEB PUSH DISPATCHER PANEL */}
+            <div className="border border-luxury-gold/20 bg-[#0d0d0d] p-6 rounded-lg shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="flex items-center gap-2.5 mb-4 border-b border-white/5 pb-3">
+                <Sparkles size={16} className="text-luxury-gold animate-pulse" />
+                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
+                  Global Web Push Campaign
+                </h3>
+              </div>
+              <p className="text-xs text-white/60 mb-5 max-w-2xl leading-relaxed font-sans">
+                This form dispatches an official real-time web push notification directly to the system background of all clients who opted in. They will receive the banner on their computer or mobile device even if they are currently browsing Facebook, outside Chrome, or in other applications.
+              </p>
+
+              <form onSubmit={handleDispatchPush} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Notification Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Luxury Drops Incoming..."
+                    value={pushTitleInput}
+                    onChange={e => setPushTitleInput(e.target.value)}
+                    className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Custom Body Text</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="New highly curated collection is officially live."
+                    value={pushBodyInput}
+                    onChange={e => setPushBodyInput(e.target.value)}
+                    className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
+                  />
+                </div>
+                <div className="space-y-1.5 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Destination Link (Optional)</label>
+                    <input
+                      type="url"
+                      placeholder="https://stylex.store/shop"
+                      value={pushLinkInput}
+                      onChange={e => setPushLinkInput(e.target.value)}
+                      className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isDispatchingPush}
+                    className="w-full bg-luxury-gold hover:bg-amber-400 disabled:bg-zinc-800 text-luxury-black font-bold uppercase py-2 rounded text-[10px] tracking-wider transition-all cursor-pointer mt-3"
+                  >
+                    {isDispatchingPush ? "Dispatched Campaign..." : "📣 Dispatch Broadcast"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Back in stock alert subscriptions table */}
+            <div className="bg-[#090909] border border-white/5 rounded-lg p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-white/5">
+                <div>
+                  <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
+                    Collector Restock Subscriptions
+                  </h3>
+                  <p className="text-[11px] text-white/40 mt-0.5">
+                    Live waitlist registry for items with depleted stock levels.
+                  </p>
+                </div>
+                {backInStockAlerts.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const emails = backInStockAlerts.map(a => a.email).join(', ');
+                      try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(emails);
+                        } else {
+                          const t = document.createElement("textarea");
+                          t.value = emails;
+                          t.style.position = "fixed";
+                          document.body.appendChild(t);
+                          t.select();
+                          document.execCommand("copy");
+                          document.body.removeChild(t);
+                        }
+                      } catch (err) {
+                        console.warn("Emails copy failed with navigator, fell back:", err);
+                      }
+                      alert("All collector email addresses copied to clipboard!");
+                    }}
+                    className="bg-purple-950/40 hover:bg-purple-900 border border-purple-500/20 text-purple-300 hover:text-white px-3 py-1.5 text-[9px] font-mono uppercase rounded transition-all cursor-pointer"
+                  >
+                    📋 Copy All Emails List
+                  </button>
+                )}
+              </div>
+              
+              {backInStockAlerts.length === 0 ? (
+                <div className="text-center py-12 text-zinc-600">
+                  <Bell size={24} className="mx-auto text-zinc-700 mb-3 opacity-30" />
+                  <p className="font-sans text-xs uppercase tracking-wider">No active restock alert registrations.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-[11.5px] whitespace-nowrap min-w-[700px]">
+                    <thead className="bg-[#050505] text-zinc-500 uppercase text-[9px] tracking-wider border-b border-white/5">
+                      <tr>
+                        <th className="p-4 font-bold">Date Registered</th>
+                        <th className="p-4 font-bold">Collector Email</th>
+                        <th className="p-4 font-bold">Luxury product</th>
+                        <th className="p-4 font-bold">Product code</th>
+                        <th className="p-4 font-bold text-center">Current stock status</th>
+                        <th className="p-4 font-bold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {backInStockAlerts.map((alertItem: any) => {
+                        const originalProduct = products.find(p => p.id === alertItem.productId);
+                        const isInStock = originalProduct?.stock && originalProduct.stock > 0;
+                        return (
+                          <tr key={alertItem.id} className="hover:bg-white/[0.01] transition-all">
+                            <td className="p-4 text-white/55">
+                              {new Date(alertItem.requestedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </td>
+                            <td className="p-4 text-white font-sans font-medium hover:text-luxury-gold transition-colors">
+                              <a href={`mailto:${alertItem.email}`} className="underline tracking-wide">{alertItem.email}</a>
+                            </td>
+                            <td className="p-4 text-luxury-gold/90 uppercase font-sans font-semibold">
+                              {alertItem.productTitle}
+                            </td>
+                            <td className="p-4 text-zinc-400">
+                              {originalProduct?.code || "SKU-" + alertItem.productId.substring(0, 5).toUpperCase()}
+                            </td>
+                            <td className="p-4 text-center">
+                              {isInStock ? (
+                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
+                                  IN STOCK ({originalProduct?.stock})
+                                </span>
+                              ) : (
+                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
+                                  OUT OF STOCK
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              {isInStock && (
+                                <button
+                                  onClick={() => {
+                                    window.open(`mailto:${alertItem.email}?subject=${encodeURIComponent(`Luxury restock update: ${alertItem.productTitle} is back!`)}&body=${encodeURIComponent(`Dear Collector,\n\nWe are pleased to inform you that "${alertItem.productTitle}" is officially back in stock and ready to order!\n\nView and order here: ${window.location.origin}\n\nWarm regards,\nStyle X VIP Team`)}`);
+                                  }}
+                                  className="border border-emerald-500/25 hover:border-emerald-400 text-emerald-400 hover:text-white bg-emerald-950/40 px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
+                                >
+                                  📨 Ping Collector
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteAlert(alertItem.id)}
+                                className="border border-red-500/25 hover:border-red-400 hover:bg-red-950/20 text-red-400 hover:text-white px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
+                              >
+                                Archive
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'sms' && (
+          <div className="space-y-6 max-w-5xl animate-fade-in text-white">
+            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
+                  <Mail size={18} className="text-luxury-gold" />
+                  STYLE X Bangla SMS Gateway Hub (এসএমএস গেটওয়ে)
+                </h2>
+                <p className="text-xs text-white/50 mt-1 font-sans">
+                  অর্ডার স্ট্যাটাস পরিবর্তনের স্বয়ংক্রিয় এসএমএস ট্র্যাক করুন অথবা গ্রাহককে সরাসরি বার্তা পাঠান।
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={fetchSmsLogs}
+                  disabled={fetchingSmsLogs}
+                  className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer disabled:opacity-40"
+                >
+                  {fetchingSmsLogs ? "🔄 রিফ্রেশ করা হচ্ছে..." : "🔄 Refresh Logs"}
+                </button>
+                {smsLogs.length > 0 && (
+                  <button 
+                    onClick={handleClearSmsLogs}
+                    className="px-3 py-1.5 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white font-mono text-[10px] uppercase rounded bg-red-950/10 transition-all cursor-pointer"
+                  >
+                    🗑️ Purge Logs
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* INFO BANNER explaining dynamic SMS options */}
+            <div className="bg-[#0b132b]/30 border border-blue-500/25 p-4 rounded-lg flex items-start gap-3.5">
+              <span className="text-blue-400 text-lg">ℹ️</span>
+              <div className="text-xs space-y-1">
+                <p className="font-bold text-blue-200 font-mono">রিয়েল-টাইম বাংলা এসএমএস গেটওয়ে (Real-Time SMS Engine):</p>
+                <p className="text-white/75 leading-relaxed font-sans">
+                  আমরা এখন <strong>Greenweb SMS (Bangladesh)</strong> এবং <strong>Twilio Premium SMS (Global)</strong> গেটওয়ে সাপোর্ট করি। আপনার নিজের এপিআই চাবি বা ক্রেডেনশিয়ালস সেট করে রিয়েল-টাইম এসএমএস ডেলিভারি সচল করতে পারেন। ক্রেডেনশিয়ালস না থাকলে এটি <strong>সিমুলেশন মোড</strong>-এ কাজ করবে এবং সব আউটবাউন্ড মেসেজ নিচে লগ করবে।
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* CONFIGURATION & TEST FORMS COLUMN */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* GATEWAY SETTINGS CARD */}
+                <div className="border border-purple-500/15 bg-[#0a0a0a] p-5 rounded-lg shadow-xl space-y-4">
+                  <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-purple-400 border-b border-white/5 pb-2 flex items-center gap-1.5">
+                    ⚙️ Gateway Setup (গেটওয়ে কনফিগারেশন)
+                  </h3>
+                  
+                  <form onSubmit={handleSaveSmsGatewaySettings} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">SMS Provider (গেটওয়ে সার্ভিস)</label>
+                      <select
+                        value={smsProviderInput}
+                        onChange={(e) => setSmsProviderInput(e.target.value as any)}
+                        className="w-full bg-[#121212] border border-white/10 focus:border-purple-400 text-white px-3 py-2 rounded text-xs focus:outline-none transition-all"
+                      >
+                        <option value="mock">🔬 Simulation / Logging Mode (No API Needed)</option>
+                        <option value="greenweb">🟢 Greenweb SMS (Bangladesh Gateway)</option>
+                        <option value="twilio">🔴 Twilio Premium (International/Local)</option>
+                      </select>
+                    </div>
+
+                    {smsProviderInput === 'greenweb' && (
+                      <div className="space-y-3 p-3 bg-green-950/10 border border-green-500/15 rounded animate-fade-in text-[11px] space-y-2">
+                        <p className="text-green-400 text-[10px] font-mono uppercase font-semibold">Greenweb API Configurations</p>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono text-zinc-500 uppercase">API Token</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 10185121920XXXXXXXXXXXXX"
+                            value={greenwebTokenInput}
+                            onChange={(e) => setGreenwebTokenInput(e.target.value)}
+                            className="w-full bg-[#161616] border border-white/10 focus:border-green-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
+                          />
+                        </div>
+                        <p className="text-[9px] text-zinc-400 font-mono leading-tight">Greenweb BD-র এপিআই টোকেন ব্যবহার করে সরাসরি ০১৭/০১৮ নাম্বারে বাংলা এসএমএস ডেলিভারি করা যাবে।</p>
+                      </div>
+                    )}
+
+                    {smsProviderInput === 'twilio' && (
+                      <div className="space-y-3 p-3 bg-red-950/10 border border-red-500/15 rounded animate-fade-in text-[11px] space-y-2">
+                        <p className="text-red-400 text-[10px] font-mono uppercase font-semibold">Twilio API Configurations</p>
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Account SID</label>
+                            <input
+                              type="text"
+                              placeholder="ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                              value={twilioAccountSidInput}
+                              onChange={(e) => setTwilioAccountSidInput(e.target.value)}
+                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Auth Token</label>
+                            <input
+                              type="password"
+                              placeholder="Auth Token"
+                              value={twilioAuthTokenInput}
+                              onChange={(e) => setTwilioAuthTokenInput(e.target.value)}
+                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Twilio Number / Msg SID</label>
+                            <input
+                              type="text"
+                              placeholder="+1XXXXXXXXXX or MGXXXX"
+                              value={twilioFromNumberInput}
+                              onChange={(e) => setTwilioFromNumberInput(e.target.value)}
+                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={savingSmsGateway}
+                      className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 text-white font-bold uppercase py-2 rounded text-[9px] tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 animate-pulse"
+                    >
+                      <span>{savingSmsGateway ? "সংরক্ষণ করা হচ্ছে..." : "Save Gateway Config 💾"}</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* TEST FORM PANEL */}
+                <div className="border border-luxury-gold/15 bg-[#0a0a0a] p-5 rounded-lg shadow-xl">
+                  <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-luxury-gold mb-3 border-b border-white/5 pb-2">
+                    Test-Send SMS (গ্রাহককে সরাসরি এসএমএস পাঠান)
+                  </h3>
+                  
+                  <form onSubmit={handleSendManualSms} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">গ্রাহকের ফোন নম্বর (Customer Phone)</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="017XXXXXXXX"
+                      value={manualSmsPhone}
+                      onChange={e => setManualSmsPhone(e.target.value)}
+                      className="w-full bg-[#121212] border border-white/10 focus:border-luxury-gold text-white px-3 py-2 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-600"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">বার্তা (Message in Bangla)</label>
+                      <span className="text-[9px] text-luxury-gold/75 font-mono">{manualSmsMsg.length} Chars</span>
+                    </div>
+                    <textarea
+                      required
+                      rows={4}
+                      placeholder="এখানে আপনার বাংলা বার্তাটি লিখুন..."
+                      value={manualSmsMsg}
+                      onChange={e => setManualSmsMsg(e.target.value)}
+                      className="w-full bg-[#121212] border border-white/10 focus:border-luxury-gold text-white px-3 py-2 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-600 leading-relaxed"
+                    />
+                  </div>
+
+                  {/* PRESET CHIPS */}
+                  <div className="space-y-1.5">
+                    <span className="block text-[9px] font-mono uppercase tracking-widest text-zinc-500 font-bold">দ্রুত বাংলা প্রিসেটসমূহ (Quick Presets)</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setManualSmsMsg("আপনার স্টাইল এক্স অর্ডারটি সফলভাবে প্যাক করা হয়েছে! কিছুক্ষণের মধ্যে এটি শিপ করা হবে। স্টাইল এক্স এর সাথে থাকার জন্য ধন্যবাদ।")}
+                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
+                      >
+                        📦 Packed
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualSmsMsg("অভিনন্দন! আপনার স্টাইল এক্স অর্ডারটি শিপ করা হয়েছে। শীঘ্রই ডেলিভারি পার্টনার আপনার ঠিকানায় যোগাযোগ করবেন।")}
+                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
+                      >
+                        🚚 Shipped
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setManualSmsMsg("স্টাইল এক্স-এ আপনাকে স্বাগতম! আমাদের নতুন লাক্সারি ফ্যাশন কালেকশনগুলো এক্সপ্লোর করুন।")}
+                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
+                      >
+                        ✨ Welcome
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={sendingManualSms}
+                    className="w-full bg-luxury-gold hover:bg-amber-400 disabled:bg-zinc-800 text-luxury-black font-bold uppercase py-2.5 rounded text-[10px] tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
+                  >
+                    <Send size={11} />
+                    {sendingManualSms ? "পাঠানো হচ্ছে..." : "Fast-Track Send SMS"}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* OUTBOUND LOGS LIST */}
+              <div className="lg:col-span-2 bg-[#090909] border border-white/5 rounded-lg p-5">
+                <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-white mb-4 border-b border-white/5 pb-2">
+                  Outbound SMS Broadcast Log (আউটবাউন্ড এসএমএস হিস্ট্রি)
+                </h3>
+
+                {smsLogs.length === 0 ? (
+                  <div className="text-center py-16 text-zinc-600">
+                    <Mail size={28} className="mx-auto text-zinc-700 mb-3 opacity-30 animate-pulse" />
+                    <p className="font-sans text-xs uppercase tracking-wider mb-1">কোনো মেসেজ লগ পাওয়া যায়নি।</p>
+                    <p className="text-[10px] text-white/30 max-w-sm mx-auto font-sans leading-relaxed">
+                      অর্ডার স্ট্যাটাস 'Packed' বা 'Shipped'-এ নিয়ে যান অথবা বামদিকের ফর্ম থেকে টেস্ট এসএমএস পাঠান।
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                    {smsLogs.map((log: any) => (
+                      <div key={log.id} className="border border-white/5 bg-[#0d0d0d] rounded p-4 hover:border-luxury-gold/30 transition-all">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2 mb-2 font-mono text-[10.5px]">
+                          <div className="flex items-center gap-2">
+                            <span className="text-luxury-gold font-bold">📲 {log.phone}</span>
+                            <span className="text-zinc-600">|</span>
+                            <span className="text-zinc-400">{log.system || "STYLE X Gateway"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-zinc-500">
+                              {new Date(log.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' })}
+                            </span>
+                            <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[9px] font-sans font-bold uppercase tracking-wider leading-none">
+                              {log.status || "Delivered ✔️"}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-white/90 leading-relaxed font-sans bg-[#060606] p-2.5 rounded border border-white/5 whitespace-pre-wrap">
+                          {log.message}
+                        </p>
+                        {log.sid && (
+                          <div className="text-[9px] font-mono text-zinc-500 mt-2 text-right">
+                            Tracking SID: <span className="text-zinc-400 font-bold">{log.sid}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="space-y-8 max-w-4xl animate-fade-in text-white">
             
@@ -4139,6 +4795,28 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           type="checkbox" 
                           checked={!isXoroVoiceDisabledInput}
                           onChange={(e) => setIsXoroVoiceDisabledInput(!e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* XORO VOICE AND ANSWER ACTIVE TOGGLE */}
+                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                          <span>🤖 Xoro Voice & Answer Active</span>
+                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">ACTIVE</span>
+                        </label>
+                        <p className="text-[9px] text-zinc-500 font-mono">অফ করে দিলে জোরো কোনো ভয়েস বা চ্যাট উত্তর দিবে না। (If off, Xoro won't speak or answer queries).</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={!isXoroVoiceAndAnswerDisabledInput}
+                          onChange={(e) => setIsXoroVoiceAndAnswerDisabledInput(!e.target.checked)}
                           className="sr-only peer"
                         />
                         <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>

@@ -2,14 +2,7 @@ import { CartItem, Product } from '../types';
 
 export function getProductActivePrice(product: Product): number {
   if (product.offerPrice !== undefined && product.offerPrice !== null) {
-    if (product.timerEndTime) {
-      const end = new Date(product.timerEndTime).getTime();
-      const now = new Date().getTime();
-      if (end <= now) {
-        return product.price; // Timer expired, revert to regular price
-      }
-    }
-    return product.offerPrice; // Active offer
+    return product.offerPrice; // Active offer forever
   }
   return product.price;
 }

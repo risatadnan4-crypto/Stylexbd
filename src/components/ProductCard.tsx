@@ -58,7 +58,7 @@ export default function ProductCard({
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
 
-  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null && (!product.timerEndTime || !timerExpired);
+  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
 
   useEffect(() => {
     if (!product.timerEndTime) {
@@ -229,6 +229,7 @@ export default function ProductCard({
         <img 
           src={activeImage} 
           alt={product.title} 
+          loading="lazy"
           onLoad={() => setImageLoaded(true)}
           className={`w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none ${
             isMobileListMode ? 'p-0.5 sm:p-1' : 'p-1'
@@ -283,7 +284,7 @@ export default function ProductCard({
                   activeImage === img ? 'border-luxury-gold scale-110' : 'border-white/10 hover:border-white/40'
                 }`}
               >
-                <img src={img} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                <img src={img} alt={`${product.title} view ${idx + 1}`} loading="lazy" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </button>
             ))}
           </div>
@@ -318,6 +319,21 @@ export default function ProductCard({
       {/* Info Block */}
       <div className="space-y-1 sm:space-y-1.5 flex-1 flex flex-col justify-between">
         <div>
+          {(() => {
+            const originalPrice = product.price;
+            const sellingPrice = hasActiveOffer ? product.offerPrice! : product.price;
+            const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
+            if (discountPercent > 0) {
+              return (
+                <div className="flex justify-start mb-1.5">
+                  <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FF2D55] text-white flex flex-col items-center justify-center text-[9px] sm:text-[10px] font-extrabold shadow-[0_2px_8px_rgba(255,45,85,0.45)] leading-tight select-none font-sans tracking-tight shrink-0 border border-red-500/10">
+                    <span>-{discountPercent}%</span>
+                  </span>
+                </div>
+              );
+            }
+            return null;
+          })()}
           <h3 
             onClick={() => onProductClick(product)}
             className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 cursor-pointer mb-0.5 text-left leading-tight"
@@ -332,9 +348,24 @@ export default function ProductCard({
                 ৳{hasActiveOffer ? product.offerPrice : product.price}
               </span>
               {hasActiveOffer && (
-                <span className="hidden sm:inline text-sm sm:text-base md:text-lg text-rose-500 line-through font-serif font-black leading-none decoration-white/30 decoration-[1.5px] select-all">
-                  ৳{product.price}
-                </span>
+                <>
+                  <span className="hidden sm:inline text-sm sm:text-base md:text-lg text-rose-500 line-through font-serif font-black leading-none decoration-white/30 decoration-[1.5px] select-all">
+                    ৳{product.price}
+                  </span>
+                  {(() => {
+                    const originalPrice = product.price;
+                    const sellingPrice = product.offerPrice!;
+                    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
+                    if (discountPercent > 0) {
+                      return (
+                        <span className="inline-flex items-center justify-center bg-[#FF2D55] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-[0_2px_6px_rgba(255,45,85,0.4)] leading-none select-none tracking-tight">
+                          {discountPercent}% OFF
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </>
               )}
             </div>
             
@@ -391,26 +422,7 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* Sizes Row Selection */}
-          {product.sizes && product.sizes.length > 0 && (
-            <div className={`items-center gap-1 overflow-x-auto py-1 scrollbar-none my-0.5 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
-              <span className="text-[8px] font-mono text-white/40 uppercase shrink-0">SIZE:</span>
-              {product.sizes.map((sz) => (
-                <button
-                  key={sz}
-                  type="button"
-                  onClick={() => setSelectedSize(sz)}
-                  className={`h-5.5 min-w-[24px] px-1.5 rounded-md text-[9px] uppercase flex items-center justify-center shrink-0 cursor-pointer ${
-                    selectedSize === sz
-                      ? 'luxury-size-btn-active'
-                      : 'luxury-size-btn-inactive'
-                  }`}
-                >
-                  {sz}
-                </button>
-              ))}
-            </div>
-          )}
+
 
           {/* Expandable Why Buy? Area */}
           {product.whyBuy && (

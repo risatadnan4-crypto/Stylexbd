@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /?admin=true
+
+Sitemap: https://stylex.premium.shop/sitemap.xml

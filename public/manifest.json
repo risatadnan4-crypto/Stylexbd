@@ -1,0 +1,16 @@
+{
+  "name": "Style X Premium Clothing",
+  "short_name": "Style X",
+  "description": "Premium luxury clothing and authentic signature collective.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "/stylex_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

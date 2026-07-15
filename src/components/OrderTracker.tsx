@@ -258,10 +258,10 @@ export default function OrderTracker({
 
   // Status mapping
   const statusSteps = [
-    { code: 'PENDING', label: 'Placed', icon: Calendar, description: 'Bespoke order logged, awaiting concierge phone verification' },
-    { code: 'CONFIRMED', label: 'Assembled', icon: Box, description: 'Handmade luxury pieces packed and cataloged with seals' },
-    { code: 'SHIPPED', label: 'In Transit', icon: Truck, description: 'Dispatched with premium handpicked priority courier' },
-    { code: 'DELIVERED', label: 'Completed', icon: CheckCircle, description: 'Hand-delivered & verified under secure credentials' }
+    { code: 'PENDING', label: 'Processing', icon: Sparkles, description: 'Bespoke collection logged, verifying credentials' },
+    { code: 'CONFIRMED', label: 'Packed', icon: Box, description: 'Luxury packaging sealed and prepared for transit' },
+    { code: 'SHIPPED', label: 'Shipped', icon: Truck, description: 'Dispatched under premium priority courier custody' },
+    { code: 'DELIVERED', label: 'Delivered', icon: CheckCircle, description: 'Hand-delivered and signed securely' }
   ];
 
   const getStepIndex = (status: string) => {
@@ -535,19 +535,37 @@ export default function OrderTracker({
 
           {/* Visual Progress Steps Map */}
           {order.status !== 'CANCELLED' && (
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-6">
-              <h4 className="font-display text-[10px] text-white/40 tracking-[0.2em] uppercase mb-8 text-center md:text-left">
-                TRAJECTORY TRAKMAP
+            <div className="bg-[#0e071e]/75 backdrop-blur-md border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.85)] relative overflow-hidden">
+              {/* Luxury ambient light flare inside panel */}
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-[#d4af37]/5 rounded-full blur-2xl pointer-events-none"></div>
+              
+              <h4 className="font-display text-[10px] text-[#d4af37] tracking-[0.25em] uppercase mb-10 text-center md:text-left flex items-center gap-2 justify-center md:justify-start">
+                <Sparkles size={12} className="animate-pulse text-[#d4af37]" />
+                TRAJECTORY PROGRESS TRAKMAP
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-4 relative">
                 
-                {/* Horizontal progress bar behind icons */}
-                <div className="hidden md:block absolute top-[21px] left-[5%] right-[5%] h-[1px] bg-white/10 z-0">
+                {/* Horizontal progress bar behind icons (Desktop) */}
+                <div className="hidden md:block absolute top-[21px] left-[12.5%] right-[12.5%] h-2.5 bg-[#07020d] border border-white/5 rounded-full z-0 overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)]">
                   <div 
-                    className="h-full bg-luxury-gold transition-all duration-1000"
-                    style={{ width: `${(activeIndex / 3) * 90}%` }}
-                  ></div>
+                    className="h-full bg-gradient-to-r from-[#8a6f27] via-[#d4af37] to-[#ffd700] rounded-full transition-all duration-[1200ms] ease-out relative shadow-[0_0_15px_rgba(212,175,55,0.7)]"
+                    style={{ width: `${(activeIndex / 3) * 100}%` }}
+                  >
+                    {/* Glowing pulse tip to show active current position */}
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/70 animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Vertical progress bar (Mobile) */}
+                <div className="md:hidden absolute top-6 bottom-6 left-[21px] w-2 bg-[#07020d] border border-white/5 rounded-full z-0 overflow-hidden shadow-[inset_0_2px_3px_rgba(0,0,0,0.9)]">
+                  <div 
+                    className="w-full bg-gradient-to-b from-[#8a6f27] via-[#d4af37] to-[#ffd700] rounded-full transition-all duration-[1200ms] ease-out relative shadow-[0_0_12px_rgba(212,175,55,0.7)]"
+                    style={{ height: `${(activeIndex / 3) * 100}%` }}
+                  >
+                    {/* Glowing pulse tip to show active current position */}
+                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-b from-transparent to-white/70 animate-pulse"></div>
+                  </div>
                 </div>
 
                 {statusSteps.map((step, idx) => {
@@ -558,29 +576,29 @@ export default function OrderTracker({
                   return (
                     <div 
                       key={step.code} 
-                      className={`relative flex flex-row md:flex-col items-center gap-4 text-left md:text-center z-10 transition-opacity ${
-                        isPassed ? 'opacity-100' : 'opacity-40'
+                      className={`relative flex flex-row md:flex-col items-center gap-4 md:gap-5 text-left md:text-center z-10 transition-all duration-500 ${
+                        isPassed ? 'opacity-100' : 'opacity-30'
                       }`}
                     >
-                      {/* Step Circle */}
-                      <div className={`w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
+                      {/* Step Circle with Premium Golden Ring & Shimmer */}
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-500 flex-shrink-0 ${
                         isCurrent 
-                          ? 'bg-luxury-gold text-luxury-black border-luxury-gold ring ring-luxury-gold/25 scale-110 shadow-lg'
+                          ? 'bg-gradient-to-br from-[#ffd700] to-[#b8860b] text-black border-[#ffd700] ring-[6px] ring-[#ffd700]/15 scale-110 shadow-[0_0_25px_rgba(212,175,55,0.75)] z-20'
                           : isPassed 
-                            ? 'bg-[#151515] text-luxury-gold border-luxury-gold/50'
-                            : 'bg-luxury-charcoal text-white/50 border-white/5'
+                            ? 'bg-[#0a0512] text-[#ffd700] border-[#d4af37]/60 shadow-[0_0_12px_rgba(212,175,55,0.25)]'
+                            : 'bg-[#040108] text-white/30 border-white/[0.04]'
                       }`}>
-                        <Icon size={16} />
+                        <Icon size={16} className={isCurrent ? "animate-pulse" : ""} />
                       </div>
 
                       {/* Labels and Details */}
-                      <div>
-                        <p className={`font-serif text-sm font-semibold uppercase ${
-                          isCurrent ? 'text-luxury-gold' : 'text-white/80'
+                      <div className="space-y-1">
+                        <p className={`font-serif text-sm font-semibold tracking-wide uppercase transition-colors duration-300 ${
+                          isCurrent ? 'text-[#ffd700] font-black' : 'text-white/90'
                         }`}>
                           {step.label}
                         </p>
-                        <p className="text-[10.5px] text-white/50 leading-relaxed font-sans max-w-[180px] mt-1 md:mx-auto">
+                        <p className="text-[10.5px] text-white/45 leading-relaxed font-sans max-w-[180px] md:mx-auto">
                           {step.description}
                         </p>
                       </div>

@@ -51,7 +51,7 @@ export const ALL_DISTRICTS_LIST = [
   "Shariatpur", "Sherpur", "Sirajganj", "Sunamganj", "Sylhet", "Tangail", "Thakurgaon"
 ];
 
-const DIVISION_MAPS: Record<string, string[]> = {
+export const DIVISION_MAPS: Record<string, string[]> = {
   "Dhaka": ["Dhaka", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Faridpur", "Tangail"],
   "Chattogram": ["Chattogram", "Cox's Bazar", "Bandarban", "Khagrachhari", "Rangamati", "Noakhali", "Feni", "Lakshmipur", "Cumilla", "Chandpur", "Brahmanbaria"],
   "Rajshahi": ["Rajshahi", "Bogura", "Joypurhat", "Naogaon", "Natore", "Chapainawabganj", "Pabna", "Sirajganj"],
@@ -63,16 +63,47 @@ const DIVISION_MAPS: Record<string, string[]> = {
 };
 
 export function getDivisionForCity(city: string): string {
-  const c = city.trim();
+  const c = city.trim().toLowerCase();
   
+  if (c.includes('ctg') || c.includes('chittagong') || c.includes('chattogram')) {
+    return 'Chattogram';
+  }
+  if (c.includes('dhaka')) {
+    return 'Dhaka';
+  }
+  if (c.includes('rajshahi')) {
+    return 'Rajshahi';
+  }
+  if (c.includes('khulna')) {
+    return 'Khulna';
+  }
+  if (c.includes('barishal') || c.includes('barisal')) {
+    return 'Barishal';
+  }
+  if (c.includes('sylhet')) {
+    return 'Sylhet';
+  }
+  if (c.includes('rangpur')) {
+    return 'Rangpur';
+  }
+  if (c.includes('mymensingh')) {
+    return 'Mymensingh';
+  }
+
   // Direct matches
-  if (["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"].includes(c)) {
-    return c;
+  const pascalMatch = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"].find(
+    (div) => c.includes(div.toLowerCase())
+  );
+  if (pascalMatch) {
+    return pascalMatch;
   }
 
   // Map search
   for (const [division, districts] of Object.entries(DIVISION_MAPS)) {
-    if (districts.some(d => d.toLowerCase() === c.toLowerCase())) {
+    if (districts.some(d => {
+      const dl = d.toLowerCase();
+      return c.includes(dl) || dl.includes(c);
+    })) {
       return division;
     }
   }

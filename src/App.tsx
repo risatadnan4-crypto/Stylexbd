@@ -23,6 +23,7 @@ import defaultXoroAvatar from './assets/images/xoro_mascot_3d_1782635214676.jpg'
 import CustomerProfileModal from './components/CustomerProfileModal';
 import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
+import AcousticScrollManager from './components/AcousticScrollManager';
 
 export default function App() {
   // Premium entry loading screen states
@@ -33,6 +34,7 @@ export default function App() {
   const [isAdminView, setIsAdminView] = useState(false);
   const [isTrackMode, setIsTrackMode] = useState(false);
   const [isSearchPage, setIsSearchPage] = useState(false);
+  const [isWishlistPage, setIsWishlistPage] = useState(false);
   
   // Authenticated staff details
   const [isAuthAdmin, setIsAuthAdmin] = useState(false);
@@ -303,16 +305,7 @@ export default function App() {
     }
   });
 
-  // Redirect unauthenticated users to Log In / Sign Up when they try to click/select any product
-  useEffect(() => {
-    if (selectedProduct && !currentCustomer) {
-      setSelectedProduct(null);
-      setCustomerAuthTab('login');
-      setCustomerAuthError('পণ্যটি দেখতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to view products.)');
-      setCustomerAuthSuccess('');
-      setShowCustomerAuthModal(true);
-    }
-  }, [selectedProduct, currentCustomer]);
+
 
   const handleAuthRequired = (msg?: string) => {
     setCustomerAuthTab('login');
@@ -1701,11 +1694,13 @@ export default function App() {
         onTrackOrderClick={() => {
           setIsTrackMode(true);
           setIsSearchPage(false);
+          setIsWishlistPage(false);
           window.scrollTo({ top: 350, behavior: 'smooth' });
         }}
         onHomeClick={() => {
           setIsTrackMode(false);
           setIsSearchPage(false);
+          setIsWishlistPage(false);
           setSearchQuery('');
           setActiveCategory('ALL');
         }}
@@ -1719,15 +1714,18 @@ export default function App() {
             setIsSearchPage(false);
           }
           setIsTrackMode(false);
+          setIsWishlistPage(false);
         }}
         onSearchSubmit={(q) => {
           setSearchQuery(q);
           setIsSearchPage(true);
           setIsTrackMode(false);
+          setIsWishlistPage(false);
         }}
         onSearchFocus={() => {
           setIsSearchPage(true);
           setIsTrackMode(false);
+          setIsWishlistPage(false);
         }}
         customer={currentCustomer}
         onCustomerAuthClick={() => {
@@ -1741,7 +1739,7 @@ export default function App() {
       />
 
       {/* Hero Header Banners */}
-      {!isTrackMode && !isSearchPage && !settings?.isCatalogDeactivated && (
+      {!isTrackMode && !isSearchPage && !isWishlistPage && !settings?.isCatalogDeactivated && (
         <Hero 
           banners={banners}
           bannerTitle={activePromoBanner.title}
@@ -1753,7 +1751,85 @@ export default function App() {
 
       {/* Base Store Page workspace container */}
       <main className="flex-1 pb-16">
-        {isTrackMode ? (
+        {isWishlistPage ? (
+          /* Dedicated Wishlist View / Page */
+          <div className="bg-[#030107] min-h-[70vh] py-12 px-4 md:px-8 max-w-7xl mx-auto space-y-10 animate-fade-in font-sans">
+            {/* Header section with back button */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/[0.06] pb-8">
+              <div className="space-y-2 text-left">
+                <button
+                  onClick={() => {
+                    setIsWishlistPage(false);
+                  }}
+                  className="flex items-center gap-2 text-xs text-luxury-gold hover:text-white transition-colors uppercase font-mono tracking-widest outline-none cursor-pointer"
+                >
+                  ← BACK TO GALLERIES
+                </button>
+                <h2 className="font-serif text-3xl font-bold tracking-widest text-[#ffffff] uppercase mt-2">
+                  My Wishlist / উইশলিস্ট
+                </h2>
+                <p className="text-xs text-zinc-400 font-mono">
+                  VIP EXCLUSIVE SELECTION • <span className="text-luxury-gold font-bold">{wishlist.length} SAVED PIECES</span>
+                </p>
+              </div>
+
+              {/* Glowing decorative search active banner indicator */}
+              <div className="p-4 bg-gradient-to-br from-[#1a0533] via-transparent to-luxury-purple/20 border border-luxury-gold/30 rounded-2xl flex items-center gap-3 relative overflow-hidden shrink-0">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-luxury-gold/5 rounded-full blur-xl animate-pulse"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-pulse shrink-0"></div>
+                <div className="text-right">
+                  <span className="text-[9px] text-[#d4af37] font-black uppercase block tracking-widest">PRIVATE CATALOG SAVED</span>
+                  <span className="text-[10px] text-white/50 block font-mono">YOUR CUSTOM DESIGN PORTFOLIO</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Wishlist Grid block */}
+            {products.filter(p => wishlist.includes(p.id)).length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.filter(p => wishlist.includes(p.id)).map((product) => (
+                  <ProductCard 	
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    onOrderNow={handleOrderNow}
+                    onProductClick={(p: Product) => {
+                      setSelectedProduct(p);
+                    }}
+                    isWishlisted={true}
+                    onToggleWishlist={handleToggleWishlist}
+                    whatsappNumber={settings.whatsappNumber}
+                    isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
+                    globalDeliveryDays={settings?.globalDeliveryDays}
+                    currentCustomer={currentCustomer}
+                    onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
+                    viewMode={viewMode}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-24 px-6 border border-white/5 rounded-3xl bg-[#090312]/40 max-w-2xl mx-auto space-y-4">
+                <div className="w-16 h-16 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/30 mx-auto">
+                  <span className="text-3xl">🤍</span>
+                </div>
+                <h3 className="font-serif text-lg font-bold tracking-widest uppercase text-[#d4af37]">No Wishlisted Items</h3>
+                <p className="text-xs text-zinc-500 font-mono max-w-md mx-auto leading-relaxed">
+                  Your VIP wishlist is currently empty. Explore our bespoke boutiques, and click the heart icon on any design to secure it in your dynamic private archive.
+                </p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setIsWishlistPage(false);
+                    }}
+                    className="px-6 py-2.5 bg-luxury-gold text-luxury-black font-display text-[10px] font-black uppercase tracking-widest rounded-full hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Browse Collections
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : isTrackMode ? (
           /* Track Order Layout view */
           <div id="order-tracker-container" className="bg-[#050505] min-h-[50vh] border-b border-white/5 py-10">
             <OrderTracker 
@@ -3164,6 +3240,25 @@ export default function App() {
         wishlist={wishlist}
         onToggleWishlist={handleToggleWishlist}
         onAddToCart={handleAddToCart}
+        onViewOrdersOnSeparatePage={() => {
+          setIsTrackMode(true);
+          setIsSearchPage(false);
+          setIsWishlistPage(false);
+          setTimeout(() => {
+            const el = document.getElementById('order-tracker-container');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+              window.scrollTo({ top: 350, behavior: 'smooth' });
+            }
+          }, 100);
+        }}
+        onViewWishlistOnSeparatePage={() => {
+          setIsWishlistPage(true);
+          setIsTrackMode(false);
+          setIsSearchPage(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* 4. LUXURY VIP NOTIFICATION ALERTS OVERLAY */}
@@ -3616,6 +3711,8 @@ export default function App() {
         onSetTrackMode={(track) => setIsTrackMode(track)}
         onShowLoginModal={(show) => setShowLoginModal(show)}
       />
+
+      <AcousticScrollManager />
 
     </div>
   );

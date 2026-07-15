@@ -21,6 +21,8 @@ interface CustomerProfileModalProps {
   wishlist?: string[];
   onToggleWishlist?: (p: Product) => void;
   onAddToCart?: (p: Product, size: string) => void;
+  onViewOrdersOnSeparatePage?: () => void;
+  onViewWishlistOnSeparatePage?: () => void;
 }
 
 export default function CustomerProfileModal({
@@ -34,10 +36,12 @@ export default function CustomerProfileModal({
   onOpenChat,
   wishlist = [],
   onToggleWishlist = () => {},
-  onAddToCart = () => {}
+  onAddToCart = () => {},
+  onViewOrdersOnSeparatePage,
+  onViewWishlistOnSeparatePage
 }: CustomerProfileModalProps) {
   // Tabs: 'profile' | 'orders' | 'wishlist'
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist'>('orders');
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist'>('profile');
   
   // Profile Form States
   const [name, setName] = useState('');
@@ -216,9 +220,20 @@ export default function CustomerProfileModal({
                     {customerOrders.length}
                   </span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-white/[0.05] flex justify-between items-center text-[10px] text-white/50 font-mono">
-                  <span>WISHLIST PIECES:</span>
-                  <span className="text-luxury-purple-glowing font-bold bg-luxury-purple-glowing/10 px-2 py-0.5 rounded-full border border-luxury-purple-glowing/20">
+                <div 
+                  onClick={() => {
+                    if (onViewWishlistOnSeparatePage) {
+                      onClose();
+                      onViewWishlistOnSeparatePage();
+                    } else {
+                      setActiveTab('wishlist');
+                      setSelectedOrder(null);
+                    }
+                  }}
+                  className="mt-2 pt-2 border-t border-white/[0.05] flex justify-between items-center text-[10px] text-white/50 font-mono cursor-pointer hover:text-white transition-colors group/wish"
+                >
+                  <span className="group-hover/wish:text-luxury-gold transition-colors">WISHLIST PIECES:</span>
+                  <span className="text-luxury-purple-glowing font-bold bg-luxury-purple-glowing/10 px-2 py-0.5 rounded-full border border-luxury-purple-glowing/20 group-hover/wish:border-luxury-gold/50 group-hover/wish:text-luxury-gold transition-all">
                     {wishlist.length}
                   </span>
                 </div>
@@ -228,8 +243,13 @@ export default function CustomerProfileModal({
               <div className="space-y-1.5 font-display">
                 <button
                   onClick={() => {
-                    setActiveTab('orders');
-                    setSelectedOrder(null);
+                    if (onViewOrdersOnSeparatePage) {
+                      onClose();
+                      onViewOrdersOnSeparatePage();
+                    } else {
+                      setActiveTab('orders');
+                      setSelectedOrder(null);
+                    }
                   }}
                   className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider py-3 px-3.5 rounded-xl transition-all border duration-200 cursor-pointer ${
                     activeTab === 'orders'
@@ -239,15 +259,20 @@ export default function CustomerProfileModal({
                 >
                   <div className="flex items-center gap-2.5">
                     <History size={14} className={activeTab === 'orders' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
-                    <span>My Bespoke Orders</span>
+                    <span>My Bespoke Orders ↗</span>
                   </div>
                   <ChevronRight size={14} className={activeTab === 'orders' ? "text-luxury-gold" : "text-white/20"} />
                 </button>
 
                 <button
                   onClick={() => {
-                    setActiveTab('wishlist');
-                    setSelectedOrder(null);
+                    if (onViewWishlistOnSeparatePage) {
+                      onClose();
+                      onViewWishlistOnSeparatePage();
+                    } else {
+                      setActiveTab('wishlist');
+                      setSelectedOrder(null);
+                    }
                   }}
                   className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider py-3 px-3.5 rounded-xl transition-all border duration-200 cursor-pointer ${
                     activeTab === 'wishlist'
@@ -257,7 +282,7 @@ export default function CustomerProfileModal({
                 >
                   <div className="flex items-center gap-2.5">
                     <Heart size={14} className={activeTab === 'wishlist' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
-                    <span>My Wishlist</span>
+                    <span>My Wishlist ↗</span>
                   </div>
                   <ChevronRight size={14} className={activeTab === 'wishlist' ? "text-luxury-gold" : "text-white/20"} />
                 </button>
@@ -348,64 +373,99 @@ export default function CustomerProfileModal({
                         </p>
                       </div>
                     ) : (
-                      // Display List of customer orders
-                      <div className="grid gap-3.5 sm:grid-cols-2">
-                        {customerOrders.map((ord) => {
-                          const itemsCount = ord.items?.reduce((s, i) => s + i.quantity, 0) || 0;
-                          return (
-                            <div 
-                              key={ord.id}
-                              onClick={() => setSelectedOrder(ord)}
-                              className="group bg-gradient-to-b from-white/[0.02] to-transparent hover:from-white/[0.04] border border-white/10 hover:border-luxury-gold/45 rounded-xl p-4 transition-all duration-300 cursor-pointer flex flex-col justify-between gap-3 text-left relative overflow-hidden"
-                            >
-                              <div className="absolute top-0 right-0 w-20 h-20 bg-luxury-gold/[0.01] group-hover:bg-luxury-gold/[0.03] transition-colors rounded-bl-full pointer-events-none" />
-                              
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between gap-2 border-b border-white/[0.04] pb-2">
-                                  <span className="font-mono text-[11px] font-black uppercase text-luxury-gold">
+                      // Display clean, table-based history of all past orders
+                      <div className="w-full overflow-x-auto rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent shadow-lg font-sans" id="customer-orders-table-container">
+                        <table className="w-full min-w-[650px] border-collapse text-left text-xs text-white/80">
+                          <thead>
+                            <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-widest font-mono text-[#d4af37]">
+                              <th className="py-4 px-4 font-black">Order ID</th>
+                              <th className="py-4 px-4 font-black">Date</th>
+                              <th className="py-4 px-4 font-black">Bespoke Pieces</th>
+                              <th className="py-4 px-4 font-black">Status</th>
+                              <th className="py-4 px-4 font-black">Total Price</th>
+                              <th className="py-4 px-4 font-black text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.06]">
+                            {customerOrders.map((ord) => {
+                              const itemsCount = ord.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+                              const statusLabel = 
+                                ord.status === 'PENDING' ? 'Processing' :
+                                ord.status === 'CONFIRMED' ? 'Packed' :
+                                ord.status === 'SHIPPED' ? 'Shipped' :
+                                ord.status === 'DELIVERED' ? 'Delivered' :
+                                ord.status;
+
+                              return (
+                                <tr 
+                                  key={ord.id}
+                                  onClick={() => setSelectedOrder(ord)}
+                                  className="group hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer"
+                                >
+                                  {/* Order ID */}
+                                  <td className="py-4 px-4 font-mono font-black text-[#ffd700] uppercase group-hover:text-white transition-colors">
                                     #{ord.id}
-                                  </span>
-                                  <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                    ord.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                                    ord.status === 'CONFIRMED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                                    ord.status === 'SHIPPED' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                                    ord.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                    'bg-red-500/10 text-red-400 border border-red-500/20'
-                                  }`}>
-                                    {ord.status}
-                                  </span>
-                                </div>
+                                  </td>
+                                  
+                                  {/* Date */}
+                                  <td className="py-4 px-4 text-white/60">
+                                    {new Date(ord.date).toLocaleDateString()}
+                                  </td>
 
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-[10.5px] text-white/50">
-                                    <span className="font-mono">DATE:</span>
-                                    <span>{new Date(ord.date).toLocaleDateString()}</span>
-                                  </div>
-                                  <div className="flex justify-between text-[10.5px] text-white/50">
-                                    <span className="font-mono">ITEMS ({itemsCount}):</span>
-                                    <span className="text-white font-medium truncate max-w-[150px] text-right">
+                                  {/* Items */}
+                                  <td className="py-4 px-4 max-w-[200px]">
+                                    <div className="truncate text-white/95 font-medium" title={ord.items?.map(i => i.title).join(', ')}>
                                       {ord.items?.map(i => i.title).join(', ')}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between text-[10.5px] text-white/50">
-                                    <span className="font-mono">DESTINATION:</span>
-                                    <span className="truncate max-w-[150px] text-right text-white/80">{ord.customerCity}</span>
-                                  </div>
-                                </div>
-                              </div>
+                                    </div>
+                                    <div className="text-[10px] text-white/40 font-mono mt-0.5">
+                                      {itemsCount} {itemsCount === 1 ? 'item' : 'items'}
+                                    </div>
+                                  </td>
 
-                              <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between mt-1">
-                                <span className="text-xs font-black text-luxury-gold">
-                                  {formatPrice(ord.totalAmount)}
-                                </span>
-                                <div className="flex items-center gap-1 text-[9px] font-mono text-[#d4af37] uppercase tracking-wider group-hover:text-white transition-colors">
-                                  <span>TRACK SECURELY</span>
-                                  <ArrowRight size={10} className="transform group-hover:translate-x-1 transition-transform" />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                                  {/* Status */}
+                                  <td className="py-4 px-4">
+                                    <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                      ord.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.15)]' :
+                                      ord.status === 'CONFIRMED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.15)]' :
+                                      ord.status === 'SHIPPED' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_8px_rgba(168,85,247,0.15)]' :
+                                      ord.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]' :
+                                      'bg-red-500/10 text-red-400 border border-red-500/20'
+                                    }`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${
+                                        ord.status === 'PENDING' ? 'bg-amber-400 animate-pulse' :
+                                        ord.status === 'CONFIRMED' ? 'bg-blue-400' :
+                                        ord.status === 'SHIPPED' ? 'bg-purple-400' :
+                                        ord.status === 'DELIVERED' ? 'bg-emerald-400' :
+                                        'bg-red-400'
+                                      }`}></span>
+                                      {statusLabel}
+                                    </span>
+                                  </td>
+
+                                  {/* Total Price */}
+                                  <td className="py-4 px-4 font-black text-white group-hover:text-[#ffd700] transition-colors">
+                                    {formatPrice(ord.totalAmount)}
+                                  </td>
+
+                                  {/* Actions link to track details */}
+                                  <td className="py-4 px-4 text-right">
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedOrder(ord);
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#d4af37] uppercase tracking-widest border border-[#d4af37]/30 hover:border-[#ffd700] hover:bg-[#d4af37]/10 py-1.5 px-3 rounded-lg transition-all"
+                                      id={`track-order-btn-${ord.id}`}
+                                    >
+                                      <span>TRACK DETAILS ↗</span>
+                                    </button>
+                                  </td>
+
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     )
                   ) : (

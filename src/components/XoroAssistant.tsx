@@ -259,7 +259,7 @@ export default function XoroAssistant({
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
   // Speech bubble state variables declared early to prevent temporal dead zone (TS2448)
-  const [showSpeechBubble, setShowSpeechBubble] = useState(true);
+  const [showSpeechBubble, setShowSpeechBubble] = useState(settings?.isXoroVoiceAndAnswerDisabled ? false : true);
   const [speechBubbleText, setSpeechBubbleText] = useState("👋 আসসালামু আলাইকুম! স্টাইল এক্স-এ আপনাকে স্বাগতম! আমি জোরো (Xoro)। আজ আপনার ফ্যাশন ট্রেন্ড আপগ্রেড করতে প্রস্তুত?");
   const [hasDismissedBubble, setHasDismissedBubble] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -274,6 +274,14 @@ export default function XoroAssistant({
       setIsSoundEnabled(!settings.isXoroVoiceDisabled);
     }
   }, [settings?.isXoroVoiceDisabled]);
+
+  useEffect(() => {
+    if (settings?.isXoroVoiceAndAnswerDisabled) {
+      setShowSpeechBubble(false);
+    } else {
+      setShowSpeechBubble(true);
+    }
+  }, [settings?.isXoroVoiceAndAnswerDisabled]);
 
   // Selected custom system voice name and context product state
   const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
@@ -609,7 +617,7 @@ export default function XoroAssistant({
   // Helper to read aloud text using Web Speech API (Text-to-Speech)
   // Tuned for crystal-clear pronunciation, organic articulation, and zero background interference.
   const speakText = (text: string) => {
-    if (!isSoundEnabled) return;
+    if (!isSoundEnabled || settings?.isXoroVoiceAndAnswerDisabled) return;
     try {
       // Disabled introductory beep sounds to guarantee a purely natural, non-robotic, and professional human greeting experience
       // const isShort = text.length < 50;
@@ -1424,12 +1432,13 @@ export default function XoroAssistant({
                   type="text"
                   value={bubbleInput}
                   onChange={(e) => setBubbleInput(e.target.value)}
-                  placeholder="Xoro-কে প্রশ্ন করুন..."
-                  className="flex-1 bg-zinc-900 border border-white/10 hover:border-white/20 focus:border-luxury-gold/75 focus:outline-none rounded-xl text-[10px] px-2.5 py-1.5 font-sans text-white transition-all"
+                  disabled={settings?.isXoroVoiceAndAnswerDisabled}
+                  placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট নিষ্ক্রিয় রয়েছে" : "Xoro-কে প্রশ্ন করুন..."}
+                  className="flex-1 bg-zinc-900 border border-white/10 hover:border-white/20 focus:border-luxury-gold/75 focus:outline-none rounded-xl text-[10px] px-2.5 py-1.5 font-sans text-white transition-all disabled:opacity-50"
                 />
                 <button 
                   type="submit"
-                  disabled={!bubbleInput.trim()}
+                  disabled={settings?.isXoroVoiceAndAnswerDisabled || !bubbleInput.trim()}
                   className="h-7 w-7 bg-luxury-gold hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-luxury-black rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border-0 outline-none"
                 >
                   <Send size={10} />
@@ -2063,12 +2072,13 @@ export default function XoroAssistant({
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Ask Xoro styling tips, track order..."
-                  className="flex-1 h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans"
+                  disabled={settings?.isXoroVoiceAndAnswerDisabled}
+                  placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট বর্তমানে নিষ্ক্রিয় রয়েছে" : "Ask Xoro styling tips, track order..."}
+                  className="flex-1 h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans disabled:opacity-50"
                 />
                 <button 
                   type="submit"
-                  disabled={!inputValue.trim()}
+                  disabled={settings?.isXoroVoiceAndAnswerDisabled || !inputValue.trim()}
                   className="h-[56px] w-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 disabled:opacity-40 text-black rounded-[16px] flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0"
                 >
                   <Send size={18} />

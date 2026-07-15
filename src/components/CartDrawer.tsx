@@ -6,7 +6,7 @@ import {
   Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
-import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST } from '../utils';
+import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
 import { getValidatedTotal, getProductActivePrice, getAdvancePaymentAmount } from '../utils/totalHelper';
 import LuxuryCheckoutButton from './LuxuryCheckoutButton';
 
@@ -227,14 +227,26 @@ export default function CartDrawer({
   }, [checkoutStep, isOpen]);
 
   // Pricing calculations
-  const itemsTotal = cartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
+  // Enrich cart items with latest product data from the master list to guarantee up-to-date prices, delivery fees, and payment settings!
+  const enrichedCartItems = cartItems.map(item => {
+    const freshProduct = products?.find(p => p.id === item.product.id);
+    if (freshProduct) {
+      return {
+        ...item,
+        product: freshProduct
+      };
+    }
+    return item;
+  });
+
+  const itemsTotal = enrichedCartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
   let discountAmount = 0;
   let couponDetailsNote = "";
   const lotteryPrefix = (settings?.lotteryCouponPrefix || 'RISAT').trim().toUpperCase();
 
   if (appliedCoupon) {
     if (appliedCoupon.code.toUpperCase().startsWith(lotteryPrefix)) {
-      const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
+      const lotteryEligibleTotal = enrichedCartItems.reduce((sum, item) => {
         return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
       }, 0);
       discountAmount = Math.round((lotteryEligibleTotal * appliedCoupon.value) / 100);
@@ -242,7 +254,7 @@ export default function CartDrawer({
     } else {
       const specificProd = products.find(p => p.couponCode && p.couponCode.trim().toUpperCase() === appliedCoupon.code.toUpperCase());
       if (specificProd) {
-        const matchingCartItems = cartItems.filter(item => item.product.id === specificProd.id);
+        const matchingCartItems = enrichedCartItems.filter(item => item.product.id === specificProd.id);
         const specificTotal = matchingCartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
         const discountVal = appliedCoupon.type === 'PERCENTAGE' ? appliedCoupon.value : 15;
         discountAmount = Math.round((specificTotal * discountVal) / 100);
@@ -259,47 +271,105 @@ export default function CartDrawer({
 
   // Delivery Charge calculation based on Division mapping
   const shippingDivision = getDivisionForCity(customerCity);
-  const deliveryCharge = cartItems.length === 0
+  const deliveryCharge = enrichedCartItems.length === 0
     ? (shippingDivision === "Dhaka" ? 100 : 150)
-    : cartItems.reduce((max, item) => {
+    : enrichedCartItems.reduce((max, item) => {
         if (item.product.freeDelivery) {
           return max;
         }
         let customPrice = 150;
-        switch (shippingDivision) {
-          case "Dhaka":
-            customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 100;
-            break;
-          case "Chattogram":
-            customPrice = item.product.deliveryPriceChattogram !== undefined ? Number(item.product.deliveryPriceChattogram) : 150;
-            break;
-          case "Rajshahi":
-            customPrice = item.product.deliveryPriceRajshahi !== undefined ? Number(item.product.deliveryPriceRajshahi) : 150;
-            break;
-          case "Khulna":
-            customPrice = item.product.deliveryPriceKhulna !== undefined ? Number(item.product.deliveryPriceKhulna) : 150;
-            break;
-          case "Barishal":
-            customPrice = item.product.deliveryPriceBarishal !== undefined ? Number(item.product.deliveryPriceBarishal) : 150;
-            break;
-          case "Sylhet":
-            customPrice = item.product.deliveryPriceSylhet !== undefined ? Number(item.product.deliveryPriceSylhet) : 150;
-            break;
-          case "Rangpur":
-            customPrice = item.product.deliveryPriceRangpur !== undefined ? Number(item.product.deliveryPriceRangpur) : 150;
-            break;
-          case "Mymensingh":
-            customPrice = item.product.deliveryPriceMymensingh !== undefined ? Number(item.product.deliveryPriceMymensingh) : 150;
-            break;
-          default:
-            customPrice = item.product.deliveryPriceDhaka !== undefined ? Number(item.product.deliveryPriceDhaka) : 150;
-            break;
+        if (shippingDivision === "Dhaka") {
+          customPrice = item.product.deliveryPriceDhaka !== undefined 
+            ? Number(item.product.deliveryPriceDhaka) 
+            : (item.product.deliveryCharge !== undefined && item.product.deliveryCharge > 0 ? Number(item.product.deliveryCharge) : 100);
+        } else {
+          let specificPrice: number | undefined = undefined;
+          switch (shippingDivision) {
+            case "Chattogram":
+              specificPrice = item.product.deliveryPriceChattogram;
+              break;
+            case "Rajshahi":
+              specificPrice = item.product.deliveryPriceRajshahi;
+              break;
+            case "Khulna":
+              specificPrice = item.product.deliveryPriceKhulna;
+              break;
+            case "Barishal":
+              specificPrice = item.product.deliveryPriceBarishal;
+              break;
+            case "Sylhet":
+              specificPrice = item.product.deliveryPriceSylhet;
+              break;
+            case "Rangpur":
+              specificPrice = item.product.deliveryPriceRangpur;
+              break;
+            case "Mymensingh":
+              specificPrice = item.product.deliveryPriceMymensingh;
+              break;
+          }
+          if (specificPrice !== undefined) {
+            customPrice = Number(specificPrice);
+          } else {
+            customPrice = item.product.deliveryCharge !== undefined && item.product.deliveryCharge > 0
+              ? Number(item.product.deliveryCharge)
+              : 150;
+          }
         }
         return customPrice > max ? customPrice : max;
       }, 0);
 
-  const governingProduct = cartItems.find(item => item.product.paymentType && item.product.paymentType !== 'cod')?.product || cartItems[0]?.product;
-  let paymentType = governingProduct?.paymentType || 'cod';
+  // Helper to normalize the product's payment type
+  const getNormalizedPaymentType = (pType: string | undefined): 'cod' | 'delivery_charge' | 'full_advance' | 'percentage' => {
+    if (!pType) return 'cod';
+    const norm = pType.trim().toLowerCase();
+    if (norm === 'cod' || norm === 'cash_on_delivery') {
+      return 'cod';
+    }
+    if (norm === 'delivery_charge' || norm === 'delivery_charge_only' || norm === 'delivery_charge_advance') {
+      return 'delivery_charge';
+    }
+    if (norm === 'full_advance' || norm === 'full_advance_payment') {
+      return 'full_advance';
+    }
+    if (norm === 'percentage') {
+      return 'percentage';
+    }
+    return 'cod';
+  };
+
+  // Find the governing payment type and product from enrichedCartItems
+  let paymentType: 'cod' | 'delivery_charge' | 'full_advance' | 'percentage' = 'cod';
+  let governingProduct = enrichedCartItems[0]?.product;
+
+  if (enrichedCartItems.length > 0) {
+    const hasFullAdvance = enrichedCartItems.find(item => getNormalizedPaymentType(item.product.paymentType) === 'full_advance');
+    const hasPercentage = enrichedCartItems.find(item => getNormalizedPaymentType(item.product.paymentType) === 'percentage');
+    const hasDeliveryCharge = enrichedCartItems.find(item => getNormalizedPaymentType(item.product.paymentType) === 'delivery_charge');
+
+    if (hasFullAdvance) {
+      paymentType = 'full_advance';
+      governingProduct = hasFullAdvance.product;
+    } else if (hasPercentage) {
+      paymentType = 'percentage';
+      governingProduct = hasPercentage.product;
+    } else if (hasDeliveryCharge) {
+      paymentType = 'delivery_charge';
+      governingProduct = hasDeliveryCharge.product;
+    } else {
+      const definedPayType = enrichedCartItems.find(item => {
+        const normType = getNormalizedPaymentType(item.product.paymentType);
+        return normType && normType !== 'cod';
+      });
+      if (definedPayType) {
+        paymentType = getNormalizedPaymentType(definedPayType.product.paymentType);
+        governingProduct = definedPayType.product;
+      } else {
+        paymentType = 'cod';
+        governingProduct = enrichedCartItems[0]?.product;
+      }
+    }
+  }
+
   if (settings?.globalPaymentMethod === 'cod_only') {
     paymentType = 'cod';
   } else if (settings?.globalPaymentMethod === 'prepay_only') {
@@ -309,17 +379,9 @@ export default function CartDrawer({
   const bkashNumber = governingProduct?.bkashNumber || '';
   const nagadNumber = governingProduct?.nagadNumber || '';
 
-  const isDeliveryEnabled = governingProduct?.deliveryCharge !== undefined && governingProduct?.deliveryCharge !== null
-    ? governingProduct.deliveryCharge > 0
-    : true;
+  const resolvedDeliveryCharge = deliveryCharge;
 
-  const resolvedDeliveryCharge = isDeliveryEnabled
-    ? (governingProduct?.deliveryCharge !== undefined && governingProduct.deliveryCharge > 0
-        ? governingProduct.deliveryCharge
-        : deliveryCharge)
-    : 0;
-
-  const grandTotal = getValidatedTotal(cartItems, resolvedDeliveryCharge, discountAmount);
+  const grandTotal = getValidatedTotal(enrichedCartItems, resolvedDeliveryCharge, discountAmount);
   const advancePaymentAmount = getAdvancePaymentAmount(paymentType, resolvedDeliveryCharge, grandTotal, governingProduct?.paymentPercentage);
 
   // Set initial payment method when paymentType overrides change
@@ -381,7 +443,7 @@ export default function CartDrawer({
       const pctStr = codeUpper.replace(lotteryPrefix, '');
       const pctVal = Number(pctStr);
       if (!isNaN(pctVal) && pctVal > 0 && pctVal <= 100) {
-        const lotteryEligibleTotal = cartItems.reduce((sum, item) => {
+        const lotteryEligibleTotal = enrichedCartItems.reduce((sum, item) => {
           return sum + (item.product.lotteryEligible !== false ? getProductActivePrice(item.product) * item.quantity : 0);
         }, 0);
 
@@ -443,7 +505,7 @@ export default function CartDrawer({
     setIsTransitioningStep(true);
 
     try {
-      const formattedItems = cartItems.map(item => ({
+      const formattedItems = enrichedCartItems.map(item => ({
         title: item.product.title,
         selectedSize: item.selectedSize,
         quantity: item.quantity,
@@ -505,7 +567,7 @@ export default function CartDrawer({
     setIsCheckingOut(true);
 
     try {
-      const dbFormatItems = cartItems.map(item => ({
+      const dbFormatItems = enrichedCartItems.map(item => ({
         productId: item.product.id,
         title: item.product.title,
         price: getProductActivePrice(item.product),
@@ -660,7 +722,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#05010a]/95 border flex flex-col shadow-2xl z-10 overflow-hidden ${
               checkoutStep !== 'cart'
-                ? 'max-w-[96vw] lg:max-w-[94vw] xl:max-w-[1450px] border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[95vh] lg:h-[90vh] max-h-full sm:max-h-[95vh] lg:max-h-[90vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
+                ? 'max-w-[96vw] lg:max-w-[760px] border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[95vh] lg:h-[90vh] max-h-full sm:max-h-[95vh] lg:max-h-[90vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
                 : 'max-w-lg border-l border-white/5 h-full'
             }`}
           >
@@ -714,7 +776,7 @@ export default function CartDrawer({
                 <h4 className="font-serif text-xs text-white/80 uppercase tracking-widest mb-1 font-bold">Synchronizing</h4>
                 <p className="text-[10px] text-white/40 max-w-xs font-light">Retrieving bespoke catalog parameters...</p>
               </div>
-            ) : cartItems.length === 0 ? (
+            ) : enrichedCartItems.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <div className="w-16 h-16 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center text-luxury-gold mb-4">
                   <ShoppingBag size={24} />
@@ -736,7 +798,7 @@ export default function CartDrawer({
                   <div className="flex-1 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
                       <div className="space-y-3">
-                        {cartItems.map((item, idx) => (
+                        {enrichedCartItems.map((item, idx) => (
                           <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
                             <div 
                               onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
@@ -823,10 +885,10 @@ export default function CartDrawer({
                 {checkoutStep === 'step1' && (
                   <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                      <div className="grid grid-cols-1 gap-4 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
-                        <div className="lg:col-span-8 space-y-2.5 relative">
+                        <div className="space-y-2.5 relative">
                           <div className="flex items-center justify-between pb-1.5 border-b border-luxury-gold/30">
                             <div className="flex items-center gap-2">
                               <User size={14} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
@@ -848,14 +910,14 @@ export default function CartDrawer({
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl lg:rounded-2xl p-3.5 sm:p-4 lg:p-6 space-y-3 lg:space-y-4 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
                                 <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
                               </div>
 
-                              <div className="grid grid-cols-1 gap-3 relative z-10">
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 relative z-10">
                                 {/* Name Field */}
                                 <div className="relative group/input">
                                   <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
@@ -1017,7 +1079,7 @@ export default function CartDrawer({
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl lg:rounded-2xl p-3.5 sm:p-4 lg:p-6 space-y-3 lg:space-y-4 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
@@ -1025,8 +1087,67 @@ export default function CartDrawer({
                               </div>
 
                               <div className="space-y-3 relative z-10">
-                                {/* City / District */}
-                                <div className="relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
+                                {/* Desktop Division/District Side-by-Side Dropdowns */}
+                                <div className="hidden lg:grid grid-cols-2 gap-4">
+                                  {/* Division Select */}
+                                  <div className="relative group/input">
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin size={14} />
+                                    </div>
+                                    <select
+                                      value={getDivisionForCity(customerCity)}
+                                      onChange={(e) => {
+                                        const selectedDiv = e.target.value;
+                                        const districtsInDiv = DIVISION_MAPS[selectedDiv] || [];
+                                        if (districtsInDiv.length > 0) {
+                                          setCustomerCity(districtsInDiv[0]);
+                                        }
+                                      }}
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[13px] text-white font-bold h-[48px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                    >
+                                      {Object.keys(DIVISION_MAPS).map((div) => (
+                                        <option key={div} value={div} className="bg-[#0c0617] text-white">
+                                          {div} Division
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <label className="absolute left-9 top-1 text-[8px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                      Division *
+                                    </label>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                      <ChevronDown size={14} />
+                                    </div>
+                                  </div>
+
+                                  {/* District Select */}
+                                  <div className="relative group/input">
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin size={14} />
+                                    </div>
+                                    <select
+                                      value={customerCity}
+                                      onChange={(e) => {
+                                        setCustomerCity(e.target.value);
+                                      }}
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[13px] text-white font-bold h-[48px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                    >
+                                      {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
+                                        <option key={district} value={district} className="bg-[#0c0617] text-white">
+                                          {district}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <label className="absolute left-9 top-1 text-[8px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                      District/City *
+                                    </label>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                      <ChevronDown size={14} />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* City / District (Mobile/Tablet Only) */}
+                                <div className="lg:hidden relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
                                   <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
                                     <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
                                     <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
@@ -1203,24 +1324,24 @@ export default function CartDrawer({
                         </div>
 
                         {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
-                        <div className="lg:col-span-4 space-y-2.5">
+                        <div className="space-y-2.5">
                           <div className="flex items-center gap-2 pb-1 border-b border-white/10">
                             <ShoppingBag size={13} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
                             <span className="text-[10.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
                           </div>
                           
                           <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 shadow-xl max-h-[160px] sm:max-h-[190px] md:max-h-[220px] lg:max-h-[340px] overflow-y-auto scrollbar-hidden">
-                            {cartItems.map((item, idx) => {
+                            {enrichedCartItems.map((item, idx) => {
                               const availableSizes = item.product.sizes && item.product.sizes.length > 0 
                                 ? item.product.sizes 
                                 : ['S', 'M', 'L', 'XL', 'XXL'];
                               
                               return (
                                 <div key={idx} className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
-                                  {/* Product Photo - Make it responsive and reasonably large, but perfectly fit */}
+                                  {/* Product Photo - Consistent luxury size, perfectly fit */}
                                   <div 
                                     onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                                    className="w-11 h-11 rounded-lg overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                     title="Click to view full image"
                                   >
                                     <img 
@@ -1230,7 +1351,7 @@ export default function CartDrawer({
                                       className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110"
                                     />
                                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                      <ZoomIn size={12} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                      <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
                                     </div>
                                   </div>
 
@@ -1541,11 +1662,12 @@ export default function CartDrawer({
                           <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
                             <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[130px] md:max-h-[220px] overflow-y-auto scrollbar-hidden pr-1">
-                              {cartItems.map((item, idx) => (
-                                <div key={idx} className="flex flex-row md:flex-col gap-2.5 md:gap-2 items-center md:items-stretch bg-white/[0.01] md:bg-white/[0.03] md:p-2.5 md:rounded-lg md:border md:border-white/5 transition-all duration-300">
+                              {enrichedCartItems.map((item, idx) => (
+                                <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-2.5 rounded-xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
+                                  {/* Product Photo - Consistent luxury size, perfectly fit */}
                                   <div 
                                     onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                                    className="w-12 h-12 sm:w-14 sm:h-14 md:w-full md:h-22 lg:h-24 xl:h-26 rounded-lg overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                     title="Click to view full image"
                                   >
                                     <img 
@@ -1557,25 +1679,19 @@ export default function CartDrawer({
                                       <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
                                     </div>
                                   </div>
-                                  <div className="flex-1 min-w-0 flex flex-col md:mt-1">
-                                    <h5 className="text-[10px] sm:text-[10.5px] md:text-xs text-white font-semibold truncate font-serif">{item.product.title}</h5>
-                                    <p className="text-[8.5px] md:text-[9px] text-zinc-400 font-mono mt-0.5">
+                                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <h5 className="text-[11px] sm:text-[11.5px] text-white font-bold truncate font-serif leading-tight">{item.product.title}</h5>
+                                    <p className="text-[9px] text-zinc-400 font-mono mt-1">
                                       Size: <span className="text-[#d4af37] font-bold">{item.selectedSize}</span> | Qty: <span className="text-white font-bold">{item.quantity}</span>
                                     </p>
-                                    <p className="text-[8.5px] md:text-[9px] text-white/30 font-mono">Unit Price: ৳{getProductActivePrice(item.product)}</p>
-                                    
-                                    {/* Desktop-only total price inside details */}
-                                    <div className="hidden md:flex justify-between items-center mt-1 pt-1 border-t border-white/5">
-                                      <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Total Price</span>
-                                      <span className="font-mono text-xs font-black text-[#d4af37]">
-                                        {formatPrice(getProductActivePrice(item.product) * item.quantity)}
-                                      </span>
-                                    </div>
+                                    <p className="text-[9px] text-white/30 font-mono mt-0.5">Unit Price: ৳{getProductActivePrice(item.product)}</p>
                                   </div>
                                   
-                                  {/* Mobile-only total price layout */}
-                                  <div className="md:hidden text-right font-mono text-[10px] sm:text-xs font-bold text-white">
-                                    {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                  {/* Right-aligned clean price layout */}
+                                  <div className="text-right font-mono shrink-0 pr-1 pl-2">
+                                    <span className="text-xs font-black text-[#d4af37] block">
+                                      {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                    </span>
                                   </div>
                                 </div>
                               ))}

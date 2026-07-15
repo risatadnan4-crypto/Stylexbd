@@ -185,6 +185,12 @@ let db = {
     isLotteryDeactivated: false,
     isNotifyMeDeactivated: false,
     isXoroVoiceDisabled: false,
+    isXoroVoiceAndAnswerDisabled: false,
+    smsProvider: "mock",
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioFromNumber: "",
+    greenwebToken: "",
     globalTimerEndTime: "",
     globalTimerMessage: "",
     globalTimerActive: false,
@@ -257,6 +263,12 @@ if (fs.existsSync(DB_FILE)) {
       isLotteryDeactivated: db.settings?.isLotteryDeactivated !== undefined ? !!db.settings.isLotteryDeactivated : false,
       isNotifyMeDeactivated: db.settings?.isNotifyMeDeactivated !== undefined ? !!db.settings.isNotifyMeDeactivated : false,
       isXoroVoiceDisabled: db.settings?.isXoroVoiceDisabled !== undefined ? !!db.settings.isXoroVoiceDisabled : false,
+      isXoroVoiceAndAnswerDisabled: db.settings?.isXoroVoiceAndAnswerDisabled !== undefined ? !!db.settings.isXoroVoiceAndAnswerDisabled : false,
+      smsProvider: db.settings?.smsProvider || "mock",
+      twilioAccountSid: db.settings?.twilioAccountSid || "",
+      twilioAuthToken: db.settings?.twilioAuthToken || "",
+      twilioFromNumber: db.settings?.twilioFromNumber || "",
+      greenwebToken: db.settings?.greenwebToken || "",
       globalTimerEndTime: db.settings?.globalTimerEndTime || "",
       globalTimerMessage: db.settings?.globalTimerMessage || "",
       globalTimerActive: db.settings?.globalTimerActive !== undefined ? !!db.settings.globalTimerActive : false,
@@ -569,6 +581,7 @@ async function syncFromSupabase() {
               if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
               if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
               if (fallbackSettings.isXoroVoiceDisabled !== undefined) db.settings.isXoroVoiceDisabled = fallbackSettings.isXoroVoiceDisabled === true || fallbackSettings.isXoroVoiceDisabled === "true";
+              if (fallbackSettings.isXoroVoiceAndAnswerDisabled !== undefined) db.settings.isXoroVoiceAndAnswerDisabled = fallbackSettings.isXoroVoiceAndAnswerDisabled === true || fallbackSettings.isXoroVoiceAndAnswerDisabled === "true";
               if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
               if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
               if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
@@ -787,6 +800,9 @@ async function syncFromSupabase() {
           }
           if (configRow.isXoroVoiceDisabled !== undefined && configRow.isXoroVoiceDisabled !== null) {
             db.settings.isXoroVoiceDisabled = configRow.isXoroVoiceDisabled === true || configRow.isXoroVoiceDisabled === "true";
+          }
+          if (configRow.isXoroVoiceAndAnswerDisabled !== undefined && configRow.isXoroVoiceAndAnswerDisabled !== null) {
+            db.settings.isXoroVoiceAndAnswerDisabled = configRow.isXoroVoiceAndAnswerDisabled === true || configRow.isXoroVoiceAndAnswerDisabled === "true";
           }
           
           if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
@@ -1111,6 +1127,9 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.isXoroVoiceDisabled !== undefined && configRow.isXoroVoiceDisabled !== null) {
             db.settings.isXoroVoiceDisabled = configRow.isXoroVoiceDisabled === true || configRow.isXoroVoiceDisabled === "true";
           }
+          if (configRow.isXoroVoiceAndAnswerDisabled !== undefined && configRow.isXoroVoiceAndAnswerDisabled !== null) {
+            db.settings.isXoroVoiceAndAnswerDisabled = configRow.isXoroVoiceAndAnswerDisabled === true || configRow.isXoroVoiceAndAnswerDisabled === "true";
+          }
           
           if (configRow.globalTimerEndTime !== undefined && configRow.globalTimerEndTime !== null) db.settings.globalTimerEndTime = configRow.globalTimerEndTime;
           if (configRow.globalTimerMessage !== undefined && configRow.globalTimerMessage !== null) db.settings.globalTimerMessage = configRow.globalTimerMessage;
@@ -1255,7 +1274,8 @@ app.post("/api/settings", async (req, res) => {
       paymentBadgeTitle, paymentBadgeDescription, isCatalogDeactivated, deactivatedMessage, 
       isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl,
       globalTimerEndTime, globalTimerMessage, globalTimerActive, globalPaymentSystem, 
-      globalPaymentMethod, globalDeliveryDays, accentColor, isXoroVoiceDisabled
+      globalPaymentMethod, globalDeliveryDays, accentColor, isXoroVoiceDisabled, isXoroVoiceAndAnswerDisabled,
+      smsProvider, twilioAccountSid, twilioAuthToken, twilioFromNumber, greenwebToken
     } = req.body;
     
     db.settings = {
@@ -1278,6 +1298,12 @@ app.post("/api/settings", async (req, res) => {
       isLotteryDeactivated: isLotteryDeactivated !== undefined ? !!isLotteryDeactivated : (db.settings?.isLotteryDeactivated || false),
       isNotifyMeDeactivated: isNotifyMeDeactivated !== undefined ? !!isNotifyMeDeactivated : (db.settings?.isNotifyMeDeactivated || false),
       isXoroVoiceDisabled: isXoroVoiceDisabled !== undefined ? !!isXoroVoiceDisabled : (db.settings?.isXoroVoiceDisabled || false),
+      isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabled !== undefined ? !!isXoroVoiceAndAnswerDisabled : (db.settings?.isXoroVoiceAndAnswerDisabled || false),
+      smsProvider: smsProvider !== undefined ? smsProvider : (db.settings?.smsProvider || "mock"),
+      twilioAccountSid: twilioAccountSid !== undefined ? twilioAccountSid : (db.settings?.twilioAccountSid || ""),
+      twilioAuthToken: twilioAuthToken !== undefined ? twilioAuthToken : (db.settings?.twilioAuthToken || ""),
+      twilioFromNumber: twilioFromNumber !== undefined ? twilioFromNumber : (db.settings?.twilioFromNumber || ""),
+      greenwebToken: greenwebToken !== undefined ? greenwebToken : (db.settings?.greenwebToken || ""),
       globalTimerEndTime: globalTimerEndTime !== undefined ? globalTimerEndTime.trim() : (db.settings?.globalTimerEndTime || ""),
       globalTimerMessage: globalTimerMessage !== undefined ? globalTimerMessage.trim() : (db.settings?.globalTimerMessage || ""),
       globalTimerActive: globalTimerActive !== undefined ? !!globalTimerActive : (db.settings?.globalTimerActive || false),
@@ -2352,43 +2378,55 @@ app.post("/api/orders", async (req, res) => {
 
   // --- Strict Backend Pricing & Payment Validation ---
   function getDivisionForCityBackend(city: string): string {
-    const c = String(city || "").trim();
-    if (["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"].includes(c)) {
-      return "Dhaka";
+    const c = String(city || "").trim().toLowerCase();
+    
+    if (c.includes('ctg') || c.includes('chittagong') || c.includes('chattogram')) {
+      return 'Chattogram';
     }
-    if (["Bandarban", "Brahmanbaria", "Chandpur", "Chattogram", "Cox's Bazar", "Cumilla", "Feni", "Khagrachhari", "Lakshmipur", "Noakhali", "Rangamati"].includes(c)) {
-      return "Chattogram";
+    if (c.includes('dhaka')) {
+      return 'Dhaka';
     }
-    if (["Bogura", "Bogra", "Chapainawabganj", "Joypurhat", "Naogaon", "Natore", "Pabna", "Rajshahi", "Sirajganj"].includes(c)) {
-      return "Rajshahi";
+    if (c.includes('rajshahi')) {
+      return 'Rajshahi';
     }
-    if (["Bagerhat", "Chuadanga", "Jashore", "Jhenaidah", "Khulna", "Kushtia", "Magura", "Meherpur", "Narail", "Satkhira"].includes(c)) {
-      return "Khulna";
+    if (c.includes('khulna')) {
+      return 'Khulna';
     }
-    if (["Barguna", "Barishal", "Bhola", "Jhalokati", "Patuakhali", "Pirojpur"].includes(c)) {
-      return "Barishal";
+    if (c.includes('barishal') || c.includes('barisal')) {
+      return 'Barishal';
     }
-    if (["Habiganj", "Moulvibazar", "Sunamganj", "Sylhet"].includes(c)) {
-      return "Sylhet";
+    if (c.includes('sylhet')) {
+      return 'Sylhet';
     }
-    if (["Dinajpur", "Gaibandha", "Kurigram", "Lalmonirhat", "Nilphamari", "Panchagarh", "Rangpur", "Thakurgaon"].includes(c)) {
-      return "Rangpur";
+    if (c.includes('rangpur')) {
+      return 'Rangpur';
     }
-    if (["Jamalpur", "Mymensingh", "Netrokona", "Sherpur"].includes(c)) {
-      return "Mymensingh";
+    if (c.includes('mymensingh')) {
+      return 'Mymensingh';
     }
+
+    const divisions = [
+      { name: "Dhaka", districts: ["dhaka", "faridpur", "gazipur", "gopalganj", "kishoreganj", "madaripur", "manikganj", "munshiganj", "narayanganj", "narsingdi", "rajbari", "shariatpur", "tangail"] },
+      { name: "Chattogram", districts: ["bandarban", "brahmanbaria", "chandpur", "chattogram", "cox's bazar", "cumilla", "feni", "khagrachhari", "lakshmipur", "noakhali", "rangamati"] },
+      { name: "Rajshahi", districts: ["bogura", "bogra", "chapainawabganj", "joypurhat", "naogaon", "natore", "pabna", "rajshahi", "sirajganj"] },
+      { name: "Khulna", districts: ["bagerhat", "chuadanga", "jashore", "jhenaidah", "khulna", "kushtia", "magura", "meherpur", "narail", "satkhira"] },
+      { name: "Barishal", districts: ["barguna", "barishal", "bhola", "jhalokati", "patuakhali", "pirojpur", "barisal"] },
+      { name: "Sylhet", districts: ["habiganj", "moulvibazar", "sunamganj", "sylhet"] },
+      { name: "Rangpur", districts: ["dinajpur", "gaibandha", "kurigram", "lalmonirhat", "nilphamari", "panchagarh", "rangpur", "thakurgaon"] },
+      { name: "Mymensingh", districts: ["jamalpur", "mymensingh", "netrokona", "sherpur"] }
+    ];
+
+    for (const div of divisions) {
+      if (div.districts.some(d => c.includes(d) || d.includes(c))) {
+        return div.name;
+      }
+    }
+
     return "Outside";
   }
 
   function getProductActivePriceBackend(product: Product): number {
     if (product.offerPrice !== undefined && product.offerPrice !== null) {
-      if (product.timerEndTime) {
-        const end = new Date(product.timerEndTime).getTime();
-        const now = new Date().getTime();
-        if (end <= now) {
-          return product.price;
-        }
-      }
       return product.offerPrice;
     }
     return product.price;
@@ -2493,57 +2531,113 @@ app.post("/api/orders", async (req, res) => {
     }
 
     const shippingDivision = getDivisionForCityBackend(city);
-    const calculatedBaseDeliveryCharge = loadedProducts.reduce((max, item) => {
-      let customPrice = 150;
-      switch (shippingDivision) {
-        case "Dhaka":
-          customPrice = item.prod.deliveryPriceDhaka !== undefined ? Number(item.prod.deliveryPriceDhaka) : 100;
-          break;
-        case "Chattogram":
-          customPrice = item.prod.deliveryPriceChattogram !== undefined ? Number(item.prod.deliveryPriceChattogram) : 150;
-          break;
-        case "Rajshahi":
-          customPrice = item.prod.deliveryPriceRajshahi !== undefined ? Number(item.prod.deliveryPriceRajshahi) : 150;
-          break;
-        case "Khulna":
-          customPrice = item.prod.deliveryPriceKhulna !== undefined ? Number(item.prod.deliveryPriceKhulna) : 150;
-          break;
-        case "Barishal":
-          customPrice = item.prod.deliveryPriceBarishal !== undefined ? Number(item.prod.deliveryPriceBarishal) : 150;
-          break;
-        case "Sylhet":
-          customPrice = item.prod.deliveryPriceSylhet !== undefined ? Number(item.prod.deliveryPriceSylhet) : 150;
-          break;
-        case "Rangpur":
-          customPrice = item.prod.deliveryPriceRangpur !== undefined ? Number(item.prod.deliveryPriceRangpur) : 150;
-          break;
-        case "Mymensingh":
-          customPrice = item.prod.deliveryPriceMymensingh !== undefined ? Number(item.prod.deliveryPriceMymensingh) : 150;
-          break;
-        default:
-          customPrice = item.prod.deliveryPriceDhaka !== undefined ? Number(item.prod.deliveryPriceDhaka) : 150;
-          break;
+    const calculatedDeliveryCharge = loadedProducts.length === 0
+      ? (shippingDivision === "Dhaka" ? 100 : 150)
+      : loadedProducts.reduce((max, item) => {
+          if (item.prod.freeDelivery) {
+            return max;
+          }
+          let customPrice = 150;
+          if (shippingDivision === "Dhaka") {
+            customPrice = item.prod.deliveryPriceDhaka !== undefined 
+              ? Number(item.prod.deliveryPriceDhaka) 
+              : (item.prod.deliveryCharge !== undefined && item.prod.deliveryCharge > 0 ? Number(item.prod.deliveryCharge) : 100);
+          } else {
+            let specificPrice: number | undefined = undefined;
+            switch (shippingDivision) {
+              case "Chattogram":
+                specificPrice = item.prod.deliveryPriceChattogram;
+                break;
+              case "Rajshahi":
+                specificPrice = item.prod.deliveryPriceRajshahi;
+                break;
+              case "Khulna":
+                specificPrice = item.prod.deliveryPriceKhulna;
+                break;
+              case "Barishal":
+                specificPrice = item.prod.deliveryPriceBarishal;
+                break;
+              case "Sylhet":
+                specificPrice = item.prod.deliveryPriceSylhet;
+                break;
+              case "Rangpur":
+                specificPrice = item.prod.deliveryPriceRangpur;
+                break;
+              case "Mymensingh":
+                specificPrice = item.prod.deliveryPriceMymensingh;
+                break;
+            }
+            if (specificPrice !== undefined) {
+              customPrice = Number(specificPrice);
+            } else {
+              customPrice = item.prod.deliveryCharge !== undefined && item.prod.deliveryCharge > 0
+                ? Number(item.prod.deliveryCharge)
+                : 150;
+            }
+          }
+          return customPrice > max ? customPrice : max;
+        }, 0);
+
+    // Helper to normalize payment type
+    const getNormalizedPaymentTypeBackend = (pType: string | undefined): 'cod' | 'delivery_charge' | 'full_advance' | 'percentage' => {
+      if (!pType) return 'cod';
+      const norm = pType.trim().toLowerCase();
+      if (norm === 'cod' || norm === 'cash_on_delivery') {
+        return 'cod';
       }
-      return customPrice > max ? customPrice : max;
-    }, 0);
+      if (norm === 'delivery_charge' || norm === 'delivery_charge_only' || norm === 'delivery_charge_advance') {
+        return 'delivery_charge';
+      }
+      if (norm === 'full_advance' || norm === 'full_advance_payment') {
+        return 'full_advance';
+      }
+      if (norm === 'percentage') {
+        return 'percentage';
+      }
+      return 'cod';
+    };
 
-    const firstItemProd = loadedProducts.length > 0 ? loadedProducts[0].prod : null;
-    const advanceProd = loadedProducts.find(p => p.prod.paymentType && p.prod.paymentType !== 'cod')?.prod;
-    const resolvedGovProduct = advanceProd || firstItemProd;
+    // Resolve payment type and governing product similarly to the frontend
+    let calculatedPaymentType = 'cod';
+    let resolvedGovProduct = loadedProducts[0]?.prod;
 
-    const isDeliveryEnabled = resolvedGovProduct?.deliveryCharge !== undefined && resolvedGovProduct?.deliveryCharge !== null
-      ? (resolvedGovProduct.deliveryCharge > 0)
-      : true;
+    if (loadedProducts.length > 0) {
+      const hasFullAdvance = loadedProducts.find(p => getNormalizedPaymentTypeBackend(p.prod.paymentType) === 'full_advance');
+      const hasPercentage = loadedProducts.find(p => getNormalizedPaymentTypeBackend(p.prod.paymentType) === 'percentage');
+      const hasDeliveryCharge = loadedProducts.find(p => getNormalizedPaymentTypeBackend(p.prod.paymentType) === 'delivery_charge');
 
-    const calculatedDeliveryCharge = isDeliveryEnabled
-      ? (resolvedGovProduct?.deliveryCharge !== undefined && resolvedGovProduct.deliveryCharge > 0 
-          ? resolvedGovProduct.deliveryCharge 
-          : calculatedBaseDeliveryCharge)
-      : 0;
+      if (hasFullAdvance) {
+        calculatedPaymentType = 'full_advance';
+        resolvedGovProduct = hasFullAdvance.prod;
+      } else if (hasPercentage) {
+        calculatedPaymentType = 'percentage';
+        resolvedGovProduct = hasPercentage.prod;
+      } else if (hasDeliveryCharge) {
+        calculatedPaymentType = 'delivery_charge';
+        resolvedGovProduct = hasDeliveryCharge.prod;
+      } else {
+        const definedPayType = loadedProducts.find(p => {
+          const normType = getNormalizedPaymentTypeBackend(p.prod.paymentType);
+          return normType && normType !== 'cod';
+        });
+        if (definedPayType) {
+          calculatedPaymentType = getNormalizedPaymentTypeBackend(definedPayType.prod.paymentType);
+          resolvedGovProduct = definedPayType.prod;
+        } else {
+          calculatedPaymentType = 'cod';
+          resolvedGovProduct = loadedProducts[0]?.prod;
+        }
+      }
+    }
+
+    if (db.settings?.globalPaymentMethod === 'cod_only') {
+      calculatedPaymentType = 'cod';
+    } else if (db.settings?.globalPaymentMethod === 'prepay_only') {
+      if (calculatedPaymentType === 'cod') calculatedPaymentType = 'full_advance';
+    }
 
     const calculatedTotalAmount = Math.max(0, calculatedSubtotal - calculatedDiscountAmount + calculatedDeliveryCharge);
     traceLogs.push(`[PAYMENT_TRACE]   - Shipping Division: ${shippingDivision}`);
-    traceLogs.push(`[PAYMENT_TRACE]   - Base Courier Delivery Charge: ৳${calculatedBaseDeliveryCharge}`);
     traceLogs.push(`[PAYMENT_TRACE]   - Governing Product: "${resolvedGovProduct?.title || 'None'}", DeliveryChargeField=${resolvedGovProduct?.deliveryCharge}`);
     traceLogs.push(`[PAYMENT_TRACE]   - Resolved Courier Delivery Charge: ৳${calculatedDeliveryCharge}`);
     traceLogs.push(`[PAYMENT_TRACE]   - Final Recalculated Checkout Total: ৳${calculatedTotalAmount}`);
@@ -2897,6 +2991,127 @@ ${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionI
   res.status(201).json({ order: newOrder, whatsappUrl });
 });
 
+function formatPhoneNumber(phone: string): string {
+  if (!phone) return "";
+  let cleaned = phone.replace(/[^\d+]/g, '');
+  
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  
+  if (cleaned.startsWith('880') && cleaned.length >= 13) {
+    return `+${cleaned}`;
+  }
+  
+  if (cleaned.startsWith('01') && cleaned.length === 11) {
+    return `+88${cleaned}`;
+  }
+  
+  if (cleaned.startsWith('1') && cleaned.length === 10) {
+    return `+880${cleaned}`;
+  }
+
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    return `+88${cleaned}`;
+  }
+  
+  if (cleaned.startsWith('880')) {
+    return `+${cleaned}`;
+  }
+  
+  return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+}
+
+async function sendBanglaSMSNotification(toPhone: string, message: string) {
+  const provider = db.settings?.smsProvider || 'mock';
+  const formattedTo = formatPhoneNumber(toPhone);
+
+  console.log(`[SMS Gateway] Processing dispatch using provider: [${provider}] to: ${formattedTo}`);
+
+  if (provider === 'greenweb') {
+    const token = db.settings?.greenwebToken;
+    if (!token) {
+      throw new Error("Greenweb API Token is not configured in Admin Settings.");
+    }
+    
+    // Clean toPhone to standard digits (e.g. 017XXXXXXXX or 88017XXXXXXXX)
+    const cleanPhone = toPhone.replace(/\D/g, "");
+    const params = new URLSearchParams();
+    params.append('token', token);
+    params.append('to', cleanPhone);
+    params.append('message', message);
+    params.append('json', 'true');
+
+    const response = await fetch('https://api.greenweb.com.bd/api.php', {
+      method: 'POST',
+      body: params
+    });
+    
+    const responseText = await response.text();
+    console.log("[SMS Gateway] Greenweb raw response:", responseText);
+
+    // Greenweb typical response structure
+    // e.g. [{"status":"SUCCESS","status_code":200,"message_id":"XXXX"}] or similar.
+    // If it starts with "Authentication Failed" or similar error string:
+    if (responseText.toLowerCase().includes("fail") || responseText.toLowerCase().includes("error") || responseText.toLowerCase().includes("invalid")) {
+      throw new Error(`Greenweb API Error: ${responseText}`);
+    }
+
+    return {
+      success: true,
+      sid: "GREENWEB_" + Math.random().toString(36).substring(2, 11).toUpperCase()
+    };
+  } else if (provider === 'twilio') {
+    const accountSid = db.settings?.twilioAccountSid;
+    const authToken = db.settings?.twilioAuthToken;
+    const fromNumber = db.settings?.twilioFromNumber;
+
+    if (!accountSid || !authToken || !fromNumber) {
+      throw new Error("Twilio Account SID, Auth Token, or From Number is not configured in Admin Settings.");
+    }
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const params = new URLSearchParams();
+    params.append('To', formattedTo);
+    params.append('From', fromNumber);
+    params.append('Body', message);
+
+    const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params
+    });
+
+    const data = await response.json() as any;
+    console.log("[SMS Gateway] Twilio parsed response:", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || `Twilio API returned status ${response.status}`);
+    }
+
+    return {
+      success: true,
+      sid: data.sid || "TWILIO_MOCK_SID"
+    };
+  } else {
+    // Fallback: mock simulation
+    console.log(`[SMS Gateway Simulator] Delivering Bangla SMS to ${formattedTo}:`);
+    console.log(`----------------------------------------`);
+    console.log(message);
+    console.log(`----------------------------------------`);
+    
+    return {
+      success: true,
+      sid: "STYLE_X_BD_" + Math.random().toString(36).substring(2, 11).toUpperCase()
+    };
+  }
+}
+
 app.put("/api/orders/:id/status", async (req, res) => {
   const { status } = req.body;
   const idx = db.orders.findIndex(o => o.id === req.params.id);
@@ -2931,23 +3146,46 @@ app.put("/api/orders/:id/status", async (req, res) => {
     }
     db.notifications.unshift(newNotif);
 
-    // Simulate SMS notification for order status update if opted in
-    if (db.smsSubscriptions) {
-      const isSubscribed = db.smsSubscriptions.some(
-        (sub: any) => sub.optInSMS && (sub.phone === order.customerPhone || sub.orderId === order.id)
-      );
-      if (isSubscribed) {
-        if (!db.outboundSMSLogs) {
-          db.outboundSMSLogs = [];
-        }
-        const smsMsg = `📱 STYLE X Status Update 📱\nOrder ID: ${order.id}\nStatus: ${statusUpper}\n\nMessage: ${notifMsg}`;
-        db.outboundSMSLogs.unshift({
-          id: `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-          phone: order.customerPhone,
-          message: smsMsg,
-          timestamp: new Date().toISOString()
-        });
+    // Prepare Bangla Premium SMS message
+    let smsMsg = "";
+    if (statusUpper === 'CONFIRMED' || statusUpper === 'APPROVED' || statusUpper === 'PACKED') {
+      smsMsg = `👑 STYLE X LUXURY 👑\n\nপ্রিয় ${order.customerName || 'গ্রাহক'},\nআপনার অর্ডারকৃত প্রিমিয়াম প্রোডাক্ট #${order.id} অত্যন্ত যত্নের সাথে প্যাকেট (PACKED) করা হয়েছে। এটি এখন নিরাপদ ও অগ্রাধিকার ভিত্তিতে কুরিয়ারে হস্তান্তরের জন্য প্রস্তুত। STYLE X সাথে থাকার জন্য ধন্যবাদ!\n\n(Bespoke Order #${order.id} has been PACKED and is ready for courier delivery.)`;
+    } else if (statusUpper === 'SHIPPED' || statusUpper === 'DISPATCHED') {
+      smsMsg = `👑 STYLE X LUXURY 👑\n\nপ্রিয় ${order.customerName || 'গ্রাহক'},\nখুশির খবর! আপনার অর্ডারটি #${order.id} আমাদের সেন্ট্রাল হাব থেকে শিপড (SHIPPED) করা হয়েছে এবং বর্তমানে আপনার গন্তব্য ${order.customerCity || 'ঠিকানা'} অভিমুখে পাঠানো হচ্ছে। ধন্যবাদ!\n\n(Order #${order.id} has left central hub and is SHIPPED on route to ${order.customerCity || 'destination'}.)`;
+    }
+
+    if (smsMsg) {
+      if (!db.outboundSMSLogs) {
+        db.outboundSMSLogs = [];
       }
+      
+      const smsLogId = `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const logEntry = {
+        id: smsLogId,
+        phone: order.customerPhone,
+        message: smsMsg,
+        timestamp: new Date().toISOString(),
+        system: "STYLE X Bangla Gateway",
+        status: "Initiating"
+      };
+      db.outboundSMSLogs.unshift(logEntry);
+
+      // Trigger SMS Notification asynchronously
+      sendBanglaSMSNotification(order.customerPhone, smsMsg).then((smsRes) => {
+        const foundLog = db.outboundSMSLogs.find((l: any) => l.id === smsLogId);
+        if (foundLog) {
+          foundLog.status = "Delivered ✔️";
+          foundLog.sid = smsRes.sid;
+          saveDB();
+        }
+      }).catch((e: any) => {
+        console.error("⚠️ Async SMS dispatcher error:", e);
+        const foundLog = db.outboundSMSLogs.find((l: any) => l.id === smsLogId);
+        if (foundLog) {
+          foundLog.status = `Failed ❌ (${e.message || e})`;
+          saveDB();
+        }
+      });
     }
 
     saveDB();
@@ -3205,6 +3443,47 @@ app.delete("/api/sms-logs", (req, res) => {
   db.outboundSMSLogs = [];
   saveDB();
   res.json({ success: true, message: "Logs cleared." });
+});
+
+app.post("/api/sms-logs/send", async (req, res) => {
+  const { phone, message } = req.body;
+  if (!phone || !message) {
+    return res.status(400).json({ error: "Phone and message are required." });
+  }
+  
+  if (!db.outboundSMSLogs) {
+    db.outboundSMSLogs = [];
+  }
+  
+  const smsLogId = `sms-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const logEntry = {
+    id: smsLogId,
+    phone: phone,
+    message: message,
+    timestamp: new Date().toISOString(),
+    system: "STYLE X Bangla Gateway",
+    status: "Initiating"
+  };
+  db.outboundSMSLogs.unshift(logEntry);
+  
+  try {
+    const smsRes = await sendBanglaSMSNotification(phone, message);
+    const foundLog = db.outboundSMSLogs.find((l: any) => l.id === smsLogId);
+    if (foundLog) {
+      foundLog.status = "Delivered ✔️";
+      foundLog.sid = smsRes.sid;
+      saveDB();
+    }
+    res.json({ success: true, logEntry: foundLog || logEntry });
+  } catch (err: any) {
+    console.error("⚠️ Manual SMS delivery error:", err);
+    const foundLog = db.outboundSMSLogs.find((l: any) => l.id === smsLogId);
+    if (foundLog) {
+      foundLog.status = `Failed ❌ (${err.message || err})`;
+      saveDB();
+    }
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post("/api/coupons", async (req, res) => {
@@ -3761,6 +4040,10 @@ app.post("/api/xoro/chat", async (req, res) => {
   try {
     const { message, history, cart, currentPage, currentProduct } = req.body;
 
+    if (db.settings?.isXoroVoiceAndAnswerDisabled) {
+      return res.json({ text: "দুঃখিত, জোরো অ্যাসিস্ট্যান্টের ভয়েস এবং উত্তর দেওয়ার সুবিধাটি এডমিন দ্বারা নিষ্ক্রিয় করা রয়েছে।" });
+    }
+
     if (!message) {
       return res.status(400).json({ message: "Message is required." });
     }
@@ -3974,6 +4257,45 @@ Instructions for replies:
   } catch (err: any) {
     res.status(500).json({ message: "Xoro assistant failed: " + err.message });
   }
+});
+
+// Dynamically generated XML Sitemap for Search Engine Optimizations
+app.get("/sitemap.xml", (req, res) => {
+  const baseUrl = "https://stylex.premium.shop";
+  const currentDate = new Date().toISOString().split("T")[0];
+
+  // Base pages of Style X
+  const pages = [
+    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+    { loc: `${baseUrl}/#catalog`, priority: "0.8", changefreq: "weekly" },
+    { loc: `${baseUrl}/#catalog?category=MEN`, priority: "0.7", changefreq: "weekly" },
+    { loc: `${baseUrl}/#catalog?category=WOMEN`, priority: "0.7", changefreq: "weekly" },
+    { loc: `${baseUrl}/#catalog?category=UNISEX`, priority: "0.7", changefreq: "weekly" },
+  ];
+
+  // Include dynamic products from active luxury database
+  const productPages = (db.products || []).map((prod: any) => ({
+    loc: `${baseUrl}/?product=${encodeURIComponent(prod.code || prod.id)}`,
+    priority: "0.9",
+    changefreq: "weekly"
+  }));
+
+  const allPages = [...pages, ...productPages];
+
+  const xmlEntries = allPages.map(page => `  <url>
+    <loc>${page.loc}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join("\n");
+
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${xmlEntries}
+</urlset>`;
+
+  res.header("Content-Type", "application/xml");
+  res.send(sitemapXml);
 });
 
 // Vite & Production Setup Middleware

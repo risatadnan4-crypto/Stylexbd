@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -36,7 +37,109 @@ export default function ProductDetailModal({
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
 
-  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null && (!product.timerEndTime || !timerExpired);
+  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
+
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll locking and scroll-to-top logic
+  useEffect(() => {
+    if (isOpen) {
+      // Reset scrollTop of the inner scrollable container to 0
+      const handleScrollReset = () => {
+        if (scrollBodyRef.current) {
+          scrollBodyRef.current.scrollTop = 0;
+        }
+      };
+      // Perform immediately and also double-check via animation frame and tiny timeout
+      handleScrollReset();
+      requestAnimationFrame(handleScrollReset);
+      const timer = setTimeout(handleScrollReset, 50);
+
+      // Lock parent/background page scrolling
+      const prevScrollY = window.scrollY;
+
+      // Check if Lenis smooth scrolling engine is running on window
+      const lenis = (window as any).lenis;
+      if (lenis) {
+        lenis.stop();
+      }
+
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+
+      // Prevent layout shift by adding padding equal to scrollbar width
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        clearTimeout(timer);
+        if (lenis) {
+          lenis.start();
+        }
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+        // Restore parent/background page scroll position exactly
+        window.scrollTo(0, prevScrollY);
+      };
+    }
+  }, [isOpen]);
+
+  // Dynamically inject Product JSON-LD structured data for Google Search snippet optimization
+  useEffect(() => {
+    if (isOpen && product) {
+      // Remove any existing product schema script
+      const existingScript = document.getElementById("dynamic-product-jsonld");
+      if (existingScript) {
+        existingScript.remove();
+      }
+
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.id = "dynamic-product-jsonld";
+
+      const sellingPrice = product.offerPrice !== undefined && product.offerPrice !== null ? product.offerPrice : product.price;
+
+      const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.title,
+        "image": [product.imageUrl, ...(product.images || [])].filter(Boolean),
+        "description": product.whyBuy || product.description || "Premium luxury signature clothing garment from Style X.",
+        "sku": product.code || product.id,
+        "mpn": product.code || product.id,
+        "brand": {
+          "@type": "Brand",
+          "name": "Style X"
+        },
+        "offers": {
+          "@type": "Offer",
+          "url": `${window.location.origin}/?product=${encodeURIComponent(product.code || product.id)}`,
+          "priceCurrency": "BDT",
+          "price": sellingPrice,
+          "priceValidUntil": "2027-12-31",
+          "itemCondition": "https://schema.org/NewCondition",
+          "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "seller": {
+            "@type": "Organization",
+            "name": "Style X"
+          }
+        }
+      };
+
+      script.textContent = JSON.stringify(productSchema);
+      document.head.appendChild(script);
+
+      return () => {
+        const scriptToRemove = document.getElementById("dynamic-product-jsonld");
+        if (scriptToRemove) {
+          scriptToRemove.remove();
+        }
+      };
+    }
+  }, [isOpen, product]);
 
   // Hover-to-zoom magnifier states
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
@@ -219,7 +322,7 @@ export default function ProductDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 md:p-10 overflow-hidden">
       {/* Absolute gray backing dim */}
       <div 
         onClick={onClose}
@@ -227,7 +330,7 @@ export default function ProductDetailModal({
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-4xl bg-[#080808] border border-luxury-gold/20 rounded-lg p-5 md:p-8 text-left shadow-2xl z-10 overflow-y-auto max-h-[90vh] animate-fade-in gold-glow-border">
+      <div className="relative w-full max-w-4xl bg-[#080808] border border-luxury-gold/20 rounded-lg p-5 md:p-8 text-left shadow-2xl z-10 flex flex-col overflow-hidden max-h-[calc(100vh-48px)] md:max-h-[calc(100vh-80px)] animate-fade-in gold-glow-border">
         
         {/* Close Button top-right */}
         <button 
@@ -238,7 +341,13 @@ export default function ProductDetailModal({
           <X size={18} />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+        {/* Scrollable Modal Body Container */}
+        <div 
+          ref={scrollBodyRef}
+          id="product-modal-scroll-body"
+          className="overflow-y-auto flex-1 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
           
           {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
           <div className="space-y-4 w-full">
@@ -328,72 +437,125 @@ export default function ProductDetailModal({
           <div className="flex flex-col justify-between space-y-5">
             
             <div className="space-y-4">
-              {hasActiveOffer ? (
-                <div className="space-y-2 animate-fade-in">
-                  <div className="flex items-baseline gap-3">
-                    <span className="luxury-animated-price text-4xl font-black text-emerald-400 tracking-widest animate-pulse">
-                      {formatPrice(product.offerPrice!)}
-                    </span>
-                    <span className="text-sm text-rose-500 line-through font-serif font-black decoration-white/30 decoration-[1.5px]">
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
-                  
-                  {/* Countdown banner inside modal */}
-                  {timeLeft && !timerExpired && (
-                    <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
-                      
-                      {product.timerMessage && (
-                        <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
-                          <span>{product.timerMessage}</span>
+              {(() => {
+                const originalPrice = product.price;
+                const sellingPrice = hasActiveOffer ? product.offerPrice! : product.price;
+                const savings = originalPrice - sellingPrice;
+                const discountPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
+                const hasDiscount = savings > 0;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Premium Luxury Price Display Section with smooth fade-in and slide transition on change */}
+                    <motion.div
+                      key={product.id + '-' + sellingPrice}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-2"
+                    >
+                      {/* Top: Red rounded discount badge */}
+                      {hasDiscount && (
+                        <div className="flex items-center relative z-20">
+                          <span
+                            style={{
+                              backgroundColor: '#FF2D55',
+                              color: '#FFFFFF',
+                              borderRadius: '9999px',
+                              fontWeight: 700,
+                              boxShadow: '0 2px 10px rgba(255, 45, 85, 0.35)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 30,
+                              lineHeight: '1',
+                              textTransform: 'uppercase',
+                            }}
+                            className="text-[12px] md:text-[14px] py-[6px] px-[12px] md:py-[8px] md:px-[14px] font-sans tracking-wide"
+                          >
+                            {discountPercent}% OFF
+                          </span>
                         </div>
                       )}
-                      
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
-                        <span className="text-white/60 text-[10px] sm:text-xs uppercase tracking-widest font-black flex items-center gap-1.5 shrink-0 justify-center sm:justify-start">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          TIME LEFT:
-                        </span>
+
+                      {/* Main & Original Price Row */}
+                      <div className="flex items-baseline flex-wrap gap-3.5 select-all font-display">
+                        {/* Main Price */}
+                        <div className="text-[34px] md:text-[45px] font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-baseline">
+                          <span className="text-[0.72em] font-serif font-bold mr-0.5 relative -top-[0.05em] select-none">৳</span>
+                          <span className="font-sans font-black tracking-tight">{sellingPrice.toLocaleString('en-US')}</span>
+                        </div>
+
+                        {/* Original Price */}
+                        {hasDiscount && (
+                          <div className="text-sm md:text-base text-zinc-500 line-through font-medium tracking-wide decoration-zinc-600 decoration-1">
+                            <span>৳</span>
+                            <span>{originalPrice.toLocaleString('en-US')}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Savings section */}
+                      {hasDiscount && (
+                        <div className="text-[11px] md:text-xs font-mono font-bold tracking-wide text-emerald-400 flex items-center gap-1.5 bg-emerald-500/5 px-2.5 py-1 rounded-lg w-max border border-emerald-500/10 shadow-[0_2px_6px_rgba(16,185,129,0.03)]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>You Save ৳{savings.toLocaleString('en-US')}</span>
+                        </div>
+                      )}
+                    </motion.div>
+
+                    {/* Countdown banner inside modal */}
+                    {hasActiveOffer && timeLeft && !timerExpired && (
+                      <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         
-                        <div className="flex items-center gap-1.5 sm:gap-2.5 font-mono justify-center sm:justify-end w-full sm:w-auto">
-                          {timeLeft.days > 0 && (
-                            <>
-                              <div className="flex flex-col items-center">
-                                <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.days).padStart(2, '0')}</span>
-                                <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">days</span>
-                              </div>
-                              <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
-                            </>
-                          )}
-                          
-                          <div className="flex flex-col items-center">
-                            <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.hours).padStart(2, '0')}</span>
-                            <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">hours</span>
+                        {product.timerMessage && (
+                          <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+                            <span>{product.timerMessage}</span>
                           </div>
-                          <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                        )}
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
+                          <span className="text-white/60 text-[10px] sm:text-xs uppercase tracking-widest font-black flex items-center gap-1.5 shrink-0 justify-center sm:justify-start">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            TIME LEFT:
+                          </span>
                           
-                          <div className="flex flex-col items-center">
-                            <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                            <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">mins</span>
-                          </div>
-                          <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
-                          
-                          <div className="flex flex-col items-center">
-                            <span className="bg-luxury-black/95 border border-red-500/50 px-2.5 py-1.5 rounded-lg text-red-400 font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_0_12px_rgba(239,68,68,0.25)]">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                            <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2.5 font-mono justify-center sm:justify-end w-full sm:w-auto">
+                            {timeLeft.days > 0 && (
+                              <>
+                                <div className="flex flex-col items-center">
+                                  <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.days).padStart(2, '0')}</span>
+                                  <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">days</span>
+                                </div>
+                                <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                              </>
+                            )}
+                            
+                            <div className="flex flex-col items-center">
+                              <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.hours).padStart(2, '0')}</span>
+                              <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">hours</span>
+                            </div>
+                            <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                            
+                            <div className="flex flex-col items-center">
+                              <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                              <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">mins</span>
+                            </div>
+                            <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                            
+                            <div className="flex flex-col items-center">
+                              <span className="bg-luxury-black/95 border border-red-500/50 px-2.5 py-1.5 rounded-lg text-red-400 font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_0_12px_rgba(239,68,68,0.25)]">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                              <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="luxury-animated-price text-luxury-gold text-3xl font-black tracking-widest">
-                  {formatPrice(product.price)}
-                </p>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Stock check progress visual */}
               <div className="border border-white/5 bg-[#090312]/60 p-4 rounded-xl shadow-inner backdrop-blur-sm">
@@ -419,61 +581,76 @@ export default function ProductDetailModal({
                   <span>Payment Security Policy:</span>
                   <span className="text-[#ffd700] font-bold">SECURED GATEWAY</span>
                 </div>
-                {product.paymentType === 'full_advance' ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-serif font-semibold text-rose-300 uppercase tracking-wider">
-                      👑 Full Advance Payment Required
-                    </p>
-                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
-                      To secure your bespoke creation order, full payment is required in advance.
-                    </p>
-                    {(product.bkashNumber || product.nagadNumber) && (
-                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
-                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
-                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                {(() => {
+                  const norm = product.paymentType ? product.paymentType.trim().toLowerCase() : 'cod';
+                  const isFullAdvance = norm === 'full_advance' || norm === 'full_advance_payment';
+                  const isDeliveryCharge = norm === 'delivery_charge' || norm === 'delivery_charge_only' || norm === 'delivery_charge_advance';
+                  const isPercentage = norm === 'percentage';
+
+                  if (isFullAdvance) {
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-xs font-serif font-semibold text-rose-300 uppercase tracking-wider">
+                          👑 Full Advance Payment Required
+                        </p>
+                        <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                          To secure your bespoke creation order, full payment is required in advance.
+                        </p>
+                        {(product.bkashNumber || product.nagadNumber) && (
+                          <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                            {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                            {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : product.paymentType === 'delivery_charge' ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-serif font-semibold text-amber-300 uppercase tracking-wider">
-                      📦 Delivery Charge Advance Required (৳{product.deliveryCharge || 100})
-                    </p>
-                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
-                      Pay the courier delivery charge of ৳{product.deliveryCharge || 100} in advance to confirm booking; the balance is paid cash-on-delivery.
-                    </p>
-                    {(product.bkashNumber || product.nagadNumber) && (
-                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
-                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
-                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                    );
+                  } else if (isDeliveryCharge) {
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-xs font-serif font-semibold text-amber-300 uppercase tracking-wider">
+                          📦 Delivery Charge Advance Required (৳{product.deliveryCharge || 100})
+                        </p>
+                        <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                          Pay the courier delivery charge of ৳{product.deliveryCharge || 100} in advance to confirm booking; the balance is paid cash-on-delivery.
+                        </p>
+                        {(product.bkashNumber || product.nagadNumber) && (
+                          <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                            {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                            {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : product.paymentType === 'percentage' ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-serif font-semibold text-purple-400 uppercase tracking-wider">
-                      💎 Partial Advance Payment Required ({product.paymentPercentage || 10}%)
-                    </p>
-                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
-                      Pay {product.paymentPercentage || 10}% of the grand total in advance to confirm booking; the rest is paid cash-on-delivery.
-                    </p>
-                    {(product.bkashNumber || product.nagadNumber) && (
-                      <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
-                        {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
-                        {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                    );
+                  } else if (isPercentage) {
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-xs font-serif font-semibold text-purple-400 uppercase tracking-wider">
+                          💎 Partial Advance Payment Required ({product.paymentPercentage || 10}%)
+                        </p>
+                        <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                          Pay {product.paymentPercentage || 10}% of the grand total in advance to confirm booking; the rest is paid cash-on-delivery.
+                        </p>
+                        {(product.bkashNumber || product.nagadNumber) && (
+                          <div className="flex flex-wrap gap-2 pt-1 font-mono text-[9px]">
+                            {product.bkashNumber && <span className="bg-pink-950/40 border border-pink-500/20 text-pink-300 px-2.5 py-1 rounded">bKash: {product.bkashNumber}</span>}
+                            {product.nagadNumber && <span className="bg-amber-950/40 border border-amber-500/20 text-amber-300 px-2.5 py-1 rounded">Nagad: {product.nagadNumber}</span>}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-xs font-serif font-semibold text-emerald-400 uppercase tracking-wider">
-                      ⚜️ 100% Cash on Delivery Available
-                    </p>
-                    <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
-                      No advance payment needed. Pay in full upon physical handoff at delivery.
-                    </p>
-                  </div>
-                )}
+                    );
+                  } else {
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-xs font-serif font-semibold text-emerald-400 uppercase tracking-wider">
+                          ⚜️ 100% Cash on Delivery Available
+                        </p>
+                        <p className="text-[10px] text-zinc-300 leading-relaxed font-light">
+                          No advance payment needed. Pay in full upon physical handoff at delivery.
+                        </p>
+                      </div>
+                    );
+                  }
+                })()}
               </div>
 
               <div className="text-xs space-y-2.5 leading-relaxed border-t border-white/5 pt-4">
@@ -815,13 +992,22 @@ export default function ProductDetailModal({
 
             {/* Security Badge tags */}
             <div className="border-t border-white/5 pt-3.5 flex items-center justify-center gap-2.5 text-[10px] text-white/40 uppercase tracking-widest font-mono text-center">
-              <span>⚜️ {product.paymentType === 'full_advance' ? '100% SECURED PAYMENT' : product.paymentType === 'delivery_charge' ? 'DELIVERY CHARGE SECURED' : product.paymentType === 'percentage' ? `${product.paymentPercentage || 10}% PARTIAL ADVANCE` : 'CASH ON DELIVERY AVAILABLE'}</span>
+              <span>⚜️ {(() => {
+                const norm = product.paymentType ? product.paymentType.trim().toLowerCase() : 'cod';
+                if (norm === 'full_advance' || norm === 'full_advance_payment') return '100% SECURED PAYMENT';
+                if (norm === 'delivery_charge' || norm === 'delivery_charge_only' || norm === 'delivery_charge_advance') return 'DELIVERY CHARGE SECURED';
+                if (norm === 'percentage') return `${product.paymentPercentage || 10}% PARTIAL ADVANCE`;
+                return 'CASH ON DELIVERY AVAILABLE';
+              })()}</span>
               <span>•</span>
               <span>VIP SHAPE ENGINE GUARANTEED ⚜️</span>
             </div>
 
           </div>
 
+        </div>
+
+        {/* End of Scrollable Modal Body Container */}
         </div>
 
       </div>

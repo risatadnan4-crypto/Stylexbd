@@ -78,7 +78,7 @@ export default function Navbar({
             ease: "easeInOut"
           }
         }}
-        className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-2.5 pb-1.5 px-4 md:px-6 rounded-2xl border border-white/10 bg-[#0e071e]/50 backdrop-blur-md relative overflow-hidden"
+        className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-2.5 pb-1.5 px-4 md:px-6 rounded-2xl border border-white/10 bg-[#0e071e]/50 backdrop-blur-md relative"
       >
         {/* Dynamic ambient moving neon glow behind navigation */}
         <div className="absolute inset-0 bg-gradient-to-r from-luxury-purple/5 via-luxury-gold/5 to-luxury-purple/5 opacity-40 blur-xl rounded-2xl pointer-events-none -z-10 animate-pulse duration-[5000ms]" />
@@ -171,10 +171,20 @@ export default function Navbar({
                       }}
                       className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
                     >
-                      <History size={13} className="text-luxury-gold animate-pulse" />
-                      My Profile & Orders
+                      <User size={13} className="text-luxury-gold" />
+                      My VIP Profile
                     </button>
                   )}
+                  <button 
+                    onClick={() => {
+                      setShowPortalMenu(false);
+                      onTrackOrderClick();
+                    }}
+                    className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                  >
+                    <History size={13} className="text-luxury-gold animate-pulse" />
+                    My Orders ↗
+                  </button>
                   <button 
                     onClick={() => {
                       setShowPortalMenu(false);
@@ -342,10 +352,20 @@ export default function Navbar({
                             }}
                             className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
                           >
-                            <History size={13} className="text-luxury-gold animate-pulse" />
-                            My Profile & Orders
+                            <User size={13} className="text-luxury-gold" />
+                            My VIP Profile
                           </button>
                         )}
+                        <button 
+                          onClick={() => {
+                            setShowPortalMenu(false);
+                            onTrackOrderClick();
+                          }}
+                          className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                        >
+                          <History size={13} className="text-luxury-gold animate-pulse" />
+                          My Orders ↗
+                        </button>
                         <button 
                           onClick={() => {
                             setShowPortalMenu(false);
