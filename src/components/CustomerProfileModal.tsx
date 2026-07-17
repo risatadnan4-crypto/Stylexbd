@@ -972,10 +972,10 @@ function WishlistItemCard({
       <div className="flex items-center gap-1.5 justify-start text-left mb-2.5">
         {product.offerPrice ? (
           <>
-            <span className="text-luxury-gold font-mono font-bold text-xs">
+            <span className="text-luxury-gold font-mono font-black text-xs bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(212,175,85,0.4)]">
               {formatPrice(product.offerPrice)}
             </span>
-            <span className="text-[9.5px] text-white/40 line-through font-mono">
+            <span className="text-[#FF2D55] line-through font-mono font-bold text-xs decoration-[#FF2D55]/70 decoration-[1.5px] opacity-85">
               {formatPrice(product.price)}
             </span>
           </>

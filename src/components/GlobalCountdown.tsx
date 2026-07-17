@@ -19,7 +19,13 @@ export function GlobalCountdown({ endTime, message, active }: GlobalCountdownPro
     }
 
     const calculateTimeLeft = () => {
-      const difference = new Date(endTime).getTime() - Date.now();
+      const targetTime = new Date(endTime).getTime();
+      if (isNaN(targetTime)) {
+        setTimeLeft(null);
+        setExpired(true);
+        return;
+      }
+      const difference = targetTime - Date.now();
       if (difference <= 0) {
         setTimeLeft(null);
         setExpired(true);

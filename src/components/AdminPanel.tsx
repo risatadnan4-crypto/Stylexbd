@@ -3,7 +3,7 @@ import {
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
-  Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send
+  Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
@@ -63,7 +63,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts' | 'sms'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts' | 'sms' | 'customer_phones'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -82,6 +82,15 @@ export default function AdminPanel({
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [backInStockAlerts, setBackInStockAlerts] = useState<any[]>([]);
   const [smsLogs, setSmsLogs] = useState<any[]>([]);
+  const [customerPhones, setCustomerPhones] = useState<any[]>([]);
+  const [fetchingCustomerPhones, setFetchingCustomerPhones] = useState(false);
+  const [manualPhoneInput, setManualPhoneInput] = useState('');
+  const [manualNameInput, setManualNameInput] = useState('');
+  const [manualEmailInput, setManualEmailInput] = useState('');
+  const [manualSourceInput, setManualSourceInput] = useState('manual');
+  const [isAddingPhone, setIsAddingPhone] = useState(false);
+  const [phoneSearchQuery, setPhoneSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [fetchingSmsLogs, setFetchingSmsLogs] = useState(false);
   const [manualSmsPhone, setManualSmsPhone] = useState('');
   const [manualSmsMsg, setManualSmsMsg] = useState('');
@@ -684,12 +693,14 @@ export default function AdminPanel({
   const [formOldPriceField, setFormOldPriceField] = useState<number | ''>('');
   const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
   const [formTimerMessage, setFormTimerMessage] = useState<string>('');
+  const [formTimerActive, setFormTimerActive] = useState<boolean>(true);
   const [formBkashNumber, setFormBkashNumber] = useState<string>('');
   const [formNagadNumber, setFormNagadNumber] = useState<string>('');
   const [formPaymentType, setFormPaymentType] = useState<'cod' | 'delivery_charge' | 'full_advance' | 'percentage'>('cod');
   const [formPaymentPercentage, setFormPaymentPercentage] = useState<number>(10);
   const [formDeliveryCharge, setFormDeliveryCharge] = useState<number>(100);
   const [formDeliveryDays, setFormDeliveryDays] = useState<string>('3-5');
+  const [formLikes, setFormLikes] = useState<number>(0);
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -726,6 +737,7 @@ export default function AdminPanel({
     fetchChats();
     fetchAlerts();
     fetchSmsLogs();
+    fetchCustomerPhones();
 
     const interval = setInterval(() => {
       // Periodic poll for dynamic admin updates (e.g. Chat alerts)
@@ -733,6 +745,7 @@ export default function AdminPanel({
       fetchChats();
       fetchAlerts();
       fetchSmsLogs();
+      fetchCustomerPhones();
     }, 8000);
 
     return () => clearInterval(interval);
@@ -818,6 +831,71 @@ export default function AdminPanel({
       }
     } catch (e) {
       console.warn("⚠️ Failed to load restock alerts:", e);
+    }
+  };
+
+  const fetchCustomerPhones = async () => {
+    setFetchingCustomerPhones(true);
+    try {
+      const res = await fetch('/api/customer-phones');
+      if (res.ok) {
+        setCustomerPhones(await res.json());
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to load customer phones:", e);
+    } finally {
+      setFetchingCustomerPhones(false);
+    }
+  };
+
+  const handleAddCustomerPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualPhoneInput) {
+      setAdminToast({ message: "ফোন নম্বর প্রদান করুন। (Please enter phone number.)", type: 'error' });
+      return;
+    }
+    try {
+      const res = await fetch('/api/customer-phones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: manualPhoneInput,
+          name: manualNameInput,
+          email: manualEmailInput,
+          source: manualSourceInput
+        })
+      });
+      if (res.ok) {
+        setAdminToast({ message: "ফোন নম্বর সফলভাবে সংরক্ষণ করা হয়েছে! (Phone successfully stored!)", type: 'success' });
+        setManualPhoneInput('');
+        setManualNameInput('');
+        setManualEmailInput('');
+        setManualSourceInput('manual');
+        setIsAddingPhone(false);
+        fetchCustomerPhones();
+      } else {
+        const err = await res.json();
+        setAdminToast({ message: err.error || "সংরক্ষণ ব্যর্থ হয়েছে (Save failed)", type: 'error' });
+      }
+    } catch (e) {
+      setAdminToast({ message: "সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে (Connection error)", type: 'error' });
+    }
+  };
+
+  const handleDeleteCustomerPhone = async (phone: string) => {
+    if (!window.confirm("Are you sure you want to delete this customer phone number?")) return;
+    try {
+      const res = await fetch(`/api/customer-phones/${phone}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setAdminToast({ message: "নম্বরটি সফলভাবে মুছে ফেলা হয়েছে! (Phone deleted!)", type: 'success' });
+        fetchCustomerPhones();
+      } else {
+        setAdminToast({ message: "মুছে ফেলা ব্যর্থ হয়েছে (Delete failed)", type: 'error' });
+      }
+    } catch (e) {
+      setAdminToast({ message: "সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে (Connection error)", type: 'error' });
     }
   };
 
@@ -1173,9 +1251,8 @@ export default function AdminPanel({
     setLoading(true);
     const parsedSizes = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
-    const isDiscountFromOldField = formOldPriceField !== '' && Number(formOldPriceField) > 0;
-    const finalPrice = isDiscountFromOldField ? Number(formOldPriceField) : Number(formPrice);
-    const finalOfferPrice = isDiscountFromOldField ? Number(formPrice) : (formOfferPrice !== '' ? Number(formOfferPrice) : null);
+    const finalPrice = Number(formPrice);
+    const finalOfferPrice = formOfferPrice !== '' ? Number(formOfferPrice) : null;
 
     const productPayload = {
       title: formTitle,
@@ -1207,12 +1284,14 @@ export default function AdminPanel({
       offerPrice: finalOfferPrice,
       timerEndTime: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
+      timerActive: formTimerActive,
       bkashNumber: formBkashNumber,
       nagadNumber: formNagadNumber,
       paymentType: formPaymentType,
       paymentPercentage: Number(formPaymentPercentage || 10),
       deliveryCharge: Number(formDeliveryCharge || 100),
-      deliveryDays: formDeliveryDays || '3-5'
+      deliveryDays: formDeliveryDays || '3-5',
+      likes: Number(formLikes || 0)
     };
 
     try {
@@ -1254,12 +1333,14 @@ export default function AdminPanel({
         setFormOfferDiscountPercent('');
         setFormTimerEndTime('');
         setFormTimerMessage('');
+        setFormTimerActive(true);
         setFormBkashNumber('');
         setFormNagadNumber('');
         setFormPaymentType('cod');
         setFormPaymentPercentage(10);
         setFormDeliveryCharge(100);
         setFormDeliveryDays('3-5');
+        setFormLikes(0);
         setUploadProgress('');
         setFormError('');
 
@@ -1284,14 +1365,16 @@ export default function AdminPanel({
     setFormTitle(prod.title);
     setFormDescription(prod.description);
     
-    if (prod.offerPrice !== undefined && prod.offerPrice !== null) {
-      setFormPrice(prod.offerPrice);
-      setFormOldPriceField(prod.price);
-      setFormOfferPrice(prod.offerPrice);
+    setFormPrice(prod.price);
+    setFormOldPriceField('');
+    const hasOffer = prod.offerPrice !== undefined && prod.offerPrice !== null && Number(prod.offerPrice) > 0;
+    if (hasOffer) {
+      setFormOfferPrice(Number(prod.offerPrice));
+      const calculatedPercent = Math.round(((prod.price - Number(prod.offerPrice)) / prod.price) * 100);
+      setFormOfferDiscountPercent(calculatedPercent > 0 && calculatedPercent <= 100 ? calculatedPercent : '');
     } else {
-      setFormPrice(prod.price);
-      setFormOldPriceField('');
       setFormOfferPrice('');
+      setFormOfferDiscountPercent('');
     }
     
     setFormDeliveryPrice(prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100);
@@ -1316,17 +1399,16 @@ export default function AdminPanel({
     setFormFreeDelivery(prod.freeDelivery || false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
-    setFormOfferPrice(prod.offerPrice !== undefined && prod.offerPrice !== null ? prod.offerPrice : '');
-    const calculatedPercent = prod.offerPrice && prod.price ? Math.round(((prod.price - prod.offerPrice) / prod.price) * 100) : '';
-    setFormOfferDiscountPercent(calculatedPercent);
     setFormTimerEndTime(prod.timerEndTime || '');
     setFormTimerMessage(prod.timerMessage || '');
+    setFormTimerActive(prod.timerActive !== false);
     setFormBkashNumber(prod.bkashNumber || '');
     setFormNagadNumber(prod.nagadNumber || '');
     setFormPaymentType(prod.paymentType || 'cod');
     setFormPaymentPercentage(prod.paymentPercentage !== undefined ? prod.paymentPercentage : 10);
     setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
     setFormDeliveryDays(prod.deliveryDays !== undefined ? String(prod.deliveryDays) : '3-5');
+    setFormLikes(prod.likes !== undefined ? Number(prod.likes) : 0);
     setShowProductForm(true);
   };
 
@@ -1895,6 +1977,21 @@ export default function AdminPanel({
             </button>
 
             <button 
+              onClick={() => { setActiveTab('customer_phones'); setSelectedChat(null); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'customer_phones' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Smartphone size={13} className={activeTab === 'customer_phones' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              Customer Phones
+              {customerPhones.length > 0 && (
+                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold bg-[#d4af37]/20 text-[#d4af37] border-[#d4af37]/30`}>
+                  {customerPhones.length}
+                </span>
+              )}
+            </button>
+
+            <button 
               onClick={() => { setActiveTab('settings'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
                 activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -1998,6 +2095,7 @@ export default function AdminPanel({
               {activeTab === 'settings' && "VIP System Settings"}
               {activeTab === 'alerts' && "Restock Intel Alert Hub"}
               {activeTab === 'sms' && "Bangla SMS Gateway Dashboard"}
+              {activeTab === 'customer_phones' && "Customer Phone Vault"}
             </h1>
             <p className="text-xs text-white/40 mt-0.5">Welcome, Risat Adnan. (Admin Account)</p>
           </div>
@@ -2605,21 +2703,41 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   {/* Price */}
                   <div className="flex flex-col gap-2">
                     <div>
-                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Price (৳ BD Taka)</label>
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Price / Regular Price (৳ BD Taka)</label>
                       <input 
-                        type="number" required value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))}
-                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        type="number" required value={formPrice} 
+                        onChange={(e) => {
+                          const valNum = Number(e.target.value);
+                          setFormPrice(valNum);
+                          if (formOfferPrice !== '' && valNum > 0) {
+                            const pct = Math.round(((valNum - Number(formOfferPrice)) / valNum) * 100);
+                            setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                          }
+                        }}
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Old Price / Original Price (৳) (Optional)</label>
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Offer / Discount Price (৳) (Optional)</label>
                       <input 
-                        type="number" value={formOldPriceField} onChange={(e) => {
+                        type="number" 
+                        value={formOfferPrice} 
+                        onChange={(e) => {
                           const valStr = e.target.value;
-                          setFormOldPriceField(valStr === '' ? '' : Number(valStr));
+                          if (valStr === '') {
+                            setFormOfferPrice('');
+                            setFormOfferDiscountPercent('');
+                          } else {
+                            const valNum = Number(valStr);
+                            setFormOfferPrice(valNum);
+                            if (formPrice > 0) {
+                              const pct = Math.round(((formPrice - valNum) / formPrice) * 100);
+                              setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                            }
+                          }
                         }}
                         placeholder="e.g. 1500"
-                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                       />
                     </div>
                   </div>
@@ -2720,10 +2838,10 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           onChange={(e) => setFormPaymentType(e.target.value as any)}
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-medium"
                         >
-                          <option value="cod">Cash on Delivery (COD)</option>
-                          <option value="delivery_charge">Delivery Charge Only</option>
-                          <option value="percentage">Partial Percentage Advance</option>
-                          <option value="full_advance">Full Advance Payment</option>
+                          <option value="cod" className="bg-[#121212] text-white">Cash on Delivery (COD)</option>
+                          <option value="delivery_charge" className="bg-[#121212] text-white">Delivery Charge Only</option>
+                          <option value="percentage" className="bg-[#121212] text-white">Partial Percentage Advance</option>
+                          <option value="full_advance" className="bg-[#121212] text-white">Full Advance Payment</option>
                         </select>
                       </div>
 
@@ -2793,6 +2911,18 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                         />
                       </div>
+
+                      {/* Likes Counter */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-pink-400 mb-1">Custom Likes Count (পছন্দের সংখ্যা)</label>
+                        <input
+                          type="number"
+                          value={formLikes}
+                          onChange={(e) => setFormLikes(Number(e.target.value))}
+                          placeholder="e.g. 150"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-pink-500/20 rounded py-2.5 px-3 focus:outline-none focus:border-pink-500"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -2812,10 +2942,10 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       value={formCategory} onChange={(e) => setFormCategory(e.target.value as any)}
                       className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                     >
-                      <option value="MEN">MEN</option>
-                      <option value="WOMEN">WOMEN</option>
-                      <option value="UNISEX">UNISEX</option>
-                      <option value="ACCESSORIES">ACCESSORIES</option>
+                      <option value="MEN" className="bg-[#121212] text-white">MEN</option>
+                      <option value="WOMEN" className="bg-[#121212] text-white">WOMEN</option>
+                      <option value="UNISEX" className="bg-[#121212] text-white">UNISEX</option>
+                      <option value="ACCESSORIES" className="bg-[#121212] text-white">ACCESSORIES</option>
                     </select>
                   </div>
 
@@ -2952,7 +3082,25 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5">
                         <span>⚡ FLASH SALE & COUNTDOWN TIMER CONFIGURATION</span>
                       </h4>
-                      <span className="text-[9px] text-[#a78bfa] font-mono animate-pulse">EXCLUSIVE PROMO</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase font-mono text-zinc-400">Timer Display:</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormTimerActive(!formTimerActive)}
+                          className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            formTimerActive ? 'bg-luxury-gold' : 'bg-zinc-800'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-black shadow-lg ring-0 transition duration-200 ease-in-out ${
+                              formTimerActive ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                        <span className={`text-[9px] font-mono font-bold ${formTimerActive ? 'text-luxury-gold' : 'text-zinc-500'}`}>
+                          {formTimerActive ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -3015,25 +3163,27 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       </div>
 
                       {/* Timer End Time */}
-                      <div>
+                      <div className={formTimerActive ? "" : "opacity-40 pointer-events-none transition-opacity"}>
                         <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Timer Expiration Date &amp; Time</label>
                         <input 
                           type="datetime-local" 
                           value={formTimerEndTime} 
                           onChange={(e) => setFormTimerEndTime(e.target.value)}
+                          disabled={!formTimerActive}
                           className="w-full bg-[#120e21] text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                         />
                         <span className="text-[9px] text-zinc-500 block leading-normal mt-1">Select countdown end time. If blank, no countdown banner will show.</span>
                       </div>
 
                       {/* Timer Custom Message */}
-                      <div>
+                      <div className={formTimerActive ? "" : "opacity-40 pointer-events-none transition-opacity"}>
                         <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Timer Banner Message / Label</label>
                         <input 
                           type="text" 
                           value={formTimerMessage} 
                           onChange={(e) => setFormTimerMessage(e.target.value)}
                           placeholder="e.g. LIMITED EID SPECIAL OFFER! GET NOW!"
+                          disabled={!formTimerActive}
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                         />
                         <span className="text-[9px] text-zinc-500 block leading-normal mt-1">A catchy title shown beside the running countdown banner.</span>
@@ -3354,11 +3504,11 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                               onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
                               className="bg-luxury-charcoal text-white font-mono text-[10.5px] border border-white/15 rounded py-1 px-1.5 focus:outline-none focus:border-luxury-gold"
                             >
-                              <option value="PENDING">PENDING</option>
-                              <option value="CONFIRMED">CONFIRMED</option>
-                              <option value="SHIPPED">SHIPPED</option>
-                              <option value="DELIVERED">DELIVERED</option>
-                              <option value="CANCELLED">CANCELLED</option>
+                              <option value="PENDING" className="bg-[#121212] text-white">PENDING</option>
+                              <option value="CONFIRMED" className="bg-[#121212] text-white">CONFIRMED</option>
+                              <option value="SHIPPED" className="bg-[#121212] text-white">SHIPPED</option>
+                              <option value="DELIVERED" className="bg-[#121212] text-white">DELIVERED</option>
+                              <option value="CANCELLED" className="bg-[#121212] text-white">CANCELLED</option>
                             </select>
                           </td>
 
@@ -3650,8 +3800,8 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     value={newCouponType} onChange={(e) => setNewCouponType(e.target.value as any)}
                     className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
                   >
-                    <option value="PERCENTAGE">PERCENTAGE %</option>
-                    <option value="FIXED">FLAT VALUE ৳</option>
+                    <option value="PERCENTAGE" className="bg-[#121212] text-white">PERCENTAGE %</option>
+                    <option value="FIXED" className="bg-[#121212] text-white">FLAT VALUE ৳</option>
                   </select>
                 </div>
                 <div>
@@ -4409,9 +4559,9 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         onChange={(e) => setSmsProviderInput(e.target.value as any)}
                         className="w-full bg-[#121212] border border-white/10 focus:border-purple-400 text-white px-3 py-2 rounded text-xs focus:outline-none transition-all"
                       >
-                        <option value="mock">🔬 Simulation / Logging Mode (No API Needed)</option>
-                        <option value="greenweb">🟢 Greenweb SMS (Bangladesh Gateway)</option>
-                        <option value="twilio">🔴 Twilio Premium (International/Local)</option>
+                        <option value="mock" className="bg-[#121212] text-white">🔬 Simulation / Logging Mode (No API Needed)</option>
+                        <option value="greenweb" className="bg-[#121212] text-white">🟢 Greenweb SMS (Bangladesh Gateway)</option>
+                        <option value="twilio" className="bg-[#121212] text-white">🔴 Twilio Premium (International/Local)</option>
                       </select>
                     </div>
 
@@ -4600,6 +4750,340 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'customer_phones' && (
+          <div className="space-y-6 max-w-6xl animate-fade-in text-white">
+            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
+                  <Smartphone size={18} className="text-luxury-gold" />
+                  Customer Phone Vault (গ্রাহক ফোন তালিকা)
+                </h2>
+                <p className="text-xs text-white/50 mt-1 font-sans">
+                  নিবন্ধিত সদস্য, চেকআউট ১ ফর্ম পূরণকারী এবং এসএমএস সাবস্ক্রাইবারদের সমস্ত ফোন নম্বর এখানে সংরক্ষিত আছে।
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsAddingPhone(!isAddingPhone)}
+                  className="px-3 py-1.5 bg-luxury-gold text-luxury-black font-semibold text-xs uppercase rounded hover:bg-opacity-90 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Plus size={14} />
+                  {isAddingPhone ? "Cancel" : "Add Number"}
+                </button>
+                <button 
+                  onClick={fetchCustomerPhones}
+                  disabled={fetchingCustomerPhones}
+                  className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-xs uppercase rounded transition-all cursor-pointer disabled:opacity-40"
+                >
+                  {fetchingCustomerPhones ? "🔄 Refreshing..." : "🔄 Refresh Vault"}
+                </button>
+              </div>
+            </div>
+
+            {/* Manual Entry Form */}
+            {isAddingPhone && (
+              <form onSubmit={handleAddCustomerPhone} className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 space-y-4 animate-fade-in">
+                <h3 className="text-sm font-semibold text-luxury-gold uppercase tracking-wider font-serif">Add Custom Phone Record</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Mobile Number *</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 017XXXXXXXX"
+                      required
+                      value={manualPhoneInput}
+                      onChange={(e) => setManualPhoneInput(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Customer Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Name"
+                      value={manualNameInput}
+                      onChange={(e) => setManualNameInput(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Email Address</label>
+                    <input 
+                      type="email" 
+                      placeholder="Email"
+                      value={manualEmailInput}
+                      onChange={(e) => setManualEmailInput(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Channel Source</label>
+                    <select 
+                      value={manualSourceInput}
+                      onChange={(e) => setManualSourceInput(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                    >
+                      <option value="manual">✍️ Manual Ledger</option>
+                      <option value="signup">🆕 Account Registration</option>
+                      <option value="checkout_step1">🛒 Cart Recovery Step 1</option>
+                      <option value="sms_opt_in">📱 SMS Newsletter</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsAddingPhone(false)}
+                    className="px-4 py-2 border border-white/10 text-white hover:text-white/80 rounded text-xs uppercase cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-4 py-2 bg-luxury-gold text-luxury-black font-semibold rounded text-xs uppercase hover:bg-opacity-90 transition-all cursor-pointer shadow-md"
+                  >
+                    Save Phone
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Smart Stats Dashboard for Phone Sources */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Total Stored</span>
+                <span className="text-2xl font-serif font-bold text-white mt-1">{customerPhones.length}</span>
+                <span className="text-[10px] font-sans text-white/30 mt-2">Verified Unique Mobile Contacts</span>
+              </div>
+              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Account Signups</span>
+                <span className="text-2xl font-serif font-bold text-teal-400 mt-1">
+                  {customerPhones.filter(p => p.source === 'signup').length}
+                </span>
+                <span className="text-[10px] font-sans text-white/30 mt-2">Registered client accounts</span>
+              </div>
+              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Step 1 Recoveries</span>
+                <span className="text-2xl font-serif font-bold text-amber-400 mt-1">
+                  {customerPhones.filter(p => p.source === 'checkout_step1').length}
+                </span>
+                <span className="text-[10px] font-sans text-white/30 mt-2">Abandoned cart checkout logs</span>
+              </div>
+              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">SMS Opt-Ins</span>
+                <span className="text-2xl font-serif font-bold text-sky-400 mt-1">
+                  {customerPhones.filter(p => p.source === 'sms_opt_in').length}
+                </span>
+                <span className="text-[10px] font-sans text-white/30 mt-2">Mobile updates subscriptions</span>
+              </div>
+            </div>
+
+            {/* Live Search & Segment Filters */}
+            <div className="bg-[#070707] border border-white/5 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1">
+                <input 
+                  type="text"
+                  placeholder="Search by name, phone or email..."
+                  value={phoneSearchQuery}
+                  onChange={(e) => setPhoneSearchQuery(e.target.value)}
+                  className="w-full bg-[#111] border border-white/10 rounded-md pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                />
+                {phoneSearchQuery && (
+                  <button 
+                    type="button" 
+                    onClick={() => setPhoneSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-white/40 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2 items-center">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider mr-1">Filter Source:</span>
+                {(['all', 'signup', 'checkout_step1', 'sms_opt_in', 'manual'] as const).map((src) => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setSourceFilter(src)}
+                    className={`px-2.5 py-1.5 rounded text-[10px] uppercase font-mono tracking-wider transition-all cursor-pointer border ${
+                      sourceFilter === src 
+                        ? 'bg-luxury-gold border-luxury-gold text-luxury-black font-bold' 
+                        : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {src === 'all' && "All"}
+                    {src === 'signup' && "Signups"}
+                    {src === 'checkout_step1' && "Step 1"}
+                    {src === 'sms_opt_in' && "Opt-In"}
+                    {src === 'manual' && "Manual"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Phone Table */}
+            <div className="bg-[#070707] border border-white/5 rounded-lg overflow-hidden">
+              {fetchingCustomerPhones ? (
+                <div className="py-20 text-center text-xs text-white/40">
+                  <span className="inline-block animate-spin mr-2">🔄</span> Loading Phone Ledger...
+                </div>
+              ) : customerPhones.length === 0 ? (
+                <div className="py-20 text-center text-xs text-white/40">
+                  No phone numbers collected yet. (কোনো ফোন নম্বর এখনও সংগ্রহ করা হয়নি।)
+                </div>
+              ) : customerPhones.filter(cp => {
+                  const matchesSearch = 
+                    String(cp.phone).includes(phoneSearchQuery) ||
+                    String(cp.name || '').toLowerCase().includes(phoneSearchQuery.toLowerCase()) ||
+                    String(cp.email || '').toLowerCase().includes(phoneSearchQuery.toLowerCase());
+                  
+                  const matchesSource = sourceFilter === 'all' || cp.source === sourceFilter;
+                  return matchesSearch && matchesSource;
+                }).length === 0 ? (
+                <div className="py-20 text-center text-xs text-white/40">
+                  No records matching your search or filter.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/[0.01]">
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Patron / Customer</th>
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Mobile Contact</th>
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Email Node</th>
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Capture Source</th>
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Recorded Date</th>
+                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {customerPhones
+                        .filter(cp => {
+                          const matchesSearch = 
+                            String(cp.phone).includes(phoneSearchQuery) ||
+                            String(cp.name || '').toLowerCase().includes(phoneSearchQuery.toLowerCase()) ||
+                            String(cp.email || '').toLowerCase().includes(phoneSearchQuery.toLowerCase());
+                          
+                          const matchesSource = sourceFilter === 'all' || cp.source === sourceFilter;
+                          return matchesSearch && matchesSource;
+                        })
+                        .map((cp) => {
+                          return (
+                            <tr key={cp.id} className="hover:bg-white/[0.02] transition-colors group">
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center font-serif text-luxury-gold font-bold text-xs uppercase shadow-inner">
+                                    {(cp.name || cp.phone || "C").charAt(0)}
+                                  </div>
+                                  <div>
+                                    <div className="text-xs font-semibold text-white group-hover:text-luxury-gold transition-colors">
+                                      {cp.name || "Anonymous Patron"}
+                                    </div>
+                                    <div className="text-[10px] text-white/40 font-mono mt-0.5">
+                                      ID: {cp.id}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-mono font-bold tracking-wider text-white bg-white/5 px-2 py-1 rounded">
+                                    {cp.phone}
+                                  </span>
+                                  <button 
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(cp.phone);
+                                      setAdminToast({ message: "নম্বরটি ক্লিপবোর্ডে কপি করা হয়েছে! (Copied!)", type: 'success' });
+                                    }}
+                                    className="p-1 text-white/40 hover:text-luxury-gold rounded hover:bg-white/5 transition-all"
+                                    title="Copy to Clipboard"
+                                  >
+                                    <Check size={12} />
+                                  </button>
+                                  <a 
+                                    href={`https://wa.me/${String(cp.phone).replace(/[^0-9]/g, '')}`} 
+                                    target="_blank" 
+                                    referrerPolicy="no-referrer"
+                                    className="p-1 text-green-500/60 hover:text-green-400 rounded hover:bg-green-500/10 transition-all"
+                                    title="WhatsApp Chat"
+                                  >
+                                    <MessageSquare size={12} />
+                                  </a>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                {cp.email ? (
+                                  <span className="text-xs text-white/70 font-sans">{cp.email}</span>
+                                ) : (
+                                  <span className="text-xs text-white/30 italic">No email</span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {cp.source === 'signup' && (
+                                  <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
+                                    🆕 Registered
+                                  </span>
+                                )}
+                                {cp.source === 'checkout_step1' && (
+                                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
+                                    🛒 Step 1 Cart
+                                  </span>
+                                )}
+                                {cp.source === 'sms_opt_in' && (
+                                  <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
+                                    📱 SMS Opt-In
+                                  </span>
+                                )}
+                                {cp.source === 'manual' && (
+                                  <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
+                                    ✍️ Manual Record
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className="text-[10px] font-mono text-white/50">
+                                  {new Date(cp.timestamp).toLocaleDateString('bn-BD', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setActiveTab('sms');
+                                      setManualSmsPhone(cp.phone);
+                                      setManualSmsMsg(`📱 STYLE X Alert 📱\nHello ${cp.name || 'Patron'},\n`);
+                                    }}
+                                    className="px-2 py-1 bg-white/5 hover:bg-luxury-gold hover:text-luxury-black border border-white/5 hover:border-luxury-gold text-white/70 rounded text-[10px] uppercase font-mono tracking-wider transition-all cursor-pointer"
+                                    title="Compose SMS to user"
+                                  >
+                                    Compose SMS
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteCustomerPhone(cp.phone)}
+                                    className="p-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+                                    title="Delete contact record"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -5166,10 +5650,10 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             onChange={(e) => setGlobalPaymentSystemInput(e.target.value)}
                             className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
                           >
-                            <option value="product_defined">Product Default (Defined individually by product)</option>
-                            <option value="always_bkash">Force bKash Only (Globally across all products)</option>
-                            <option value="always_nagad">Force Nagad Only (Globally across all products)</option>
-                            <option value="always_both">Force Both Brand Channels (bKash + Nagad everywhere)</option>
+                            <option value="product_defined" className="bg-[#121212] text-white">Product Default (Defined individually by product)</option>
+                            <option value="always_bkash" className="bg-[#121212] text-white">Force bKash Only (Globally across all products)</option>
+                            <option value="always_nagad" className="bg-[#121212] text-white">Force Nagad Only (Globally across all products)</option>
+                            <option value="always_both" className="bg-[#121212] text-white">Force Both Brand Channels (bKash + Nagad everywhere)</option>
                           </select>
                           <p className="text-[8px] text-zinc-500 font-mono">Define the default visual mobile banking logos presented during checkout flow.</p>
                         </div>
@@ -5181,9 +5665,9 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             onChange={(e) => setGlobalPaymentMethodInput(e.target.value)}
                             className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
                           >
-                            <option value="both">Standard Multi-Mode (Allow Cash on Delivery &amp; Mobile Prepayment)</option>
-                            <option value="cod_only">Strict Cash on Delivery (COD Only - Disable prepayments)</option>
-                            <option value="prepay_only">Strict Mobile Prepayment Only (Disable COD checkout options)</option>
+                            <option value="both" className="bg-[#121212] text-white">Standard Multi-Mode (Allow Cash on Delivery &amp; Mobile Prepayment)</option>
+                            <option value="cod_only" className="bg-[#121212] text-white">Strict Cash on Delivery (COD Only - Disable prepayments)</option>
+                            <option value="prepay_only" className="bg-[#121212] text-white">Strict Mobile Prepayment Only (Disable COD checkout options)</option>
                           </select>
                           <p className="text-[8px] text-zinc-500 font-mono">Select if you want to completely restrict available transaction channels globally.</p>
                         </div>

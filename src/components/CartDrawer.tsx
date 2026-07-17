@@ -722,7 +722,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#05010a]/95 border flex flex-col shadow-2xl z-10 overflow-hidden ${
               checkoutStep !== 'cart'
-                ? 'max-w-[96vw] lg:max-w-[760px] border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[95vh] lg:h-[90vh] max-h-full sm:max-h-[95vh] lg:max-h-[90vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
+                ? 'max-w-[95vw] lg:max-w-[95vw] xl:max-w-[1200px] border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[95vh] lg:h-[95vh] max-h-full sm:max-h-[95vh] lg:max-h-[95vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
                 : 'max-w-lg border-l border-white/5 h-full'
             }`}
           >
@@ -802,7 +802,7 @@ export default function CartDrawer({
                           <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
                             <div 
                               onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                              className="w-16 h-16 rounded-xl border border-white/10 shrink-0 relative overflow-hidden group/img cursor-zoom-in bg-black/40 shadow-inner"
+                              className="w-20 h-20 rounded-xl border border-white/10 shrink-0 relative overflow-hidden group/img cursor-zoom-in bg-black/40 shadow-inner"
                               title="Click to view full image"
                             >
                               <img 
@@ -884,40 +884,41 @@ export default function CartDrawer({
                 {/* STEP 1: CUSTOMER INFORMATION FORM */}
                 {checkoutStep === 'step1' && (
                   <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="grid grid-cols-1 gap-4 items-start">
+                    <div className="flex-1 overflow-y-auto p-2 sm:p-2.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="lg:scale-[0.96] xl:scale-[0.93] lg:origin-top lg:w-[104.2%] lg:-ml-[2.1%] xl:w-[107.5%] xl:-ml-[3.75%] transition-all duration-300 lg:h-[104.2%] xl:h-[107.5%]">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
-                        <div className="space-y-2.5 relative">
-                          <div className="flex items-center justify-between pb-1.5 border-b border-luxury-gold/30">
-                            <div className="flex items-center gap-2">
-                              <User size={14} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
-                              <span className="text-[11px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent">
+                        <div className="space-y-2 relative lg:col-span-8">
+                          <div className="flex items-center justify-between pb-1 border-b border-luxury-gold/20">
+                            <div className="flex items-center gap-1.5">
+                              <User size={13} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
+                              <span className="text-[10px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent">
                                 SECURE CHECKOUT FORM
                               </span>
                             </div>
                             {/* Static secure badge */}
-                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold text-emerald-400 uppercase tracking-wider select-none">
+                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.5 rounded text-[8px] font-mono font-bold text-emerald-400 uppercase tracking-wider select-none">
                               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-0.5" />
                               SECURE SSL
                             </div>
                           </div>
 
                           {/* Elegant, glassmorphic card groups of inputs with premium styling */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
                             {/* Glassmorphic Sub-card 1: Contact details */}
                             <motion.div 
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl lg:rounded-2xl p-3.5 sm:p-4 lg:p-6 space-y-3 lg:space-y-4 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
                                 <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
                               </div>
 
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4 relative z-10">
+                              <div className="grid grid-cols-1 gap-3 relative z-10">
                                 {/* Name Field */}
                                 <div className="relative group/input">
                                   <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
@@ -927,7 +928,7 @@ export default function CartDrawer({
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <User size={14} />
+                                    <User size={13} />
                                   </div>
                                   <input 
                                     ref={nameInputRef}
@@ -938,7 +939,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 font-bold h-[48px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 font-bold h-[42px] shadow-sm focus:outline-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -948,7 +949,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_name" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[11px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -976,7 +977,7 @@ export default function CartDrawer({
                                             className="flex items-center justify-center"
                                           >
                                             <div className="bg-emerald-500/20 border border-emerald-400/30 p-0.5 rounded-full flex items-center justify-center">
-                                              <Check size={9} className="text-emerald-400 stroke-[3px]" />
+                                              <Check size={8} className="text-emerald-400 stroke-[3px]" />
                                             </div>
                                           </motion.div>
                                         ) : (
@@ -987,7 +988,7 @@ export default function CartDrawer({
                                             exit={{ scale: 0, opacity: 0 }}
                                             transition={{ duration: 0.15 }}
                                           >
-                                            <X size={12} className="text-red-400/80" />
+                                            <X size={11} className="text-red-400/80" />
                                           </motion.div>
                                         )
                                       )}
@@ -1004,7 +1005,7 @@ export default function CartDrawer({
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <Phone size={14} />
+                                    <Phone size={13} />
                                   </div>
                                   <input 
                                     ref={phoneInputRef}
@@ -1015,7 +1016,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
                                     onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 font-mono font-bold h-[48px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 font-mono font-bold h-[42px] shadow-sm focus:outline-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1025,7 +1026,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_phone" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[11px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1053,7 +1054,7 @@ export default function CartDrawer({
                                             className="flex items-center justify-center"
                                           >
                                             <div className="bg-emerald-500/20 border border-emerald-400/30 p-0.5 rounded-full flex items-center justify-center">
-                                              <Check size={9} className="text-emerald-400 stroke-[3px]" />
+                                              <Check size={8} className="text-emerald-400 stroke-[3px]" />
                                             </div>
                                           </motion.div>
                                         ) : (
@@ -1064,7 +1065,7 @@ export default function CartDrawer({
                                             exit={{ scale: 0, opacity: 0 }}
                                             transition={{ duration: 0.15 }}
                                           >
-                                            <span className="text-[7.5px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">11 digits</span>
+                                            <span className="text-[7px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">11 digits</span>
                                           </motion.div>
                                         )
                                       )}
@@ -1079,7 +1080,7 @@ export default function CartDrawer({
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl lg:rounded-2xl p-3.5 sm:p-4 lg:p-6 space-y-3 lg:space-y-4 shadow-lg group hover:border-luxury-gold/30 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
@@ -1103,7 +1104,7 @@ export default function CartDrawer({
                                           setCustomerCity(districtsInDiv[0]);
                                         }
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[13px] text-white font-bold h-[48px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] text-white font-bold h-[42px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
                                     >
                                       {Object.keys(DIVISION_MAPS).map((div) => (
                                         <option key={div} value={div} className="bg-[#0c0617] text-white">
@@ -1129,7 +1130,7 @@ export default function CartDrawer({
                                       onChange={(e) => {
                                         setCustomerCity(e.target.value);
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[13px] text-white font-bold h-[48px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] text-white font-bold h-[42px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
                                     >
                                       {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
                                         <option key={district} value={district} className="bg-[#0c0617] text-white">
@@ -1246,14 +1247,14 @@ export default function CartDrawer({
 
                                 {/* Complete Address */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-3.5 left-3 transition-all duration-300 ${
+                                  <div className={`absolute top-3 left-3 transition-all duration-300 ${
                                     customerAddress
                                       ? isAddressValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <MapPin size={14} />
+                                    <MapPin size={13} />
                                   </div>
                                   <textarea 
                                     ref={addressTextRef}
@@ -1262,7 +1263,7 @@ export default function CartDrawer({
                                     value={customerAddress}
                                     onChange={(e) => setCustomerAddress(e.target.value)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4.5 pl-9 pr-9 text-[13px] text-white transition-all duration-300 h-[52px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 h-[44px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
                                       customerAddress
                                         ? isAddressValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1272,7 +1273,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_address" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[12px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerAddress
                                         ? isAddressValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1282,7 +1283,7 @@ export default function CartDrawer({
                                   >
                                     Complete Address *
                                   </label>
-                                  <div className="absolute right-3 top-3.5 flex items-center justify-center">
+                                  <div className="absolute right-3 top-3 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
                                       {customerAddress && (
                                         isAddressValid ? (
@@ -1324,13 +1325,13 @@ export default function CartDrawer({
                         </div>
 
                         {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-2 pb-1 border-b border-white/10">
-                            <ShoppingBag size={13} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
-                            <span className="text-[10.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
+                        <div className="space-y-1.5 lg:col-span-4">
+                          <div className="flex items-center gap-1.5 pb-0.5 border-b border-white/5">
+                            <ShoppingBag size={12} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
+                            <span className="text-[9.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
                           </div>
                           
-                          <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 shadow-xl max-h-[160px] sm:max-h-[190px] md:max-h-[220px] lg:max-h-[340px] overflow-y-auto scrollbar-hidden">
+                          <div className="space-y-1 bg-[#0f0a1c] border border-white/10 rounded-xl p-1.5 sm:p-2 shadow-xl max-h-[110px] sm:max-h-[130px] md:max-h-[150px] lg:max-h-[190px] xl:max-h-[240px] overflow-y-auto scrollbar-hidden">
                             {enrichedCartItems.map((item, idx) => {
                               const availableSizes = item.product.sizes && item.product.sizes.length > 0 
                                 ? item.product.sizes 
@@ -1341,7 +1342,7 @@ export default function CartDrawer({
                                   {/* Product Photo - Consistent luxury size, perfectly fit */}
                                   <div 
                                     onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                                    className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                     title="Click to view full image"
                                   >
                                     <img 
@@ -1411,6 +1412,7 @@ export default function CartDrawer({
                         </div>
 
                       </div>
+                    </div>
 
                       {errorMessage && (
                         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2 rounded-xl text-[9px] font-mono mt-1.5">
@@ -1443,8 +1445,9 @@ export default function CartDrawer({
                 {/* STEP 2: PREMIUM CHECKOUT */}
                 {checkoutStep === 'step2' && (
                   <form onSubmit={handlePlaceOrder} className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                    <div className="flex-1 overflow-y-auto lg:overflow-y-hidden p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="lg:scale-[0.91] xl:scale-[0.85] lg:origin-top lg:w-[109.9%] lg:-ml-[4.95%] xl:w-[117.7%] xl:-ml-[8.85%] transition-all duration-300 lg:h-[109.9%] xl:h-[117.7%]">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
                         
                         {/* Left column: Payments */}
                         <div className="md:col-span-6 space-y-3">
@@ -1661,13 +1664,13 @@ export default function CartDrawer({
                           {/* Itemization Report */}
                           <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
                             <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[130px] md:max-h-[220px] overflow-y-auto scrollbar-hidden pr-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[120px] lg:max-h-[135px] overflow-y-auto scrollbar-hidden pr-1">
                               {enrichedCartItems.map((item, idx) => (
                                 <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-2.5 rounded-xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
                                   {/* Product Photo - Consistent luxury size, perfectly fit */}
                                   <div 
                                     onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                                    className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                    className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                     title="Click to view full image"
                                   >
                                     <img 
@@ -1760,6 +1763,7 @@ export default function CartDrawer({
                         </div>
 
                       </div>
+                    </div>
 
                       {errorMessage && (
                         <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-2 rounded-xl text-[9.5px] font-mono">
@@ -1769,46 +1773,46 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 2 Footer Checkout Calculation Box */}
-                    <div className="bg-[#0b0413] border-t border-white/5 py-2 px-3 sm:py-2.5 sm:px-4.5 shrink-0 grid grid-cols-1 md:grid-cols-3 items-center gap-2.5 md:gap-4">
-                      {/* Left side on desktop: Back button */}
-                      <div className="flex justify-center md:justify-start items-center">
-                        <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono py-0.5">
-                          <ArrowLeft size={13} /> Back to info
-                        </button>
-                      </div>
-
-                      {/* Center: The checkout button, perfectly centered and sizing constrained */}
-                      <div className="flex justify-center w-full">
-                        <div className="w-full max-w-[440px]">
-                          <LuxuryCheckoutButton
-                            isCheckingOut={isCheckingOut}
-                            disabled={isCheckingOut}
-                            label="PLACE LUXURY ORDER"
-                            vesselType={initialShowCheckout ? "CAR" : "CART"}
-                          />
+                    <div className="bg-[#0b0413] border-t border-white/5 p-2 sm:p-2.5 lg:p-3 shrink-0 flex flex-col gap-1.5 sm:gap-2">
+                      {/* Top Row: Back button on left, totals summaries on right */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center">
+                          <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono py-0.5 cursor-pointer">
+                            <ArrowLeft size={13} /> Back to info
+                          </button>
+                        </div>
+                        
+                        {/* Summary Totals */}
+                        <div className="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 sm:justify-end text-[10.5px] text-zinc-400">
+                          <div className="flex gap-1">
+                            <span>Subtotal:</span>
+                            <span className="font-mono text-white">{formatPrice(itemsTotal)}</span>
+                          </div>
+                          {appliedCoupon && (
+                            <div className="flex gap-1">
+                              <span>Coupon:</span>
+                              <span className="text-emerald-400 font-bold font-mono">-{formatPrice(discountAmount)}</span>
+                            </div>
+                          )}
+                          <div className="flex gap-1">
+                            <span>Delivery:</span>
+                            <span className="font-mono text-white">{formatPrice(resolvedDeliveryCharge)}</span>
+                          </div>
+                          <div className="flex gap-1 text-white font-extrabold border-l border-white/10 pl-3">
+                            <span className="tracking-wider uppercase text-[8.5px] text-zinc-400">Grand Total:</span>
+                            <span className="text-luxury-gold font-mono font-black">{formatPrice(grandTotal)}</span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Right side on desktop: Detailed inline calculations ("egolo") */}
-                      <div className="flex flex-col text-[11px] text-zinc-400 border-t md:border-t-0 pt-2 md:pt-0 border-white/5 space-y-0.5">
-                        <div className="flex justify-between md:justify-end md:gap-4">
-                          <span>Subtotal:</span>
-                          <span className="font-mono text-white">{formatPrice(itemsTotal)}</span>
-                        </div>
-                        <div className="flex justify-between md:justify-end md:gap-4">
-                          <span>Coupon:</span>
-                          <span className={appliedCoupon ? 'text-emerald-400 font-bold font-mono' : 'text-white font-mono'}>
-                            {appliedCoupon ? `-${formatPrice(discountAmount)}` : '৳0'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between md:justify-end md:gap-4">
-                          <span>Delivery:</span>
-                          <span className="font-mono text-white">{formatPrice(resolvedDeliveryCharge)}</span>
-                        </div>
-                        <div className="flex justify-between md:justify-end md:gap-4 text-white font-extrabold border-t border-white/5 pt-1 mt-0.5">
-                          <span className="tracking-wider text-[9px] uppercase">Grand Total:</span>
-                          <span className="text-luxury-gold font-mono text-xs font-black">{formatPrice(grandTotal)}</span>
-                        </div>
+                      {/* Bottom Row: The checkout button, beautifully spanning full width */}
+                      <div className="w-full">
+                        <LuxuryCheckoutButton
+                          isCheckingOut={isCheckingOut}
+                          disabled={isCheckingOut}
+                          label="PLACE LUXURY ORDER"
+                          vesselType={initialShowCheckout ? "CAR" : "CART"}
+                        />
                       </div>
                     </div>
                   </form>

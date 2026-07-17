@@ -147,6 +147,7 @@ let db = {
   backInStockAlerts: [] as any[],
   smsSubscriptions: [] as any[],
   outboundSMSLogs: [] as any[],
+  customerPhones: [] as any[],
   banners: initialBanners,
   reviews: [] as Review[],
   coupons: initialCoupons,
@@ -221,6 +222,7 @@ if (fs.existsSync(DB_FILE)) {
     const parsedData = JSON.parse(rawData);
     db = { ...db, ...parsedData };
     db.countedSessions = db.countedSessions || [];
+    db.customerPhones = parsedData.customerPhones || [];
     db.notifications = db.notifications || [];
     db.failed_notifications = parsedData.failed_notifications || [];
     db.backInStockAlerts = db.backInStockAlerts || [];
@@ -322,6 +324,36 @@ function saveDB() {
   } catch (err) {
     console.error("Error saving DB to filesystem:", err);
   }
+}
+
+// Function to register/store customer phone numbers from signups, checkouts, and subscriptions
+function registerCustomerPhone(phone: string, name?: string, email?: string, source?: string) {
+  if (!phone) return;
+  const cleanPhone = String(phone).trim().replace(/[^0-9]/g, '');
+  if (!cleanPhone || cleanPhone.length < 5) return;
+  
+  db.customerPhones = db.customerPhones || [];
+  
+  const existingIdx = db.customerPhones.findIndex((cp: any) => cp.phone === cleanPhone);
+  const newPhoneEntry = {
+    id: existingIdx !== -1 ? db.customerPhones[existingIdx].id : `phone-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    phone: cleanPhone,
+    name: name ? String(name).trim() : (existingIdx !== -1 ? db.customerPhones[existingIdx].name : ''),
+    email: email ? String(email).trim() : (existingIdx !== -1 ? db.customerPhones[existingIdx].email : ''),
+    source: source || (existingIdx !== -1 ? db.customerPhones[existingIdx].source : 'unknown'),
+    timestamp: new Date().toISOString()
+  };
+  
+  if (existingIdx !== -1) {
+    // Only update name/email if provided
+    if (name) db.customerPhones[existingIdx].name = String(name).trim();
+    if (email) db.customerPhones[existingIdx].email = String(email).trim();
+    if (source) db.customerPhones[existingIdx].source = source;
+    db.customerPhones[existingIdx].timestamp = new Date().toISOString();
+  } else {
+    db.customerPhones.push(newPhoneEntry);
+  }
+  saveDB();
 }
 
 // Function to synchronize settings to Supabase cloud as a bulletproof failsafe
@@ -494,16 +526,18 @@ async function syncFromSupabase() {
               lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
               couponCode: p.couponCode || "",
               couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
-              offerPrice: pm.offerPrice !== undefined ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
-              timerEndTime: pm.timerEndTime !== undefined ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
-              timerMessage: pm.timerMessage !== undefined ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
+              offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
+              timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
+              timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
+              timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (p.timerActive !== undefined ? !!p.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
               bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
               nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
               paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
               paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
               deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
               deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
-              isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
+              isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
+              likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
             };
           });
           db.seededProducts = true;
@@ -1341,16 +1375,18 @@ app.get("/api/products", async (req, res) => {
           lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
           couponCode: p.couponCode || "",
           couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
-          offerPrice: (p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
-          timerEndTime: p.timerEndTime || localProduct?.timerEndTime || undefined,
-          timerMessage: p.timerMessage || localProduct?.timerMessage || undefined,
+          offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
+          timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
+          timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
+          timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (p.timerActive !== undefined ? !!p.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
           bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
           nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
           paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
           paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
           deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
           deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
-          isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
+          isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
+          likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
         };
       });
       db.products = products;
@@ -1380,16 +1416,18 @@ app.get("/api/products/:id", async (req, res) => {
         lotteryEligible: data.lotteryEligible !== undefined ? !!data.lotteryEligible : true,
         couponCode: data.couponCode || "",
         couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined,
-        offerPrice: (data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined),
-        timerEndTime: data.timerEndTime || localProduct?.timerEndTime || undefined,
-        timerMessage: data.timerMessage || localProduct?.timerMessage || undefined,
+        offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
+        timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (data.timerEndTime || localProduct?.timerEndTime || undefined),
+        timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (data.timerMessage || localProduct?.timerMessage || undefined),
+        timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (data.timerActive !== undefined ? !!data.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
         bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (data.bkashNumber || localProduct?.bkashNumber || ""),
         nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (data.nagadNumber || localProduct?.nagadNumber || ""),
         paymentType: pm.paymentType !== undefined ? pm.paymentType : (data.paymentType || localProduct?.paymentType || "cod"),
         paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (data.paymentPercentage !== undefined && data.paymentPercentage !== null ? Number(data.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
         deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))),
         deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (data.deliveryDays || localProduct?.deliveryDays || "3-5"),
-        isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false))
+        isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
+        likes: pm.likes !== undefined ? Number(pm.likes) : (data.likes !== undefined ? Number(data.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
       };
       return res.json(prod);
     }
@@ -1471,7 +1509,9 @@ app.post("/api/products", async (req, res) => {
     offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
     timerEndTime: newProduct.timerEndTime || null,
     timerMessage: newProduct.timerMessage || null,
-    freeDelivery: !!newProduct.freeDelivery
+    timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
+    freeDelivery: !!newProduct.freeDelivery,
+    likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0
   };
   syncSettingsToCloud();
 
@@ -1506,6 +1546,7 @@ app.post("/api/products", async (req, res) => {
       offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
       timerEndTime: newProduct.timerEndTime || null,
       timerMessage: newProduct.timerMessage || null,
+      timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
       bkashNumber: newProduct.bkashNumber || "",
       nagadNumber: newProduct.nagadNumber || "",
       paymentType: newProduct.paymentType || "cod",
@@ -1528,6 +1569,7 @@ app.post("/api/products", async (req, res) => {
       delete payload.deliveryDays;
       delete payload.isPinned;
       delete payload.freeDelivery;
+      delete payload.timerActive;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -1609,7 +1651,9 @@ app.put("/api/products/:id", async (req, res) => {
       offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
       timerEndTime: target.timerEndTime || null,
       timerMessage: target.timerMessage || null,
-      freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false
+      timerActive: target.timerActive !== undefined ? !!target.timerActive : true,
+      freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
+      likes: target.likes !== undefined ? Number(target.likes) : 0
     };
     syncSettingsToCloud();
 
@@ -1645,6 +1689,7 @@ app.put("/api/products/:id", async (req, res) => {
         offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
         timerEndTime: target.timerEndTime || null,
         timerMessage: target.timerMessage || null,
+        timerActive: target.timerActive !== undefined ? !!target.timerActive : true,
         bkashNumber: target.bkashNumber || "",
         nagadNumber: target.nagadNumber || "",
         paymentType: target.paymentType || "cod",
@@ -1667,6 +1712,7 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.deliveryDays;
         delete payload.isPinned;
         delete payload.freeDelivery;
+        delete payload.timerActive;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }
@@ -1690,6 +1736,32 @@ app.put("/api/products/:id", async (req, res) => {
   } else {
     res.status(404).json({ message: "Product not found" });
   }
+});
+
+app.post("/api/products/:id/like", async (req, res) => {
+  const productId = req.params.id;
+  const idx = db.products.findIndex(p => String(p.id) === String(productId));
+  if (idx !== -1) {
+    if (!db.settings.productPayments) {
+      db.settings.productPayments = {};
+    }
+    if (!db.settings.productPayments[productId]) {
+      db.settings.productPayments[productId] = {};
+    }
+    
+    const currentLikes = db.settings.productPayments[productId].likes !== undefined 
+      ? Number(db.settings.productPayments[productId].likes) 
+      : (db.products[idx].likes !== undefined ? Number(db.products[idx].likes) : 0);
+      
+    const newLikes = currentLikes + 1;
+    db.settings.productPayments[productId].likes = newLikes;
+    db.products[idx].likes = newLikes;
+    
+    saveDB();
+    syncSettingsToCloud();
+    return res.json({ success: true, likes: newLikes });
+  }
+  return res.status(404).json({ error: "Product not found" });
 });
 
 app.delete("/api/products/:id", async (req, res) => {
@@ -1960,6 +2032,9 @@ app.post("/api/checkout-step1-notify", express.json(), async (req, res) => {
     return res.status(400).json({ message: "Missing required details." });
   }
 
+  // Store new user phone number
+  registerCustomerPhone(customerPhone, customerName, customerEmail, 'checkout_step1');
+
   const orderItemsText = items && Array.isArray(items) 
     ? items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n")
     : "No items specified";
@@ -2030,6 +2105,9 @@ app.post("/api/auth/signup-notify", express.json(), async (req, res) => {
     console.error(`[SIGNUP_EMAIL] [BAD_REQUEST] Missing required details: fullName='${fullName}', mobileNumber='${mobileNumber}', email='${email}'`);
     return res.status(400).json({ message: "Missing required signup details." });
   }
+
+  // Store new user phone number
+  registerCustomerPhone(mobileNumber, fullName, email, 'signup');
 
   const clientBrowser = browser || "Unknown Browser";
   const clientDevice = device || "Unknown Device";
@@ -3377,6 +3455,9 @@ app.post("/api/sms-opt-in", (req, res) => {
     return res.status(400).json({ error: "Phone number is required." });
   }
 
+  // Store new user phone number
+  registerCustomerPhone(phone, name, undefined, 'sms_opt_in');
+
   if (!db.smsSubscriptions) {
     db.smsSubscriptions = [];
   }
@@ -3433,6 +3514,29 @@ app.post("/api/sms-opt-in", (req, res) => {
 
 app.get("/api/sms-subscriptions", (req, res) => {
   res.json(db.smsSubscriptions || []);
+});
+
+app.get("/api/customer-phones", (req, res) => {
+  res.json(db.customerPhones || []);
+});
+
+app.post("/api/customer-phones", express.json(), (req, res) => {
+  const { phone, name, email, source } = req.body;
+  if (!phone) {
+    return res.status(400).json({ error: "Phone number is required." });
+  }
+  registerCustomerPhone(phone, name, email, source || 'manual');
+  res.json({ success: true, message: "Phone stored successfully.", data: db.customerPhones.find((cp: any) => cp.phone === phone.trim().replace(/[^0-9]/g, '')) });
+});
+
+app.delete("/api/customer-phones/:phone", (req, res) => {
+  const targetPhone = String(req.params.phone).trim().replace(/[^0-9]/g, '');
+  if (!targetPhone) {
+    return res.status(400).json({ error: "Valid phone number is required." });
+  }
+  db.customerPhones = (db.customerPhones || []).filter((cp: any) => cp.phone !== targetPhone);
+  saveDB();
+  res.json({ success: true, message: "Phone record deleted successfully." });
 });
 
 app.get("/api/sms-logs", (req, res) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 
@@ -18,6 +18,7 @@ interface ProductCardProps {
   currentCustomer?: any;
   onAuthRequired?: () => void;
   viewMode?: 'GRID' | 'LIST';
+  index?: number;
 }
 
 export default function ProductCard({
@@ -33,6 +34,7 @@ export default function ProductCard({
   currentCustomer,
   onAuthRequired,
   viewMode = 'GRID',
+  index,
 }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
   const [showQRCode, setShowQRCode] = useState(false);
@@ -60,8 +62,37 @@ export default function ProductCard({
 
   const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
 
+  const [likesCount, setLikesCount] = useState(product.likes || 0);
+  const [liked, setLiked] = useState(false);
+
   useEffect(() => {
-    if (!product.timerEndTime) {
+    setLikesCount(product.likes || 0);
+  }, [product.likes]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (liked) return;
+
+    setLiked(true);
+    setLikesCount(prev => prev + 1);
+
+    try {
+      const response = await fetch(`/api/products/${product.id}/like`, {
+        method: "POST"
+      });
+      if (response.ok) {
+        const resData = await response.json();
+        if (resData.success) {
+          setLikesCount(resData.likes);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to register like:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!product.timerEndTime || product.timerActive === false) {
       setTimeLeft(null);
       setTimerExpired(false);
       return;
@@ -69,6 +100,11 @@ export default function ProductCard({
 
     const calculateTimeLeft = () => {
       const end = new Date(product.timerEndTime!).getTime();
+      if (isNaN(end)) {
+        setTimeLeft(null);
+        setTimerExpired(true);
+        return true;
+      }
       const now = new Date().getTime();
       const difference = end - now;
 
@@ -98,7 +134,7 @@ export default function ProductCard({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime]);
+  }, [product.timerEndTime, product.timerActive, product.id]);
 
   // Handle restock registration submit
   const handleNotifySubmit = async (e: React.FormEvent) => {
@@ -200,6 +236,26 @@ export default function ProductCard({
           >
             <Heart size={13} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
           </button>
+          
+          <button 
+            type="button"
+            onClick={handleLike}
+            className={`p-1.5 px-2.5 rounded-full bg-black/80 border transition-all cursor-pointer shadow-md flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono font-black ${
+              liked 
+                ? 'text-pink-500 border-pink-500/40 bg-pink-500/10 hover:border-pink-500' 
+                : 'text-zinc-400 hover:text-white border-luxury-gold/30 hover:border-luxury-gold'
+            }`}
+            title="Like this masterpiece"
+          >
+            <motion.div
+              animate={liked ? { scale: [1, 1.4, 1] } : {}}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="flex items-center"
+            >
+              <ThumbsUp size={10} className={liked ? 'fill-pink-500 stroke-pink-500' : ''} />
+            </motion.div>
+            <span className={liked ? 'text-pink-400' : 'text-luxury-gold'}>{likesCount}</span>
+          </button>
         </div>
       </div>
 
@@ -229,7 +285,8 @@ export default function ProductCard({
         <img 
           src={activeImage} 
           alt={product.title} 
-          loading="lazy"
+          loading={product.isPinned || (index !== undefined && index < 6) ? "eager" : "lazy"}
+          {...((product.isPinned || (index !== undefined && index < 6)) ? { fetchPriority: "high" } : {})}
           onLoad={() => setImageLoaded(true)}
           className={`w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none ${
             isMobileListMode ? 'p-0.5 sm:p-1' : 'p-1'
@@ -325,8 +382,8 @@ export default function ProductCard({
             const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
             if (discountPercent > 0) {
               return (
-                <div className="flex justify-start mb-1.5">
-                  <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FF2D55] text-white flex flex-col items-center justify-center text-[9px] sm:text-[10px] font-extrabold shadow-[0_2px_8px_rgba(255,45,85,0.45)] leading-tight select-none font-sans tracking-tight shrink-0 border border-red-500/10">
+                <div className="absolute top-10 left-3.5 z-30 pointer-events-none">
+                  <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FF2D55] text-white flex flex-col items-center justify-center text-[9px] sm:text-[10px] font-extrabold shadow-[0_2px_8px_rgba(255,45,85,0.45)] leading-tight select-none font-sans tracking-tight shrink-0 border border-red-500/10 animate-balloon-pop">
                     <span>-{discountPercent}%</span>
                   </span>
                 </div>
@@ -342,14 +399,22 @@ export default function ProductCard({
           </h3>
 
           {/* Pricing & Exclusive tag / Flash Sale Badge */}
-          <div className="flex items-center justify-between gap-1 border-t border-white/5 pt-1.5">
-            <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-              <span className="text-[#facc15] font-serif font-black text-sm sm:text-base md:text-lg leading-none drop-shadow-[0_2px_12px_rgba(250,204,21,0.7)] transition-all duration-300 hover:scale-105 select-all">
-                ৳{hasActiveOffer ? product.offerPrice : product.price}
-              </span>
+          <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2 px-1">
+            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+              {/* Current Price with perfectly aligned Taka symbol */}
+              <div className="flex items-center gap-0.5 select-all font-sans">
+                <span className="text-luxury-gold font-serif font-black text-sm sm:text-base md:text-lg leading-none select-none drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)]">
+                  ৳
+                </span>
+                <span className="text-luxury-gold font-sans font-black text-sm sm:text-base md:text-lg leading-none tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)]">
+                  {hasActiveOffer ? product.offerPrice : product.price}
+                </span>
+              </div>
+
+              {/* Old Price & Discount Badge (on the right of current price) */}
               {hasActiveOffer && (
-                <>
-                  <span className="hidden sm:inline text-sm sm:text-base md:text-lg text-rose-500 line-through font-serif font-black leading-none decoration-white/30 decoration-[1.5px] select-all">
+                <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
+                  <span className="text-[#FF2D55] line-through font-serif font-bold text-sm sm:text-base md:text-lg leading-none decoration-[#FF2D55]/70 decoration-[1.5px] select-all opacity-85 shrink-0">
                     ৳{product.price}
                   </span>
                   {(() => {
@@ -358,34 +423,34 @@ export default function ProductCard({
                     const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
                     if (discountPercent > 0) {
                       return (
-                        <span className="inline-flex items-center justify-center bg-[#FF2D55] text-white text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow-[0_2px_6px_rgba(255,45,85,0.4)] leading-none select-none tracking-tight">
+                        <span className="inline-flex items-center justify-center bg-gradient-to-r from-[#FF2D55] to-[#ff3b30] text-white text-[8.5px] sm:text-[9.5px] md:text-[10.5px] font-black px-1.5 py-0.5 rounded shadow-[0_2px_8px_rgba(255,45,85,0.5)] leading-none select-none tracking-wider uppercase shrink-0">
                           {discountPercent}% OFF
                         </span>
                       );
                     }
                     return null;
                   })()}
-                </>
+                </div>
               )}
             </div>
             
             {!hasActiveOffer ? (
-              <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0">
+              <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0 self-center">
                 ⚜️ EXCLUSIVE
               </div>
             ) : (
-              <div className="bg-red-950/85 border border-red-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 font-mono font-bold shrink-0">
+              <div className="bg-red-950/85 border border-red-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 font-mono font-bold shrink-0 self-center uppercase">
                 <span className="w-1 h-1 rounded-full bg-red-500 animate-ping shadow-[0_0_4px_#ef4444]" />
-                <span>FLASH SALE</span>
+                <span>{product.timerMessage || "FLASH SALE"}</span>
               </div>
             )}
           </div>
 
           {/* Large Countdown Timer Block - Perfect mobile-friendly full-width row */}
-          {hasActiveOffer && (
+          {hasActiveOffer && product.timerEndTime && product.timerActive !== false && !timerExpired && (
             <div className="bg-red-950/30 hover:bg-red-950/50 border border-red-500/20 hover:border-red-500/45 rounded-xl px-2 py-1 flex items-center justify-between gap-1 mt-1 transition-all duration-300">
               <div className="flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 uppercase tracking-widest font-extrabold shrink-0">
-                <span>HURRY:</span>
+                <span>{product.timerMessage || "HURRY"}:</span>
               </div>
               <div className="flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[11px] text-red-400 font-bold shrink-0 select-none">
                 {timeLeft ? (

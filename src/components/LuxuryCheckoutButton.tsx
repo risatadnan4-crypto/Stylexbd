@@ -335,12 +335,12 @@ export default function LuxuryCheckoutButton({
             padding: 3px 0 !important;
           }
           .luxury-btn {
-            height: 58px !important;
-            border-radius: 29px !important;
+            height: 76px !important;
+            border-radius: 38px !important;
           }
           .delivery-vessel {
             transform: scale(0.7) !important;
-            height: 58px !important;
+            height: 76px !important;
             top: 2px !important;
           }
           .label-text {
@@ -352,10 +352,10 @@ export default function LuxuryCheckoutButton({
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 72px;
+          height: 90px;
           background: #060408;
           border: 0.75px solid rgba(192, 132, 252, 0.3);
-          border-radius: 36px;
+          border-radius: 45px;
           cursor: pointer;
           outline: none;
           overflow: hidden;
@@ -398,8 +398,8 @@ export default function LuxuryCheckoutButton({
 
         @media (max-width: 480px) {
           .luxury-btn {
-            height: 54px;
-            border-radius: 27px;
+            height: 74px;
+            border-radius: 37px;
           }
           .label-text {
             font-size: 11px !important;
@@ -411,7 +411,7 @@ export default function LuxuryCheckoutButton({
           .delivery-vessel {
             transform: scale(0.72);
             transform-origin: bottom center;
-            height: 54px !important;
+            height: 74px !important;
             top: 2px !important;
           }
           .success-row {
@@ -433,8 +433,8 @@ export default function LuxuryCheckoutButton({
 
         @media (max-width: 360px) {
           .luxury-btn {
-            height: 48px;
-            border-radius: 24px;
+            height: 64px;
+            border-radius: 32px;
           }
           .label-text {
             font-size: 10px !important;
@@ -443,7 +443,7 @@ export default function LuxuryCheckoutButton({
           .delivery-vessel {
             transform: scale(0.62);
             transform-origin: bottom center;
-            height: 48px !important;
+            height: 64px !important;
             top: 3px !important;
           }
           .headline-success {
@@ -587,9 +587,9 @@ export default function LuxuryCheckoutButton({
         .delivery-vessel {
           position: absolute;
           left: -160px;
-          top: -1px;
+          top: 1px;
           width: 135px;
-          height: 68px;
+          height: 78px;
           transform-origin: bottom center;
           will-change: transform;
         }

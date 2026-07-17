@@ -208,7 +208,7 @@ export default function ProductDetailModal({
   };
 
   useEffect(() => {
-    if (!product.timerEndTime) {
+    if (!product.timerEndTime || product.timerActive === false) {
       setTimeLeft(null);
       setTimerExpired(false);
       return;
@@ -216,6 +216,11 @@ export default function ProductDetailModal({
 
     const calculateTimeLeft = () => {
       const end = new Date(product.timerEndTime!).getTime();
+      if (isNaN(end)) {
+        setTimeLeft(null);
+        setTimerExpired(true);
+        return true;
+      }
       const now = new Date().getTime();
       const difference = end - now;
 
@@ -245,7 +250,7 @@ export default function ProductDetailModal({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime, product.id]);
+  }, [product.timerEndTime, product.timerActive, product.id]);
 
   const [copied, setCopied] = useState(false);
   const [copiedInstagram, setCopiedInstagram] = useState(false);
@@ -345,7 +350,7 @@ export default function ProductDetailModal({
         <div 
           ref={scrollBodyRef}
           id="product-modal-scroll-body"
-          className="overflow-y-auto flex-1 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10"
+          className="overflow-y-auto flex-1 min-h-0 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10 overscroll-contain"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
           
@@ -366,6 +371,8 @@ export default function ProductDetailModal({
                 src={displayImage} 
                 alt={product.title} 
                 referrerPolicy="no-referrer"
+                loading="eager"
+                {...({ fetchPriority: "high" })}
                 className="w-full h-full object-contain animate-fade-in"
                 style={{
                   transformOrigin: isZooming ? `${zoomPos.x}% ${zoomPos.y}%` : 'center center',
@@ -479,16 +486,16 @@ export default function ProductDetailModal({
                       )}
 
                       {/* Main & Original Price Row */}
-                      <div className="flex items-baseline flex-wrap gap-3.5 select-all font-display">
+                      <div className="flex items-center flex-nowrap gap-3.5 select-all font-display">
                         {/* Main Price */}
-                        <div className="text-[34px] md:text-[45px] font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-baseline">
-                          <span className="text-[0.72em] font-serif font-bold mr-0.5 relative -top-[0.05em] select-none">৳</span>
+                        <div className="text-[34px] md:text-[45px] font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-center shrink-0">
+                          <span className="text-[0.72em] font-serif font-bold mr-0.5 relative select-none">৳</span>
                           <span className="font-sans font-black tracking-tight">{sellingPrice.toLocaleString('en-US')}</span>
                         </div>
 
                         {/* Original Price */}
                         {hasDiscount && (
-                          <div className="text-sm md:text-base text-zinc-500 line-through font-medium tracking-wide decoration-zinc-600 decoration-1">
+                          <div className="text-sm md:text-base text-[#FF2D55] line-through font-bold tracking-wide decoration-[#FF2D55]/80 decoration-[1.5px] opacity-85 transition-all duration-300 hover:scale-105 shrink-0">
                             <span>৳</span>
                             <span>{originalPrice.toLocaleString('en-US')}</span>
                           </div>
@@ -505,7 +512,7 @@ export default function ProductDetailModal({
                     </motion.div>
 
                     {/* Countdown banner inside modal */}
-                    {hasActiveOffer && timeLeft && !timerExpired && (
+                    {hasActiveOffer && timeLeft && !timerExpired && product.timerActive !== false && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         

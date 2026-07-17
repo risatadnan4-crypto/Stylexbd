@@ -798,7 +798,26 @@ export default function App() {
   const loadStoreCollections = async () => {
     try {
       const res = await fetch('/api/products');
-      if (res.ok) setProducts(await res.json());
+      if (res.ok) {
+        const prodList = await res.json();
+        setProducts(prodList);
+        if (Array.isArray(prodList)) {
+          prodList.forEach((prod: Product) => {
+            if (prod.imageUrl) {
+              const img = new Image();
+              img.src = prod.imageUrl;
+            }
+            if (Array.isArray(prod.images)) {
+              prod.images.forEach((secImg: string) => {
+                if (secImg) {
+                  const img = new Image();
+                  img.src = secImg;
+                }
+              });
+            }
+          });
+        }
+      }
     } catch (err) {
       console.error("Database connection failed", err);
     }
@@ -807,7 +826,18 @@ export default function App() {
   const loadBanners = async () => {
     try {
       const res = await fetch('/api/banners');
-      if (res.ok) setBanners(await res.json());
+      if (res.ok) {
+        const bannerList = await res.json();
+        setBanners(bannerList);
+        if (Array.isArray(bannerList)) {
+          bannerList.forEach((b: any) => {
+            if (b.imageUrl) {
+              const img = new Image();
+              img.src = b.imageUrl;
+            }
+          });
+        }
+      }
     } catch (err) {}
   };
 
@@ -1787,10 +1817,11 @@ export default function App() {
             {/* Wishlist Grid block */}
             {products.filter(p => wishlist.includes(p.id)).length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.filter(p => wishlist.includes(p.id)).map((product) => (
+                {products.filter(p => wishlist.includes(p.id)).map((product, idx) => (
                   <ProductCard 	
                     key={product.id}
                     product={product}
+                    index={idx}
                     onAddToCart={handleAddToCart}
                     onOrderNow={handleOrderNow}
                     onProductClick={(p: Product) => {
@@ -1938,10 +1969,11 @@ export default function App() {
                     : "grid grid-cols-2 gap-3 sm:gap-6"
                   }
                 >
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product, idx) => (
                     <ProductCard 	
                       key={product.id}
                       product={product}
+                      index={idx}
                       onAddToCart={handleAddToCart}
                       onOrderNow={handleOrderNow}
                       onProductClick={(p: Product) => {
@@ -2104,11 +2136,11 @@ export default function App() {
                     onChange={(e) => setSortBy(e.target.value as any)}
                     className="bg-luxury-charcoal/40 border border-white/10 text-white text-[10px] font-mono uppercase tracking-widest px-2.5 py-1.5 rounded-lg cursor-pointer focus:outline-none focus:border-luxury-gold transition-colors"
                   >
-                    <option value="RELEVANCE">⚜️ Relevance</option>
-                    <option value="PRICE_ASC">💵 Price: Low to High</option>
-                    <option value="PRICE_DESC">💵 Price: High to Low</option>
-                    <option value="STOCK_DESC">📦 Ready Stock Status</option>
-                    <option value="TOP_RATED">⭐ Popularity / Top Rated</option>
+                    <option value="RELEVANCE" className="bg-[#121212] text-white">⚜️ Relevance</option>
+                    <option value="PRICE_ASC" className="bg-[#121212] text-white">💵 Price: Low to High</option>
+                    <option value="PRICE_DESC" className="bg-[#121212] text-white">💵 Price: High to Low</option>
+                    <option value="STOCK_DESC" className="bg-[#121212] text-white">📦 Ready Stock Status</option>
+                    <option value="TOP_RATED" className="bg-[#121212] text-white">⭐ Popularity / Top Rated</option>
                   </select>
                 </div>
               </div>
@@ -2277,10 +2309,11 @@ export default function App() {
                     : "grid grid-cols-2 gap-3 sm:gap-6"
                   }
                 >
-                  {filteredProducts.map((prod) => (
+                  {filteredProducts.map((prod, idx) => (
                     <ProductCard 	
                       key={prod.id}
                       product={prod}
+                      index={idx}
                       onAddToCart={handleAddToCart}
                       onOrderNow={handleOrderNow}
                       onProductClick={(p: Product) => {

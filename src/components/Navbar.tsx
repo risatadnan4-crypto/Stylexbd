@@ -185,16 +185,7 @@ export default function Navbar({
                     <History size={13} className="text-luxury-gold animate-pulse" />
                     My Orders ↗
                   </button>
-                  <button 
-                    onClick={() => {
-                      setShowPortalMenu(false);
-                      onCustomerLogout();
-                    }}
-                    className="w-full flex items-center gap-2.5 text-[10.5px] text-red-400 hover:text-red-300 py-2 px-2.5 rounded-xl hover:bg-red-500/10 transition-all uppercase tracking-[0.12em] font-bold"
-                  >
-                    <LogOut size={13} />
-                    Log Out
-                  </button>
+
                 </div>
               </div>
             )}
@@ -366,16 +357,7 @@ export default function Navbar({
                           <History size={13} className="text-luxury-gold animate-pulse" />
                           My Orders ↗
                         </button>
-                        <button 
-                          onClick={() => {
-                            setShowPortalMenu(false);
-                            onCustomerLogout();
-                          }}
-                          className="w-full flex items-center gap-2.5 text-[10.5px] text-red-400 hover:text-red-300 py-2 px-2.5 rounded-xl hover:bg-red-500/10 transition-all uppercase tracking-[0.12em] font-bold"
-                        >
-                          <LogOut size={13} />
-                          Log Out
-                        </button>
+
                       </div>
                     </div>
                   )}

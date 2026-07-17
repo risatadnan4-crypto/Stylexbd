@@ -1881,9 +1881,9 @@ export default function XoroAssistant({
                         }}
                         className="w-full max-w-[220px] bg-zinc-950 text-zinc-300 text-[10px] font-mono rounded border border-white/10 px-1.5 py-1 focus:outline-none focus:border-luxury-gold/50 cursor-pointer text-center"
                       >
-                        <option value="">-- Auto-Match Best Voice --</option>
+                        <option value="" className="bg-[#121212] text-white">-- Auto-Match Best Voice --</option>
                         {systemVoices.map((voice) => (
-                          <option key={voice.name} value={voice.name}>
+                          <option key={voice.name} value={voice.name} className="bg-[#121212] text-white">
                             {voice.name} ({voice.lang.toUpperCase()})
                           </option>
                         ))}

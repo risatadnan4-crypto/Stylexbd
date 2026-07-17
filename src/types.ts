@@ -29,6 +29,7 @@ export interface Product {
   offerPrice?: number;
   timerEndTime?: string;
   timerMessage?: string;
+  timerActive?: boolean;
   bkashNumber?: string;
   nagadNumber?: string;
   paymentType?: 'cod' | 'delivery_charge' | 'full_advance' | 'percentage';
@@ -36,6 +37,7 @@ export interface Product {
   deliveryCharge?: number;
   deliveryDays?: string; // How many days for delivery
   freeDelivery?: boolean;
+  likes?: number;
 }
 
 export interface CartItem {

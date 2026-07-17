@@ -1157,6 +1157,44 @@ html {
   opacity: 1 !important;
 }
 
+/* Custom Balloon Pop / Inflation Loop animation */
+@keyframes balloon-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  87% {
+    /* Pop effect! Instantly expand slightly and vanish */
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-balloon-pop {
+  animation: balloon-pop 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+  transform-origin: center;
+}
+
 
 
 
