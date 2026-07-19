@@ -6,7 +6,7 @@ import {
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
-import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage } from '../types';
+import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage, ProductColor } from '../types';
 import { formatPrice, generateQrUrl } from '../utils';
 import { LotteryPrize } from './LotteryModal';
 
@@ -682,6 +682,10 @@ export default function AdminPanel({
   const [formWhyBuy, setFormWhyBuy] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
   const [formImages, setFormImages] = useState<string[]>([]);
+  const [formColors, setFormColors] = useState<ProductColor[]>([]);
+  const [colorNameInput, setColorNameInput] = useState('');
+  const [colorHexInput, setColorHexInput] = useState('');
+  const [colorImageInput, setColorImageInput] = useState('');
   const [secondaryUrlInput, setSecondaryUrlInput] = useState('');
   const [formLotteryEligible, setFormLotteryEligible] = useState<boolean>(true);
   const [formIsPinned, setFormIsPinned] = useState<boolean>(false);
@@ -701,6 +705,10 @@ export default function AdminPanel({
   const [formDeliveryCharge, setFormDeliveryCharge] = useState<number>(100);
   const [formDeliveryDays, setFormDeliveryDays] = useState<string>('3-5');
   const [formLikes, setFormLikes] = useState<number>(0);
+  const [formSeoTitle, setFormSeoTitle] = useState('');
+  const [formSeoDescription, setFormSeoDescription] = useState('');
+  const [formSeoKeywords, setFormSeoKeywords] = useState('');
+  const [formSeoSlug, setFormSeoSlug] = useState('');
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -1274,6 +1282,7 @@ export default function AdminPanel({
       whyBuy: formWhyBuy || "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
       imageUrl: formImageUrl,
       images: formImages,
+      colors: formColors,
       trending: true,
       featured: true,
       isPinned: formIsPinned,
@@ -1291,7 +1300,11 @@ export default function AdminPanel({
       paymentPercentage: Number(formPaymentPercentage || 10),
       deliveryCharge: Number(formDeliveryCharge || 100),
       deliveryDays: formDeliveryDays || '3-5',
-      likes: Number(formLikes || 0)
+      likes: Number(formLikes || 0),
+      seoTitle: formSeoTitle || null,
+      seoDescription: formSeoDescription || null,
+      seoKeywords: formSeoKeywords || null,
+      seoSlug: formSeoSlug || null
     };
 
     try {
@@ -1323,6 +1336,10 @@ export default function AdminPanel({
         setFormStock(50);
         setFormWhyBuy('');
         setFormImages([]);
+        setFormColors([]);
+        setColorNameInput('');
+        setColorHexInput('');
+        setColorImageInput('');
         setSecondaryUrlInput('');
         setFormLotteryEligible(true);
         setFormIsPinned(false);
@@ -1341,6 +1358,10 @@ export default function AdminPanel({
         setFormDeliveryCharge(100);
         setFormDeliveryDays('3-5');
         setFormLikes(0);
+        setFormSeoTitle('');
+        setFormSeoDescription('');
+        setFormSeoKeywords('');
+        setFormSeoSlug('');
         setUploadProgress('');
         setFormError('');
 
@@ -1393,6 +1414,10 @@ export default function AdminPanel({
     setFormWhyBuy(prod.whyBuy);
     setFormImageUrl(prod.imageUrl);
     setFormImages(prod.images || []);
+    setFormColors(prod.colors || []);
+    setColorNameInput('');
+    setColorHexInput('');
+    setColorImageInput('');
     setSecondaryUrlInput('');
     setFormLotteryEligible(prod.lotteryEligible !== false);
     setFormIsPinned(prod.isPinned || false);
@@ -1409,6 +1434,10 @@ export default function AdminPanel({
     setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
     setFormDeliveryDays(prod.deliveryDays !== undefined ? String(prod.deliveryDays) : '3-5');
     setFormLikes(prod.likes !== undefined ? Number(prod.likes) : 0);
+    setFormSeoTitle(prod.seoTitle || '');
+    setFormSeoDescription(prod.seoDescription || '');
+    setFormSeoKeywords(prod.seoKeywords || '');
+    setFormSeoSlug(prod.seoSlug || '');
     setShowProductForm(true);
   };
 
@@ -2299,6 +2328,10 @@ export default function AdminPanel({
                   setFormFreeDelivery(false);
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
+                  setFormSeoTitle('');
+                  setFormSeoDescription('');
+                  setFormSeoKeywords('');
+                  setFormSeoSlug('');
                   setUploadProgress('');
                   setShowProductForm(!showProductForm);
                 }}
@@ -2356,7 +2389,11 @@ CREATE TABLE IF NOT EXISTS public.products (
     featured BOOLEAN DEFAULT true,
     "lotteryEligible" BOOLEAN DEFAULT true,
     "couponCode" TEXT DEFAULT '',
-    "couponDiscountPercent" NUMERIC DEFAULT 15
+    "couponDiscountPercent" NUMERIC DEFAULT 15,
+    "seoTitle" TEXT,
+    "seoDescription" TEXT,
+    "seoKeywords" TEXT,
+    "seoSlug" TEXT
 );
 
 -- 2. Create Banners Table
@@ -2647,7 +2684,11 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
     featured BOOLEAN DEFAULT true,
     "lotteryEligible" BOOLEAN DEFAULT true,
     "couponCode" TEXT DEFAULT '',
-    "couponDiscountPercent" NUMERIC DEFAULT 15
+    "couponDiscountPercent" NUMERIC DEFAULT 15,
+    "seoTitle" TEXT,
+    "seoDescription" TEXT,
+    "seoKeywords" TEXT,
+    "seoSlug" TEXT
 );`}
                     </pre>
                   </div>
@@ -3293,6 +3334,165 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     {uploadProgress && <p className="text-[10px] text-luxury-gold font-mono tracking-wide">{uploadProgress}</p>}
                   </div>
 
+                  {/* PRODUCT COLORS / VARIANTS SETTINGS */}
+                  <div className="md:col-span-2 border border-white/5 bg-white/[0.02] p-4 rounded-xl space-y-4">
+                    <div className="border-b border-white/5 pb-2">
+                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
+                        ⚜️ Product Colors & Image Variants
+                      </h4>
+                      <p className="text-[9px] text-zinc-400">Add different colors (e.g., Royal Black, Wine Red) or specific color variants with optional hex codes and specific images.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Color Name</label>
+                        <input 
+                          type="text" 
+                          value={colorNameInput} 
+                          onChange={(e) => setColorNameInput(e.target.value)}
+                          placeholder="e.g. Royal Black"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Hex Code (Optional)</label>
+                        <input 
+                          type="text" 
+                          value={colorHexInput} 
+                          onChange={(e) => setColorHexInput(e.target.value)}
+                          placeholder="e.g. #000000"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Variant Image URL (Optional)</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={colorImageInput} 
+                            onChange={(e) => setColorImageInput(e.target.value)}
+                            placeholder="Variant image link..."
+                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (colorNameInput.trim()) {
+                                const newColor: ProductColor = {
+                                  name: colorNameInput.trim(),
+                                  hex: colorHexInput.trim() || undefined,
+                                  imageUrl: colorImageInput.trim() || undefined
+                                };
+                                setFormColors(prev => [...prev, newColor]);
+                                setColorNameInput('');
+                                setColorHexInput('');
+                                setColorImageInput('');
+                              } else {
+                                alert("Please enter at least a Color Name.");
+                              }
+                            }}
+                            className="bg-luxury-gold hover:bg-white text-luxury-black font-mono text-[9px] font-bold px-3 rounded transition-all duration-300"
+                          >
+                            ADD COLOR
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Colors List */}
+                    {formColors.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-white/5">
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-[#d4af37] font-semibold font-mono">Active Color Options ({formColors.length})</label>
+                        <div className="flex flex-wrap gap-2">
+                          {formColors.map((color, index) => (
+                            <div 
+                              key={index} 
+                              className="flex items-center gap-2 bg-white/[0.05] border border-white/10 px-3 py-1.5 rounded-lg text-xs"
+                            >
+                              {color.hex && (
+                                <span 
+                                  className="w-3.5 h-3.5 rounded-full border border-white/20 animate-pulse" 
+                                  style={{ backgroundColor: color.hex }}
+                                />
+                              )}
+                              {color.imageUrl && (
+                                <img 
+                                  src={color.imageUrl} 
+                                  alt={color.name} 
+                                  className="w-6 h-6 object-cover rounded border border-white/20"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )}
+                              <span className="text-white font-medium text-[11px] font-sans">{color.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => setFormColors(prev => prev.filter((_, i) => i !== index))}
+                                className="text-red-400 hover:text-red-300 text-[10px] ml-1.5 font-bold cursor-pointer"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SEO OPTIMIZATION OPTIONS */}
+                  <div className="md:col-span-2 border border-blue-500/20 bg-blue-500/[0.03] p-4 rounded-xl space-y-4">
+                    <h4 className="text-[10px] uppercase font-mono tracking-widest text-blue-400 font-bold flex items-center gap-1.5 border-b border-white/5 pb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_#3b82f6]"></span>
+                      Search Engine Optimization (SEO / সার্চ ইঞ্জিন অপ্টিমাইজেশন)
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Title (মেটা টাইটেল)</label>
+                        <input 
+                          type="text" 
+                          value={formSeoTitle} 
+                          onChange={(e) => setFormSeoTitle(e.target.value)}
+                          placeholder="Bespoke luxury piece title optimized for search..."
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO URL Slug / Handle (ইউআরএল স্ল্যাগ)</label>
+                        <input 
+                          type="text" 
+                          value={formSeoSlug} 
+                          onChange={(e) => setFormSeoSlug(e.target.value.toLowerCase().trim().replace(/\s+/g, '-'))}
+                          placeholder="e.g. royal-silk-panjabi"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords (ফোকাস কিওয়ার্ডস)</label>
+                        <input 
+                          type="text" 
+                          value={formSeoKeywords} 
+                          onChange={(e) => setFormSeoKeywords(e.target.value)}
+                          placeholder="e.g. panjabi, premium clothing, silk, stylex"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Description (মেটা ডেসক্রিপশন)</label>
+                        <textarea 
+                          rows={2} 
+                          value={formSeoDescription} 
+                          onChange={(e) => setFormSeoDescription(e.target.value)}
+                          placeholder="Enter metadata snippet optimized for search result engines (max 160 characters)..."
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -3487,7 +3687,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             <div className="space-y-1">
                               {ord.items.map((it, i) => (
                                 <div key={i} className="text-[10.5px] leading-tight">
-                                  • {it.title} <span className="text-white/45 font-mono">({it.selectedSize}) x{it.quantity}</span>
+                                  • {it.title} <span className="text-white/45 font-mono">({it.selectedSize}{it.selectedColor ? `, Color: ${it.selectedColor}` : ''}) x{it.quantity}</span>
                                 </div>
                               ))}
                             </div>
@@ -3517,7 +3717,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => {
-                                  const itemsText = ord.items.map((i: any) => `- ${i.title} (${i.selectedSize}) x${i.quantity} @ ৳${i.price}`).join("\n");
+                                  const itemsText = ord.items.map((i: any) => `- ${i.title} (${i.selectedSize}${i.selectedColor ? `, Color: ${i.selectedColor}` : ''}) x${i.quantity} @ ৳${i.price}`).join("\n");
                                   const wsMessage = `👑 *STYLE X CONCIERGE CALL* 👑\n\nHello ${ord.customerName}, confirming order status:\n\n*Order Tracking ID:* ${ord.id}\n*Items Details:*\n${itemsText}\n*Invoice amount:* ৳${ord.totalAmount}\n*Current Status:* ${ord.status}\n\nThank you for choosing STYLE X Luxury!`;
                                   window.open(`https://wa.me/${ord.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(wsMessage)}`, '_blank');
                                 }}

@@ -235,7 +235,7 @@ export default function LuxuryCheckoutButton({
           if (packageRef.current) {
             gsap.set(packageRef.current, {
               left: '60%',
-              top: '20px',
+              top: '12px',
               scale: 0.4,
               opacity: 0,
               rotate: 0
@@ -245,7 +245,7 @@ export default function LuxuryCheckoutButton({
               opacity: 1,
               scale: 1,
               left: '72%',
-              top: '10px',
+              top: '4px',
               rotate: 360,
               duration: 0.8,
               ease: 'power2.out',
@@ -254,7 +254,7 @@ export default function LuxuryCheckoutButton({
                 gsap.to(packageRef.current, {
                   opacity: 0,
                   scale: 0.3,
-                  y: 10,
+                  y: 6,
                   duration: 0.4,
                   ease: 'power2.in'
                 });
@@ -318,7 +318,7 @@ export default function LuxuryCheckoutButton({
       <style>{`
         .viewport-3d {
           position: relative;
-          padding: 8px 0;
+          padding: 4px 0;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -332,19 +332,19 @@ export default function LuxuryCheckoutButton({
 
         @media (max-height: 850px) {
           .viewport-3d {
-            padding: 3px 0 !important;
+            padding: 2px 0 !important;
           }
           .luxury-btn {
-            height: 76px !important;
-            border-radius: 38px !important;
+            height: 52px !important;
+            border-radius: 26px !important;
           }
           .delivery-vessel {
-            transform: scale(0.7) !important;
-            height: 76px !important;
-            top: 2px !important;
+            transform: scale(0.48) !important;
+            height: 52px !important;
+            top: -2px !important;
           }
           .label-text {
-            font-size: 11px !important;
+            font-size: 10.5px !important;
             letter-spacing: 2px !important;
           }
         }
@@ -352,10 +352,10 @@ export default function LuxuryCheckoutButton({
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 90px;
+          height: 60px;
           background: #060408;
           border: 0.75px solid rgba(192, 132, 252, 0.3);
-          border-radius: 45px;
+          border-radius: 30px;
           cursor: pointer;
           outline: none;
           overflow: hidden;
@@ -366,11 +366,11 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 20px 45px rgba(0, 0, 0, 0.95), 
+              0 12px 30px rgba(0, 0, 0, 0.95), 
               0 0 0 1px rgba(0, 0, 0, 1),
-              inset 0 2px 3px rgba(233, 213, 255, 0.25),
-              inset 0 -2px 4px rgba(0, 0, 0, 0.95);
-              
+              inset 0 1.5px 2px rgba(233, 213, 255, 0.25),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
+          
           transform-style: preserve-3d;
           backface-visibility: hidden;
           will-change: transform, box-shadow, border-color;
@@ -380,79 +380,79 @@ export default function LuxuryCheckoutButton({
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
           border-color: rgba(234, 208, 128, 0.85);
           box-shadow: 
-              0 25px 50px rgba(0, 0, 0, 0.95), 
-              0 0 35px rgba(234, 208, 128, 0.4),
-              inset 0 2px 4px rgba(255, 240, 208, 0.35),
-              inset 0 -2px 4px rgba(0, 0, 0, 0.95);
+              0 18px 36px rgba(0, 0, 0, 0.95), 
+              0 0 25px rgba(234, 208, 128, 0.35),
+              inset 0 1.5px 3px rgba(255, 240, 208, 0.35),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
         }
 
         .luxury-btn:active {
           border-color: rgba(212, 175, 55, 1);
           box-shadow: 
-              0 15px 30px rgba(0, 0, 0, 0.95), 
-              0 0 45px rgba(212, 175, 55, 0.65),
-              inset 0 2px 4px rgba(255, 240, 208, 0.5),
-              inset 0 -2px 4px rgba(0, 0, 0, 0.95);
+              0 10px 20px rgba(0, 0, 0, 0.95), 
+              0 0 30px rgba(212, 175, 55, 0.55),
+              inset 0 1.5px 3px rgba(255, 240, 208, 0.5),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
           transform: scale(0.985);
         }
 
         @media (max-width: 480px) {
           .luxury-btn {
-            height: 74px;
-            border-radius: 37px;
+            height: 52px;
+            border-radius: 26px;
           }
           .label-text {
+            font-size: 10px !important;
+            letter-spacing: 2px !important;
+          }
+          .content-plate {
+            padding: 0 12px !important;
+          }
+          .delivery-vessel {
+            transform: scale(0.48);
+            transform-origin: bottom center;
+            height: 52px !important;
+            top: -2px !important;
+          }
+          .success-row {
+            gap: 6px !important;
+          }
+          .headline-success {
             font-size: 11px !important;
             letter-spacing: 2.5px !important;
           }
-          .content-plate {
-            padding: 0 16px !important;
-          }
-          .delivery-vessel {
-            transform: scale(0.72);
-            transform-origin: bottom center;
-            height: 74px !important;
-            top: 2px !important;
-          }
-          .success-row {
-            gap: 8px !important;
-          }
-          .headline-success {
-            font-size: 11.5px !important;
-            letter-spacing: 3px !important;
-          }
           .subtext-success {
             font-size: 8px !important;
-            letter-spacing: 1.5px !important;
+            letter-spacing: 1px !important;
           }
           .vector-checkmark {
-            width: 15px !important;
-            height: 15px !important;
+            width: 14px !important;
+            height: 14px !important;
           }
         }
 
         @media (max-width: 360px) {
           .luxury-btn {
-            height: 64px;
-            border-radius: 32px;
+            height: 46px;
+            border-radius: 23px;
           }
           .label-text {
-            font-size: 10px !important;
+            font-size: 9px !important;
             letter-spacing: 1.5px !important;
           }
           .delivery-vessel {
-            transform: scale(0.62);
+            transform: scale(0.42);
             transform-origin: bottom center;
-            height: 64px !important;
-            top: 3px !important;
+            height: 46px !important;
+            top: -4px !important;
           }
           .headline-success {
-            font-size: 10.5px !important;
-            letter-spacing: 2px !important;
+            font-size: 10px !important;
+            letter-spacing: 1.5px !important;
           }
           .subtext-success {
-            font-size: 7.5px !important;
-            letter-spacing: 1px !important;
+            font-size: 7px !important;
+            letter-spacing: 0.8px !important;
           }
         }
 
@@ -587,9 +587,10 @@ export default function LuxuryCheckoutButton({
         .delivery-vessel {
           position: absolute;
           left: -160px;
-          top: 1px;
+          top: -5px;
           width: 135px;
           height: 78px;
+          transform: scale(0.55);
           transform-origin: bottom center;
           will-change: transform;
         }

@@ -15,13 +15,23 @@ export default function AcousticScrollManager() {
       if (anchor && anchor.getAttribute('href')?.startsWith('#')) {
         const href = anchor.getAttribute('href');
         if (href && href !== '#') {
-          e.preventDefault();
           const targetElement = document.querySelector(href) as HTMLElement | null;
-          if (targetElement && lenisRef.current) {
-            lenisRef.current.scrollTo(targetElement, {
-              offset: -80, // Offset for sticky navbar
-              duration: 1.4,
-            });
+          if (targetElement) {
+            e.preventDefault();
+            if (lenisRef.current) {
+              lenisRef.current.scrollTo(targetElement, {
+                offset: -80, // Offset for sticky navbar
+                duration: 1.4,
+              });
+            } else {
+              // Fallback for native mobile smooth scroll with sticky header offset
+              const elementPosition = targetElement.getBoundingClientRect().top + window.scrollY;
+              const offsetPosition = elementPosition - 80;
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              });
+            }
           }
         }
       }
@@ -60,6 +70,13 @@ export default function AcousticScrollManager() {
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
+
+    // Skip Lenis smooth scroll on mobile devices entirely to restore 100% native momentum scrolling!
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024;
+    if (isMobileDevice) {
+      document.documentElement.style.scrollBehavior = 'smooth';
+      return;
+    }
 
     // Force native auto scrolling behavior to prevent browser jitter vs Lenis
     document.documentElement.style.scrollBehavior = 'auto';

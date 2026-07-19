@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Product } from '../types';
+import { Product, ProductColor } from '../types';
 import { formatPrice } from '../utils';
 
 interface ProductDetailModalProps {
   product: Product;
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart: (p: Product, size: string) => void;
-  onOrderNow: (p: Product, size: string) => void;
+  onAddToCart: (p: Product, size: string, color?: string, colorImage?: string) => void;
+  onOrderNow: (p: Product, size: string, color?: string, colorImage?: string) => void;
   isWishlisted: boolean;
   onToggleWishlist: (p: Product) => void;
   whatsappNumber?: string;
@@ -30,6 +30,7 @@ export default function ProductDetailModal({
   globalDeliveryDays
 }: ProductDetailModalProps) {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(product.colors?.[0] || null);
   const [activeImgUrl, setActiveImgUrl] = useState<string | null>(null);
   const [prevProductId, setPrevProductId] = useState<string | null>(null);
 
@@ -312,6 +313,8 @@ export default function ProductDetailModal({
   if (product && product.id !== prevProductId) {
     setPrevProductId(product.id);
     setActiveImgUrl(product.imageUrl);
+    setSelectedSize(product.sizes?.[0] || 'Standard');
+    setSelectedColor(product.colors?.[0] || null);
   }
 
   if (!isOpen) return null;
@@ -335,7 +338,7 @@ export default function ProductDetailModal({
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-4xl bg-[#080808] border border-luxury-gold/20 rounded-lg p-5 md:p-8 text-left shadow-2xl z-10 flex flex-col overflow-hidden max-h-[calc(100vh-48px)] md:max-h-[calc(100vh-80px)] animate-fade-in gold-glow-border">
+      <div className="relative w-full max-w-6xl lg:max-w-7xl bg-[#080808] border border-luxury-gold/20 rounded-lg p-5 md:p-8 text-left shadow-2xl z-10 flex flex-col overflow-hidden max-h-[calc(100vh-48px)] md:max-h-[calc(100vh-80px)] animate-fade-in gold-glow-border">
         
         {/* Close Button top-right */}
         <button 
@@ -352,66 +355,187 @@ export default function ProductDetailModal({
           id="product-modal-scroll-body"
           className="overflow-y-auto flex-1 min-h-0 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10 overscroll-contain"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 items-start">
           
-          {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
-          <div className="space-y-4 w-full">
-            <div 
-              onMouseEnter={() => setIsZooming(true)}
-              onMouseLeave={() => setIsZooming(false)}
-              onMouseMove={(e) => {
-                const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - left) / width) * 100;
-                const y = ((e.clientY - top) / height) * 100;
-                setZoomPos({ x, y });
-              }}
-              className="w-full relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-4"
-            >
-              <img 
-                src={displayImage} 
-                alt={product.title} 
-                referrerPolicy="no-referrer"
-                loading="eager"
-                {...({ fetchPriority: "high" })}
-                className="w-full h-full object-contain animate-fade-in"
-                style={{
-                  transformOrigin: isZooming ? `${zoomPos.x}% ${zoomPos.y}%` : 'center center',
-                  transform: isZooming ? 'scale(2.25)' : 'scale(1)',
-                  transition: isZooming ? 'transform 0.08s ease-out' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'
+          {/* Left Column Wrapper (Sticky on desktop) */}
+          <div className="md:sticky md:top-2 h-fit w-full space-y-3.5">
+            {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
+            <div className="flex flex-col md:flex-row-reverse gap-4 items-start w-full">
+              <div 
+                onMouseEnter={() => setIsZooming(true)}
+                onMouseLeave={() => setIsZooming(false)}
+                onMouseMove={(e) => {
+                  const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - left) / width) * 100;
+                  const y = ((e.clientY - top) / height) * 100;
+                  setZoomPos({ x, y });
                 }}
-              />
-              {/* Visual gradient filter */}
-              <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent pointer-events-none z-0"></div>
+                className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[260px] lg:max-w-[290px] xl:max-w-[320px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-3"
+              >
+                <img 
+                  src={displayImage} 
+                  alt={product.title} 
+                  referrerPolicy="no-referrer"
+                  loading="eager"
+                  {...({ fetchPriority: "high" })}
+                  className="w-full h-full object-contain animate-fade-in"
+                  style={{
+                    transformOrigin: isZooming ? `${zoomPos.x}% ${zoomPos.y}%` : 'center center',
+                    transform: isZooming ? 'scale(2.25)' : 'scale(1)',
+                    transition: isZooming ? 'transform 0.08s ease-out' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'
+                  }}
+                />
+                {/* Visual gradient filter */}
+                <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent pointer-events-none z-0"></div>
 
-              {/* Indicator badge */}
-              <div className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[9px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none z-10 ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-luxury-purple-glowing animate-ping"></span>
-                <span className="text-white/80 font-bold">Hover to Zoom Fabric</span>
+                {/* Indicator badge */}
+                <div className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[9px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none z-10 ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-luxury-purple-glowing animate-ping"></span>
+                  <span className="text-white/80 font-bold">Hover to Zoom Fabric</span>
+                </div>
               </div>
+
+              {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
+              {allImages.length > 1 && (
+                <div className="flex flex-row md:flex-col gap-2 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1.5 md:pb-0 w-full md:w-auto md:max-h-[300px]">
+                  {allImages.map((img, i) => (
+                    <button
+                      key={img + i}
+                      type="button"
+                      onClick={() => setActiveImgUrl(img)}
+                      className={`w-12 h-12 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
+                        img === displayImage 
+                          ? 'border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105' 
+                          : 'border-white/5 hover:border-white/20 hover:scale-105'
+                      }`}
+                    >
+                      <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
-            {allImages.length > 1 && (
-              <div className="flex gap-2.5 p-1 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-2">
-                {allImages.map((img, i) => (
-                  <button
-                    key={img + i}
-                    type="button"
-                    onClick={() => setActiveImgUrl(img)}
-                    className={`w-14 h-14 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
-                      img === displayImage 
-                        ? 'border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105' 
-                        : 'border-white/5 hover:border-white/20 hover:scale-105'
-                    }`}
-                  >
-                    <img src={img} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Direct ordering actions (DESKTOP ONLY - placed underneath image on the left) */}
+            <div className="hidden md:block w-full border-t border-white/5 pt-3">
+              {product.stock === 0 ? (
+                <div className="space-y-2 w-full">
+                  {isNotifyMeDeactivated ? (
+                    <button
+                      disabled
+                      className="w-full bg-neutral-950 border border-neutral-800/60 text-neutral-500 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-50 animate-fade-in"
+                    >
+                      👑 Sold Out / Unavailable
+                    </button>
+                  ) : showNotifyForm ? (
+                    <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-5 rounded-[24px] space-y-4 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-1.5 text-[#FFD700] font-mono text-[10px] uppercase tracking-wider font-extrabold">
+                          <span>Restock Intel Alert</span>
+                        </div>
+                        <button
+                          onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
+                          className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
 
-            {/* Title and Category Header positioned below the product image/thumbnails */}
-            <div className="space-y-2 border-t border-white/5 pt-4 mt-2 w-full">
+                      {notifySuccess ? (
+                        <div className="flex flex-col items-center justify-center py-4 text-center space-y-2.5">
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
+                            <Check size={20} />
+                          </div>
+                          <p className="text-xs text-emerald-300 font-mono font-bold uppercase tracking-wider">ALERT LOCKED IN!</p>
+                          <p className="text-[11px] text-white/70 leading-relaxed px-4">We'll alert your secure private email channel the second restock lands.</p>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleNotifySubmit} className="space-y-4">
+                          <p className="text-[11px] text-white/60 leading-relaxed font-sans">
+                            Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
+                          </p>
+                          
+                          <div className="relative text-left">
+                            <label className="block text-xs font-semibold text-white pl-0.5 mb-1.5">
+                              VIP Email Address
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="Enter your VIP email address"
+                              value={notifyEmail}
+                              onChange={(e) => setNotifyEmail(e.target.value)}
+                              className="w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
+                            />
+                          </div>
+
+                          {notifyError && (
+                            <p className="text-[10px] text-red-400 font-mono leading-tight pl-0.5">⚠️ {notifyError}</p>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={submittingNotify}
+                            className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
+                          >
+                            {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
+                      className="w-full bg-gradient-to-r from-[#241245] via-[#3a1a6f] to-[#241245] border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.35)] cursor-pointer animate-fade-in"
+                    >
+                      🔔 Notify Me When Available
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                        onClose();
+                      }}
+                      className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                    >
+                      <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
+                      <span className="relative z-10">Add to Bag</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                        onClose();
+                      }}
+                      className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span className="relative z-10">👑</span>
+                      <span className="relative z-10">Buy Now</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleWhatsAppDirect}
+                    className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
+                  >
+                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
+                    <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
+                    <span>Order Via WhatsApp</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Detailed Product Specs */}
+          <div className="flex flex-col justify-between space-y-5">
+            
+            {/* Title and Category Header positioned at the very top of details */}
+            <div className="space-y-2.5 border-b border-white/5 pb-4 w-full">
               <div className="flex items-center gap-3">
                 <span className="text-[9px] font-mono tracking-normal text-luxury-gold uppercase bg-luxury-gold/10 border border-luxury-gold/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.1)]">
                   {product.category.replace(/\s+/g, ' ')} COLLECTION
@@ -420,7 +544,7 @@ export default function ProductDetailModal({
               </div>
 
               <h2 
-                className="font-serif text-lg lg:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase"
+                className="font-serif text-xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase leading-snug"
                 style={{ 
                   wordSpacing: 'normal', 
                   letterSpacing: 'normal', 
@@ -438,11 +562,7 @@ export default function ProductDetailModal({
                 {product.title.trim().replace(/\s+/g, ' ')}
               </h2>
             </div>
-          </div>
 
-          {/* Right Column: Detailed Product Specs */}
-          <div className="flex flex-col justify-between space-y-5">
-            
             <div className="space-y-4">
               {(() => {
                 const originalPrice = product.price;
@@ -670,6 +790,54 @@ export default function ProductDetailModal({
               </div>
             </div>
 
+            {/* Colors/variants selector box */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="space-y-2.5 border-t border-white/5 pt-4">
+                <p className="text-[9px] text-white/40 uppercase font-mono tracking-[0.25em] font-semibold">CHOOSE COLOUR / VARIANT</p>
+                <div className="flex flex-wrap gap-3">
+                  {product.colors.map((color) => {
+                    const isSelected = selectedColor?.name === color.name;
+                    return (
+                      <button
+                        key={color.name}
+                        type="button"
+                        onClick={() => {
+                          setSelectedColor(color);
+                          if (color.imageUrl) {
+                            setActiveImgUrl(color.imageUrl);
+                          }
+                        }}
+                        className={`group relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer transition-all duration-300 ${
+                          isSelected
+                            ? 'bg-luxury-gold/10 border-luxury-gold shadow-[0_0_15px_rgba(212,175,55,0.35)] scale-105 font-bold text-white'
+                            : 'bg-black/40 border-white/5 hover:border-white/25 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        {color.hex && (
+                          <span 
+                            className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-[0_0_6px_rgba(255,255,255,0.1)] flex-shrink-0" 
+                            style={{ backgroundColor: color.hex }}
+                          />
+                        )}
+                        {color.imageUrl && (
+                          <img 
+                            src={color.imageUrl} 
+                            alt={color.name} 
+                            className="w-6 h-6 object-cover rounded border border-white/10 flex-shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                        <span className="font-sans text-[11px] uppercase tracking-wider">{color.name}</span>
+                        {isSelected && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-luxury-gold animate-ping" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Sizes selector box */}
             {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-2.5 border-t border-white/5 pt-4">
@@ -709,117 +877,119 @@ export default function ProductDetailModal({
               </div>
             )}
 
-            {/* Direct ordering actions */}
-            {product.stock === 0 ? (
-              <div className="space-y-2 w-full">
-                {isNotifyMeDeactivated ? (
-                  <button
-                    disabled
-                    className="w-full bg-neutral-950 border border-neutral-800/60 text-neutral-500 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-50 animate-fade-in"
-                  >
-                    👑 Sold Out / Unavailable
-                  </button>
-                ) : showNotifyForm ? (
-                  <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-5 rounded-[24px] space-y-4 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                      <div className="flex items-center gap-1.5 text-[#FFD700] font-mono text-[10px] uppercase tracking-wider font-extrabold">
-                        <span>Restock Intel Alert</span>
-                      </div>
-                      <button
-                        onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
-                        className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-
-                    {notifySuccess ? (
-                      <div className="flex flex-col items-center justify-center py-4 text-center space-y-2.5">
-                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
-                          <Check size={20} />
+            {/* Direct ordering actions (MOBILE ONLY - hidden on desktop since they are rendered on the left) */}
+            <div className="md:hidden">
+              {product.stock === 0 ? (
+                <div className="space-y-2 w-full">
+                  {isNotifyMeDeactivated ? (
+                    <button
+                      disabled
+                      className="w-full bg-neutral-950 border border-neutral-800/60 text-neutral-500 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-50 animate-fade-in"
+                    >
+                      👑 Sold Out / Unavailable
+                    </button>
+                  ) : showNotifyForm ? (
+                    <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-5 rounded-[24px] space-y-4 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-1.5 text-[#FFD700] font-mono text-[10px] uppercase tracking-wider font-extrabold">
+                          <span>Restock Intel Alert</span>
                         </div>
-                        <p className="text-xs text-emerald-300 font-mono font-bold uppercase tracking-wider">ALERT LOCKED IN!</p>
-                        <p className="text-[11px] text-white/70 leading-relaxed px-4">We'll alert your secure private email channel the second restock lands.</p>
-                      </div>
-                    ) : (
-                      <form onSubmit={handleNotifySubmit} className="space-y-4">
-                        <p className="text-[11px] text-white/60 leading-relaxed font-sans">
-                          Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
-                        </p>
-                        
-                        <div className="relative text-left">
-                          <label className="block text-xs font-semibold text-white pl-0.5 mb-1.5">
-                            VIP Email Address
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            placeholder="Enter your VIP email address"
-                            value={notifyEmail}
-                            onChange={(e) => setNotifyEmail(e.target.value)}
-                            className="w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
-                          />
-                        </div>
-
-                        {notifyError && (
-                          <p className="text-[10px] text-red-400 font-mono leading-tight pl-0.5">⚠️ {notifyError}</p>
-                        )}
-
                         <button
-                          type="submit"
-                          disabled={submittingNotify}
-                          className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
+                          onClick={() => { setShowNotifyForm(false); setNotifySuccess(false); setNotifyError(''); }}
+                          className="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/10 transition-all cursor-pointer"
                         >
-                          {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
+                          <X size={14} />
                         </button>
-                      </form>
-                    )}
+                      </div>
+
+                      {notifySuccess ? (
+                        <div className="flex flex-col items-center justify-center py-4 text-center space-y-2.5">
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
+                            <Check size={20} />
+                          </div>
+                          <p className="text-xs text-emerald-300 font-mono font-bold uppercase tracking-wider">ALERT LOCKED IN!</p>
+                          <p className="text-[11px] text-white/70 leading-relaxed px-4">We'll alert your secure private email channel the second restock lands.</p>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleNotifySubmit} className="space-y-4">
+                          <p className="text-[11px] text-white/60 leading-relaxed font-sans">
+                            Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
+                          </p>
+                          
+                          <div className="relative text-left">
+                            <label className="block text-xs font-semibold text-white pl-0.5 mb-1.5">
+                              VIP Email Address
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="Enter your VIP email address"
+                              value={notifyEmail}
+                              onChange={(e) => setNotifyEmail(e.target.value)}
+                              className="w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
+                            />
+                          </div>
+
+                          {notifyError && (
+                            <p className="text-[10px] text-red-400 font-mono leading-tight pl-0.5">⚠️ {notifyError}</p>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={submittingNotify}
+                            className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
+                          >
+                            {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
+                      className="w-full bg-gradient-to-r from-[#241245] via-[#3a1a6f] to-[#241245] border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.35)] cursor-pointer animate-fade-in"
+                    >
+                      🔔 Notify Me When Available
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                        onClose();
+                      }}
+                      className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                    >
+                      <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
+                      <span className="relative z-10">Add to Bag</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                        onClose();
+                      }}
+                      className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span className="relative z-10">👑</span>
+                      <span className="relative z-10">Buy Now</span>
+                    </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
-                    className="w-full bg-gradient-to-r from-[#241245] via-[#3a1a6f] to-[#241245] border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.35)] cursor-pointer animate-fade-in"
-                  >
-                    🔔 Notify Me When Available
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      onAddToCart(product, selectedSize);
-                      onClose();
-                    }}
-                    className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-                  >
-                    <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
-                    <span className="relative z-10">Add to Bag</span>
-                  </button>
 
                   <button
-                    onClick={() => {
-                      onOrderNow(product, selectedSize);
-                      onClose();
-                    }}
-                    className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={handleWhatsAppDirect}
+                    className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
                   >
-                    <span className="relative z-10">👑</span>
-                    <span className="relative z-10">Buy Now</span>
+                    <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
+                    <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
+                    <span>Order Via WhatsApp</span>
                   </button>
                 </div>
-
-                <button
-                  onClick={handleWhatsAppDirect}
-                  className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
-                >
-                  <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
-                  <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
-                  <span>Order Via WhatsApp</span>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Exquisite Social Sharing Section */}
             <div className="border-t border-white/5 pt-4 space-y-3">

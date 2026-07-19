@@ -10,7 +10,11 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
+      "source": "/sitemap.xml",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg|robots.txt).*)$",
       "destination": "/index.html"
     }
   ]

@@ -17,6 +17,8 @@ interface CartDrawerProps {
   onUpdateQty: (idx: number, qty: number) => void;
   onRemoveItem: (idx: number) => void;
   onUpdateSize?: (idx: number, size: string) => void;
+  onUpdateColor?: (idx: number, color: string, colorImage?: string) => void;
+  onUpdateColorImage?: (idx: number, imageUrl: string) => void;
   activeCoupons: Coupon[];
   products?: Product[];
   settings?: {
@@ -112,6 +114,8 @@ export default function CartDrawer({
   onUpdateQty,
   onRemoveItem,
   onUpdateSize,
+  onUpdateColor,
+  onUpdateColorImage,
   activeCoupons,
   products = [],
   settings,
@@ -229,7 +233,7 @@ export default function CartDrawer({
   // Pricing calculations
   // Enrich cart items with latest product data from the master list to guarantee up-to-date prices, delivery fees, and payment settings!
   const enrichedCartItems = cartItems.map(item => {
-    const freshProduct = products?.find(p => p.id === item.product.id);
+    const freshProduct = products?.find(p => String(p.id).trim().toLowerCase() === String(item.product.id).trim().toLowerCase());
     if (freshProduct) {
       return {
         ...item,
@@ -382,16 +386,34 @@ export default function CartDrawer({
   const resolvedDeliveryCharge = deliveryCharge;
 
   const grandTotal = getValidatedTotal(enrichedCartItems, resolvedDeliveryCharge, discountAmount);
-  const advancePaymentAmount = getAdvancePaymentAmount(paymentType, resolvedDeliveryCharge, grandTotal, governingProduct?.paymentPercentage);
 
-  // Set initial payment method when paymentType overrides change
+  // Deriving the active payment method robustly to prevent stuck COD states or UI mismatches
+  const activePaymentMethod = paymentType === 'cod' 
+    ? 'cod' 
+    : (paymentMethod === 'cod' ? (settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash') : paymentMethod);
+
+  let advancePaymentAmount = 0;
+  if (activePaymentMethod !== 'cod') {
+    if (paymentType === 'full_advance') {
+      advancePaymentAmount = grandTotal;
+    } else if (paymentType === 'percentage') {
+      const pct = governingProduct?.paymentPercentage !== undefined ? Number(governingProduct.paymentPercentage) : 10;
+      advancePaymentAmount = Math.round((pct / 100) * (itemsTotal - discountAmount));
+    } else if (paymentType === 'delivery_charge') {
+      advancePaymentAmount = resolvedDeliveryCharge;
+    }
+  }
+
+  // Set initial payment method when paymentType overrides change, with robust protection against stuck COD states
   useEffect(() => {
     if (paymentType === 'cod') {
       setPaymentMethod('cod');
     } else {
-      setPaymentMethod(settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash');
+      if (paymentMethod === 'cod') {
+        setPaymentMethod(settings?.globalPaymentSystem === 'always_nagad' ? 'nagad' : 'bkash');
+      }
     }
-  }, [paymentType, settings?.globalPaymentSystem]);
+  }, [paymentType, paymentMethod, settings?.globalPaymentSystem, checkoutStep]);
 
   // Date generators
   const getEstimatedDeliveryDate = () => {
@@ -508,6 +530,8 @@ export default function CartDrawer({
       const formattedItems = enrichedCartItems.map(item => ({
         title: item.product.title,
         selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor,
+        selectedColorImage: item.selectedColorImage,
         quantity: item.quantity,
         price: getProductActivePrice(item.product)
       }));
@@ -556,7 +580,7 @@ export default function CartDrawer({
     e.preventDefault();
     setErrorMessage('');
 
-    if (paymentMethod !== 'cod') {
+    if (activePaymentMethod !== 'cod') {
       const txErr = validateTransactionId(transactionId);
       if (txErr) {
         setErrorMessage(txErr);
@@ -572,6 +596,8 @@ export default function CartDrawer({
         title: item.product.title,
         price: getProductActivePrice(item.product),
         selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor,
+        selectedColorImage: item.selectedColorImage,
         quantity: item.quantity
       }));
 
@@ -593,9 +619,9 @@ export default function CartDrawer({
           totalAmount: grandTotal,
           couponCode: appliedCoupon ? appliedCoupon.code : undefined,
           paymentType,
-          paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod.toUpperCase(),
-          paidAmount: paymentMethod === 'cod' ? 0 : advancePaymentAmount,
-          transactionId: paymentMethod === 'cod' ? '' : transactionId.trim().toUpperCase(),
+          paymentMethod: activePaymentMethod === 'cod' ? 'COD' : activePaymentMethod.toUpperCase(),
+          paidAmount: activePaymentMethod === 'cod' ? 0 : advancePaymentAmount,
+          transactionId: activePaymentMethod === 'cod' ? '' : transactionId.trim().toUpperCase(),
           paymentScreenshot: screenshotBase64 || undefined
         })
       });
@@ -611,7 +637,7 @@ export default function CartDrawer({
       }
 
       // Record transaction
-      if (paymentMethod !== 'cod' && transactionId) {
+      if (activePaymentMethod !== 'cod' && transactionId) {
         const updatedTxIds = [...usedTransactionIds, transactionId.trim().toUpperCase()];
         setUsedTransactionIds(updatedTxIds);
         try {
@@ -627,9 +653,9 @@ export default function CartDrawer({
       setPlacedOrderId(data.order.id);
       setPlacedWhatsAppUrl(data.whatsappUrl);
       
-      const pLabel = paymentMethod === 'cod' 
+      const pLabel = activePaymentMethod === 'cod' 
         ? 'Cash on Delivery (COD)' 
-        : `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : paymentType === 'percentage' ? `${governingProduct?.paymentPercentage || 10}% Partial Advance` : 'Full Advance'} (${paymentMethod.toUpperCase()})`;
+        : `${paymentType === 'delivery_charge' ? 'Delivery Charge Advance' : paymentType === 'percentage' ? `${governingProduct?.paymentPercentage || 10}% Partial Advance` : 'Full Advance'} (${activePaymentMethod.toUpperCase()})`;
       setPlacedPaymentLabel(pLabel);
       setPlacedDeliveryDate(getEstimatedDeliveryDate());
 
@@ -798,30 +824,40 @@ export default function CartDrawer({
                   <div className="flex-1 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
                       <div className="space-y-3">
-                        {enrichedCartItems.map((item, idx) => (
-                          <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
-                            <div 
-                              onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                              className="w-20 h-20 rounded-xl border border-white/10 shrink-0 relative overflow-hidden group/img cursor-zoom-in bg-black/40 shadow-inner"
-                              title="Click to view full image"
-                            >
-                              <img 
-                                src={item.product.imageUrl} 
-                                alt={item.product.title} 
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
-                                referrerPolicy="no-referrer" 
-                              />
-                              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
-                              </div>
-                            </div>
-                            <div className="flex-1 flex flex-col justify-between min-w-0">
-                              <div className="flex justify-between items-start gap-2">
-                                <h4 className="font-serif text-[12px] text-white font-medium truncate">{item.product.title}</h4>
-                                <span className="text-luxury-gold text-[12px] font-mono font-bold shrink-0">{formatPrice(getProductActivePrice(item.product) * item.quantity)}</span>
-                              </div>
-                              <p className="text-[9px] text-white/30 font-mono">SIZE: {item.selectedSize || 'STANDARD'}</p>
-                              <div className="flex items-center justify-between mt-1.5">
+                         {enrichedCartItems.map((item, idx) => {
+                           const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
+                           return (
+                             <div key={`${item.product.id}-${idx}`} className="flex gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl hover:border-luxury-gold/30 transition-all duration-300">
+                               <div 
+                                 onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
+                                 className="w-20 h-20 rounded-xl border border-white/10 shrink-0 relative overflow-hidden group/img cursor-zoom-in bg-black/40 shadow-inner"
+                                 title="Click to view full image"
+                               >
+                                 <img 
+                                   src={itemDisplayImage} 
+                                   alt={item.product.title} 
+                                   className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
+                                   referrerPolicy="no-referrer" 
+                                 />
+                                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                   <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                 </div>
+                               </div>
+                               <div className="flex-1 flex flex-col justify-between min-w-0">
+                                 <div className="flex justify-between items-start gap-2">
+                                   <h4 className="font-serif text-[12px] text-white font-medium truncate">{item.product.title}</h4>
+                                   <span className="text-luxury-gold text-[12px] font-mono font-bold shrink-0">{formatPrice(getProductActivePrice(item.product) * item.quantity)}</span>
+                                 </div>
+                                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                   <span className="text-[9px] bg-white/5 border border-white/5 text-white/40 px-1.5 py-0.5 rounded font-mono">SIZE: {item.selectedSize || 'STANDARD'}</span>
+                                   {item.selectedColor && (
+                                     <span className="text-[9px] bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold px-1.5 py-0.5 rounded font-sans font-semibold flex items-center gap-1">
+                                       <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold inline-block animate-pulse"></span>
+                                       COLOUR: {item.selectedColor}
+                                     </span>
+                                   )}
+                                 </div>
+                                 <div className="flex items-center justify-between mt-1.5">
                                 <div className="flex items-center bg-black border border-white/10 rounded-lg overflow-hidden shrink-0">
                                   <button onClick={() => onUpdateQty(idx, item.quantity - 1)} className="p-1 text-white hover:text-luxury-gold hover:bg-white/5 transition-all"><Minus size={10} /></button>
                                   <span className="px-2.5 text-[10px] font-mono text-white font-bold">{item.quantity}</span>
@@ -831,7 +867,8 @@ export default function CartDrawer({
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Coupon Redemption in Cart view */}
@@ -921,14 +958,14 @@ export default function CartDrawer({
                               <div className="grid grid-cols-1 gap-3 relative z-10">
                                 {/* Name Field */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
                                     customerName
                                       ? isNameValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <User size={13} />
+                                    <User className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                   </div>
                                   <input 
                                     ref={nameInputRef}
@@ -939,7 +976,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 font-bold h-[42px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 font-bold h-[42px] md:h-[52px] shadow-sm focus:outline-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -949,7 +986,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_name" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[11px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[11px] md:peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -998,14 +1035,14 @@ export default function CartDrawer({
 
                                 {/* Mobile Number */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 transition-all duration-300 ${
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
                                     customerPhone
                                       ? isPhoneValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <Phone size={13} />
+                                    <Phone className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                   </div>
                                   <input 
                                     ref={phoneInputRef}
@@ -1016,7 +1053,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
                                     onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 font-mono font-bold h-[42px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 font-mono font-bold h-[42px] md:h-[52px] shadow-sm focus:outline-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1026,7 +1063,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_phone" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[11px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[11px] md:peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1092,8 +1129,8 @@ export default function CartDrawer({
                                 <div className="hidden lg:grid grid-cols-2 gap-4">
                                   {/* Division Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin size={14} />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                     </div>
                                     <select
                                       value={getDivisionForCity(customerCity)}
@@ -1104,7 +1141,7 @@ export default function CartDrawer({
                                           setCustomerCity(districtsInDiv[0]);
                                         }
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] text-white font-bold h-[42px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] md:text-[14.5px] text-white font-bold h-[42px] md:h-[52px] pl-9 md:pl-12 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {Object.keys(DIVISION_MAPS).map((div) => (
                                         <option key={div} value={div} className="bg-[#0c0617] text-white">
@@ -1112,7 +1149,7 @@ export default function CartDrawer({
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-9 top-1 text-[8px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                    <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
                                       Division *
                                     </label>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
@@ -1122,15 +1159,15 @@ export default function CartDrawer({
 
                                   {/* District Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin size={14} />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                     </div>
                                     <select
                                       value={customerCity}
                                       onChange={(e) => {
                                         setCustomerCity(e.target.value);
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] text-white font-bold h-[42px] pl-9 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] md:text-[14.5px] text-white font-bold h-[42px] md:h-[52px] pl-9 md:pl-12 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
                                         <option key={district} value={district} className="bg-[#0c0617] text-white">
@@ -1138,7 +1175,7 @@ export default function CartDrawer({
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-9 top-1 text-[8px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                    <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
                                       District/City *
                                     </label>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
@@ -1247,14 +1284,14 @@ export default function CartDrawer({
 
                                 {/* Complete Address */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-3 left-3 transition-all duration-300 ${
+                                  <div className={`absolute top-3 left-3 md:left-4 transition-all duration-300 ${
                                     customerAddress
                                       ? isAddressValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <MapPin size={13} />
+                                    <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
                                   </div>
                                   <textarea 
                                     ref={addressTextRef}
@@ -1263,7 +1300,7 @@ export default function CartDrawer({
                                     value={customerAddress}
                                     onChange={(e) => setCustomerAddress(e.target.value)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 pl-9 pr-9 text-[12.5px] text-white transition-all duration-300 h-[44px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 h-[44px] md:h-[56px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
                                       customerAddress
                                         ? isAddressValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1273,7 +1310,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_address" 
-                                    className={`absolute left-9 top-1 text-[8px] font-bold transition-all peer-placeholder-shown:top-[12px] peer-placeholder-shown:text-xs peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 peer-focus:text-[8px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerAddress
                                         ? isAddressValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1331,22 +1368,23 @@ export default function CartDrawer({
                             <span className="text-[9.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
                           </div>
                           
-                          <div className="space-y-1 bg-[#0f0a1c] border border-white/10 rounded-xl p-1.5 sm:p-2 shadow-xl max-h-[110px] sm:max-h-[130px] md:max-h-[150px] lg:max-h-[190px] xl:max-h-[240px] overflow-y-auto scrollbar-hidden">
+                          <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-1.5 sm:p-2.5 md:p-3.5 shadow-xl max-h-[160px] sm:max-h-[200px] md:max-h-[250px] lg:max-h-[350px] xl:max-h-[420px] overflow-y-auto scrollbar-hidden">
                             {enrichedCartItems.map((item, idx) => {
                               const availableSizes = item.product.sizes && item.product.sizes.length > 0 
                                 ? item.product.sizes 
                                 : ['S', 'M', 'L', 'XL', 'XXL'];
                               
+                               const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
                               return (
-                                <div key={idx} className="flex items-center gap-3 bg-black/40 p-2 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
+                                <div key={idx} className="flex items-center gap-3.5 bg-black/40 p-2 sm:p-2.5 md:p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
                                   {/* Product Photo - Consistent luxury size, perfectly fit */}
                                   <div 
-                                    onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
+                                    onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
                                     className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                     title="Click to view full image"
                                   >
                                     <img 
-                                      src={item.product.imageUrl} 
+                                      src={itemDisplayImage} 
                                       alt={item.product.title} 
                                       referrerPolicy="no-referrer"
                                       className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110"
@@ -1357,17 +1395,50 @@ export default function CartDrawer({
                                   </div>
 
                                   {/* Item Info & Size preference inline */}
-                                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <h4 className="text-[11px] sm:text-[11.5px] font-bold text-white leading-tight truncate">{item.product.title}</h4>
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                      <span className="text-[8.5px] font-mono text-zinc-400 uppercase tracking-wider">Size:</span>
-                                      <div className="flex gap-1">
+                                  <div className="flex-1 min-w-0 flex flex-col justify-center space-y-1.5">
+                                    <h4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-bold text-white leading-tight truncate">{item.product.title}</h4>
+                                    
+                                    {/* Color selector inline in Order Form */}
+                                    {item.product.colors && item.product.colors.length > 0 && (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Color:</span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {item.product.colors.map((colorObj) => {
+                                            const isSelected = item.selectedColor === colorObj.name;
+                                            return (
+                                              <button
+                                                key={colorObj.name}
+                                                type="button"
+                                                onClick={() => onUpdateColor && onUpdateColor(idx, colorObj.name, colorObj.imageUrl)}
+                                                className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[8.5px] md:text-[9px] font-sans font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
+                                                  isSelected
+                                                    ? 'bg-[#d4af37] text-black font-black shadow-[0_0_4px_rgba(212,175,55,0.3)]'
+                                                    : 'bg-black/40 text-white/50 border border-white/5 hover:text-white'
+                                                }`}
+                                              >
+                                                {colorObj.hex && (
+                                                  <span 
+                                                    className="w-1.5 h-1.5 rounded-full border border-white/20 shrink-0" 
+                                                    style={{ backgroundColor: colorObj.hex }}
+                                                  />
+                                                )}
+                                                <span>{colorObj.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Size:</span>
+                                      <div className="flex gap-1 flex-wrap">
                                         {availableSizes.map((size) => (
                                           <button
                                             key={size}
                                             type="button"
                                             onClick={() => onUpdateSize && onUpdateSize(idx, size)}
-                                            className={`h-4.5 px-1.5 rounded-md text-[8.5px] font-mono font-bold cursor-pointer transition-all ${
+                                            className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[9px] md:text-[9.5px] font-mono font-bold cursor-pointer transition-all ${
                                               item.selectedSize === size
                                                 ? 'bg-[#d4af37] text-black font-black shadow-[0_0_6px_rgba(212,175,55,0.3)]'
                                                 : 'bg-black/60 text-white/60 border border-white/5 hover:text-white'
@@ -1378,22 +1449,59 @@ export default function CartDrawer({
                                         ))}
                                       </div>
                                     </div>
+
+                                    {/* Product Images selector (uploaded in product catalog) */}
+                                    {(() => {
+                                      const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
+                                      if (productImagesList.length > 1) {
+                                        return (
+                                          <div className="flex flex-col gap-1.5 mt-1.5">
+                                            <span className="text-[10px] md:text-[12px] lg:text-[13px] font-bold text-zinc-400 tracking-wide">পণ্যর ইমেজ সিলেক্ট করুন:</span>
+                                            <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden flex-wrap max-w-[200px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px]">
+                                              {productImagesList.map((imgUrl, imgIdx) => {
+                                                const isSelected = itemDisplayImage === imgUrl;
+                                                return (
+                                                  <button
+                                                    key={imgIdx}
+                                                    type="button"
+                                                    onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
+                                                    className={`w-11 h-11 sm:w-13 sm:h-13 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg lg:rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 relative ${
+                                                      isSelected
+                                                        ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
+                                                        : 'border-white/10 hover:border-white/30 hover:scale-[1.02]'
+                                                    }`}
+                                                  >
+                                                    <img 
+                                                      src={imgUrl} 
+                                                      alt={`Style option ${imgIdx + 1}`} 
+                                                      className="w-full h-full object-cover p-0.5 rounded-md"
+                                                      referrerPolicy="no-referrer"
+                                                    />
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
 
                                   {/* Quantity & Price Adjuster inline */}
-                                  <div className="flex flex-col items-end gap-1 shrink-0 pr-1">
-                                    <span className="text-[11px] sm:text-[11.5px] font-mono font-bold text-[#d4af37]">
+                                  <div className="flex flex-col items-end gap-1.5 shrink-0 pr-1">
+                                    <span className="text-[11.5px] sm:text-[12.5px] md:text-[13.5px] font-mono font-bold text-[#d4af37]">
                                       {formatPrice(getProductActivePrice(item.product) * item.quantity)}
                                     </span>
-                                    <div className="flex items-center bg-black/60 border border-white/10 rounded-md overflow-hidden h-4.5">
+                                    <div className="flex items-center bg-black/60 border border-white/10 rounded-md overflow-hidden h-5 md:h-5.5">
                                       <button 
                                         type="button" 
                                         onClick={() => onUpdateQty(idx, item.quantity - 1)} 
                                         className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
                                       >
-                                        <Minus size={7} />
+                                        <Minus size={8} />
                                       </button>
-                                      <span className="px-1.5 text-[9.5px] font-mono font-bold text-white min-w-[12px] text-center">
+                                      <span className="px-1.5 text-[10px] md:text-[11px] font-mono font-bold text-white min-w-[12px] text-center">
                                         {item.quantity}
                                       </span>
                                       <button 
@@ -1401,7 +1509,7 @@ export default function CartDrawer({
                                         onClick={() => onUpdateQty(idx, item.quantity + 1)} 
                                         className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
                                       >
-                                        <Plus size={7} />
+                                        <Plus size={8} />
                                       </button>
                                     </div>
                                   </div>
@@ -1462,7 +1570,7 @@ export default function CartDrawer({
                                   type="button"
                                   onClick={() => setPaymentMethod('cod')}
                                   className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer ${
-                                    paymentMethod === 'cod'
+                                    activePaymentMethod === 'cod'
                                       ? 'bg-gradient-to-br from-emerald-500/25 via-emerald-500/15 to-emerald-500/25 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35),_inset_0_0_6px_rgba(16,185,129,0.15)] scale-[1.01] font-black'
                                       : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                   }`}
@@ -1477,7 +1585,7 @@ export default function CartDrawer({
                                     type="button"
                                     onClick={() => { setPaymentMethod('bkash'); setTransactionId(''); setTransactionError(''); }}
                                     className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer h-[58px] justify-between ${
-                                      paymentMethod === 'bkash'
+                                      activePaymentMethod === 'bkash'
                                         ? 'bg-[#e2136e]/20 border-[#e2136e] shadow-[0_0_12px_rgba(226,19,110,0.35),_inset_0_0_6px_rgba(226,19,110,0.15)] scale-[1.01] font-black'
                                         : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                     }`}
@@ -1504,7 +1612,7 @@ export default function CartDrawer({
                                     type="button"
                                     onClick={() => { setPaymentMethod('nagad'); setTransactionId(''); setTransactionError(''); }}
                                     className={`p-2 rounded-xl border transition-all text-left flex flex-col gap-1 cursor-pointer h-[58px] justify-between ${
-                                      paymentMethod === 'nagad'
+                                      activePaymentMethod === 'nagad'
                                         ? 'bg-[#f45c24]/20 border-[#f45c24] shadow-[0_0_12px_rgba(244,92,36,0.35),_inset_0_0_6px_rgba(244,92,36,0.15)] scale-[1.01] font-black'
                                         : 'bg-black/30 border-white/10 opacity-70 hover:opacity-100 hover:border-white/20'
                                     }`}
@@ -1530,12 +1638,12 @@ export default function CartDrawer({
                                 </>
                               )}
                             </div>
-                            {paymentMethod === 'cod' && (
+                            {activePaymentMethod === 'cod' && (
                               <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl text-[10px] text-emerald-400/90 leading-relaxed">
                                 ✓ No advance required. Handover full billing of <strong className="text-white font-mono">{formatPrice(grandTotal)}</strong> to couriers during home dispatch.
                               </div>
                             )}
-                            {paymentMethod !== 'cod' && (
+                            {activePaymentMethod !== 'cod' && (
                               <div className="bg-black/50 border border-white/5 rounded-xl p-2.5 space-y-2.5 animate-fade-in text-[10px]">
                                 <div className="flex justify-between items-center text-zinc-400">
                                   <span>Transfer Type:</span>
@@ -1545,14 +1653,14 @@ export default function CartDrawer({
                                   <div>
                                     <span className="text-[7.5px] text-luxury-gold font-mono font-bold block uppercase tracking-wider">RECIPIENT NUMBER</span>
                                     <span className="font-mono font-black text-white text-[12.5px] tracking-widest block drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]">
-                                      {paymentMethod === 'bkash' && (bkashNumber || '01777223344')}
-                                      {paymentMethod === 'nagad' && (nagadNumber || '01999887766')}
+                                      {activePaymentMethod === 'bkash' && (bkashNumber || '01777223344')}
+                                      {activePaymentMethod === 'nagad' && (nagadNumber || '01999887766')}
                                     </span>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const num = paymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
+                                      const num = activePaymentMethod === 'bkash' ? (bkashNumber || '01777223344') : (nagadNumber || '01999887766');
                                       navigator.clipboard.writeText(num);
                                     }}
                                     className="text-[8.5px] bg-luxury-gold hover:bg-white text-black px-3 py-1.5 rounded-lg transition-all duration-300 font-extrabold border-0 cursor-pointer"
@@ -1665,30 +1773,32 @@ export default function CartDrawer({
                           <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
                             <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[120px] lg:max-h-[135px] overflow-y-auto scrollbar-hidden pr-1">
-                              {enrichedCartItems.map((item, idx) => (
-                                <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-2.5 rounded-xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
-                                  {/* Product Photo - Consistent luxury size, perfectly fit */}
-                                  <div 
-                                    onClick={() => setLightboxImage({ url: item.product.imageUrl, title: item.product.title })}
-                                    className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
-                                    title="Click to view full image"
-                                  >
-                                    <img 
-                                      src={item.product.imageUrl} 
-                                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
-                                      referrerPolicy="no-referrer" 
-                                    />
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                      <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                              {enrichedCartItems.map((item, idx) => {
+                                const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
+                                return (
+                                  <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-2.5 rounded-xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
+                                    {/* Product Photo - Consistent luxury size, perfectly fit */}
+                                    <div 
+                                      onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
+                                      className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                      title="Click to view full image"
+                                    >
+                                      <img 
+                                        src={itemDisplayImage} 
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110" 
+                                        referrerPolicy="no-referrer" 
+                                      />
+                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                        <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <h5 className="text-[11px] sm:text-[11.5px] text-white font-bold truncate font-serif leading-tight">{item.product.title}</h5>
-                                    <p className="text-[9px] text-zinc-400 font-mono mt-1">
-                                      Size: <span className="text-[#d4af37] font-bold">{item.selectedSize}</span> | Qty: <span className="text-white font-bold">{item.quantity}</span>
-                                    </p>
-                                    <p className="text-[9px] text-white/30 font-mono mt-0.5">Unit Price: ৳{getProductActivePrice(item.product)}</p>
-                                  </div>
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                      <h5 className="text-[11px] sm:text-[11.5px] text-white font-bold truncate font-serif leading-tight">{item.product.title}</h5>
+                                      <p className="text-[9px] text-zinc-400 font-mono mt-1">
+                                        Size: <span className="text-[#d4af37] font-bold">{item.selectedSize}</span> {item.selectedColor && <>| Color: <span className="text-[#d4af37] font-bold">{item.selectedColor}</span></>} | Qty: <span className="text-white font-bold">{item.quantity}</span>
+                                      </p>
+                                      <p className="text-[9px] text-white/30 font-mono mt-0.5">Unit Price: ৳{getProductActivePrice(item.product)}</p>
+                                    </div>
                                   
                                   {/* Right-aligned clean price layout */}
                                   <div className="text-right font-mono shrink-0 pr-1 pl-2">
@@ -1697,7 +1807,8 @@ export default function CartDrawer({
                                     </span>
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
 
@@ -1783,24 +1894,38 @@ export default function CartDrawer({
                         </div>
                         
                         {/* Summary Totals */}
-                        <div className="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 sm:justify-end text-[10.5px] text-zinc-400">
-                          <div className="flex gap-1">
-                            <span>Subtotal:</span>
-                            <span className="font-mono text-white">{formatPrice(itemsTotal)}</span>
-                          </div>
-                          {appliedCoupon && (
+                        <div className="flex flex-col items-end gap-1.5 text-[10.5px] text-zinc-400">
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 sm:justify-end">
                             <div className="flex gap-1">
-                              <span>Coupon:</span>
-                              <span className="text-emerald-400 font-bold font-mono">-{formatPrice(discountAmount)}</span>
+                              <span>Subtotal:</span>
+                              <span className="font-mono text-white">{formatPrice(itemsTotal)}</span>
                             </div>
-                          )}
-                          <div className="flex gap-1">
-                            <span>Delivery:</span>
-                            <span className="font-mono text-white">{formatPrice(resolvedDeliveryCharge)}</span>
+                            {appliedCoupon && (
+                              <div className="flex gap-1">
+                                <span>Coupon:</span>
+                                <span className="text-emerald-400 font-bold font-mono">-{formatPrice(discountAmount)}</span>
+                              </div>
+                            )}
+                            <div className="flex gap-1">
+                              <span>Delivery:</span>
+                              <span className="font-mono text-white">{formatPrice(resolvedDeliveryCharge)}</span>
+                            </div>
+                            <div className="flex gap-1 text-white font-extrabold border-l border-white/10 pl-3">
+                              <span className="tracking-wider uppercase text-[8.5px] text-zinc-400 font-bold">Grand Total:</span>
+                              <span className="text-luxury-gold font-mono font-black">{formatPrice(grandTotal)}</span>
+                            </div>
                           </div>
-                          <div className="flex gap-1 text-white font-extrabold border-l border-white/10 pl-3">
-                            <span className="tracking-wider uppercase text-[8.5px] text-zinc-400">Grand Total:</span>
-                            <span className="text-luxury-gold font-mono font-black">{formatPrice(grandTotal)}</span>
+
+                          {/* Payment Breakdown */}
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 justify-end text-[9.5px] text-zinc-500 border-t border-white/[0.04] pt-1.5 w-full sm:w-auto">
+                            <div className="flex gap-1.5 items-center">
+                              <span className="text-zinc-500 uppercase tracking-wider text-[8px]">Advance Required:</span>
+                              <span className="font-mono font-bold text-white bg-white/5 px-1.5 py-0.5 rounded text-[10px]">৳{advancePaymentAmount}</span>
+                            </div>
+                            <div className="flex gap-1.5 items-center border-l border-white/10 pl-3">
+                              <span className="text-zinc-500 uppercase tracking-wider text-[8px]">Due on Delivery:</span>
+                              <span className="font-mono font-bold text-luxury-gold bg-luxury-gold/5 px-1.5 py-0.5 rounded text-[10px]">৳{grandTotal - advancePaymentAmount}</span>
+                            </div>
                           </div>
                         </div>
                       </div>

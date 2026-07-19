@@ -155,6 +155,60 @@ export default function App() {
     }
     prevCartCountRef.current = totalCartItemsCount;
   }, [totalCartItemsCount]);
+
+  // Dynamic SEO meta tags management client-side for loaded product details
+  React.useEffect(() => {
+    if (selectedProduct) {
+      const originalTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
+      const customTitle = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
+      document.title = customTitle;
+
+      const updateOrCreateMeta = (nameOrProperty: string, content: string, isProperty = false) => {
+        const selector = isProperty ? `meta[property="${nameOrProperty}"]` : `meta[name="${nameOrProperty}"]`;
+        let element = document.querySelector(selector);
+        if (!element) {
+          element = document.createElement('meta');
+          if (isProperty) {
+            element.setAttribute('property', nameOrProperty);
+          } else {
+            element.setAttribute('name', nameOrProperty);
+          }
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', content);
+      };
+
+      const desc = selectedProduct.seoDescription || selectedProduct.description || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion.";
+      const keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, stylex, premium clothing`;
+      
+      updateOrCreateMeta('description', desc);
+      updateOrCreateMeta('keywords', keywords);
+      updateOrCreateMeta('title', customTitle);
+
+      updateOrCreateMeta('og:title', customTitle, true);
+      updateOrCreateMeta('og:description', desc, true);
+      if (selectedProduct.imageUrl) {
+        updateOrCreateMeta('og:image', selectedProduct.imageUrl, true);
+      }
+
+      updateOrCreateMeta('twitter:title', customTitle);
+      updateOrCreateMeta('twitter:description', desc);
+      if (selectedProduct.imageUrl) {
+        updateOrCreateMeta('twitter:image', selectedProduct.imageUrl);
+      }
+
+      return () => {
+        document.title = originalTitle;
+        updateOrCreateMeta('description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
+        updateOrCreateMeta('keywords', "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective");
+        updateOrCreateMeta('title', originalTitle);
+        updateOrCreateMeta('og:title', originalTitle, true);
+        updateOrCreateMeta('og:description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
+        updateOrCreateMeta('twitter:title', originalTitle);
+        updateOrCreateMeta('twitter:description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
+      };
+    }
+  }, [selectedProduct]);
   const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);
@@ -936,7 +990,7 @@ export default function App() {
   };
 
   // Cart operations
-  const handleAddToCart = (product: Product, size: string) => {
+  const handleAddToCart = (product: Product, size: string, color?: string, colorImage?: string) => {
     if (!currentCustomer) {
       setCustomerAuthTab('login');
       setCustomerAuthError('পণ্যটি কার্টে যুক্ত করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to add items to your cart.)');
@@ -945,12 +999,22 @@ export default function App() {
       return;
     }
     const freshCart = [...cart];
-    const matchIdx = freshCart.findIndex(item => item.product.id === product.id && item.selectedSize === size);
+    const matchIdx = freshCart.findIndex(item => 
+      item.product.id === product.id && 
+      item.selectedSize === size && 
+      item.selectedColor === color
+    );
 
     if (matchIdx !== -1) {
       freshCart[matchIdx].quantity += 1;
     } else {
-      freshCart.push({ product, selectedSize: size, quantity: 1 });
+      freshCart.push({ 
+        product, 
+        selectedSize: size, 
+        selectedColor: color, 
+        selectedColorImage: colorImage, 
+        quantity: 1 
+      });
     }
 
     setCart(freshCart);
@@ -958,7 +1022,7 @@ export default function App() {
     setIsCartOpen(true);
   };
 
-  const handleOrderNow = (product: Product, size: string) => {
+  const handleOrderNow = (product: Product, size: string, color?: string, colorImage?: string) => {
     if (!currentCustomer) {
       setCustomerAuthTab('login');
       setCustomerAuthError('পণ্যটি অর্ডার করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to order.)');
@@ -969,7 +1033,13 @@ export default function App() {
     // Direct checkout for a specific product should clear previous cart items
     // and initialize the cart with ONLY the chosen product at quantity 1
     // to match the product price perfectly on the payment checkout screen.
-    const directCart = [{ product, selectedSize: size, quantity: 1 }];
+    const directCart = [{ 
+      product, 
+      selectedSize: size, 
+      selectedColor: color, 
+      selectedColorImage: colorImage, 
+      quantity: 1 
+    }];
     setCart(directCart);
     setInitialShowCheckout(true);
     setIsCartOpen(true);
@@ -994,6 +1064,23 @@ export default function App() {
   const handleUpdateCartSize = (idx: number, newSize: string) => {
     const fresh = [...cart];
     fresh[idx].selectedSize = newSize;
+    setCart(fresh);
+  };
+
+  const handleUpdateCartColor = (idx: number, newColor: string, newColorImage?: string) => {
+    const fresh = [...cart];
+    fresh[idx].selectedColor = newColor;
+    if (newColorImage) {
+      fresh[idx].selectedColorImage = newColorImage;
+    } else {
+      delete fresh[idx].selectedColorImage;
+    }
+    setCart(fresh);
+  };
+
+  const handleUpdateCartColorImage = (idx: number, newColorImage: string) => {
+    const fresh = [...cart];
+    fresh[idx].selectedColorImage = newColorImage;
     setCart(fresh);
   };
 
@@ -1689,31 +1776,6 @@ export default function App() {
         style={{ width: `${scrollProgress}%` }}
       />
       
-      {/* Top Privilege / Announcement Notification Banner */}
-      {showTopBanner && (
-        <div className="w-full bg-gradient-to-r from-luxury-black via-[#100122] to-luxury-black border-b border-luxury-gold/20 px-4 py-2 flex items-center justify-between text-[11px] font-mono tracking-widest relative overflow-hidden group">
-          {/* Shimmer background swipe */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-          
-          <div className="flex items-center gap-2 mx-auto text-center min-w-0">
-            <span className="w-2 h-2 rounded-full bg-luxury-gold animate-pulse shrink-0"></span>
-            <span className="text-luxury-gold font-bold uppercase shrink-0">Exclusive Notice:</span>
-            <span className="text-white/80 uppercase truncate">
-              {activeCampaign ? activeCampaign.title : "SECURE bespoke COURIER DISPATCH & Live VIP Drops active today"}
-            </span>
-          </div>
-          
-          <button 
-            type="button"
-            onClick={() => setShowTopBanner(false)}
-            className="text-white/45 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer flex items-center justify-center shrink-0 z-10"
-            title="Dismiss Announcement"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
       {/* Main sticky luxury headers */}
       <Navbar 
         logoUrl={settings?.logoUrl}
@@ -3230,6 +3292,8 @@ export default function App() {
         onUpdateQty={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
         onUpdateSize={handleUpdateCartSize}
+        onUpdateColor={handleUpdateCartColor}
+        onUpdateColorImage={handleUpdateCartColorImage}
         activeCoupons={coupons}
         products={products}
         settings={settings}

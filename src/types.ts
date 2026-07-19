@@ -1,3 +1,9 @@
+export interface ProductColor {
+  name: string;
+  hex?: string;
+  imageUrl?: string;
+}
+
 export interface Product {
   id: string;
   code: string; // e.g. XP-001
@@ -8,6 +14,7 @@ export interface Product {
   stock: number;
   imageUrl: string;
   images?: string[]; // Support for multiple images
+  colors?: ProductColor[]; // Dynamic color selection options with optional hex or unique images
   sizes: string[]; // e.g. ['S', 'XS', 'M', 'L']
   dimensions: string; // e.g. 'Standard Fitting'
   whyBuy: string; // Explaining why they should buy this piece in "আপনি কেন কিনবেন?"
@@ -38,11 +45,17 @@ export interface Product {
   deliveryDays?: string; // How many days for delivery
   freeDelivery?: boolean;
   likes?: number;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoSlug?: string;
 }
 
 export interface CartItem {
   product: Product;
   selectedSize: string;
+  selectedColor?: string;
+  selectedColorImage?: string;
   quantity: number;
 }
 
@@ -51,6 +64,8 @@ export interface OrderItem {
   title: string;
   price: number;
   selectedSize: string;
+  selectedColor?: string;
+  selectedColorImage?: string;
   quantity: number;
 }
 

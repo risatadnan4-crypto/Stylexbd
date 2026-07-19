@@ -1368,6 +1368,7 @@ app.get("/api/products", async (req, res) => {
           ...p,
           sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
           images: typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []),
+          colors: typeof p.colors === "string" ? JSON.parse(p.colors) : (Array.isArray(p.colors) ? p.colors : (localProduct?.colors || [])),
           trending: p.trending !== undefined ? !!p.trending : true,
           featured: p.featured !== undefined ? !!p.featured : true,
           price: Number(p.price || 0),
@@ -1409,6 +1410,7 @@ app.get("/api/products/:id", async (req, res) => {
         ...data,
         sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
         images: typeof data.images === "string" ? JSON.parse(data.images) : (Array.isArray(data.images) ? data.images : []),
+        colors: typeof data.colors === "string" ? JSON.parse(data.colors) : (Array.isArray(data.colors) ? data.colors : (localProduct?.colors || [])),
         trending: data.trending !== undefined ? !!data.trending : true,
         featured: data.featured !== undefined ? !!data.featured : true,
         price: Number(data.price || 0),
@@ -1463,6 +1465,7 @@ app.post("/api/products", async (req, res) => {
   newProduct.deliveryPriceMymensingh = newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150;
   
   db.products.push(newProduct);
+  saveDB();
   
   // Create new product addition notification (visible to all users)
   const productNotif = {
@@ -1527,6 +1530,7 @@ app.post("/api/products", async (req, res) => {
       imageUrl: newProduct.imageUrl,
       images: Array.isArray(newProduct.images) ? JSON.stringify(newProduct.images) : JSON.stringify([]),
       sizes: JSON.stringify(newProduct.sizes),
+      colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
       dimensions: newProduct.dimensions,
       whyBuy: newProduct.whyBuy,
       trending: !!newProduct.trending,
@@ -1553,7 +1557,11 @@ app.post("/api/products", async (req, res) => {
       paymentPercentage: newProduct.paymentPercentage !== undefined && newProduct.paymentPercentage !== null ? Number(newProduct.paymentPercentage) : null,
       deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
       deliveryDays: newProduct.deliveryDays || null,
-      freeDelivery: !!newProduct.freeDelivery
+      freeDelivery: !!newProduct.freeDelivery,
+      seoTitle: newProduct.seoTitle || null,
+      seoDescription: newProduct.seoDescription || null,
+      seoKeywords: newProduct.seoKeywords || null,
+      seoSlug: newProduct.seoSlug || null
     };
     
     let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1570,6 +1578,11 @@ app.post("/api/products", async (req, res) => {
       delete payload.isPinned;
       delete payload.freeDelivery;
       delete payload.timerActive;
+      delete payload.colors;
+      delete payload.seoTitle;
+      delete payload.seoDescription;
+      delete payload.seoKeywords;
+      delete payload.seoSlug;
       const retryResult = await supabase.from("products").upsert(payload);
       upsertError = retryResult.error;
     }
@@ -1636,6 +1649,7 @@ app.put("/api/products/:id", async (req, res) => {
       updatedBody.deliveryPriceMymensingh = Number(updatedBody.deliveryPriceMymensingh);
     }
     db.products[idx] = { ...db.products[idx], ...updatedBody };
+    saveDB();
     const target = db.products[idx];
     if (!db.settings.productPayments) {
       db.settings.productPayments = {};
@@ -1669,6 +1683,7 @@ app.put("/api/products/:id", async (req, res) => {
         imageUrl: target.imageUrl,
         images: Array.isArray(target.images) ? JSON.stringify(target.images) : JSON.stringify([]),
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
+        colors: Array.isArray(target.colors) ? JSON.stringify(target.colors) : JSON.stringify([]),
         dimensions: target.dimensions,
         whyBuy: target.whyBuy,
         trending: !!target.trending,
@@ -1696,7 +1711,11 @@ app.put("/api/products/:id", async (req, res) => {
         paymentPercentage: target.paymentPercentage !== undefined && target.paymentPercentage !== null ? Number(target.paymentPercentage) : null,
         deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
         deliveryDays: target.deliveryDays || null,
-        freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false
+        freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
+        seoTitle: target.seoTitle || null,
+        seoDescription: target.seoDescription || null,
+        seoKeywords: target.seoKeywords || null,
+        seoSlug: target.seoSlug || null
       };
 
       let { error: upsertError } = await supabase.from("products").upsert(payload);
@@ -1713,6 +1732,11 @@ app.put("/api/products/:id", async (req, res) => {
         delete payload.isPinned;
         delete payload.freeDelivery;
         delete payload.timerActive;
+        delete payload.colors;
+        delete payload.seoTitle;
+        delete payload.seoDescription;
+        delete payload.seoKeywords;
+        delete payload.seoSlug;
         const retryResult = await supabase.from("products").upsert(payload);
         upsertError = retryResult.error;
       }
@@ -1768,6 +1792,7 @@ app.delete("/api/products/:id", async (req, res) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx !== -1) {
     const deleted = db.products.splice(idx, 1)[0];
+    saveDB();
     if (db.settings.productPayments) {
       delete db.settings.productPayments[req.params.id];
     }
@@ -2036,8 +2061,37 @@ app.post("/api/checkout-step1-notify", express.json(), async (req, res) => {
   registerCustomerPhone(customerPhone, customerName, customerEmail, 'checkout_step1');
 
   const orderItemsText = items && Array.isArray(items) 
-    ? items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n")
+    ? items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"})${i.selectedColor ? ` [Color: ${i.selectedColor}]` : ""}${i.selectedColorImage ? ` [Img: ${i.selectedColorImage}]` : ""} x${i.quantity} @ ৳${i.price}`).join("\n")
     : "No items specified";
+
+  const orderItemsHtml = items && Array.isArray(items)
+    ? items.map((i: any) => {
+        const prod = db.products.find(p => p.id === i.productId);
+        const imgUrl = i.selectedColorImage || prod?.imageUrl || "";
+        const colorText = i.selectedColor ? `<br/><span style="font-size: 11px; color: #aaa;">Color: <b>${i.selectedColor}</b></span>` : "";
+        const sizeText = `<br/><span style="font-size: 11px; color: #aaa;">Size: <b>${i.selectedSize || "Standard"}</b></span>`;
+        
+        const imgHtml = imgUrl 
+          ? `<td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); width: 60px; vertical-align: top;">
+               <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);" alt="${i.title}" />
+             </td>` 
+          : '';
+
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            ${imgHtml}
+            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: top; color: #fff;">
+              <div style="font-size: 13px; font-weight: bold; color: #fff;">${i.title}</div>
+              ${colorText}
+              ${sizeText}
+            </td>
+            <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: top; text-align: right; font-size: 12px; font-weight: bold; color: #d4af37; width: 100px;">
+              ${i.quantity} x ৳${i.price}
+            </td>
+          </tr>
+        `;
+      }).join("")
+    : "";
 
   const emailSubject = `📋 Step 1 Form Submitted by: ${customerName}`;
   const emailBody = `
@@ -2075,12 +2129,18 @@ ${orderItemsText}
           <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerEmail || 'Guest'}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; vertical-align: top;">Selected Items:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); white-space: pre-line;">${orderItemsText}</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; vertical-align: top;" colspan="2">Selected Items:</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Delivery Address:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerAddress}, ${customerCity || ''}</td>
+          <td style="padding: 0; border-bottom: 1px solid rgba(255,255,255,0.1);" colspan="2">
+            <table style="width: 100%; border-collapse: collapse;">
+              ${orderItemsHtml}
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; padding-top: 15px;">Delivery Address:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">${customerAddress}, ${customerCity || ''}</td>
         </tr>
         <tr>
           <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Estimated Total:</td>
@@ -2738,10 +2798,12 @@ app.post("/api/orders", async (req, res) => {
     let amountToPay = payType === 'delivery_charge' ? calculatedDeliveryCharge : calculatedTotalAmount;
     if (payType === 'percentage') {
       const pct = resolvedGovProduct?.paymentPercentage !== undefined ? Number(resolvedGovProduct.paymentPercentage) : 10;
-      amountToPay = Math.round((pct / 100) * calculatedTotalAmount);
+      amountToPay = Math.round((pct / 100) * (calculatedSubtotal - calculatedDiscountAmount));
     }
 
-    if (payType !== 'cod' && payMethod === 'bkash') {
+    const lowerPayMethod = String(payMethod || "").trim().toLowerCase();
+
+    if (payType !== 'cod' && lowerPayMethod === 'bkash') {
       traceLogs.push(`[PAYMENT_TRACE] Step 6: bKash payment request initiated...`);
       traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${amountToPay}, currency: "BDT", intent: "sale", merchantInvoiceNumber: "${paymentSessionId}" }`);
       traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to bKash Gateway: ৳${amountToPay}`);
@@ -2750,7 +2812,7 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // Step 7: Nagad payment request
-    if (payType !== 'cod' && payMethod === 'nagad') {
+    if (payType !== 'cod' && lowerPayMethod === 'nagad') {
       traceLogs.push(`[PAYMENT_TRACE] Step 7: Nagad payment request initiated...`);
       traceLogs.push(`[PAYMENT_TRACE]   - Request Payload: { amount: ${amountToPay}, orderId: "${paymentSessionId}", serviceType: "merchant_pay" }`);
       traceLogs.push(`[PAYMENT_TRACE]   - Amount sent to Nagad Gateway: ৳${amountToPay}`);
@@ -4365,7 +4427,7 @@ Instructions for replies:
 
 // Dynamically generated XML Sitemap for Search Engine Optimizations
 app.get("/sitemap.xml", (req, res) => {
-  const baseUrl = "https://stylex.premium.shop";
+  const baseUrl = "https://stylexbd.vercel.app";
   const currentDate = new Date().toISOString().split("T")[0];
 
   // Base pages of Style X
@@ -4425,9 +4487,56 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    // Support wildcard matching for SPA Router
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    // Support wildcard matching with Dynamic SEO Meta SSR injection
+    app.get("*", async (req, res) => {
+      const indexPath = path.join(distPath, "index.html");
+      try {
+        const fs = await import("fs/promises");
+        let html = await fs.readFile(indexPath, "utf-8");
+
+        // Extract product query param
+        const productParam = req.query.product || req.query.productCode || req.query.slug;
+        if (productParam && db.products) {
+          const productCode = String(productParam).toLowerCase();
+          const foundProduct = db.products.find((p: any) => 
+            (p.code && p.code.toLowerCase() === productCode) || 
+            String(p.id).toLowerCase() === productCode || 
+            (p.seoSlug && p.seoSlug.toLowerCase() === productCode)
+          );
+
+          if (foundProduct) {
+            const customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
+            const desc = foundProduct.seoDescription || foundProduct.description || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion.";
+            const keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, stylex, premium clothing`;
+            const image = foundProduct.imageUrl || "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
+
+            // Inject title
+            html = html.replace(/<title>.*?<\/title>/gi, `<title>${customTitle}</title>`);
+
+            // Replace standard meta tags
+            html = html.replace(/<meta name="title" content=".*?" \/>/gi, `<meta name="title" content="${customTitle}" />`);
+            html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${desc}" />`);
+            html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${keywords}" />`);
+
+            // Replace OpenGraph meta tags
+            html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${customTitle}" />`);
+            html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${desc}" />`);
+            html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${image}" />`);
+
+            // Replace Twitter meta tags
+            html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${customTitle}" />`);
+            html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${desc}" />`);
+            html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${image}" />`);
+            html = html.replace(/<meta property="twitter:title" content=".*?" \/>/gi, `<meta property="twitter:title" content="${customTitle}" />`);
+            html = html.replace(/<meta property="twitter:description" content=".*?" \/>/gi, `<meta property="twitter:description" content="${desc}" />`);
+            html = html.replace(/<meta property="twitter:image" content=".*?" \/>/gi, `<meta property="twitter:image" content="${image}" />`);
+          }
+        }
+
+        res.send(html);
+      } catch (err) {
+        res.sendFile(indexPath);
+      }
     });
     console.log("Serving static distribution files from", distPath);
   }

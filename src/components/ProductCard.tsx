@@ -261,11 +261,7 @@ export default function ProductCard({
 
       {/* Product Image Frame with Solid Gold Border */}
       <div 
-        className={`relative w-full overflow-hidden rounded-xl bg-black/90 border border-luxury-gold flex items-center justify-center group cursor-pointer mb-2 shadow-inner ${
-          isMobileListMode 
-            ? 'aspect-square sm:aspect-[1.25/1] p-0.5 sm:p-2' 
-            : 'aspect-[1.15/1] sm:aspect-[1.25/1] p-2'
-        }`}
+        className="relative w-full aspect-square overflow-hidden rounded-xl bg-black/90 border border-luxury-gold/50 group-hover:border-luxury-gold flex items-center justify-center group cursor-pointer mb-2 shadow-inner p-1 sm:p-1.5"
       >
         <div className="absolute inset-0 z-0" onClick={() => onProductClick(product)} />
         
@@ -274,6 +270,14 @@ export default function ProductCard({
           <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-emerald-500/90 backdrop-blur-md text-white text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] border border-emerald-400/30 select-none">
             <Truck size={9} className="animate-bounce" />
             <span>FREE DELIVERY</span>
+          </div>
+        )}
+
+        {/* Premium Floating Limited Stock Badge */}
+        {product.stock > 0 && product.stock < 5 && (
+          <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 bg-amber-600/95 backdrop-blur-md text-white text-[7.5px] sm:text-[8.5px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.6)] border border-amber-400/40 select-none animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            <span>ONLY {product.stock} LEFT</span>
           </div>
         )}
         
@@ -288,9 +292,7 @@ export default function ProductCard({
           loading={product.isPinned || (index !== undefined && index < 6) ? "eager" : "lazy"}
           {...((product.isPinned || (index !== undefined && index < 6)) ? { fetchPriority: "high" } : {})}
           onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full object-contain max-h-full transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none ${
-            isMobileListMode ? 'p-0.5 sm:p-1' : 'p-1'
-          }`}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none"
           referrerPolicy="no-referrer"
         />
         
@@ -471,6 +473,14 @@ export default function ProductCard({
                   <span className="text-zinc-500">00:00:00</span>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Stock Urgency Alert Capsule */}
+          {product.stock > 0 && product.stock < 5 && (
+            <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1.5 text-[8px] sm:text-[9px] font-mono font-black text-amber-400 my-0.5 tracking-wide shadow-sm animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+              <span>⚠️ LIMITED STOCK: ONLY {product.stock} UNITS LEFT (সীমিত স্টক - দ্রুত অর্ডার করুন)</span>
             </div>
           )}
 

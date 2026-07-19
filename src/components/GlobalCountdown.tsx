@@ -71,7 +71,7 @@ export function GlobalCountdown({ endTime, message, active }: GlobalCountdownPro
       </div>
 
       {/* Timer Digits layout - Perfect mobile fit */}
-      <div className="flex items-center justify-center gap-1.5 sm:gap-3 font-mono w-full md:w-auto mt-2 md:mt-0">
+      <div className="flex items-center justify-center gap-1.5 sm:gap-3 w-full md:w-auto mt-2 md:mt-0 select-none">
         {[
           { label: 'DAYS', val: timeLeft.days },
           { label: 'HOURS', val: timeLeft.hours },
@@ -80,19 +80,23 @@ export function GlobalCountdown({ endTime, message, active }: GlobalCountdownPro
         ].map((item, idx) => (
           <React.Fragment key={item.label}>
             {idx > 0 && (
-              <span className="text-lg sm:text-2xl text-luxury-gold font-sans font-black animate-pulse px-0.5 sm:px-1">
+              <span className="text-xl sm:text-3xl text-luxury-gold font-sans font-black animate-pulse px-0.5 sm:px-1 self-center mb-5">
                 :
               </span>
             )}
             <div className="flex flex-col items-center">
-              <div className="bg-gradient-to-b from-[#14062c] to-[#070112] border border-luxury-gold/35 rounded-xl px-2.5 py-2 sm:px-4 sm:py-3 min-w-[50px] sm:min-w-[64px] flex items-center justify-center text-base sm:text-xl font-bold text-white shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_2px_4px_rgba(0,0,0,0.5)] relative overflow-hidden">
+              <div className="bg-gradient-to-b from-[#14062c] to-[#070112] border-2 border-luxury-gold/45 rounded-xl py-2.5 sm:py-3.5 w-[58px] sm:w-[76px] md:w-[84px] h-[48px] sm:h-[64px] md:h-[72px] flex items-center justify-center shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_4px_12px_rgba(0,0,0,0.6)] relative overflow-hidden shrink-0">
                 {/* Accent line on top of each card */}
-                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-luxury-gold to-transparent opacity-80" />
+                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-luxury-gold to-transparent opacity-90" />
                 {/* Subtle shine overlay */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none"></div>
-                <span className="relative z-10 text-luxury-gold text-shadow-sm font-black">{String(item.val).padStart(2, '0')}</span>
+                <span className="relative z-10 text-luxury-gold text-shadow-sm font-mono font-black text-lg sm:text-2xl md:text-3xl tracking-wide tabular-nums leading-none">
+                  {String(item.val).padStart(2, '0')}
+                </span>
               </div>
-              <span className="text-[8.5px] sm:text-[9.5px] font-sans text-zinc-400 uppercase tracking-widest mt-1 sm:mt-1.5 font-bold">{item.label}</span>
+              <span className="text-[9px] sm:text-[10px] md:text-[11px] font-sans text-zinc-400 uppercase tracking-widest mt-1.5 sm:mt-2 font-black text-center">
+                {item.label}
+              </span>
             </div>
           </React.Fragment>
         ))}
