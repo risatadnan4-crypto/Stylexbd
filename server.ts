@@ -142,6 +142,7 @@ const initialCampaigns: Campaign[] = [
 
 // In-memory Database state
 let db = {
+  xoroAdminLogs: [] as any[],
   products: initialProducts,
   orders: [] as Order[],
   backInStockAlerts: [] as any[],
@@ -199,6 +200,8 @@ let db = {
     globalPaymentMethod: "both",
     globalDeliveryDays: "",
     accentColor: "#D4AF37",
+    siteTitle: "Style X",
+    siteMetaDesc: "Elite Luxury Fashion Showcase",
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
       { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -221,6 +224,7 @@ if (fs.existsSync(DB_FILE)) {
     const rawData = fs.readFileSync(DB_FILE, "utf-8");
     const parsedData = JSON.parse(rawData);
     db = { ...db, ...parsedData };
+    db.xoroAdminLogs = parsedData.xoroAdminLogs || [];
     db.countedSessions = db.countedSessions || [];
     db.customerPhones = parsedData.customerPhones || [];
     db.notifications = db.notifications || [];
@@ -278,6 +282,8 @@ if (fs.existsSync(DB_FILE)) {
       globalPaymentMethod: db.settings?.globalPaymentMethod || "both",
       globalDeliveryDays: db.settings?.globalDeliveryDays || "",
       accentColor: db.settings?.accentColor || "#D4AF37",
+      siteTitle: db.settings?.siteTitle || "Style X",
+      siteMetaDesc: db.settings?.siteMetaDesc || "Elite Luxury Fashion Showcase",
       lotteryPrizes: db.settings?.lotteryPrizes || [
         { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
         { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -1309,7 +1315,7 @@ app.post("/api/settings", async (req, res) => {
       isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl,
       globalTimerEndTime, globalTimerMessage, globalTimerActive, globalPaymentSystem, 
       globalPaymentMethod, globalDeliveryDays, accentColor, isXoroVoiceDisabled, isXoroVoiceAndAnswerDisabled,
-      smsProvider, twilioAccountSid, twilioAuthToken, twilioFromNumber, greenwebToken
+      smsProvider, twilioAccountSid, twilioAuthToken, twilioFromNumber, greenwebToken, siteTitle, siteMetaDesc
     } = req.body;
     
     db.settings = {
@@ -1345,6 +1351,8 @@ app.post("/api/settings", async (req, res) => {
       globalPaymentMethod: globalPaymentMethod !== undefined ? globalPaymentMethod.trim() : (db.settings?.globalPaymentMethod || "both"),
       globalDeliveryDays: globalDeliveryDays !== undefined ? globalDeliveryDays.trim() : (db.settings?.globalDeliveryDays || ""),
       accentColor: accentColor !== undefined ? accentColor.trim() : (db.settings?.accentColor || "#D4AF37"),
+      siteTitle: siteTitle !== undefined ? siteTitle.trim() : (db.settings?.siteTitle || "Style X"),
+      siteMetaDesc: siteMetaDesc !== undefined ? siteMetaDesc.trim() : (db.settings?.siteMetaDesc || "Elite Luxury Fashion Showcase"),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
       productPayments: db.settings?.productPayments || {}
     };
@@ -4332,7 +4340,7 @@ Instructions for replies:
 
         let response: any = null;
         let lastError: any = null;
-        const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+        const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
         const maxAttempts = 2;
 
         for (const modelName of modelsToTry) {
@@ -4359,11 +4367,11 @@ Instructions for replies:
                                   err.status === 429;
               
               if (isTransient && attempt < maxAttempts) {
-                console.log(`⚠️ Gemini API [${modelName}] attempt ${attempt} failed with transient error: ${errMsg}. Retrying in ${attempt}s...`);
+                console.log(`ℹ️ Gemini API [${modelName}] attempt ${attempt} temporarily busy: ${errMsg}. Retrying in ${attempt}s...`);
                 await new Promise(resolve => setTimeout(resolve, attempt * 1000));
               } else {
                 // If it's not a transient error, or we exhausted retries for this model, break to try the next model
-                console.log(`⚠️ Gemini API [${modelName}] attempt ${attempt} failed: ${errMsg}. Moving on.`);
+                console.log(`ℹ️ Gemini API [${modelName}] attempt ${attempt} unavailable: ${errMsg}. Trying fallback model...`);
                 break;
               }
             }
@@ -4423,6 +4431,813 @@ Instructions for replies:
   } catch (err: any) {
     res.status(500).json({ message: "Xoro assistant failed: " + err.message });
   }
+});
+
+// ==========================================
+// 🤖 XORO AI ADMIN ASSISTANT SECURE APIS
+// ==========================================
+
+// Rate Limiting Map
+const xoroAdminRateLimitMap = new Map<string, number[]>();
+
+// Rate Limiting Middleware
+const xoroAdminRateLimitMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const ip = req.ip || req.connection.remoteAddress || "unknown";
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxRequests = 20;
+
+  let timestamps = xoroAdminRateLimitMap.get(ip) || [];
+  timestamps = timestamps.filter(t => now - t < windowMs);
+  
+  if (timestamps.length >= maxRequests) {
+    return res.status(429).json({ 
+      message: "জোরো এডমিন এআই (Xoro AI Admin) অতিরিক্ত রিকুয়েস্ট লিমিট অতিক্রম করেছে। অনুগ্রহ করে ১ মিনিট অপেক্ষা করুন।" 
+    });
+  }
+  
+  timestamps.push(now);
+  xoroAdminRateLimitMap.set(ip, timestamps);
+  next();
+};
+
+// Authentication, Authorization & CSRF Middleware
+const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean }, res: express.Response, next: express.NextFunction) => {
+  // CSRF Check
+  const csrfToken = req.headers["x-csrf-token"];
+  if (csrfToken !== "stylex-csrf-secure-handshake-98322") {
+    return res.status(403).json({ message: "Security Warning: Invalid or missing CSRF handshake. Action Blocked." });
+  }
+
+  // Admin auth checking via Headers
+  const adminEmail = req.headers["x-admin-email"];
+  const adminPassword = req.headers["x-admin-password"];
+
+  const expectedEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
+  const expectedPassword = db.settings?.adminPassword || "risat123";
+
+  const isSuperAdmin = adminEmail === expectedEmail && adminPassword === expectedPassword;
+  const isSecondaryStaff = adminEmail === "admin@stylex.com" && adminPassword === "admin";
+
+  if (!isSuperAdmin && !isSecondaryStaff) {
+    return res.status(401).json({ message: "প্রত্যাখ্যান! জোরো এডমিন এআই ব্যবহার করতে আপনার সুপার অ্যাডমিন অথরাইজেশন প্রয়োজন।" });
+  }
+
+  req.isSuperAdmin = isSuperAdmin;
+  next();
+};
+
+// Robust helper to parse JSON outputs from LLM responses
+function parseJSONFromText(text: string): any {
+  if (!text) return null;
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (err2) {
+        console.error("Failed parsing extracted JSON regex match:", err2);
+      }
+    }
+    return null;
+  }
+}
+
+// Local Fallback Intelligent Engine
+function getLocalFallbackAdminPlan(message: string): any {
+  const lower = message.toLowerCase();
+  const executionPlan: any[] = [];
+  let text = "";
+  let explanation = "লোকাল অফলাইন মোড (Intelligent Fallback Engine) দ্বারা অনুরোধটি প্রসেস করা হয়েছে।";
+
+  if (lower.includes("price") || lower.includes("মূল্য") || lower.includes("দাম") || lower.includes("টাকা")) {
+    const codeMatch = message.match(/XP-\d+/i);
+    const code = codeMatch ? codeMatch[0].toUpperCase() : "XP-001";
+    const numMatch = message.match(/\d+/g);
+    let price = 150;
+    if (numMatch) {
+      for (const n of numMatch) {
+        if (n !== "001" && n !== "002" && n !== "003" && n !== "004" && n !== "005" && n.length >= 2) {
+          price = parseInt(n);
+          break;
+        }
+      }
+    }
+    const foundProd = db.products.find((p: any) => p.code?.toUpperCase() === code);
+    const beforePrice = foundProd ? foundProd.price : 100;
+
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "EDIT_PRODUCT",
+      resource: `Product: ${foundProd ? foundProd.title : code}`,
+      actionDescription: `${code} পণ্যের মূল্য ৳${beforePrice} থেকে পরিবর্তন করে ৳${price} এ আপডেট করা হবে।`,
+      explanation: "অ্যাডমিনের অনুরোধ অনুযায়ী নির্দিষ্ট আইটেমের মূল্য রিভিশন প্ল্যান।",
+      isHighRisk: false,
+      preview: {
+        before: { price: beforePrice },
+        after: { price: price }
+      },
+      data: { code, price }
+    });
+    text = `জোরো এআই (Xoro AI) আপনার অনুরোধটি সনাক্ত করেছে! আমি পণ্য **${code}** এর মূল্য **৳${price}** টাকা করার জন্য একটি এক্সিকিউশন প্ল্যান সাজিয়েছি। দয়া করে নিচের বিবরণটি দেখে অনুমোদন করুন।`;
+  } else if (lower.includes("delete") || lower.includes("remove") || lower.includes("মুছে") || lower.includes("ডিলিট")) {
+    const codeMatch = message.match(/XP-\d+/i);
+    const code = codeMatch ? codeMatch[0].toUpperCase() : "XP-001";
+    const foundProd = db.products.find((p: any) => p.code?.toUpperCase() === code);
+
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "DELETE_PRODUCT",
+      resource: `Product: ${foundProd ? foundProd.title : code}`,
+      actionDescription: `Style X ক্যাটালগ থেকে ${code} পণ্যটি স্থায়ীভাবে ডি-লিস্ট ও মুছে ফেলা হবে।`,
+      explanation: "এটি একটি ধ্বংসাত্মক বা হাই-রিস্ক অ্যাকশন। এটি সম্পন্ন করতে সুপার অ্যাডমিনের নিশ্চিত অনুমোদন আবশ্যক।",
+      isHighRisk: true,
+      preview: {
+        before: foundProd ? { title: foundProd.title, price: foundProd.price, stock: foundProd.stock } : "Product Present",
+        after: "PRODUCT PERMANENTLY DELETED"
+      },
+      data: { code, id: foundProd?.id }
+    });
+    text = `⚠️ **উচ্চ ঝুঁকি বা হাই-রিস্ক অপারেশন সনাক্ত করা হয়েছে!**\n\nআমি পণ্য **${code}** স্থায়ীভাবে ক্যাটালগ থেকে মুছে ফেলার জন্য একটি অ্যাকশন প্ল্যান তৈরি করেছি। এটি অপ্রত্যাবর্তনযোগ্য অ্যাকশন, তাই দয়া করে নিশ্চিত হয়ে অনুমোদন দিন।`;
+  } else if (lower.includes("stock") || lower.includes("স্টক") || lower.includes("পরিমাণ")) {
+    const codeMatch = message.match(/XP-\d+/i);
+    const code = codeMatch ? codeMatch[0].toUpperCase() : "XP-001";
+    const numMatch = message.match(/\d+/g);
+    let stock = 100;
+    if (numMatch) {
+      for (const n of numMatch) {
+        if (n !== "001" && n !== "002" && n !== "003" && n !== "004" && n !== "005") {
+          stock = parseInt(n);
+          break;
+        }
+      }
+    }
+    const foundProd = db.products.find((p: any) => p.code?.toUpperCase() === code);
+    const beforeStock = foundProd ? foundProd.stock : 0;
+
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "EDIT_PRODUCT",
+      resource: `Product: ${foundProd ? foundProd.title : code}`,
+      actionDescription: `${code} এর স্টক পরিমাণ ${beforeStock} থেকে আপডেট করে ${stock} করা হবে।`,
+      explanation: "স্টোর ইনভেন্টরি ম্যানেজমেন্ট আপডেট।",
+      isHighRisk: false,
+      preview: {
+        before: { stock: beforeStock },
+        after: { stock: stock }
+      },
+      data: { code, stock }
+    });
+    text = `আমি পণ্য **${code}** এর ইনভেন্টরি স্টক পরিবর্তন করে **${stock} টি** করতে একটি অ্যাকশন প্ল্যান সাজিয়েছি। দেখে নিয়ে অনুমোদন দিন।`;
+  } else if (lower.includes("analytics") || lower.includes("sales") || lower.includes("হিসাব") || lower.includes("অ্যানালিটিক্স")) {
+    const totalSales = db.orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+    const totalOrders = db.orders.length;
+    const avgOrderValue = totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : "0";
+    
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "ANALYTICS_REPORT",
+      resource: "Sales Ledger & Presence",
+      actionDescription: "সামগ্রিক অ্যাডমিন বিক্রয় ডাটা অ্যানালিটিক্স সংক্ষিপ্ত বিবরণী চার্ট তৈরি করা হবে।",
+      explanation: "রিয়েল-টাইম ডাটা ইন্টিগ্রেশন লেজার রিডিং।",
+      isHighRisk: false,
+      preview: {
+        before: "Standard Charts",
+        after: `Total Revenue: ৳${totalSales}, Total Orders: ${totalOrders}`
+      },
+      data: { totalSales, totalOrders, avgOrderValue }
+    });
+    
+    text = `📊 **স্টাইল এক্স অ্যাডমিন সেলস লেজার অ্যানালিটিক্স রিপোর্ট:**\n\n• **মোট বিক্রয় রাজস্ব:** ৳${totalSales}\n• **মোট অর্ডার সংখ্যা:** ${totalOrders}\n• **গড় অর্ডার ফিটিং বাস্কেট:** ৳${avgOrderValue}\n• **মোট ক্যাটালগ পণ্য:** ${db.products.length} টি\n\nআমি অ্যাডমিন প্যানেলে একটি ইন্টারেক্টিভ রিভিশন সামারি লেআউট জেনারেট করেছি।`;
+  } else if (lower.includes("banner") || lower.includes("ব্যানার")) {
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "CREATE_BANNER",
+      resource: "Homepage Slides Curation",
+      actionDescription: "হোমপেজ স্লাইডারে একটি নতুন এক্সক্লুসিভ লাক্সারি ব্যানার যুক্ত করা হবে।",
+      explanation: "গ্রাহকদের নতুন অফার ও ড্রপস সম্পর্কে জানাতে স্লাইড আপডেট।",
+      isHighRisk: false,
+      preview: {
+        before: `${db.banners.length} Active Banners`,
+        after: `${db.banners.length + 1} Active Banners`
+      },
+      data: {
+        title: "STYLE X MONARCHY DROPS",
+        subtitle: "Unmatched craftsmanship stitched with fine gold matrix threads.",
+        imageUrl: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop",
+        active: true
+      }
+    });
+    text = `নতুন ক্যাম্পেইনের জন্য হোমপেজ ব্যানার স্লাইডারে একটি নতুন রাজকীয় ব্যানার যোগ করতে অ্যাকশন প্ল্যান তৈরি করা হয়েছে।`;
+  } else if (lower.includes("coupon") || lower.includes("কুপন")) {
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const code = `SXGIFT${randomSuffix}`;
+    executionPlan.push({
+      id: "fallback-" + Math.random().toString(36).substr(2, 6),
+      type: "CREATE_COUPON",
+      resource: "Promotional Discounts Hub",
+      actionDescription: `স্টোরে নতুন ২০% ছাড়ের জন্য একটি প্রোমো কোড '${code}' সক্রিয় করা হবে।`,
+      explanation: "মার্কেটিং প্রমোশন ও কুপন জেনারেটর।",
+      isHighRisk: false,
+      preview: {
+        before: `${db.coupons.length} Active Coupons`,
+        after: `${db.coupons.length + 1} Active Coupons`
+      },
+      data: { code, type: "PERCENTAGE", value: 20, active: true }
+    });
+    text = `আমি ২০% ডিসকাউন্ট কুপন **${code}** তৈরি করার অ্যাকশন প্ল্যান সাজিয়েছি। অনুগ্রহ করে নিচের কুপন প্রিভিউ কার্ডটি অনুমোদন করুন।`;
+  } else {
+    text = `👋 **আসসালামু আলাইকুম!** আমি **Xoro AI**, আপনার Style X এলিট অ্যাডমিন অ্যাসিস্ট্যান্ট।\n\nআমি আপনাকে ক্যাটালগ পরিচালনা করতে, পণ্যের স্টক বা মূল্য আপডেট করতে, ব্যানার যোগ করতে, এসইও টিউন করতে এবং বিক্রয় বিবরণী ট্র্যাক করতে সাহায্য করতে পারি।\n\nআপনি আমাকে নিচের উদাহরণগুলোর মতো অনুরোধ করতে পারেন:\n\n1. *"update price of XP-001 to ৳150"* (XP-001 এর দাম ১৫০ টাকা করুন)\n2. *"delete product XP-003"* (XP-003 পণ্যটি ডিলিট করুন)\n3. *"set stock of XP-002 to 50"* (XP-002 এর স্টক ৫০ টি করুন)\n4. *"show analytics"* (বিক্রয়ের হিসাব দেখান)\n5. *"create new coupon"* (নতুন কুপন যোগ করুন)\n\n*(নোট: আরও প্রিমিয়াম এবং জটিল অনুরোধের জন্য দয়া করে **Settings > Secrets** থেকে আপনার **GEMINI_API_KEY** টি যুক্ত করুন)*`;
+  }
+
+  return { text, explanation, executionPlan };
+}
+
+function getRelevantFilePaths(message: string): string[] {
+  const query = message.toLowerCase();
+  const paths: string[] = [];
+  
+  if (query.includes("cart") || query.includes("drawer") || query.includes("bag") || query.includes("basket")) {
+    paths.push("src/components/CartDrawer.tsx");
+  }
+  if (query.includes("navbar") || query.includes("header") || query.includes("logo") || query.includes("search bar")) {
+    paths.push("src/components/Navbar.tsx");
+  }
+  if (query.includes("hero") || query.includes("banner") || query.includes("slider") || query.includes("home banner")) {
+    paths.push("src/components/Hero.tsx");
+  }
+  if (query.includes("card") || query.includes("product card") || query.includes("grid")) {
+    paths.push("src/components/ProductCard.tsx");
+  }
+  if (query.includes("detail") || query.includes("modal") || query.includes("popup") || query.includes("quick view")) {
+    paths.push("src/components/ProductDetailModal.tsx");
+  }
+  if (query.includes("checkout") || query.includes("payment") || query.includes("bkash") || query.includes("nagad")) {
+    paths.push("src/components/LuxuryCheckoutButton.tsx");
+  }
+  if (query.includes("countdown") || query.includes("timer")) {
+    paths.push("src/components/GlobalCountdown.tsx");
+  }
+  if (query.includes("scroll") || query.includes("music") || query.includes("acoustic")) {
+    paths.push("src/components/AcousticScrollManager.tsx");
+  }
+  if (query.includes("lottery") || query.includes("spin") || query.includes("wheel")) {
+    paths.push("src/components/LotteryModal.tsx");
+  }
+  if (query.includes("chat") || query.includes("livechat") || query.includes("support")) {
+    paths.push("src/components/LiveChat.tsx");
+  }
+  if (query.includes("profile") || query.includes("customer profile")) {
+    paths.push("src/components/CustomerProfileModal.tsx");
+  }
+  if (query.includes("performance") || query.includes("recharts") || query.includes("dashboard")) {
+    paths.push("src/components/PerformanceDashboard.tsx");
+  }
+  
+  // If we want to change general pages or routes
+  if (query.includes("app.tsx") || query.includes("main page") || query.includes("route") || query.includes("router") || query.includes("checkout page") || query.includes("landing")) {
+    paths.push("src/App.tsx");
+  }
+  
+  if (query.includes("css") || query.includes("style") || query.includes("theme") || query.includes("color")) {
+    paths.push("src/index.css");
+  }
+  
+  if (query.includes("server") || query.includes("backend") || query.includes("api") || query.includes("sitemap")) {
+    paths.push("server.ts");
+  }
+
+  const filesInComponents = [
+    "AcousticScrollManager.tsx", "AdminPanel.tsx", "CartDrawer.tsx",
+    "CustomerProfileModal.tsx", "ErrorBoundary.tsx", "GlobalCountdown.tsx",
+    "Hero.tsx", "LiveChat.tsx", "LotteryModal.tsx", "LuxuryCheckoutButton.tsx",
+    "Navbar.tsx", "OrderTracker.tsx", "PerformanceDashboard.tsx",
+    "ProductCard.tsx", "ProductDetailModal.tsx", "XoroAssistant.tsx"
+  ];
+  for (const file of filesInComponents) {
+    if (query.includes(file.toLowerCase().split('.')[0])) {
+      paths.push(`src/components/${file}`);
+    }
+  }
+  
+  // Default to App.tsx if we cannot find anything specific but they are asking for UI changes
+  if (paths.length === 0 && (query.includes("change") || query.includes("add") || query.includes("update") || query.includes("edit") || query.includes("modify") || query.includes("improve") || query.includes("create"))) {
+    paths.push("src/App.tsx");
+  }
+  
+  return [...new Set(paths)];
+}
+
+async function getRelevantFilesContext(message: string): Promise<string> {
+  const paths = getRelevantFilePaths(message);
+  let context = "";
+  for (const filePath of paths) {
+    try {
+      const fullPath = path.join(process.cwd(), filePath);
+      const content = await fs.promises.readFile(fullPath, "utf-8");
+      context += `\n\n--- FILE PATH: ${filePath} ---\n${content}\n--- END OF FILE ${filePath} ---`;
+    } catch (err: any) {
+      console.error(`Failed to read contextual file ${filePath}:`, err.message);
+    }
+  }
+  return context;
+}
+
+// Xoro AI Admin Assistant Chat Handler
+app.post("/api/xoro-admin/chat", xoroAdminRateLimitMiddleware, xoroAdminAuthMiddleware, async (req, res) => {
+  const { message, history } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ message: "Message is required." });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // Return Local Fallback Plan when key is missing
+    console.log("⚠️ No GEMINI_API_KEY found, using local intelligent admin parsing fallback.");
+    const fallback = getLocalFallbackAdminPlan(message);
+    return res.json(fallback);
+  }
+
+  try {
+    const filesContext = await getRelevantFilesContext(message);
+    
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+
+    const systemInstruction = `You are Xoro AI, the official virtual Admin Agent and elite Website Control AI Agent of the Style X Web Administrator Dashboard. Style X is an elite premium luxury fashion and eCommerce platform.
+You are an autonomous AI Software Engineer, UI Designer, DevOps Engineer, Database Administrator, SEO Expert, and Website Administrator combined.
+Your job is to understand natural language instructions (Bangla & English) from the authenticated Super Admin and compile a safe, highly-optimized execution plan of operations to manage the store database or modify the website's source code directly.
+
+When the user asks for a website/UI modification (e.g., changing colors, backgrounds, text, layouts, adding sections, updating prices in code, editing checkout, improving UI, adding animations or creating features):
+1. Identify the exact file(s) responsible from the file tree.
+2. Analyze dependencies and make sure the code changes will compile cleanly.
+3. Generate the required code edits.
+4. Add a "CODE_EDIT" action to your "executionPlan".
+NEVER reply with generic instructions telling the user to "edit the CSS manually" or "change this code yourself." You must generate the exact code changes and apply them through the plan!
+
+Below is the active source code context of files relevant to the user's request. You must inspect these files to find the exact target lines/patterns and write the replacement content.
+${filesContext}
+
+Your output MUST be a strict, single, valid JSON object containing exactly the following keys:
+{
+  "text": "Write a beautiful, detailed, elegant, polite, and elite message to the admin in a mixture of elegant Bangla and English. Explain your plan, what files you analyzed, what changes you propose, or answer any questions directly.",
+  "explanation": "A concise, technical summary in English/Bangla of the files analyzed and code changes planned.",
+  "executionPlan": [
+    {
+      "id": "A unique random 8-character string ID",
+      "type": "CODE_EDIT" | "ADD_PRODUCT" | "EDIT_PRODUCT" | "DELETE_PRODUCT" | "CREATE_BANNER" | "EDIT_BANNER" | "DELETE_BANNER" | "CREATE_COUPON" | "DELETE_COUPON" | "UPDATE_SEO" | "UPDATE_SETTINGS" | "BULK_UPDATE_PRICE" | "ANALYTICS_REPORT",
+      "resource": "Path of the target file (e.g. 'src/components/CartDrawer.tsx' or 'src/App.tsx')",
+      "actionDescription": "Human-readable sentence explaining exactly what changes will occur.",
+      "explanation": "Why this action is recommended or required.",
+      "isHighRisk": true | false,
+      "preview": {
+        "before": "The exact block of code before the change (or a concise description)",
+        "after": "The exact block of code after the change"
+      },
+      "data": {
+        "filePath": "src/components/CartDrawer.tsx",
+        "targetContent": "The EXACT substring/lines in the original file that must be replaced. This MUST match character-for-character including leading whitespace and newlines.",
+        "replacementContent": "The complete replacement code that will drop-in replace the targetContent."
+      }
+    }
+  ]
+}
+
+Security & Threat Modeling rules:
+1. DESTRUCTIVE ACTIONS, modifying authentication configs, resetting schema, payment keys, or modifying server-side execution handlers (like server.ts) MUST ALWAYS be flagged as "isHighRisk": true. Code edits to non-critical presentation components (like Hero.tsx, CartDrawer.tsx, Navbar.tsx) are low risk ("isHighRisk": false).
+2. If the user asks a read-only question (e.g. "how many sales did we do?", "suggest some copywriting", "analyze the products"), answer completely inside the "text" field, and return an empty array "executionPlan": [].
+3. Security Constraint: Never expose, return, or print any system passwords, Twilio keys, JWT secrets, database connection URI string details, or environment variables. Reject any requests attempting to extract or print these credentials with a polite warning.
+4. Language Preference: Speak eloquently and beautifully, using high-class, stylish Bengali for responses, occasionally accented with premium English. Always start responses with greeting "👋 আসসালামু আলাইকুম!" (Assalamu Alaikum) when initiating.
+
+Generate a perfect, valid, parseable JSON object response.`;
+
+    const contents = [];
+    if (history && Array.isArray(history)) {
+      for (const item of history) {
+        contents.push({
+          role: item.role === 'user' ? 'user' : 'model',
+          parts: [{ text: item.text }]
+        });
+      }
+    }
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    let response: any = null;
+    let lastError: any = null;
+    const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+    const maxAttempts = 2;
+
+    for (const modelName of modelsToTry) {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: {
+              systemInstruction,
+              temperature: 0.2, // Low temperature for high precision JSON outputs
+              responseMimeType: "application/json"
+            }
+          });
+          break; // Success! Exit retry loop for this model
+        } catch (err: any) {
+          lastError = err;
+          const errMsg = String(err.message || err.status || "");
+          const isTransient = errMsg.includes("503") || 
+                              errMsg.includes("UNAVAILABLE") || 
+                              errMsg.includes("demand") || 
+                              errMsg.includes("exhausted") ||
+                              errMsg.includes("limit") ||
+                              err.status === 503 ||
+                              err.status === 429;
+          
+          if (isTransient && attempt < maxAttempts) {
+            console.log(`ℹ️ Xoro AI Admin [${modelName}] attempt ${attempt} temporarily busy: ${errMsg}. Retrying in ${attempt}s...`);
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+          } else {
+            console.log(`ℹ️ Xoro AI Admin [${modelName}] attempt ${attempt} unavailable: ${errMsg}. Trying fallback model...`);
+            break;
+          }
+        }
+      }
+      if (response) {
+        console.log(`✨ Xoro AI Admin call succeeded using model: ${modelName}`);
+        break; // If we got a successful response, stop trying other models
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("All model endpoints returned errors.");
+    }
+
+    const parsedJson = parseJSONFromText(response.text);
+    if (!parsedJson) {
+      return res.json({
+        text: `দুঃখিত, জোরো এআই রেসপন্স পার্স করতে ব্যর্থ হয়েছে।\n\nএখানে র সিলভার রেসপন্স দেওয়া হলো:\n\n${response.text}`,
+        explanation: "JSON parsing failed on raw output.",
+        executionPlan: []
+      });
+    }
+
+    res.json(parsedJson);
+
+  } catch (err: any) {
+    console.error("⚠️ Gemini API Call failed, falling back to local off-line rules engine:", err.message);
+    const fallback = getLocalFallbackAdminPlan(message);
+    res.json(fallback);
+  }
+});
+
+// Xoro AI Admin Execute Route with RBAC Checking
+app.post("/api/xoro-admin/execute", xoroAdminRateLimitMiddleware, xoroAdminAuthMiddleware, async (req, res) => {
+  const { plan, role, prompt } = req.body;
+
+  if (!plan || !Array.isArray(plan)) {
+    return res.status(400).json({ message: "Plan is required and must be an array." });
+  }
+
+  // Active Role can be viewer | editor | manager | super_admin
+  const activeRole = role || 'super_admin';
+
+  if (activeRole === 'viewer') {
+    return res.status(403).json({ message: "অ্যাক্সেস প্রত্যাখ্যান! আপনার Viewer রোল দিয়ে কোনো অ্যাডমিন অ্যাকশন চালানো সম্ভব নয়।" });
+  }
+
+  const beforeSnapshot = {
+    products: JSON.parse(JSON.stringify(db.products)),
+    banners: JSON.parse(JSON.stringify(db.banners)),
+    coupons: JSON.parse(JSON.stringify(db.coupons)),
+    settings: JSON.parse(JSON.stringify(db.settings))
+  };
+
+  const executedActions: string[] = [];
+  const modifiedFiles: { path: string; backup: string }[] = [];
+  const codeRollbacks: { filePath: string; originalContent: string }[] = [];
+
+  try {
+    for (const action of plan) {
+      const type = action.type;
+
+      // Rule Based Access Control (RBAC) validation
+      if (activeRole === 'editor') {
+        const allowed = ['ADD_PRODUCT', 'EDIT_PRODUCT', 'CREATE_BANNER', 'EDIT_BANNER', 'DELETE_BANNER', 'UPDATE_SEO', 'SUGGEST_UI', 'CREATE_PAGE_DRAFT', 'CODE_EDIT'];
+        if (!allowed.includes(type) || action.isHighRisk) {
+          return res.status(403).json({ message: `অ্যাক্সেস প্রত্যাখ্যান! Editor রোল দিয়ে উচ্চ-ঝুঁকিপূর্ণ (${type}) বা ডিলিট অ্যাকশন চালানো সম্ভব নয়।` });
+        }
+      } else if (activeRole === 'manager') {
+        const allowed = ['EDIT_PRODUCT', 'CREATE_COUPON', 'EDIT_COUPON', 'DELETE_COUPON', 'UPDATE_SETTINGS', 'BULK_UPDATE_PRICE', 'ANALYTICS_REPORT'];
+        if (!allowed.includes(type) || action.isHighRisk) {
+          return res.status(403).json({ message: `অ্যাক্সেস প্রত্যাখ্যান! Manager রোল দিয়ে উচ্চ-ঝুঁকিপূর্ণ (${type}) অ্যাকশন চালানো সম্ভব নয়।` });
+        }
+      }
+
+      // Action Execution Logic
+      if (type === 'CODE_EDIT') {
+        const { filePath, targetContent, replacementContent } = action.data;
+        if (!filePath || !targetContent || !replacementContent) {
+          throw new Error("Missing required data for CODE_EDIT action.");
+        }
+        
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        if (normalizedPath.includes('..') || normalizedPath.startsWith('/')) {
+          throw new Error("Invalid file path specified for code edit.");
+        }
+        
+        const fullPath = path.join(process.cwd(), normalizedPath);
+        if (!fs.existsSync(fullPath)) {
+          throw new Error(`File not found: ${filePath}`);
+        }
+        
+        const originalContent = fs.readFileSync(fullPath, "utf-8");
+        if (!originalContent.includes(targetContent)) {
+          throw new Error(`Target code segment not found in ${filePath}.`);
+        }
+        
+        const backupPath = `${fullPath}.bak`;
+        fs.writeFileSync(backupPath, originalContent, "utf-8");
+        
+        const newContent = originalContent.replace(targetContent, replacementContent);
+        fs.writeFileSync(fullPath, newContent, "utf-8");
+        
+        executedActions.push(`ফাইল '${filePath}' এর কোড সফলভাবে পরিবর্তন করা হয়েছে।`);
+        modifiedFiles.push({ path: fullPath, backup: backupPath });
+        codeRollbacks.push({ filePath: normalizedPath, originalContent });
+      } else if (type === 'ADD_PRODUCT') {
+        const data = action.data;
+        const newProduct: Product = {
+          id: "prod-" + Math.random().toString(36).substr(2, 9),
+          code: data.code || `XP-${Math.floor(100 + Math.random() * 900)}`,
+          title: data.title || "Untitled Elite Wear",
+          description: data.description || "Premium handcrafted exclusive Style X piece.",
+          price: Number(data.price) || 100,
+          offerPrice: data.offerPrice ? Number(data.offerPrice) : undefined,
+          category: data.category || "UNISEX",
+          stock: Number(data.stock) || 10,
+          imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600&auto=format&fit=crop",
+          sizes: data.sizes || ["S", "M", "L", "XL"],
+          dimensions: data.dimensions || "Regular Fit",
+          whyBuy: data.whyBuy || "এটি প্রিমিয়াম ফেব্রিক দিয়ে তৈরি একটি রাজকীয় কালেকশন যা আপনার স্টাইলকে চমৎকারভাবে ফুটিয়ে তুলবে।",
+          featured: !!data.featured,
+          trending: !!data.trending
+        };
+        db.products.unshift(newProduct);
+        executedActions.push(`নতুন ক্যাটালগ আইটেম '${newProduct.title}' (কোড: ${newProduct.code}) যোগ করা হয়েছে।`);
+      } else if (type === 'EDIT_PRODUCT') {
+        const data = action.data;
+        const code = (data.code || "").toUpperCase();
+        const idx = db.products.findIndex((p: any) => p.code?.toUpperCase() === code || p.id === data.id);
+        if (idx !== -1) {
+          db.products[idx] = {
+            ...db.products[idx],
+            ...data
+          };
+          if (data.price !== undefined) db.products[idx].price = Number(data.price);
+          if (data.stock !== undefined) db.products[idx].stock = Number(data.stock);
+          executedActions.push(`পণ্য '${db.products[idx].title}' (কোড: ${db.products[idx].code}) আপডেট সম্পন্ন হয়েছে।`);
+        } else {
+          throw new Error(`পণ্য কোড ${code} ডাটাবেসে খুঁজে পাওয়া যায়নি।`);
+        }
+      } else if (type === 'DELETE_PRODUCT') {
+        const data = action.data;
+        const code = (data.code || "").toUpperCase();
+        const idx = db.products.findIndex((p: any) => p.code?.toUpperCase() === code || p.id === data.id);
+        if (idx !== -1) {
+          const deletedTitle = db.products[idx].title;
+          db.products.splice(idx, 1);
+          executedActions.push(`পণ্য '${deletedTitle}' স্থায়ীভাবে মুছে ফেলা হয়েছে।`);
+        } else {
+          throw new Error(`মুছে ফেলার জন্য নির্দিষ্ট পণ্যটি খুঁজে পাওয়া যায়নি।`);
+        }
+      } else if (type === 'CREATE_BANNER') {
+        const data = action.data;
+        const newBanner: Banner = {
+          id: "banner-" + Math.random().toString(36).substr(2, 9),
+          title: data.title || "STYLE X ESSENTIALS",
+          subtitle: data.subtitle || "Exclusive avant-garde aesthetic drops.",
+          imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop",
+          active: data.active !== undefined ? !!data.active : true
+        };
+        db.banners.push(newBanner);
+        executedActions.push(`নতুন স্লাইডার ব্যানার '${newBanner.title}' যুক্ত করা হয়েছে।`);
+      } else if (type === 'EDIT_BANNER') {
+        const data = action.data;
+        const idx = db.banners.findIndex((b: any) => b.id === data.id);
+        if (idx !== -1) {
+          db.banners[idx] = { ...db.banners[idx], ...data };
+          executedActions.push(`ব্যানার '${db.banners[idx].title}' আপডেট করা হয়েছে।`);
+        }
+      } else if (type === 'DELETE_BANNER') {
+        const data = action.data;
+        const idx = db.banners.findIndex((b: any) => b.id === data.id);
+        if (idx !== -1) {
+          const deletedTitle = db.banners[idx].title;
+          db.banners.splice(idx, 1);
+          executedActions.push(`ব্যানার '${deletedTitle}' ডিলিট করা হয়েছে।`);
+        }
+      } else if (type === 'CREATE_COUPON') {
+        const data = action.data;
+        const newCoupon: Coupon = {
+          code: (data.code || "").toUpperCase(),
+          type: data.type || "PERCENTAGE",
+          value: Number(data.value) || 15,
+          active: data.active !== undefined ? !!data.active : true
+        };
+        db.coupons.push(newCoupon);
+        executedActions.push(`নতুন প্রমোশনাল কুপন '${newCoupon.code}' তৈরি করা হয়েছে।`);
+      } else if (type === 'DELETE_COUPON') {
+        const data = action.data;
+        const idx = db.coupons.findIndex((c: any) => c.code?.toUpperCase() === data.code?.toUpperCase());
+        if (idx !== -1) {
+          db.coupons.splice(idx, 1);
+          executedActions.push(`ডিসকাউন্ট কুপন '${data.code}' ডিলিট করা হয়েছে।`);
+        }
+      } else if (type === 'UPDATE_SEO') {
+        const data = action.data;
+        if (data.siteTitle) db.settings.siteTitle = data.siteTitle;
+        if (data.siteMetaDesc) db.settings.siteMetaDesc = data.siteMetaDesc;
+        executedActions.push("এসইও মেটা ডাটা এবং সাইট টাইটেল সফলভাবে আপডেট করা হয়েছে।");
+      } else if (type === 'UPDATE_SETTINGS') {
+        const data = action.data;
+        db.settings = { ...db.settings, ...data };
+        executedActions.push("স্টোর সেটিংস এবং কনফিগারেশন আপডেট করা হয়েছে।");
+      } else if (type === 'BULK_UPDATE_PRICE') {
+        const data = action.data;
+        const category = data.category;
+        const multiplier = Number(data.multiplier) || 1;
+        let count = 0;
+        db.products.forEach((p: any) => {
+          if (!category || p.category === category) {
+            p.price = Math.round(p.price * multiplier);
+            count++;
+          }
+        });
+        executedActions.push(`${count}টি মডিউলের পণ্যমূল্য বাল্ক রিভিশন সম্পন্ন করা হয়েছে।`);
+      }
+    }
+
+    // Verify builds if any files were modified
+    if (modifiedFiles.length > 0) {
+      const verification = await verifyBuild();
+      if (!verification.success) {
+        // Rollback all files!
+        console.error("❌ Xoro AI Build failed! Rolling back changes automatically...", verification.output);
+        for (const file of modifiedFiles) {
+          try {
+            if (fs.existsSync(file.backup)) {
+              const original = fs.readFileSync(file.backup, "utf-8");
+              fs.writeFileSync(file.path, original, "utf-8");
+              fs.unlinkSync(file.backup);
+            }
+          } catch (rollbackErr: any) {
+            console.error(`Failed to rollback file ${file.path}:`, rollbackErr.message);
+          }
+        }
+        return res.status(500).json({ 
+          message: `❌ ওয়েবসাইট কম্পাইলেশন ব্যর্থ হয়েছে! কোড পরিবর্তন বাতিল করা হয়েছে।\n\nত্রুটির বিবরণ:\n${verification.output.slice(0, 1000)}` 
+        });
+      } else {
+        // Build succeeded! Remove backup files
+        for (const file of modifiedFiles) {
+          try {
+            if (fs.existsSync(file.backup)) {
+              fs.unlinkSync(file.backup);
+            }
+          } catch (delErr) {
+            // Ignore
+          }
+        }
+        executedActions.push("ওয়েবসাইট সফলভাবে কম্পাইল ও বিল্ড হয়েছে (Integrity Passed)!");
+      }
+    }
+
+    // Save logs
+    const logId = "log-" + Math.random().toString(36).substr(2, 9);
+    const logEntry = {
+      id: logId,
+      adminName: (req as any).isSuperAdmin ? "Super Admin" : "Staff Manager",
+      time: new Date().toISOString(),
+      prompt: prompt || "অ্যাডমিন অ্যাকশন চালনা করা হয়েছে।",
+      changesMade: executedActions.join(" | "),
+      status: 'success',
+      rollbackInfo: beforeSnapshot,
+      codeRollbacks: codeRollbacks
+    };
+
+    db.xoroAdminLogs.unshift(logEntry);
+    if (db.xoroAdminLogs.length > 100) {
+      db.xoroAdminLogs = db.xoroAdminLogs.slice(0, 100);
+    }
+
+    saveDB();
+
+    res.json({
+      message: "এক্সিকিউশন প্ল্যান সফলভাবে সম্পন্ন হয়েছে!",
+      report: executedActions,
+      logs: db.xoroAdminLogs,
+      products: db.products,
+      banners: db.banners,
+      coupons: db.coupons,
+      settings: db.settings
+    });
+
+  } catch (err: any) {
+    res.status(500).json({ message: "অ্যাকশন প্ল্যান এক্সিকিউশনে ত্রুটি: " + err.message });
+  }
+});
+
+function verifyBuild(): Promise<{ success: boolean; output: string }> {
+  return new Promise(async (resolve) => {
+    try {
+      const { exec } = await import("child_process");
+      exec("npx tsc --noEmit", { cwd: process.cwd() }, (err, stdout, stderr) => {
+        if (err) {
+          resolve({ success: false, output: stdout + "\n" + stderr });
+        } else {
+          resolve({ success: true, output: stdout });
+        }
+      });
+    } catch (err: any) {
+      resolve({ success: false, output: "Failed to dynamically load child_process: " + err.message });
+    }
+  });
+}
+
+// Xoro AI One-Click Rollback Handler
+app.post("/api/xoro-admin/rollback", xoroAdminRateLimitMiddleware, xoroAdminAuthMiddleware, (req, res) => {
+  const { logId } = req.body;
+
+  if (!logId) {
+    return res.status(400).json({ message: "Log ID is required." });
+  }
+
+  const logs = db.xoroAdminLogs || [];
+  const logIdx = logs.findIndex((l: any) => l.id === logId);
+
+  if (logIdx === -1) {
+    return res.status(404).json({ message: "নির্দিষ্ট অডিট লগ এন্ট্রি খুঁজে পাওয়া যায়নি।" });
+  }
+
+  const log = logs[logIdx];
+  if (log.status === 'rolled_back') {
+    return res.status(400).json({ message: "দুঃখিত, এই অ্যাকশনটি ইতিমধ্যে রোলব্যাক করা হয়েছে।" });
+  }
+
+  try {
+    const snapshot = log.rollbackInfo;
+    if (snapshot) {
+      if (snapshot.products) db.products = snapshot.products;
+      if (snapshot.banners) db.banners = snapshot.banners;
+      if (snapshot.coupons) db.coupons = snapshot.coupons;
+      if (snapshot.settings) db.settings = snapshot.settings;
+    }
+
+    if (log.codeRollbacks && Array.isArray(log.codeRollbacks)) {
+      for (const item of log.codeRollbacks) {
+        try {
+          const fullPath = path.join(process.cwd(), item.filePath);
+          fs.writeFileSync(fullPath, item.originalContent, "utf-8");
+          console.log(`Successfully rolled back code file: ${item.filePath}`);
+        } catch (err: any) {
+          console.error(`Failed to rollback code file ${item.filePath}:`, err.message);
+        }
+      }
+    }
+
+    log.status = 'rolled_back';
+    saveDB();
+
+    res.json({
+      message: "সাফল্যের সাথে পূর্বের স্টেটে ফিরে যাওয়া হয়েছে (Rollback Success)!",
+      logs: db.xoroAdminLogs,
+      products: db.products,
+      banners: db.banners,
+      coupons: db.coupons,
+      settings: db.settings
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: "রোলব্যাক করতে সমস্যা হয়েছে: " + err.message });
+  }
+});
+
+// Fetch Audit Logs Endpoint
+app.get("/api/xoro-admin/logs", xoroAdminRateLimitMiddleware, xoroAdminAuthMiddleware, (req, res) => {
+  res.json({ logs: db.xoroAdminLogs || [] });
 });
 
 // Dynamically generated XML Sitemap for Search Engine Optimizations

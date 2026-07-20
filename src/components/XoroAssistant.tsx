@@ -1380,7 +1380,7 @@ export default function XoroAssistant({
           dragListener={false}
           dragMomentum={false}
           dragElastic={0.05}
-          className="fixed left-6 top-[40%] z-[100] flex flex-col items-start select-none touch-none"
+          className="fixed left-4 bottom-4 md:left-6 md:bottom-6 z-[100] flex flex-col items-start select-none touch-none"
         >
         
         {/* SPEECH BUBBLE OUTLET */}
@@ -2066,7 +2066,7 @@ export default function XoroAssistant({
                   e.preventDefault();
                   handleSendMessage(inputValue);
                 }}
-                className="p-4 bg-black border-t border-white/10 flex gap-2.5 items-center"
+                className="p-2.5 sm:p-3 bg-black border-t border-white/10 flex gap-2 items-center"
               >
                 <input 
                   type="text"
@@ -2074,14 +2074,14 @@ export default function XoroAssistant({
                   onChange={(e) => setInputValue(e.target.value)}
                   disabled={settings?.isXoroVoiceAndAnswerDisabled}
                   placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট বর্তমানে নিষ্ক্রিয় রয়েছে" : "Ask Xoro styling tips, track order..."}
-                  className="flex-1 h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans disabled:opacity-50"
+                  className="flex-1 h-[46px] bg-white/[0.08] text-white text-[15px] border border-white/15 rounded-xl py-2.5 px-3.5 transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans disabled:opacity-50"
                 />
                 <button 
                   type="submit"
                   disabled={settings?.isXoroVoiceAndAnswerDisabled || !inputValue.trim()}
-                  className="h-[56px] w-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 disabled:opacity-40 text-black rounded-[16px] flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0"
+                  className="h-[46px] w-[46px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 disabled:opacity-40 text-black rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0"
                 >
-                  <Send size={18} />
+                  <Send size={15} />
                 </button>
               </form>
             </>
