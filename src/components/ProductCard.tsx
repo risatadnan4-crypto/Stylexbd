@@ -288,7 +288,7 @@ export default function ProductCard({
         )}
         <img 
           src={activeImage} 
-          alt={product.title} 
+          alt={(product as any).seoAltText || `${product.title} - Authentic Luxury ${product.category || 'Apparel'} | STYLE X BD`} 
           loading={product.isPinned || (index !== undefined && index < 6) ? "eager" : "lazy"}
           {...((product.isPinned || (index !== undefined && index < 6)) ? { fetchPriority: "high" } : {})}
           onLoad={() => setImageLoaded(true)}
@@ -416,7 +416,7 @@ export default function ProductCard({
               {/* Old Price & Discount Badge (on the right of current price) */}
               {hasActiveOffer && (
                 <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
-                  <span className="text-[#FF2D55] line-through font-serif font-bold text-sm sm:text-base md:text-lg leading-none decoration-[#FF2D55]/70 decoration-[1.5px] select-all opacity-85 shrink-0">
+                  <span className="text-luxury-gold font-sans font-black text-sm sm:text-base md:text-lg leading-none tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] select-all opacity-85 shrink-0">
                     ৳{product.price}
                   </span>
                   {(() => {

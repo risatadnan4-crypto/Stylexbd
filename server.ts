@@ -4430,13 +4430,23 @@ app.get("/sitemap.xml", (req, res) => {
   const baseUrl = "https://stylexbd.vercel.app";
   const currentDate = new Date().toISOString().split("T")[0];
 
-  // Base pages of Style X
+  // Helper to safely escape special XML characters
+  const escapeXml = (str: string) => {
+    return str.replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  };
+
+  // Base pages of Style X (only include canonical HTTPS URLs with no fragments or client-side anchor links)
   const pages = [
-    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
-    { loc: `${baseUrl}/#catalog`, priority: "0.8", changefreq: "weekly" },
-    { loc: `${baseUrl}/#catalog?category=MEN`, priority: "0.7", changefreq: "weekly" },
-    { loc: `${baseUrl}/#catalog?category=WOMEN`, priority: "0.7", changefreq: "weekly" },
-    { loc: `${baseUrl}/#catalog?category=UNISEX`, priority: "0.7", changefreq: "weekly" },
+    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" }
   ];
 
   // Include dynamic products from active luxury database
@@ -4449,7 +4459,7 @@ app.get("/sitemap.xml", (req, res) => {
   const allPages = [...pages, ...productPages];
 
   const xmlEntries = allPages.map(page => `  <url>
-    <loc>${page.loc}</loc>
+    <loc>${escapeXml(page.loc)}</loc>
     <lastmod>${currentDate}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>

@@ -922,7 +922,7 @@ export default function CartDrawer({
                 {checkoutStep === 'step1' && (
                   <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-2 sm:p-2.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="lg:scale-[0.96] xl:scale-[0.93] lg:origin-top lg:w-[104.2%] lg:-ml-[2.1%] xl:w-[107.5%] xl:-ml-[3.75%] transition-all duration-300 lg:h-[104.2%] xl:h-[107.5%]">
+                      <div className="w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
@@ -952,7 +952,7 @@ export default function CartDrawer({
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">১. যোগাযোগের তথ্য (CONTACT CREDENTIALS)</span>
                               </div>
 
                               <div className="grid grid-cols-1 gap-3 relative z-10">
@@ -994,7 +994,7 @@ export default function CartDrawer({
                                         : 'text-zinc-400 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
                                     }`}
                                   >
-                                    Full Name *
+                                    আপনার সম্পূর্ণ নাম * (Full Name)
                                   </label>
                                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
@@ -1071,7 +1071,7 @@ export default function CartDrawer({
                                         : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
                                     }`}
                                   >
-                                    Mobile Number *
+                                    আপনার মোবাইল নম্বর * (Mobile Number)
                                   </label>
                                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
@@ -1102,13 +1102,62 @@ export default function CartDrawer({
                                             exit={{ scale: 0, opacity: 0 }}
                                             transition={{ duration: 0.15 }}
                                           >
-                                            <span className="text-[7px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">11 digits</span>
+                                            <span className="text-[7px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">১১ ডিজিট</span>
                                           </motion.div>
                                         )
                                       )}
                                     </AnimatePresence>
                                   </div>
                                 </div>
+
+                                {/* Product Image Selection Option (Moved below contact credentials inputs) */}
+                                {enrichedCartItems.some(item => [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean).length > 1) && (
+                                  <div className="mt-4 pt-3.5 border-t border-white/5 space-y-3 relative z-10">
+                                    <span className="text-[10px] md:text-[11px] font-mono tracking-widest text-[#d4af37] font-extrabold uppercase block drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">
+                                      ⚜️ পছন্দের প্রোডাক্ট কালার/ইমেজ সিলেক্ট করুন (Select Image)
+                                    </span>
+                                    <div className="space-y-3">
+                                      {enrichedCartItems.map((item, idx) => {
+                                        const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
+                                        if (productImagesList.length > 1) {
+                                          const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
+                                          return (
+                                            <div key={`image-select-${idx}`} className="p-2 sm:p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-2">
+                                              <span className="text-[10px] font-sans font-bold text-zinc-300 tracking-wide block truncate">
+                                                {item.product.title}
+                                              </span>
+                                              <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden">
+                                                {productImagesList.map((imgUrl, imgIdx) => {
+                                                  const isSelected = itemDisplayImage === imgUrl;
+                                                  return (
+                                                    <button
+                                                      key={imgIdx}
+                                                      type="button"
+                                                      onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
+                                                      className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 ${
+                                                        isSelected
+                                                          ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
+                                                          : 'border-white/10 hover:border-[#d4af37]/35'
+                                                      }`}
+                                                    >
+                                                      <img 
+                                                        src={imgUrl} 
+                                                        alt={`Option ${imgIdx + 1}`} 
+                                                        className="w-full h-full object-cover"
+                                                        referrerPolicy="no-referrer"
+                                                      />
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </motion.div>
 
@@ -1121,7 +1170,7 @@ export default function CartDrawer({
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. SHIPPING DESTINATION</span>
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">২. ডেলিভারি ঠিকানা (SHIPPING DESTINATION)</span>
                               </div>
 
                               <div className="space-y-3 relative z-10">
@@ -1145,12 +1194,12 @@ export default function CartDrawer({
                                     >
                                       {Object.keys(DIVISION_MAPS).map((div) => (
                                         <option key={div} value={div} className="bg-[#0c0617] text-white">
-                                          {div} Division
+                                          {div} বিভাগ (Division)
                                         </option>
                                       ))}
                                     </select>
                                     <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      Division *
+                                      বিভাগ * (Division)
                                     </label>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
                                       <ChevronDown size={14} />
@@ -1176,7 +1225,7 @@ export default function CartDrawer({
                                       ))}
                                     </select>
                                     <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      District/City *
+                                      জেলা/শহর * (District/City)
                                     </label>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
                                       <ChevronDown size={14} />
@@ -1184,142 +1233,144 @@ export default function CartDrawer({
                                   </div>
                                 </div>
 
-                                {/* City / District (Mobile/Tablet Only) */}
-                                <div className="lg:hidden relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
-                                  <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
-                                    <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                    <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
-                                      City/District *
-                                    </span>
-                                  </span>
-                                  
-                                  {(() => {
-                                    const displayedCities = [...CITIES_LIST];
-                                    if (!CITIES_LIST.includes(customerCity)) {
-                                      displayedCities.push(customerCity);
-                                    }
+                                 {/* City / District (Mobile/Tablet Only) */}
+                                 <div className="lg:hidden relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
+                                   <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
+                                     <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
+                                     <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
+                                       জেলা/শহর * (City/District)
+                                     </span>
+                                   </span>
+                                   
+                                   {(() => {
+                                     const displayedCities = [...CITIES_LIST];
+                                     if (!CITIES_LIST.includes(customerCity)) {
+                                       displayedCities.push(customerCity);
+                                     }
 
-                                    const defaultToShowCount = 3;
-                                    let visibleCities = [...displayedCities];
-                                    if (!isDistrictsExpanded) {
-                                      const initialSelection = displayedCities.slice(0, defaultToShowCount);
-                                      if (customerCity && !initialSelection.includes(customerCity)) {
-                                        initialSelection.push(customerCity);
-                                      }
-                                      visibleCities = initialSelection;
-                                    }
+                                     const defaultToShowCount = 3;
+                                     let visibleCities = [...displayedCities];
+                                     if (!isDistrictsExpanded) {
+                                       const initialSelection = displayedCities.slice(0, defaultToShowCount);
+                                       if (customerCity && !initialSelection.includes(customerCity)) {
+                                         initialSelection.push(customerCity);
+                                       }
+                                       visibleCities = initialSelection;
+                                     }
 
-                                    return (
-                                      <div className="flex flex-col gap-1">
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                          {visibleCities.map((city) => {
-                                            const isSelected = customerCity === city;
-                                            return (
-                                              <div
-                                                key={city}
-                                                onClick={() => setCustomerCity(city)}
-                                                className={`relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-between border ${
-                                                  isSelected
-                                                    ? 'bg-gradient-to-r from-luxury-gold/25 via-luxury-gold/15 to-luxury-gold/25 border-luxury-gold text-white font-black shadow-[0_0_12px_rgba(212,175,55,0.35),_inset_0_0_4px_rgba(212,175,55,0.15)]'
-                                                    : 'bg-[#0a0614]/80 hover:bg-[#120a24]/90 border-white/5 hover:border-white/15 text-zinc-300 hover:text-white'
-                                                }`}
-                                              >
-                                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                  <div className={`w-2 h-2 rounded-full transition-all duration-300 shrink-0 ${
-                                                    isSelected 
-                                                      ? 'bg-luxury-gold shadow-[0_0_6px_rgba(212,175,55,1)] scale-110' 
-                                                      : 'bg-zinc-700 border border-zinc-600'
-                                                  }`} />
-                                                  <span className="truncate ml-1 font-bold">{city}</span>
-                                                </div>
+                                     return (
+                                       <div className="flex flex-col gap-1">
+                                         <div className="grid grid-cols-2 gap-2 mt-1">
+                                           {visibleCities.map((city) => {
+                                             const isSelected = customerCity === city;
+                                             return (
+                                               <div
+                                                 key={city}
+                                                 onClick={() => setCustomerCity(city)}
+                                                 className={`relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-between border ${
+                                                   isSelected
+                                                     ? 'bg-gradient-to-r from-luxury-gold/25 via-luxury-gold/15 to-luxury-gold/25 border-luxury-gold text-white font-black shadow-[0_0_12px_rgba(212,175,55,0.35),_inset_0_0_4px_rgba(212,175,55,0.15)]'
+                                                     : 'bg-[#0a0614]/80 hover:bg-[#120a24]/90 border-white/5 hover:border-white/15 text-zinc-300 hover:text-white'
+                                                 }`}
+                                               >
+                                                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                   <div className={`w-2 h-2 rounded-full transition-all duration-300 shrink-0 ${
+                                                     isSelected 
+                                                       ? 'bg-luxury-gold shadow-[0_0_6px_rgba(212,175,55,1)] scale-110' 
+                                                       : 'bg-zinc-700 border border-zinc-600'
+                                                   }`} />
+                                                   <span className="truncate ml-1 font-bold">{city}</span>
+                                                 </div>
 
-                                                {city === 'Dhaka' && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.preventDefault();
-                                                      e.stopPropagation();
-                                                      setIsDistrictsExpanded(!isDistrictsExpanded);
-                                                    }}
-                                                    className="py-0.5 px-1 text-[7.5px] font-mono text-white bg-[#1a0833] border border-luxury-gold/40 hover:border-luxury-gold rounded flex items-center gap-0.5 cursor-pointer transition-all duration-300 uppercase font-bold shadow-[0_0_4px_rgba(212,175,55,0.15)] active:scale-95 ml-1 shrink-0 relative overflow-hidden z-10"
-                                                  >
-                                                    <div className="luxury-glow-shimmer" />
-                                                    
-                                                    {isDistrictsExpanded ? (
-                                                      <>
-                                                        <ChevronUp size={8} className="text-luxury-gold relative z-10" />
-                                                        <span className="relative z-10 text-[7.5px]">Less</span>
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
-                                                        <span className="relative z-10 text-[7.5px]">More</span>
-                                                      </>
-                                                    )}
-                                                  </button>
-                                                )}
-                                              </div>
-                                            );
-                                          })}
+                                                 {city === 'Dhaka' && (
+                                                   <button
+                                                     type="button"
+                                                     onClick={(e) => {
+                                                       e.preventDefault();
+                                                       e.stopPropagation();
+                                                       setIsDistrictsExpanded(!isDistrictsExpanded);
+                                                     }}
+                                                     className="py-0.5 px-1 text-[7.5px] font-mono text-white bg-[#1a0833] border border-luxury-gold/40 hover:border-luxury-gold rounded flex items-center gap-0.5 cursor-pointer transition-all duration-300 uppercase font-bold shadow-[0_0_4px_rgba(212,175,55,0.15)] active:scale-95 ml-1 shrink-0 relative overflow-hidden z-10"
+                                                     id="btn_dhaka_districts_toggle"
+                                                   >
+                                                     <div className="luxury-glow-shimmer" />
+                                                     
+                                                     {isDistrictsExpanded ? (
+                                                       <>
+                                                         <ChevronUp size={8} className="text-luxury-gold relative z-10" />
+                                                         <span className="relative z-10 text-[7.5px]">কম দেখুন (Less)</span>
+                                                       </>
+                                                     ) : (
+                                                       <>
+                                                         <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
+                                                         <span className="relative z-10 text-[7.5px]">আরো দেখুন (More)</span>
+                                                       </>
+                                                     )}
+                                                   </button>
+                                                 )}
+                                               </div>
+                                             );
+                                           })}
 
-                                          {/* Other District button inside the grid */}
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              setShowAllDistrictsModal(true);
-                                            }}
-                                            className="relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 border bg-luxury-gold/10 hover:bg-luxury-gold/20 border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white overflow-hidden font-bold"
-                                          >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                            <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                            <span className="font-bold text-[8.5px] tracking-wide">Other District</span>
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
+                                           {/* Other District button inside the grid */}
+                                           <button
+                                             type="button"
+                                             onClick={(e) => {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                               setShowAllDistrictsModal(true);
+                                             }}
+                                             className="relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 border bg-luxury-gold/10 hover:bg-luxury-gold/20 border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white overflow-hidden font-bold"
+                                             id="btn_show_other_districts"
+                                           >
+                                             <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                             <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
+                                             <span className="font-bold text-[8.5px] tracking-wide">অন্যান্য জেলা (Other)</span>
+                                           </button>
+                                         </div>
+                                       </div>
+                                     );
+                                   })()}
+                                 </div>
 
-                                {/* Complete Address */}
-                                <div className="relative group/input">
-                                  <div className={`absolute top-3 left-3 md:left-4 transition-all duration-300 ${
-                                    customerAddress
-                                      ? isAddressValid
-                                        ? 'text-emerald-400'
-                                        : 'text-red-400/80'
-                                      : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
-                                  }`}>
-                                    <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
-                                  </div>
-                                  <textarea 
-                                    ref={addressTextRef}
-                                    required
-                                    id="customer_address"
-                                    value={customerAddress}
-                                    onChange={(e) => setCustomerAddress(e.target.value)}
-                                    placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 h-[44px] md:h-[56px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
-                                      customerAddress
-                                        ? isAddressValid
-                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
-                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
-                                    }`}
-                                  />
-                                  <label 
-                                    htmlFor="customer_address" 
-                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
-                                      customerAddress
-                                        ? isAddressValid
-                                          ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
-                                          : 'text-red-400/80 peer-focus:text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.5)]'
-                                        : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
-                                    }`}
-                                  >
-                                    Complete Address *
-                                  </label>
+                                 {/* Complete Address */}
+                                 <div className="relative group/input">
+                                   <div className={`absolute top-3 left-3 md:left-4 transition-all duration-300 ${
+                                     customerAddress
+                                       ? isAddressValid
+                                         ? 'text-emerald-400'
+                                         : 'text-red-400/80'
+                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
+                                   }`}>
+                                     <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                   </div>
+                                   <textarea 
+                                     ref={addressTextRef}
+                                     required
+                                     id="customer_address"
+                                     value={customerAddress}
+                                     onChange={(e) => setCustomerAddress(e.target.value)}
+                                     placeholder=" "
+                                     className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 h-[44px] md:h-[56px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                       customerAddress
+                                         ? isAddressValid
+                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                                           : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
+                                         : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                     }`}
+                                   />
+                                   <label 
+                                     htmlFor="customer_address" 
+                                     className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                       customerAddress
+                                         ? isAddressValid
+                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
+                                           : 'text-red-400/80 peer-focus:text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.5)]'
+                                         : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
+                                     }`}
+                                   >
+                                     সম্পূর্ণ ঠিকানা (গ্রাম/থানা/জেলা) * (Address)
+                                   </label>
                                   <div className="absolute right-3 top-3 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
                                       {customerAddress && (
@@ -1449,43 +1500,6 @@ export default function CartDrawer({
                                         ))}
                                       </div>
                                     </div>
-
-                                    {/* Product Images selector (uploaded in product catalog) */}
-                                    {(() => {
-                                      const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
-                                      if (productImagesList.length > 1) {
-                                        return (
-                                          <div className="flex flex-col gap-1.5 mt-1.5">
-                                            <span className="text-[10px] md:text-[12px] lg:text-[13px] font-bold text-zinc-400 tracking-wide">পণ্যর ইমেজ সিলেক্ট করুন:</span>
-                                            <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden flex-wrap max-w-[200px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px]">
-                                              {productImagesList.map((imgUrl, imgIdx) => {
-                                                const isSelected = itemDisplayImage === imgUrl;
-                                                return (
-                                                  <button
-                                                    key={imgIdx}
-                                                    type="button"
-                                                    onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
-                                                    className={`w-11 h-11 sm:w-13 sm:h-13 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg lg:rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 relative ${
-                                                      isSelected
-                                                        ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
-                                                        : 'border-white/10 hover:border-white/30 hover:scale-[1.02]'
-                                                    }`}
-                                                  >
-                                                    <img 
-                                                      src={imgUrl} 
-                                                      alt={`Style option ${imgIdx + 1}`} 
-                                                      className="w-full h-full object-cover p-0.5 rounded-md"
-                                                      referrerPolicy="no-referrer"
-                                                    />
-                                                  </button>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
                                   </div>
 
                                   {/* Quantity & Price Adjuster inline */}
@@ -1553,8 +1567,8 @@ export default function CartDrawer({
                 {/* STEP 2: PREMIUM CHECKOUT */}
                 {checkoutStep === 'step2' && (
                   <form onSubmit={handlePlaceOrder} className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto lg:overflow-y-hidden p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
-                      <div className="lg:scale-[0.91] xl:scale-[0.85] lg:origin-top lg:w-[109.9%] lg:-ml-[4.95%] xl:w-[117.7%] xl:-ml-[8.85%] transition-all duration-300 lg:h-[109.9%] xl:h-[117.7%]">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                      <div className="w-full">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
                         
                         {/* Left column: Payments */}

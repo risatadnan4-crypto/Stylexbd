@@ -156,59 +156,212 @@ export default function App() {
     prevCartCountRef.current = totalCartItemsCount;
   }, [totalCartItemsCount]);
 
-  // Dynamic SEO meta tags management client-side for loaded product details
+  // Parse initial category query parameter on startup
   React.useEffect(() => {
-    if (selectedProduct) {
-      const originalTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
-      const customTitle = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
-      document.title = customTitle;
-
-      const updateOrCreateMeta = (nameOrProperty: string, content: string, isProperty = false) => {
-        const selector = isProperty ? `meta[property="${nameOrProperty}"]` : `meta[name="${nameOrProperty}"]`;
-        let element = document.querySelector(selector);
-        if (!element) {
-          element = document.createElement('meta');
-          if (isProperty) {
-            element.setAttribute('property', nameOrProperty);
-          } else {
-            element.setAttribute('name', nameOrProperty);
-          }
-          document.head.appendChild(element);
-        }
-        element.setAttribute('content', content);
-      };
-
-      const desc = selectedProduct.seoDescription || selectedProduct.description || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion.";
-      const keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, stylex, premium clothing`;
-      
-      updateOrCreateMeta('description', desc);
-      updateOrCreateMeta('keywords', keywords);
-      updateOrCreateMeta('title', customTitle);
-
-      updateOrCreateMeta('og:title', customTitle, true);
-      updateOrCreateMeta('og:description', desc, true);
-      if (selectedProduct.imageUrl) {
-        updateOrCreateMeta('og:image', selectedProduct.imageUrl, true);
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = urlParams.get('category');
+    if (catParam) {
+      const upperCat = catParam.toUpperCase().trim();
+      if (['ALL', 'MEN', 'WOMEN', 'UNISEX', 'ACCESSORIES'].includes(upperCat)) {
+        setActiveCategory(upperCat);
       }
-
-      updateOrCreateMeta('twitter:title', customTitle);
-      updateOrCreateMeta('twitter:description', desc);
-      if (selectedProduct.imageUrl) {
-        updateOrCreateMeta('twitter:image', selectedProduct.imageUrl);
-      }
-
-      return () => {
-        document.title = originalTitle;
-        updateOrCreateMeta('description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
-        updateOrCreateMeta('keywords', "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective");
-        updateOrCreateMeta('title', originalTitle);
-        updateOrCreateMeta('og:title', originalTitle, true);
-        updateOrCreateMeta('og:description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
-        updateOrCreateMeta('twitter:title', originalTitle);
-        updateOrCreateMeta('twitter:description', "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.");
-      };
     }
-  }, [selectedProduct]);
+  }, []);
+
+  // Dynamic SEO meta tags, canonical URL, and JSON-LD schema management client-side
+  React.useEffect(() => {
+    const updateOrCreateMeta = (nameOrProperty: string, content: string, isProperty = false) => {
+      const selector = isProperty ? `meta[property="${nameOrProperty}"]` : `meta[name="${nameOrProperty}"]`;
+      let element = document.querySelector(selector);
+      if (!element) {
+        element = document.createElement('meta');
+        if (isProperty) {
+          element.setAttribute('property', nameOrProperty);
+        } else {
+          element.setAttribute('name', nameOrProperty);
+        }
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    const updateCanonical = (href: string) => {
+      let element = document.querySelector('link[rel="canonical"]');
+      if (!element) {
+        element = document.createElement('link');
+        element.setAttribute('rel', 'canonical');
+        document.head.appendChild(element);
+      }
+      element.setAttribute('href', href);
+    };
+
+    const updateJsonLdSchema = (product: Product | null) => {
+      let element = document.getElementById('json-ld-product-schema');
+      if (element) {
+        element.remove();
+      }
+      if (product) {
+        const schema = {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": product.title,
+          "image": product.imageUrl || "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80",
+          "description": product.description || `Buy ${product.title} from STYLE X BD at the best price. Authentic luxury and premium streetwear apparel in Bangladesh.`,
+          "sku": product.code || String(product.id),
+          "mpn": product.code || String(product.id),
+          "brand": {
+            "@type": "Brand",
+            "name": "Style X"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": `https://stylexbd.vercel.app/?product=${encodeURIComponent(product.code || product.id)}`,
+            "priceCurrency": "BDT",
+            "price": product.price,
+            "priceValidUntil": "2027-12-31",
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "seller": {
+              "@type": "Organization",
+              "name": "Style X"
+            }
+          }
+        };
+        const script = document.createElement('script');
+        script.id = 'json-ld-product-schema';
+        script.type = 'application/ld+json';
+        script.innerHTML = JSON.stringify(schema);
+        document.head.appendChild(script);
+      }
+    };
+
+    const baseTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
+    const baseDesc = "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
+    const baseKeywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
+
+    let title = baseTitle;
+    let desc = baseDesc;
+    let keywords = baseKeywords;
+    let canonical = "https://stylexbd.vercel.app/";
+    let imageUrl = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
+
+    if (selectedProduct) {
+      // 1. Specific product page
+      const code = selectedProduct.code || selectedProduct.id;
+      title = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
+      desc = selectedProduct.seoDescription || selectedProduct.description || `Purchase ${selectedProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${selectedProduct.price} BDT.`;
+      keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, style x bd, premium clothing, luxury apparel, streetwear bangladesh`;
+      canonical = `https://stylexbd.vercel.app/?product=${encodeURIComponent(code)}`;
+      if (selectedProduct.imageUrl) {
+        imageUrl = selectedProduct.imageUrl;
+      }
+      updateJsonLdSchema(selectedProduct);
+    } else {
+      // Clean up product schema
+      updateJsonLdSchema(null);
+
+      if (isAdminView) {
+        // 2. Admin page
+        title = "VIP Admin Control Center | STYLE X BD";
+        desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
+        canonical = "https://stylexbd.vercel.app/?admin=true";
+      } else if (searchQuery) {
+        // 3. Search query page
+        title = `Search Results for "${searchQuery}" | STYLE X BD`;
+        desc = `Explore high-end premium fashion products matching "${searchQuery}" at STYLE X BD. Find authentic streetwear, luxury essentials, and seasonal drops.`;
+        canonical = `https://stylexbd.vercel.app/?search=${encodeURIComponent(searchQuery)}`;
+      } else if (activeCategory && activeCategory !== 'ALL') {
+        // 4. Specific category pages
+        if (activeCategory === 'MEN') {
+          title = "Gentlemen's Luxury Fashion & Curated Streetwear | STYLE X";
+          desc = "Shop curated Gentlemen's premium clothing at STYLE X. Explore luxury jackets, designer graphic t-shirts, hoodies, and cargo pants tailored for elegance.";
+          keywords = "gentlemen streetwear, men fashion bangladesh, luxury menswear, style x gentlemen, premium jackets, custom hoodies, style x men";
+          canonical = "https://stylexbd.vercel.app/?category=MEN";
+        } else if (activeCategory === 'WOMEN') {
+          title = "Haute Couture & Women's Designer Collection | STYLE X";
+          desc = "Unrivaled luxury and modern tailoring. Explore the signature Women's Haute Couture fashion line by STYLE X, featuring elegant styling and streetwear essentials.";
+          keywords = "haute couture, women premium fashion, designer apparel women, style x women, elegant dresses, premium women streetwear";
+          canonical = "https://stylexbd.vercel.app/?category=WOMEN";
+        } else if (activeCategory === 'UNISEX') {
+          title = "Co-Ed Line - Premium Unisex Clothing & Streetwear | STYLE X";
+          desc = "Discover gender-neutral designer wear and unisex clothing accessories at STYLE X. Gender-free signature fits engineered for premium luxury aesthetics.";
+          keywords = "unisex streetwear, co-ed line, gender neutral clothing, gender free fashion, style x unisex, luxury hoodies unisex";
+          canonical = "https://stylexbd.vercel.app/?category=UNISEX";
+        } else if (activeCategory === 'ACCESSORIES') {
+          title = "Ensemble Accessories & Premium Lifestyle Goods | STYLE X";
+          desc = "Refine your wardrobe and daily style with premium designer accessories and luxury lifestyle essentials by STYLE X. Perfect additions for every outfit.";
+          keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
+          canonical = "https://stylexbd.vercel.app/?category=ACCESSORIES";
+        }
+      }
+    }
+
+    // Apply the metadata
+    document.title = title;
+    updateOrCreateMeta('title', title);
+    updateOrCreateMeta('description', desc);
+    updateOrCreateMeta('keywords', keywords);
+    updateCanonical(canonical);
+
+    // Open Graph / Social Rich Previews
+    updateOrCreateMeta('og:title', title, true);
+    updateOrCreateMeta('og:description', desc, true);
+    updateOrCreateMeta('og:url', canonical, true);
+    updateOrCreateMeta('og:image', imageUrl, true);
+
+    // Twitter Card Previews
+    updateOrCreateMeta('twitter:title', title);
+    updateOrCreateMeta('twitter:description', desc);
+    updateOrCreateMeta('twitter:url', canonical);
+    updateOrCreateMeta('twitter:image', imageUrl);
+
+  }, [selectedProduct, activeCategory, searchQuery, isAdminView]);
+
+  // Dynamic URL Query Parameters Synchronizer for SEO and deep-linking compatibility
+  React.useEffect(() => {
+    // We only update if site is already booted to avoid early overwrite on page load
+    if (products && products.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      let changed = false;
+
+      // Sync product parameter
+      if (selectedProduct) {
+        const code = selectedProduct.code || selectedProduct.id;
+        if (urlParams.get('product') !== String(code)) {
+          urlParams.set('product', String(code));
+          changed = true;
+        }
+      } else {
+        if (urlParams.has('product')) {
+          urlParams.delete('product');
+          changed = true;
+        }
+        if (urlParams.has('productCode')) {
+          urlParams.delete('productCode');
+          changed = true;
+        }
+      }
+
+      // Sync category parameter
+      if (activeCategory && activeCategory !== 'ALL') {
+        if (urlParams.get('category') !== activeCategory) {
+          urlParams.set('category', activeCategory);
+          changed = true;
+        }
+      } else {
+        if (urlParams.has('category')) {
+          urlParams.delete('category');
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        const searchStr = urlParams.toString();
+        const newUrl = `${window.location.pathname}${searchStr ? '?' + searchStr : ''}`;
+        window.history.pushState({}, '', newUrl);
+      }
+    }
+  }, [selectedProduct, activeCategory, products]);
   const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);
@@ -2561,7 +2714,7 @@ export default function App() {
       </main>
                   {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.85)] border border-white/5 transition-all flex items-center justify-end overflow-hidden">
+        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(212,175,55,0.15),0_0_50px_rgba(154,77,255,0.1)] border border-white/10 hover:border-luxury-gold/40 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.015] bg-[#030107]/45 backdrop-blur-2xl">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -2569,11 +2722,27 @@ export default function App() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220%] h-[220%] bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#22c55e,#3b82f6,#9A4DFF)] animate-luxury-glow-spin blur-[8px] opacity-40" />
             {/* Sharp running border outline */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240%] h-[240%] bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#22c55e,#3b82f6,#9A4DFF)] animate-luxury-glow-spin blur-[1.5px] opacity-75" />
-            <div className="absolute inset-[1.5px] rounded-full bg-[#05010ca6]/95 backdrop-blur-md" />
+            <div className="absolute inset-[1.5px] rounded-full bg-[#05010ca6]/95 backdrop-blur-2xl" />
           </div>
 
           {/* Inner scrollable wrapper for buttons */}
           <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-1.5 sm:gap-2.5 py-0.5 px-1.5 justify-end">
+            
+            {/* Premium Interactive Brand Crest/Badge */}
+            <div className="hidden xs:flex items-center gap-2 pl-3.5 pr-2.5 py-1 border-r border-white/10 mr-1 select-none">
+              <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-[#0a0518] via-[#1d1403] to-[#0a0518] border border-luxury-gold/50 flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.25)] overflow-hidden">
+                <div className="absolute inset-0 bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#9A4DFF)] animate-spin opacity-30" style={{ animationDuration: '8s' }} />
+                <Sparkles size={12} className="text-luxury-gold relative z-10 animate-pulse drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+              </div>
+              <div className="flex flex-col text-left min-w-0">
+                <span className="text-[7.5px] font-black uppercase font-mono tracking-[0.25em] bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent leading-none">
+                  STYLE X
+                </span>
+                <span className="text-[6.5px] font-bold text-white/45 uppercase font-mono tracking-widest mt-1 whitespace-nowrap">
+                  CONCIERGE
+                </span>
+              </div>
+            </div>
             
             {/* VIP Notification Alerts Hub */}
             <button 
