@@ -69,6 +69,8 @@ interface AdminPanelProps {
     globalPaymentMethod?: string;
     globalDeliveryDays?: string;
     accentColor?: string;
+    siteTitle?: string;
+    siteMetaDesc?: string;
   };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
@@ -649,6 +651,12 @@ export default function AdminPanel({
     if (settings?.accentColor !== undefined) {
       setAccentColorInput(settings.accentColor);
     }
+    if (settings?.siteTitle !== undefined) {
+      setSiteTitle(settings.siteTitle);
+    }
+    if (settings?.siteMetaDesc !== undefined) {
+      setSiteMetaDesc(settings.siteMetaDesc);
+    }
   }, [settings]);
 
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -692,7 +700,9 @@ export default function AdminPanel({
           globalPaymentSystem: globalPaymentSystemInput,
           globalPaymentMethod: globalPaymentMethodInput,
           globalDeliveryDays: globalDeliveryDaysInput,
-          accentColor: accentColorInput
+          accentColor: accentColorInput,
+          siteTitle: siteTitle,
+          siteMetaDesc: siteMetaDesc
         })
       });
       if (res.ok) {
@@ -1015,7 +1025,9 @@ export default function AdminPanel({
         greenwebToken: greenwebTokenInput,
         deactivatedMessage: deactivatedMessageInput,
         isLotteryDeactivated: isLotteryDeactivatedInput,
-        isNotifyMeDeactivated: isNotifyMeDeactivatedInput
+        isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+        siteTitle: siteTitle,
+        siteMetaDesc: siteMetaDesc
       };
       await fetch("/api/settings", {
         method: "POST",
@@ -1400,6 +1412,8 @@ export default function AdminPanel({
           twilioAuthToken: twilioAuthTokenInput,
           twilioFromNumber: twilioFromNumberInput,
           greenwebToken: greenwebTokenInput,
+          siteTitle: siteTitle,
+          siteMetaDesc: siteMetaDesc
         })
       });
       if (res.ok) {
@@ -5861,9 +5875,62 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      document.title = siteTitle;
-                      alert("Robots and meta titles override generated dynamically!");
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/settings", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ 
+                            whatsappNumber: whatsappNumberInput,
+                            adminEmail: adminEmailInput,
+                            adminPassword: adminPasswordInput,
+                            appsScriptUrl: appsScriptUrlInput,
+                            logoUrl: logoUrlInput,
+                            xoroAvatarUrl: xoroAvatarUrlInput,
+                            bkashLogoUrl: bkashLogoUrlInput,
+                            nagadLogoUrl: nagadLogoUrlInput,
+                            lotteryPrizes: lotteryPrizesInput,
+                            lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+                            lotteryCouponPrefix: lotteryCouponPrefixInput,
+                            facebookUrl: facebookUrlInput,
+                            instagramUrl: instagramUrlInput,
+                            paymentBadgeTitle: paymentBadgeTitleInput,
+                            paymentBadgeDescription: paymentBadgeDescriptionInput,
+                            isCatalogDeactivated: isCatalogDeactivatedInput,
+                            isXoroVoiceDisabled: isXoroVoiceDisabledInput,
+                            isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+                            smsProvider: smsProviderInput,
+                            twilioAccountSid: twilioAccountSidInput,
+                            twilioAuthToken: twilioAuthTokenInput,
+                            twilioFromNumber: twilioFromNumberInput,
+                            greenwebToken: greenwebTokenInput,
+                            deactivatedMessage: deactivatedMessageInput,
+                            isLotteryDeactivated: isLotteryDeactivatedInput,
+                            isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+                            globalTimerEndTime: globalTimerEndTimeInput,
+                            globalTimerMessage: globalTimerMessageInput,
+                            globalTimerActive: globalTimerActiveInput,
+                            globalPaymentSystem: globalPaymentSystemInput,
+                            globalPaymentMethod: globalPaymentMethodInput,
+                            globalDeliveryDays: globalDeliveryDaysInput,
+                            accentColor: accentColorInput,
+                            siteTitle: siteTitle,
+                            siteMetaDesc: siteMetaDesc
+                          })
+                        });
+                        if (res.ok) {
+                          document.title = siteTitle;
+                          setAdminToast({ message: "SEO মেটা ট্যাগ এবং টাইটেল সফলভাবে সংরক্ষিত হয়েছে! (SEO Tags Saved Successfully!)", type: "success" });
+                          if (onRefreshSettings) {
+                            onRefreshSettings();
+                          }
+                        } else {
+                          setAdminToast({ message: "SEO সেটিংস সংরক্ষণ করতে ব্যর্থ হয়েছে। (Failed to save SEO settings)", type: "error" });
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        setAdminToast({ message: "ত্রুটি ঘটেছে! (An error occurred)", type: "error" });
+                      }
                     }}
                     className="bg-luxury-gold text-luxury-black font-display font-medium text-[10px] uppercase tracking-widest py-2 px-4 rounded hover:brightness-110 mt-4 cursor-pointer"
                   >

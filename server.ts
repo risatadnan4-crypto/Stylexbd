@@ -404,6 +404,8 @@ async function syncSettingsToCloud() {
           globalPaymentMethod: db.settings.globalPaymentMethod,
           globalDeliveryDays: db.settings.globalDeliveryDays,
           accentColor: db.settings.accentColor,
+          siteTitle: db.settings.siteTitle || "Style X",
+          siteMetaDesc: db.settings.siteMetaDesc || "Elite Luxury Fashion Showcase",
           lotteryPrizes: typeof db.settings.lotteryPrizes === "string" ? db.settings.lotteryPrizes : JSON.stringify(db.settings.lotteryPrizes)
         };
 
@@ -413,9 +415,11 @@ async function syncSettingsToCloud() {
 
         const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         if (upsertError && upsertError.message.includes("column")) {
-          // Retry without productPayments or accentColor columns if they don't exist
+          // Retry without columns if they don't exist
           delete upsertPayload.productPayments;
           delete upsertPayload.accentColor;
+          delete upsertPayload.siteTitle;
+          delete upsertPayload.siteMetaDesc;
           await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         }
       }
@@ -856,6 +860,8 @@ async function syncFromSupabase() {
           if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
           if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
           if (configRow.accentColor !== undefined && configRow.accentColor !== null) db.settings.accentColor = configRow.accentColor;
+          if (configRow.siteTitle !== undefined && configRow.siteTitle !== null) db.settings.siteTitle = configRow.siteTitle;
+          if (configRow.siteMetaDesc !== undefined && configRow.siteMetaDesc !== null) db.settings.siteMetaDesc = configRow.siteMetaDesc;
           
           if (configRow.lotteryPrizes) {
             try {
@@ -1182,6 +1188,8 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.globalPaymentMethod !== undefined && configRow.globalPaymentMethod !== null) db.settings.globalPaymentMethod = configRow.globalPaymentMethod;
           if (configRow.globalDeliveryDays !== undefined && configRow.globalDeliveryDays !== null) db.settings.globalDeliveryDays = configRow.globalDeliveryDays;
           if (configRow.accentColor !== undefined && configRow.accentColor !== null) db.settings.accentColor = configRow.accentColor;
+          if (configRow.siteTitle !== undefined && configRow.siteTitle !== null) db.settings.siteTitle = configRow.siteTitle;
+          if (configRow.siteMetaDesc !== undefined && configRow.siteMetaDesc !== null) db.settings.siteMetaDesc = configRow.siteMetaDesc;
           
           if (configRow.lotteryPrizes) {
             try {
@@ -1232,6 +1240,8 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
             if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
+            if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
+            if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
           }

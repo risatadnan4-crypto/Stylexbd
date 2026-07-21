@@ -106,6 +106,46 @@ export default function App() {
   // Customer Shopping states
   const [globalVisits, setGlobalVisits] = useState<number>(0);
   const [liveViews, setLiveViews] = useState<number>(1);
+
+  // Dynamic Settings (WhatsApp Support etc.)
+  const [settings, setSettings] = useState<{ 
+    whatsappNumber: string; 
+    adminEmail?: string; 
+    adminPassword?: string;
+    appsScriptUrl?: string; 
+    logoUrl?: string; 
+    lotteryPrizes?: LotteryPrize[]; 
+    lotteryDiscountPercentage?: number;
+    lotteryCouponPrefix?: string;
+    facebookUrl?: string;
+    instagramUrl?: string;
+    paymentBadgeTitle?: string;
+    paymentBadgeDescription?: string;
+    isCatalogDeactivated?: boolean;
+    deactivatedMessage?: string;
+    isLotteryDeactivated?: boolean;
+    isNotifyMeDeactivated?: boolean;
+    globalTimerEndTime?: string;
+    globalTimerMessage?: string;
+    globalTimerActive?: boolean;
+    globalPaymentSystem?: string;
+    globalPaymentMethod?: string;
+    globalDeliveryDays?: string;
+    accentColor?: string;
+    siteTitle?: string;
+    siteMetaDesc?: string;
+  }>({
+    whatsappNumber: "8801755104443",
+    facebookUrl: "https://www.facebook.com/stylex24/",
+    instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
+    logoUrl: "/stylex_logo.jpg",
+    globalTimerEndTime: "",
+    globalTimerMessage: "",
+    globalTimerActive: false,
+    globalPaymentSystem: "product_defined",
+    globalPaymentMethod: "both",
+    globalDeliveryDays: ""
+  });
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const savedCust = localStorage.getItem('stylex_current_customer');
@@ -354,8 +394,8 @@ export default function App() {
       }
     };
 
-    const baseTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
-    const baseDesc = "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
+    const baseTitle = settings?.siteTitle || "STYLE X | Premium Luxury Clothing & Authentic Apparel";
+    const baseDesc = settings?.siteMetaDesc || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
     const baseKeywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
 
     let title = baseTitle;
@@ -437,7 +477,7 @@ export default function App() {
     updateOrCreateMeta('twitter:url', canonical);
     updateOrCreateMeta('twitter:image', imageUrl);
 
-  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode]);
+  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, settings]);
 
   // Clean URL State Synchronizer for SEO deep-linking
   React.useEffect(() => {
@@ -836,44 +876,6 @@ export default function App() {
       fetchCountry();
     }
   }, [showCustomerAuthModal, detectedCountry]);
-
-  // Dynamic Settings (WhatsApp Support etc.)
-  const [settings, setSettings] = useState<{ 
-    whatsappNumber: string; 
-    adminEmail?: string; 
-    adminPassword?: string;
-    appsScriptUrl?: string; 
-    logoUrl?: string; 
-    lotteryPrizes?: LotteryPrize[]; 
-    lotteryDiscountPercentage?: number;
-    lotteryCouponPrefix?: string;
-    facebookUrl?: string;
-    instagramUrl?: string;
-    paymentBadgeTitle?: string;
-    paymentBadgeDescription?: string;
-    isCatalogDeactivated?: boolean;
-    deactivatedMessage?: string;
-    isLotteryDeactivated?: boolean;
-    isNotifyMeDeactivated?: boolean;
-    globalTimerEndTime?: string;
-    globalTimerMessage?: string;
-    globalTimerActive?: boolean;
-    globalPaymentSystem?: string;
-    globalPaymentMethod?: string;
-    globalDeliveryDays?: string;
-    accentColor?: string;
-  }>({
-    whatsappNumber: "8801755104443",
-    facebookUrl: "https://www.facebook.com/stylex24/",
-    instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
-    logoUrl: "/stylex_logo.jpg",
-    globalTimerEndTime: "",
-    globalTimerMessage: "",
-    globalTimerActive: false,
-    globalPaymentSystem: "product_defined",
-    globalPaymentMethod: "both",
-    globalDeliveryDays: ""
-  });
 
   const loadSettings = async () => {
     try {
