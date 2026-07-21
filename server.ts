@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
 import { supabase } from "./src/lib/supabase.js";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import nodemailer from "nodemailer";
 import webPush from "web-push";
 
@@ -1586,6 +1586,67 @@ async function upsertProductToSupabase(productPayload: any) {
 
   return result;
 }
+
+app.post("/api/seo/generate", async (req, res) => {
+  const { title, description, whyBuy, price } = req.body;
+  
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Gemini API key is not configured on the server." });
+  }
+
+  try {
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+
+    const userPrompt = `
+      Please analyze this product from our premium fashion brand Style X (Style X BD):
+      - Title: ${title || "Untitled Product"}
+      - Description: ${description || "No description provided"}
+      - Highlights/Why Buy: ${whyBuy || "No highlights"}
+      - Price: ${price || "100"} BDT
+
+      Your task is to generate highly optimized, high-converting, professional SEO fields in JSON format:
+      1. "seoTitle": An engaging, catchy, search-engine-optimized meta title (under 60 characters). Combine premium keywords, the brand name "Style X", and the product name (e.g. "Royal Blue Silk Panjabi | Premium Style X").
+      2. "seoSlug": A clean, lowercase URL handle/slug using hyphens (e.g., "royal-blue-silk-panjabi"). Do not include spaces, slashes or special characters.
+      3. "seoKeywords": A comma-separated list of 6-10 highly relevant keywords, tags, or search phrases (e.g. "silk panjabi, style x panjabi, luxury menswear, dhaka fashion, premium clothing").
+      4. "seoDescription": A compelling, high-CTR meta description (120-160 characters) with a clear call-to-action encouraging clicks.
+
+      Provide ONLY a clean JSON response matching the requested schema.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: userPrompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            seoTitle: { type: Type.STRING },
+            seoSlug: { type: Type.STRING },
+            seoKeywords: { type: Type.STRING },
+            seoDescription: { type: Type.STRING }
+          },
+          required: ["seoTitle", "seoSlug", "seoKeywords", "seoDescription"]
+        }
+      }
+    });
+
+    const jsonText = response.text || "{}";
+    const result = JSON.parse(jsonText.trim());
+    return res.json(result);
+  } catch (error: any) {
+    console.error("⚠️ Error generating SEO with Gemini:", error);
+    return res.status(500).json({ error: error.message || "Failed to generate SEO metrics." });
+  }
+});
 
 app.post("/api/products", async (req, res) => {
   const newProduct: Product = req.body;

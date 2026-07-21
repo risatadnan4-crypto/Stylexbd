@@ -187,8 +187,8 @@ export default function CustomerProfileModal({
           {/* Core Content Layout (Grid Split) */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
             
-            {/* Sidebar Left: Customer Card Summary & Navigation */}
-            <div className="w-full md:w-80 border-r border-white/[0.06] p-4 sm:p-5 flex flex-col gap-4 bg-black/20 flex-shrink-0">
+            {/* Sidebar Left: Customer Card Summary & Navigation (Desktop Only) */}
+            <div className="hidden md:flex md:w-80 border-r border-white/[0.06] p-4 sm:p-5 flex-col gap-4 bg-black/20 flex-shrink-0">
               
               {/* Profile Card Summary */}
               <div className="relative overflow-hidden bg-gradient-to-br from-[#120824] to-[#04010a] border border-luxury-gold/15 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
@@ -331,6 +331,105 @@ export default function CustomerProfileModal({
 
             </div>
 
+            {/* Mobile-Optimized Tab Bar Navigation (Visible on mobile only) */}
+            <div className="flex md:hidden flex-col border-b border-white/[0.06] bg-[#0c0517] p-3 gap-2.5 flex-shrink-0">
+              
+              {/* Profile Brief Info & Concierge Support Bar */}
+              <div className="flex items-center justify-between gap-2 bg-[#120824]/60 border border-luxury-gold/15 p-2 rounded-xl">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-luxury-purple to-luxury-gold p-0.5 shrink-0 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                    <div className="w-full h-full rounded-full bg-[#0d071a] flex items-center justify-center font-serif text-[10px] font-bold text-luxury-gold">
+                      {customer.name ? customer.name.charAt(0).toUpperCase() : 'V'}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-[11px] font-bold text-white/95 truncate font-serif leading-none">
+                      {customer.name}
+                    </h4>
+                    <span className="text-[7.5px] font-black tracking-widest text-[#d4af37] block uppercase mt-0.5">
+                      👑 VIP MEMBER
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button 
+                    onClick={onOpenChat}
+                    className="flex items-center justify-center gap-1 bg-white/5 border border-white/10 rounded-lg py-1 px-2.5 text-[9px] text-white/90 font-bold active:scale-95 transition-all cursor-pointer"
+                    title="Live Chat"
+                  >
+                    <MessageSquare size={9.5} className="text-luxury-gold" />
+                    <span>Chat</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const text = "Hi, I am logged in to my Style X VIP lounge and would like support.";
+                      window.open(`https://wa.me/${whatsappNumber.replace(/[\s+]/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="flex items-center justify-center gap-1 bg-emerald-950/20 border border-emerald-500/20 rounded-lg py-1 px-2.5 text-[9px] text-emerald-400 font-bold active:scale-95 transition-all cursor-pointer"
+                    title="WhatsApp"
+                  >
+                    <Phone size={9.5} />
+                    <span>WA</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* High-End Glass Tab Controls */}
+              <div className="grid grid-cols-3 gap-1 bg-white/[0.02] p-1 rounded-xl border border-white/5">
+                <button
+                  onClick={() => {
+                    if (onViewOrdersOnSeparatePage) {
+                      onClose();
+                      onViewOrdersOnSeparatePage();
+                    } else {
+                      setActiveTab('orders');
+                      setSelectedOrder(null);
+                    }
+                  }}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    activeTab === 'orders'
+                      ? 'bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 text-luxury-gold border border-luxury-gold/30 shadow-md font-black'
+                      : 'text-white/60 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <History size={11} className={activeTab === 'orders' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
+                  <span className="truncate">Orders</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (onViewWishlistOnSeparatePage) {
+                      onClose();
+                      onViewWishlistOnSeparatePage();
+                    } else {
+                      setActiveTab('wishlist');
+                      setSelectedOrder(null);
+                    }
+                  }}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    activeTab === 'wishlist'
+                      ? 'bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 text-luxury-gold border border-luxury-gold/30 shadow-md font-black'
+                      : 'text-white/60 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <Heart size={11} className={activeTab === 'wishlist' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
+                  <span className="truncate">Wishlist</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('profile')}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    activeTab === 'profile'
+                      ? 'bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 text-luxury-gold border border-luxury-gold/30 shadow-md font-black'
+                      : 'text-white/60 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <User size={11} className={activeTab === 'profile' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
+                  <span className="truncate">Account</span>
+                </button>
+              </div>
+            </div>
+
             {/* Main Interactive Screen Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col min-h-0 bg-black/10">
               
@@ -373,99 +472,153 @@ export default function CustomerProfileModal({
                         </p>
                       </div>
                     ) : (
-                      // Display clean, table-based history of all past orders
-                      <div className="w-full overflow-x-auto rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent shadow-lg font-sans" id="customer-orders-table-container">
-                        <table className="w-full min-w-[650px] border-collapse text-left text-xs text-white/80">
-                          <thead>
-                            <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-widest font-mono text-[#d4af37]">
-                              <th className="py-4 px-4 font-black">Order ID</th>
-                              <th className="py-4 px-4 font-black">Date</th>
-                              <th className="py-4 px-4 font-black">Bespoke Pieces</th>
-                              <th className="py-4 px-4 font-black">Status</th>
-                              <th className="py-4 px-4 font-black">Total Price</th>
-                              <th className="py-4 px-4 font-black text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/[0.06]">
-                            {customerOrders.map((ord) => {
-                              const itemsCount = ord.items?.reduce((s, i) => s + i.quantity, 0) || 0;
-                              const statusLabel = 
-                                ord.status === 'PENDING' ? 'Processing' :
-                                ord.status === 'CONFIRMED' ? 'Packed' :
-                                ord.status === 'SHIPPED' ? 'Shipped' :
-                                ord.status === 'DELIVERED' ? 'Delivered' :
-                                ord.status;
+                      <div className="space-y-4">
+                        {/* Mobile Cards (visible on mobile only) */}
+                        <div className="block sm:hidden space-y-3.5">
+                          {customerOrders.map((ord) => {
+                            const itemsCount = ord.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+                            const statusLabel = 
+                              ord.status === 'PENDING' ? 'Processing' :
+                              ord.status === 'CONFIRMED' ? 'Packed' :
+                              ord.status === 'SHIPPED' ? 'Shipped' :
+                              ord.status === 'DELIVERED' ? 'Delivered' :
+                              ord.status;
 
-                              return (
-                                <tr 
-                                  key={ord.id}
-                                  onClick={() => setSelectedOrder(ord)}
-                                  className="group hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer"
-                                >
-                                  {/* Order ID */}
-                                  <td className="py-4 px-4 font-mono font-black text-[#ffd700] uppercase group-hover:text-white transition-colors">
+                            return (
+                              <div 
+                                key={ord.id}
+                                onClick={() => setSelectedOrder(ord)}
+                                className="bg-[#120824]/40 border border-white/10 rounded-xl p-4 space-y-3 hover:border-luxury-gold/50 transition-colors cursor-pointer text-left"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono font-black text-[#ffd700] text-sm">
                                     #{ord.id}
-                                  </td>
-                                  
-                                  {/* Date */}
-                                  <td className="py-4 px-4 text-white/60">
-                                    {new Date(ord.date).toLocaleDateString()}
-                                  </td>
+                                  </span>
+                                  <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                    ord.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                    ord.status === 'CONFIRMED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                    ord.status === 'SHIPPED' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                                    ord.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                    'bg-red-500/10 text-red-400 border border-red-500/20'
+                                  }`}>
+                                    {statusLabel}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-white/90 font-serif line-clamp-2">
+                                  {ord.items?.map(i => i.title).join(', ')}
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] text-white/50 font-mono pt-1">
+                                  <span>{new Date(ord.date).toLocaleDateString()} • {itemsCount} {itemsCount === 1 ? 'piece' : 'pieces'}</span>
+                                  <span className="text-[#ffd700] font-black font-sans text-xs">{formatPrice(ord.totalAmount)}</span>
+                                </div>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedOrder(ord);
+                                  }}
+                                  className="w-full text-center text-[10px] font-mono font-black text-[#d4af37] uppercase tracking-widest border border-[#d4af37]/30 hover:border-[#ffd700] hover:bg-[#d4af37]/10 py-2.5 rounded-lg transition-all mt-1 cursor-pointer"
+                                >
+                                  Track Details ↗
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                                  {/* Items */}
-                                  <td className="py-4 px-4 max-w-[200px]">
-                                    <div className="truncate text-white/95 font-medium" title={ord.items?.map(i => i.title).join(', ')}>
-                                      {ord.items?.map(i => i.title).join(', ')}
-                                    </div>
-                                    <div className="text-[10px] text-white/40 font-mono mt-0.5">
-                                      {itemsCount} {itemsCount === 1 ? 'item' : 'items'}
-                                    </div>
-                                  </td>
+                        {/* Desktop Table (visible on sm and larger) */}
+                        <div className="hidden sm:block w-full overflow-x-auto rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent shadow-lg font-sans" id="customer-orders-table-container">
+                          <table className="w-full min-w-[650px] border-collapse text-left text-xs text-white/80">
+                            <thead>
+                              <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-widest font-mono text-[#d4af37]">
+                                <th className="py-4 px-4 font-black">Order ID</th>
+                                <th className="py-4 px-4 font-black">Date</th>
+                                <th className="py-4 px-4 font-black">Bespoke Pieces</th>
+                                <th className="py-4 px-4 font-black">Status</th>
+                                <th className="py-4 px-4 font-black">Total Price</th>
+                                <th className="py-4 px-4 font-black text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/[0.06]">
+                              {customerOrders.map((ord) => {
+                                const itemsCount = ord.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+                                const statusLabel = 
+                                  ord.status === 'PENDING' ? 'Processing' :
+                                  ord.status === 'CONFIRMED' ? 'Packed' :
+                                  ord.status === 'SHIPPED' ? 'Shipped' :
+                                  ord.status === 'DELIVERED' ? 'Delivered' :
+                                  ord.status;
 
-                                  {/* Status */}
-                                  <td className="py-4 px-4">
-                                    <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                                      ord.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.15)]' :
-                                      ord.status === 'CONFIRMED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.15)]' :
-                                      ord.status === 'SHIPPED' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_8px_rgba(168,85,247,0.15)]' :
-                                      ord.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]' :
-                                      'bg-red-500/10 text-red-400 border border-red-500/20'
-                                    }`}>
-                                      <span className={`w-1.5 h-1.5 rounded-full ${
-                                        ord.status === 'PENDING' ? 'bg-amber-400 animate-pulse' :
-                                        ord.status === 'CONFIRMED' ? 'bg-blue-400' :
-                                        ord.status === 'SHIPPED' ? 'bg-purple-400' :
-                                        ord.status === 'DELIVERED' ? 'bg-emerald-400' :
-                                        'bg-red-400'
-                                      }`}></span>
-                                      {statusLabel}
-                                    </span>
-                                  </td>
+                                return (
+                                  <tr 
+                                    key={ord.id}
+                                    onClick={() => setSelectedOrder(ord)}
+                                    className="group hover:bg-white/[0.03] transition-colors duration-200 cursor-pointer"
+                                  >
+                                    {/* Order ID */}
+                                    <td className="py-4 px-4 font-mono font-black text-[#ffd700] uppercase group-hover:text-white transition-colors">
+                                      #{ord.id}
+                                    </td>
+                                    
+                                    {/* Date */}
+                                    <td className="py-4 px-4 text-white/60">
+                                      {new Date(ord.date).toLocaleDateString()}
+                                    </td>
 
-                                  {/* Total Price */}
-                                  <td className="py-4 px-4 font-black text-white group-hover:text-[#ffd700] transition-colors">
-                                    {formatPrice(ord.totalAmount)}
-                                  </td>
+                                    {/* Items */}
+                                    <td className="py-4 px-4 max-w-[200px]">
+                                      <div className="truncate text-white/95 font-medium" title={ord.items?.map(i => i.title).join(', ')}>
+                                        {ord.items?.map(i => i.title).join(', ')}
+                                      </div>
+                                      <div className="text-[10px] text-white/40 font-mono mt-0.5">
+                                        {itemsCount} {itemsCount === 1 ? 'item' : 'items'}
+                                      </div>
+                                    </td>
 
-                                  {/* Actions link to track details */}
-                                  <td className="py-4 px-4 text-right">
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedOrder(ord);
-                                      }}
-                                      className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#d4af37] uppercase tracking-widest border border-[#d4af37]/30 hover:border-[#ffd700] hover:bg-[#d4af37]/10 py-1.5 px-3 rounded-lg transition-all"
-                                      id={`track-order-btn-${ord.id}`}
-                                    >
-                                      <span>TRACK DETAILS ↗</span>
-                                    </button>
-                                  </td>
+                                    {/* Status */}
+                                    <td className="py-4 px-4">
+                                      <span className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                        ord.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.15)]' :
+                                        ord.status === 'CONFIRMED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.15)]' :
+                                        ord.status === 'SHIPPED' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-[0_0_8px_rgba(168,85,247,0.15)]' :
+                                        ord.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]' :
+                                        'bg-red-500/10 text-red-400 border border-red-500/20'
+                                      }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                          ord.status === 'PENDING' ? 'bg-amber-400 animate-pulse' :
+                                          ord.status === 'CONFIRMED' ? 'bg-blue-400' :
+                                          ord.status === 'SHIPPED' ? 'bg-purple-400' :
+                                          ord.status === 'DELIVERED' ? 'bg-emerald-400' :
+                                          'bg-red-400'
+                                        }`}></span>
+                                        {statusLabel}
+                                      </span>
+                                    </td>
 
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                                    {/* Total Price */}
+                                    <td className="py-4 px-4 font-black text-white group-hover:text-[#ffd700] transition-colors">
+                                      {formatPrice(ord.totalAmount)}
+                                    </td>
+
+                                    {/* Actions link to track details */}
+                                    <td className="py-4 px-4 text-right">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedOrder(ord);
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[9px] font-mono font-black text-[#d4af37] uppercase tracking-widest border border-[#d4af37]/30 hover:border-[#ffd700] hover:bg-[#d4af37]/10 py-1.5 px-3 rounded-lg transition-all"
+                                        id={`track-order-btn-${ord.id}`}
+                                      >
+                                        <span>TRACK DETAILS ↗</span>
+                                      </button>
+                                    </td>
+
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )
                   ) : (
@@ -707,7 +860,7 @@ export default function CustomerProfileModal({
 
               {/* TAB 2: MANAGE PROFILE FORM */}
               {activeTab === 'profile' && (
-                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full p-6 sm:p-8 space-y-6 text-left py-6 bg-white/[0.08] backdrop-blur-[20px] border border-white/15 rounded-[24px] shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
+                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full p-4 sm:p-8 space-y-5 sm:space-y-6 text-left py-4 sm:py-6 bg-white/[0.02] sm:bg-white/[0.08] sm:backdrop-blur-[20px] border border-transparent sm:border-white/15 rounded-xl sm:rounded-[24px] sm:shadow-[0_25px_60px_rgba(0,0,0,0.35)]">
                   
                   <div className="text-center space-y-1.5">
                     <div className="w-14 h-14 bg-gradient-to-tr from-luxury-purple-glowing/10 to-luxury-gold/10 border border-luxury-gold/30 rounded-full flex items-center justify-center text-luxury-gold mx-auto shadow-lg">

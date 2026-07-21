@@ -85,7 +85,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -1134,6 +1134,13 @@ export default function AdminPanel({
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
   const [seoPreviewTab, setSeoPreviewTab] = useState<'social' | 'google'>('social');
+  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
+  const [seoError, setSeoError] = useState('');
+  
+  // SEO Health tab states
+  const [seoHealthFilter, setSeoHealthFilter] = useState<'all' | 'missing' | 'duplicate' | 'suboptimal' | 'healthy'>('all');
+  const [fixingProductIds, setFixingProductIds] = useState<Record<string, boolean>>({});
+  const [isBulkFixing, setIsBulkFixing] = useState(false);
 
   // Other Simple Forms
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -1665,6 +1672,54 @@ export default function AdminPanel({
 
   const handleRemoveSecondaryImage = (index: number) => {
     setFormImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGenerateSeoWithAi = async () => {
+    if (!formTitle.trim()) {
+      setSeoError('Please enter a Product Title first so the AI has context to analyze. (দয়া করে পণ্যটির শিরোনাম লিখুন!)');
+      setTimeout(() => setSeoError(''), 6000);
+      return;
+    }
+
+    setIsGeneratingSeo(true);
+    setSeoError('');
+
+    try {
+      const response = await fetch('/api/seo/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formTitle,
+          description: formDescription,
+          whyBuy: formWhyBuy,
+          price: formPrice,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to analyze product or generate SEO parameters.');
+      }
+
+      const data = await response.json();
+      if (data.seoTitle) setFormSeoTitle(data.seoTitle);
+      if (data.seoSlug) setFormSeoSlug(data.seoSlug);
+      if (data.seoKeywords) setFormSeoKeywords(data.seoKeywords);
+      if (data.seoDescription) setFormSeoDescription(data.seoDescription);
+
+      setAdminToast({
+        message: 'AI successfully analyzed product details and optimized SEO parameters!',
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error(err);
+      setSeoError(err.message || 'An error occurred during AI analysis.');
+      setTimeout(() => setSeoError(''), 6000);
+    } finally {
+      setIsGeneratingSeo(false);
+    }
   };
 
   // Submit Product Add/Update
@@ -2224,6 +2279,7 @@ export default function AdminPanel({
           {activeTab === 'campaigns' && "Campaigns"}
           {activeTab === 'chat' && "Support"}
           {activeTab === 'seo' && "SEO"}
+          {activeTab === 'seo_health' && "SEO Health Monitor"}
           {activeTab === 'alerts' && "Alerts"}
           {activeTab === 'sms' && "SMS Gateway"}
           {activeTab === 'settings' && "Settings"}
@@ -2393,6 +2449,16 @@ export default function AdminPanel({
             </button>
 
             <button 
+              onClick={() => { setActiveTab('seo_health'); setSelectedChat(null); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'seo_health' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Activity size={13} className={activeTab === 'seo_health' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              SEO Health
+            </button>
+
+            <button 
               onClick={() => { setActiveTab('alerts'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
                 activeTab === 'alerts' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -2541,6 +2607,7 @@ export default function AdminPanel({
               {activeTab === 'campaigns' && "Launch Campaigns"}
               {activeTab === 'chat' && "Presence Concierge Help"}
               {activeTab === 'seo' && "Search Optimizations"}
+              {activeTab === 'seo_health' && "SEO Quality & Health Suite"}
               {activeTab === 'settings' && "VIP System Settings"}
               {activeTab === 'alerts' && "Restock Intel Alert Hub"}
               {activeTab === 'sms' && "Bangla SMS Gateway Dashboard"}
@@ -3877,10 +3944,42 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
                   {/* SEO OPTIMIZATION OPTIONS */}
                   <div className="md:col-span-2 border border-blue-500/20 bg-blue-500/[0.03] p-4 rounded-xl space-y-4">
-                    <h4 className="text-[10px] uppercase font-mono tracking-widest text-blue-400 font-bold flex items-center gap-1.5 border-b border-white/5 pb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_#3b82f6]"></span>
-                      Search Engine Optimization (SEO / সার্চ ইঞ্জিন অপ্টিমাইজেশন)
-                    </h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-2">
+                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-blue-400 font-bold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_#3b82f6]"></span>
+                        Search Engine Optimization (SEO / সার্চ ইঞ্জিন অপ্টিমাইজেশন)
+                      </h4>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateSeoWithAi}
+                        disabled={isGeneratingSeo}
+                        className={`text-[9px] font-mono uppercase tracking-widest px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-300 relative overflow-hidden border border-blue-500/30 ${
+                          isGeneratingSeo
+                            ? 'bg-blue-950/20 text-blue-400/60 cursor-not-allowed border-blue-500/10'
+                            : 'bg-blue-950/40 text-blue-300 hover:bg-blue-950/80 hover:text-white hover:border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)] hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                        }`}
+                      >
+                        {isGeneratingSeo ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full border-2 border-blue-400 border-t-transparent animate-spin inline-block"></span>
+                            <span>AI Analyzing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={11} className="text-blue-400 animate-pulse" />
+                            <span>Analyze with AI / এআই অটো-ফিল</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {seoError && (
+                      <div className="bg-rose-950/40 border border-rose-500/30 text-rose-400 p-2.5 rounded text-xs flex items-center gap-2 font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block animate-pulse"></span>
+                        <span>{seoError}</span>
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {/* SEO Input Fields */}
@@ -6070,6 +6169,455 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
             </div>
           </div>
+        )}
+
+        {/* 9.1 SEO HEALTH MONITOR & AUTOMATED FIX PANEL */}
+        {activeTab === 'seo_health' && (
+          (() => {
+            // Calculate duplicate slugs and other parameters
+            const slugCounts: Record<string, number> = {};
+            products.forEach(p => {
+              if (p.seoSlug && p.seoSlug.trim()) {
+                const slug = p.seoSlug.trim().toLowerCase();
+                slugCounts[slug] = (slugCounts[slug] || 0) + 1;
+              }
+            });
+
+            const processedProducts = products.map(p => {
+              const isMissingSeoTitle = !p.seoTitle || !p.seoTitle.trim();
+              const isMissingSeoDescription = !p.seoDescription || !p.seoDescription.trim();
+              const isMissingSeoKeywords = !p.seoKeywords || !p.seoKeywords.trim();
+              const isMissingSeoSlug = !p.seoSlug || !p.seoSlug.trim();
+              
+              const missingFields: string[] = [];
+              if (isMissingSeoTitle) missingFields.push('SEO Title');
+              if (isMissingSeoDescription) missingFields.push('Meta Description');
+              if (isMissingSeoKeywords) missingFields.push('Keywords');
+              if (isMissingSeoSlug) missingFields.push('URL Slug');
+
+              const titleLength = p.seoTitle ? p.seoTitle.trim().length : 0;
+              const isSuboptimalTitle = !isMissingSeoTitle && (titleLength < 30 || titleLength > 60);
+
+              const slugClean = p.seoSlug ? p.seoSlug.trim().toLowerCase() : '';
+              const isDuplicateSlug = slugClean ? (slugCounts[slugClean] || 0) > 1 : false;
+
+              const hasIssues = missingFields.length > 0 || isSuboptimalTitle || isDuplicateSlug;
+
+              return {
+                product: p,
+                isMissingFields: missingFields.length > 0,
+                missingFields,
+                isSuboptimalTitle,
+                titleLength,
+                isDuplicateSlug,
+                hasIssues
+              };
+            });
+
+            const totalScanned = processedProducts.length;
+            const flaggedProducts = processedProducts.filter(item => item.hasIssues);
+            const healthyProductsCount = totalScanned - flaggedProducts.length;
+            const healthScore = totalScanned > 0 ? Math.round((healthyProductsCount / totalScanned) * 100) : 100;
+
+            const totalMissingFields = processedProducts.filter(item => item.isMissingFields).length;
+            const totalDuplicateSlugs = processedProducts.filter(item => item.isDuplicateSlug).length;
+            const totalSuboptimalTitles = processedProducts.filter(item => item.isSuboptimalTitle).length;
+
+            const filteredProducts = processedProducts.filter(item => {
+              if (seoHealthFilter === 'all') return item.hasIssues;
+              if (seoHealthFilter === 'missing') return item.isMissingFields;
+              if (seoHealthFilter === 'duplicate') return item.isDuplicateSlug;
+              if (seoHealthFilter === 'suboptimal') return item.isSuboptimalTitle;
+              if (seoHealthFilter === 'healthy') return !item.hasIssues;
+              return true;
+            });
+
+            // Inline functions for fixing
+            const fixProduct = async (p: Product) => {
+              setFixingProductIds(prev => ({ ...prev, [p.id]: true }));
+              try {
+                const response = await fetch('/api/seo/generate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: p.title,
+                    description: p.description,
+                    whyBuy: p.whyBuy,
+                    price: p.price,
+                  }),
+                });
+
+                if (!response.ok) {
+                  const errData = await response.json().catch(() => ({}));
+                  throw new Error(errData.error || 'AI generation failed.');
+                }
+
+                const data = await response.json();
+                
+                const payload = {
+                  ...p,
+                  seoTitle: data.seoTitle,
+                  seoSlug: data.seoSlug,
+                  seoKeywords: data.seoKeywords,
+                  seoDescription: data.seoDescription,
+                };
+
+                const saveRes = await fetch(`/api/products/${p.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+
+                if (!saveRes.ok) {
+                  throw new Error('Failed to save the generated SEO values.');
+                }
+
+                setAdminToast({
+                  message: `Fixed "${p.title}" successfully with Premium AI!`,
+                  type: 'success'
+                });
+                
+                onRefreshProducts();
+              } catch (err: any) {
+                console.error(err);
+                setAdminToast({
+                  message: `Error fixing "${p.title}": ${err.message}`,
+                  type: 'error'
+                });
+              } finally {
+                setFixingProductIds(prev => ({ ...prev, [p.id]: false }));
+              }
+            };
+
+            const bulkFixAll = async () => {
+              const toFix = processedProducts.filter(item => item.hasIssues);
+              if (toFix.length === 0) {
+                setAdminToast({ message: 'No products with SEO issues found!', type: 'success' });
+                return;
+              }
+
+              setIsBulkFixing(true);
+              setAdminToast({
+                message: `Automated Bulk Fix: Optimizing ${toFix.length} products...`,
+                type: 'success'
+              });
+
+              let successCount = 0;
+              for (const item of toFix) {
+                try {
+                  setFixingProductIds(prev => ({ ...prev, [item.product.id]: true }));
+                  const response = await fetch('/api/seo/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      title: item.product.title,
+                      description: item.product.description,
+                      whyBuy: item.product.whyBuy,
+                      price: item.product.price,
+                    }),
+                  });
+
+                  if (response.ok) {
+                    const data = await response.json();
+                    const payload = {
+                      ...item.product,
+                      seoTitle: data.seoTitle,
+                      seoSlug: data.seoSlug,
+                      seoKeywords: data.seoKeywords,
+                      seoDescription: data.seoDescription,
+                    };
+
+                    const saveRes = await fetch(`/api/products/${item.product.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload)
+                    });
+
+                    if (saveRes.ok) {
+                      successCount++;
+                    }
+                  }
+                } catch (err) {
+                  console.error(`Failed bulk fix for ${item.product.title}:`, err);
+                } finally {
+                  setFixingProductIds(prev => ({ ...prev, [item.product.id]: false }));
+                }
+              }
+
+              setIsBulkFixing(false);
+              setAdminToast({
+                message: `Automated bulk optimization completed! Optimized ${successCount} of ${toFix.length} products successfully.`,
+                type: 'success'
+              });
+              onRefreshProducts();
+            };
+
+            return (
+              <div className="space-y-6 animate-fade-in text-left text-white max-w-6xl">
+                {/* Scorecards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Health score card */}
+                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50">Overall Catalog SEO Health</h4>
+                      <p className="text-3xl font-serif font-extrabold mt-2 text-luxury-gold">{healthScore}%</p>
+                    </div>
+                    <div className="mt-4">
+                      <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-1000 ${
+                            healthScore > 85 ? 'bg-emerald-500' : healthScore > 60 ? 'bg-amber-500' : 'bg-rose-500'
+                          }`}
+                          style={{ width: `${healthScore}%` }}
+                        />
+                      </div>
+                      <p className="text-[9px] font-mono text-white/30 mt-1.5">
+                        {healthyProductsCount} of {totalScanned} products have complete SEO setups.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Missing fields card */}
+                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        Missing Required Fields
+                      </h4>
+                      <p className="text-2xl font-mono font-bold mt-2 text-amber-400">{totalMissingFields}</p>
+                    </div>
+                    <p className="text-[9.5px] font-mono text-white/35 mt-4 leading-relaxed">
+                      Products missing critical title, description, keywords, or slug parameters.
+                    </p>
+                  </div>
+
+                  {/* Duplicate slugs card */}
+                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        Duplicate URL Handles
+                      </h4>
+                      <p className="text-2xl font-mono font-bold mt-2 text-rose-400">{totalDuplicateSlugs}</p>
+                    </div>
+                    <p className="text-[9.5px] font-mono text-white/35 mt-4 leading-relaxed">
+                      Duplicate slugs cause indexing collisions in major search engine results pages.
+                    </p>
+                  </div>
+
+                  {/* Suboptimal lengths card */}
+                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        Suboptimal Title Lengths
+                      </h4>
+                      <p className="text-2xl font-mono font-bold mt-2 text-blue-400">{totalSuboptimalTitles}</p>
+                    </div>
+                    <p className="text-[9.5px] font-mono text-white/35 mt-4 leading-relaxed">
+                      SEO Titles must range between 30 and 60 characters to maximize Google click-through-rates.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Filters and actions row */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => setSeoHealthFilter('all')}
+                      className={`px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
+                        seoHealthFilter === 'all'
+                          ? 'bg-luxury-gold text-luxury-black font-extrabold border-luxury-gold'
+                          : 'bg-transparent text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Flagged ({flaggedProducts.length})
+                    </button>
+                    <button
+                      onClick={() => setSeoHealthFilter('missing')}
+                      className={`px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
+                        seoHealthFilter === 'missing'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-extrabold'
+                          : 'bg-transparent text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Missing Fields ({totalMissingFields})
+                    </button>
+                    <button
+                      onClick={() => setSeoHealthFilter('duplicate')}
+                      className={`px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
+                        seoHealthFilter === 'duplicate'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-extrabold'
+                          : 'bg-transparent text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Duplicates ({totalDuplicateSlugs})
+                    </button>
+                    <button
+                      onClick={() => setSeoHealthFilter('suboptimal')}
+                      className={`px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
+                        seoHealthFilter === 'suboptimal'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-extrabold'
+                          : 'bg-transparent text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Suboptimal Title ({totalSuboptimalTitles})
+                    </button>
+                    <button
+                      onClick={() => setSeoHealthFilter('healthy')}
+                      className={`px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
+                        seoHealthFilter === 'healthy'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-extrabold'
+                          : 'bg-transparent text-white/60 border-white/10 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Healthy ({healthyProductsCount})
+                    </button>
+                  </div>
+
+                  {flaggedProducts.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={bulkFixAll}
+                      disabled={isBulkFixing}
+                      className={`text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-300 border ${
+                        isBulkFixing
+                          ? 'bg-blue-950/20 text-blue-400/50 cursor-not-allowed border-blue-500/10'
+                          : 'bg-blue-950/40 text-blue-300 border-blue-500/30 hover:bg-blue-950/80 hover:text-white hover:border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(59,130,246,0.35)] cursor-pointer'
+                      }`}
+                    >
+                      {isBulkFixing ? (
+                        <>
+                          <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin inline-block"></span>
+                          <span>Executing Auto-Fix Loop...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={12} className="text-blue-400 animate-pulse" />
+                          <span>Bulk Optimize Flagged ({flaggedProducts.length})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtered list of products */}
+                <div className="space-y-4">
+                  {filteredProducts.length === 0 ? (
+                    <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-3">
+                      <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center">
+                        <Check size={20} className="text-emerald-400" />
+                      </div>
+                      <h3 className="font-serif text-base uppercase font-bold text-white">No issues found!</h3>
+                      <p className="text-xs text-white/40 max-w-sm">
+                        All scanned catalog entries under this filter match the premium SEO requirements. Search ranking optimization is in-sync!
+                      </p>
+                    </div>
+                  ) : (
+                    filteredProducts.map(({ product, isMissingFields, missingFields, isSuboptimalTitle, titleLength, isDuplicateSlug, hasIssues }) => {
+                      const isFixing = fixingProductIds[product.id];
+                      return (
+                        <div key={product.id} className="bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-all duration-300">
+                          <div className="p-5 flex flex-col lg:flex-row items-start gap-6 justify-between">
+                            {/* Product Info & Issues */}
+                            <div className="flex gap-4 items-start flex-1">
+                              <img 
+                                src={product.imageUrl} 
+                                alt={product.title} 
+                                className="w-16 h-20 object-cover bg-luxury-charcoal rounded border border-white/5"
+                              />
+                              <div className="space-y-2 text-left">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded text-white/60">
+                                    {product.code || 'NO-CODE'}
+                                  </span>
+                                  <h3 className="font-serif text-sm font-bold text-white uppercase">{product.title}</h3>
+                                </div>
+                                <p className="text-[10px] text-white/40 font-mono text-left">Category: {product.category} | Price: {product.price} BDT</p>
+
+                                {/* Issue Badges */}
+                                {hasIssues ? (
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {isMissingFields && (
+                                      <span className="text-[9px] font-mono uppercase tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></span>
+                                        Missing: {missingFields.join(', ')}
+                                      </span>
+                                    )}
+                                    {isDuplicateSlug && (
+                                      <span className="text-[9px] font-mono uppercase tracking-wider bg-rose-500/15 border border-rose-500/30 text-rose-300 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-rose-400 animate-pulse"></span>
+                                        Duplicate Slug ({product.seoSlug})
+                                      </span>
+                                    )}
+                                    {isSuboptimalTitle && (
+                                      <span className="text-[9px] font-mono uppercase tracking-wider bg-blue-500/15 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse"></span>
+                                        Suboptimal Length ({titleLength} chars - should be 30-60)
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="pt-1">
+                                    <span className="text-[9px] font-mono uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded flex items-center gap-1 w-fit">
+                                      <Check size={10} className="text-emerald-400" />
+                                      SEO Healthy
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* One-click Fix with AI action */}
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto self-stretch lg:self-start">
+                              <button
+                                type="button"
+                                onClick={() => fixProduct(product)}
+                                disabled={isFixing || isBulkFixing}
+                                className={`text-[10px] font-mono uppercase tracking-widest px-4 py-2 rounded-md flex items-center justify-center gap-1.5 transition-all duration-300 border ${
+                                  isFixing
+                                    ? 'bg-blue-950/20 text-blue-400/50 cursor-not-allowed border-blue-500/10'
+                                    : 'bg-blue-950/30 text-blue-300 border-blue-500/30 hover:bg-blue-950/70 hover:text-white hover:border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)] hover:shadow-[0_0_15px_rgba(59,130,246,0.25)] cursor-pointer'
+                                }`}
+                              >
+                                {isFixing ? (
+                                  <>
+                                    <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-400 border-t-transparent animate-spin inline-block"></span>
+                                    <span>Fixing with AI...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles size={11} className="text-blue-400" />
+                                    <span>Fix with AI / এআই ফিক্স</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Interactive Search Engine Snippet Preview */}
+                          <div className="bg-luxury-black/30 border-t border-white/5 p-4 space-y-2 text-left">
+                            <p className="text-[9px] font-mono uppercase tracking-wider text-white/30">Google Search Result Snippet Preview</p>
+                            <div className="bg-luxury-charcoal/40 p-3.5 rounded border border-white/5 max-w-2xl font-sans text-left">
+                              <div className="text-[11px] font-mono text-zinc-400 truncate mb-0.5 text-left">
+                                https://stylexbd.com <span className="text-zinc-500">› products ›</span> <span className="text-blue-400 font-semibold">{product.seoSlug || 'untitled-slug'}</span>
+                              </div>
+                              <div className="text-base text-[#8ab4f8] hover:underline cursor-pointer font-serif leading-tight font-medium text-left font-sans">
+                                {product.seoTitle || `${product.title} | Style X Bangladesh`}
+                              </div>
+                              <div className="text-xs text-zinc-300 mt-1 leading-relaxed line-clamp-2 text-left font-sans">
+                                {product.seoDescription || (product.description ? product.description.substring(0, 150) : 'No search description customized. Click "Fix with AI" to automatically draft optimized search catalog hooks.')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })()
         )}
 
         {activeTab === 'alerts' && (
