@@ -547,7 +547,11 @@ async function syncFromSupabase() {
               deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
               deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
               isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-              likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
+              likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
+              seoTitle: p.seo_title !== undefined && p.seo_title !== null ? String(p.seo_title) : (p.seoTitle !== undefined && p.seoTitle !== null ? String(p.seoTitle) : (localProduct?.seoTitle || "")),
+              seoDescription: p.seo_description !== undefined && p.seo_description !== null ? String(p.seo_description) : (p.seoDescription !== undefined && p.seoDescription !== null ? String(p.seoDescription) : (localProduct?.seoDescription || "")),
+              seoKeywords: p.seo_keywords !== undefined && p.seo_keywords !== null ? String(p.seo_keywords) : (p.seoKeywords !== undefined && p.seoKeywords !== null ? String(p.seoKeywords) : (localProduct?.seoKeywords || "")),
+              seoSlug: p.seo_slug !== undefined && p.seo_slug !== null ? String(p.seo_slug) : (p.seoSlug !== undefined && p.seoSlug !== null ? String(p.seoSlug) : (localProduct?.seoSlug || ""))
             };
           });
           db.seededProducts = true;
@@ -634,6 +638,9 @@ async function syncFromSupabase() {
               if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
               if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
               if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
+              if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
+              if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
+              if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
               saveDB();
             } catch (jsonErr: any) {
@@ -1205,7 +1212,8 @@ app.get("/api/settings", async (req, res) => {
       }
     }
 
-    if (!isSettingsTableAvailable) {
+    // Always load fallback settings from banners metadata backup as a robust failsafe for all fields (especially SEO and accent color)
+    if (true) {
       const { data: bannersData, error: bannersError } = await supabase.from("banners").select("*");
       if (!bannersError && bannersData && bannersData.length > 0) {
         const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
@@ -1405,7 +1413,11 @@ app.get("/api/products", async (req, res) => {
           deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
           deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
           isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-          likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
+          likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
+          seoTitle: p.seo_title !== undefined && p.seo_title !== null ? String(p.seo_title) : (p.seoTitle !== undefined && p.seoTitle !== null ? String(p.seoTitle) : (localProduct?.seoTitle || "")),
+          seoDescription: p.seo_description !== undefined && p.seo_description !== null ? String(p.seo_description) : (p.seoDescription !== undefined && p.seoDescription !== null ? String(p.seoDescription) : (localProduct?.seoDescription || "")),
+          seoKeywords: p.seo_keywords !== undefined && p.seo_keywords !== null ? String(p.seo_keywords) : (p.seoKeywords !== undefined && p.seoKeywords !== null ? String(p.seoKeywords) : (localProduct?.seoKeywords || "")),
+          seoSlug: p.seo_slug !== undefined && p.seo_slug !== null ? String(p.seo_slug) : (p.seoSlug !== undefined && p.seoSlug !== null ? String(p.seoSlug) : (localProduct?.seoSlug || ""))
         };
       });
       db.products = products;
@@ -1447,7 +1459,11 @@ app.get("/api/products/:id", async (req, res) => {
         deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))),
         deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (data.deliveryDays || localProduct?.deliveryDays || "3-5"),
         isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-        likes: pm.likes !== undefined ? Number(pm.likes) : (data.likes !== undefined ? Number(data.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0))
+        likes: pm.likes !== undefined ? Number(pm.likes) : (data.likes !== undefined ? Number(data.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
+        seoTitle: data.seo_title !== undefined && data.seo_title !== null ? String(data.seo_title) : (data.seoTitle !== undefined && data.seoTitle !== null ? String(data.seoTitle) : (localProduct?.seoTitle || "")),
+        seoDescription: data.seo_description !== undefined && data.seo_description !== null ? String(data.seo_description) : (data.seoDescription !== undefined && data.seoDescription !== null ? String(data.seoDescription) : (localProduct?.seoDescription || "")),
+        seoKeywords: data.seo_keywords !== undefined && data.seo_keywords !== null ? String(data.seo_keywords) : (data.seoKeywords !== undefined && data.seoKeywords !== null ? String(data.seoKeywords) : (localProduct?.seoKeywords || "")),
+        seoSlug: data.seo_slug !== undefined && data.seo_slug !== null ? String(data.seo_slug) : (data.seoSlug !== undefined && data.seoSlug !== null ? String(data.seoSlug) : (localProduct?.seoSlug || ""))
       };
       return res.json(prod);
     }
@@ -1461,6 +1477,115 @@ app.get("/api/products/:id", async (req, res) => {
     res.status(404).json({ message: "Product not found" });
   }
 });
+
+// Resilient helper to upsert product data to Supabase, automatically handling schema columns mismatch and database alters
+async function upsertProductToSupabase(productPayload: any) {
+  // Try to automatically execute ALTER TABLE queries to add missing columns in case they are not in Supabase yet
+  try {
+    const alterQuery = `
+      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_title TEXT;
+      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_slug TEXT;
+      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_keywords TEXT;
+      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_description TEXT;
+    `;
+    // Attempt standard SQL RPC endpoints if available
+    const rpcNames = ["exec_sql", "execute_sql", "run_sql", "sql"];
+    for (const rpcName of rpcNames) {
+      try {
+        await supabase.rpc(rpcName, { sql: alterQuery, query: alterQuery, sql_query: alterQuery });
+      } catch (e) {}
+    }
+  } catch (err) {}
+
+  const payload = { ...productPayload };
+  
+  // Try with everything first
+  let result = await supabase.from("products").upsert(payload);
+  if (!result.error) {
+    return result;
+  }
+
+  // Handle column missing errors gracefully by removing incompatible/custom payment/timer variables or camelCase/snake_case SEO
+  const errMessage = result.error.message || "";
+  const isColumnError = errMessage.includes("column") || result.error.code === "P0002" || errMessage.includes("does not exist") || errMessage.includes("not found");
+  
+  if (isColumnError) {
+    console.warn("⚠️ Column missing error detected during upsert, applying resilient fallbacks:", errMessage);
+
+    // Fallback Option A: Try with snake_case SEO columns (retaining snake_case SEO columns as user requested)
+    const payloadA = { ...productPayload };
+    delete payloadA.seoTitle;
+    delete payloadA.seoDescription;
+    delete payloadA.seoKeywords;
+    delete payloadA.seoSlug;
+    
+    // Also strip out other custom columns that might fail in default schemas
+    delete payloadA.bkashNumber;
+    delete payloadA.nagadNumber;
+    delete payloadA.paymentType;
+    delete payloadA.paymentPercentage;
+    delete payloadA.deliveryCharge;
+    delete payloadA.deliveryDays;
+    delete payloadA.isPinned;
+    delete payloadA.freeDelivery;
+    delete payloadA.timerActive;
+    delete payloadA.colors;
+
+    result = await supabase.from("products").upsert(payloadA);
+    if (!result.error) {
+      return result;
+    }
+
+    // Fallback Option B: Try with camelCase SEO columns (in case they have camelCase columns instead of snake_case)
+    const payloadB = { ...productPayload };
+    delete payloadB.seo_title;
+    delete payloadB.seo_description;
+    delete payloadB.seo_keywords;
+    delete payloadB.seo_slug;
+
+    delete payloadB.bkashNumber;
+    delete payloadB.nagadNumber;
+    delete payloadB.paymentType;
+    delete payloadB.paymentPercentage;
+    delete payloadB.deliveryCharge;
+    delete payloadB.deliveryDays;
+    delete payloadB.isPinned;
+    delete payloadB.freeDelivery;
+    delete payloadB.timerActive;
+    delete payloadB.colors;
+
+    result = await supabase.from("products").upsert(payloadB);
+    if (!result.error) {
+      return result;
+    }
+
+    // Fallback Option C: Basic properties only (strip all SEO and custom payment options)
+    const payloadC = { ...productPayload };
+    delete payloadC.seoTitle;
+    delete payloadC.seoDescription;
+    delete payloadC.seoKeywords;
+    delete payloadC.seoSlug;
+    delete payloadC.seo_title;
+    delete payloadC.seo_description;
+    delete payloadC.seo_keywords;
+    delete payloadC.seo_slug;
+
+    delete payloadC.bkashNumber;
+    delete payloadC.nagadNumber;
+    delete payloadC.paymentType;
+    delete payloadC.paymentPercentage;
+    delete payloadC.deliveryCharge;
+    delete payloadC.deliveryDays;
+    delete payloadC.isPinned;
+    delete payloadC.freeDelivery;
+    delete payloadC.timerActive;
+    delete payloadC.colors;
+
+    result = await supabase.from("products").upsert(payloadC);
+  }
+
+  return result;
+}
 
 app.post("/api/products", async (req, res) => {
   const newProduct: Product = req.body;
@@ -1579,45 +1704,24 @@ app.post("/api/products", async (req, res) => {
       seoTitle: newProduct.seoTitle || null,
       seoDescription: newProduct.seoDescription || null,
       seoKeywords: newProduct.seoKeywords || null,
-      seoSlug: newProduct.seoSlug || null
+      seoSlug: newProduct.seoSlug || null,
+      seo_title: newProduct.seoTitle || null,
+      seo_description: newProduct.seoDescription || null,
+      seo_keywords: newProduct.seoKeywords || null,
+      seo_slug: newProduct.seoSlug || null
     };
     
-    let { error: upsertError } = await supabase.from("products").upsert(payload);
-    
-    // Bulletproof fallback: If the Supabase table doesn't have these custom local-only columns, retry without them
-    if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-      console.warn("⚠️ Custom local-only columns not found in Supabase schema. Bypassing and retrying product creation on Supabase...");
-      delete payload.bkashNumber;
-      delete payload.nagadNumber;
-      delete payload.paymentType;
-      delete payload.paymentPercentage;
-      delete payload.deliveryCharge;
-      delete payload.deliveryDays;
-      delete payload.isPinned;
-      delete payload.freeDelivery;
-      delete payload.timerActive;
-      delete payload.colors;
-      delete payload.seoTitle;
-      delete payload.seoDescription;
-      delete payload.seoKeywords;
-      delete payload.seoSlug;
-      const retryResult = await supabase.from("products").upsert(payload);
-      upsertError = retryResult.error;
-    }
+    let { error: upsertError } = await upsertProductToSupabase(payload);
 
     if (upsertError) {
       console.error("⚠️ Failed to mirror product creation to Supabase: ", upsertError.message);
-      if (process.env.VERCEL) {
-        return res.status(500).json({ 
-          message: `Product creation failed on Supabase: ${upsertError.message}. Setup instructions: Please ensure you have a table named 'products' in your Supabase project under public schema, with columns matching the Product schema.` 
-        });
-      }
+      return res.status(500).json({ 
+        message: `Product creation failed on Supabase: ${upsertError.message} (Code: ${upsertError.code || 'unknown'}). Please run the schema bootstrap or verify the table columns.` 
+      });
     }
   } catch (err: any) {
     console.error("⚠️ Failed to mirror product creation to Supabase: ", err.message);
-    if (process.env.VERCEL) {
-      return res.status(500).json({ message: `Database connection error: ${err.message}` });
-    }
+    return res.status(500).json({ message: `Database integration error: ${err.message}` });
   }
 
   // Dispatch Real-Time Push Notification for New Product Drop
@@ -1733,45 +1837,24 @@ app.put("/api/products/:id", async (req, res) => {
         seoTitle: target.seoTitle || null,
         seoDescription: target.seoDescription || null,
         seoKeywords: target.seoKeywords || null,
-        seoSlug: target.seoSlug || null
+        seoSlug: target.seoSlug || null,
+        seo_title: target.seoTitle || null,
+        seo_description: target.seoDescription || null,
+        seo_keywords: target.seoKeywords || null,
+        seo_slug: target.seoSlug || null
       };
 
-      let { error: upsertError } = await supabase.from("products").upsert(payload);
-
-      // Bulletproof fallback: If the Supabase table doesn't have these custom local-only columns, retry without them
-      if (upsertError && (upsertError.message.includes("column") || upsertError.code === "P0002" || upsertError.message.includes("does not exist") || upsertError.message.includes("not found"))) {
-        console.warn("⚠️ Custom local-only columns not found in Supabase schema. Bypassing and retrying product update on Supabase...");
-        delete payload.bkashNumber;
-        delete payload.nagadNumber;
-        delete payload.paymentType;
-        delete payload.paymentPercentage;
-        delete payload.deliveryCharge;
-        delete payload.deliveryDays;
-        delete payload.isPinned;
-        delete payload.freeDelivery;
-        delete payload.timerActive;
-        delete payload.colors;
-        delete payload.seoTitle;
-        delete payload.seoDescription;
-        delete payload.seoKeywords;
-        delete payload.seoSlug;
-        const retryResult = await supabase.from("products").upsert(payload);
-        upsertError = retryResult.error;
-      }
+      let { error: upsertError } = await upsertProductToSupabase(payload);
 
       if (upsertError) {
         console.error("⚠️ Failed to mirror product update to Supabase: ", upsertError.message);
-        if (process.env.VERCEL) {
-          return res.status(500).json({ 
-            message: `Product update failed on Supabase: ${upsertError.message}. Make sure your 'products' table exists with matches columns.` 
-          });
-        }
+        return res.status(500).json({ 
+          message: `Product update failed on Supabase: ${upsertError.message} (Code: ${upsertError.code || 'unknown'}). Please run the schema bootstrap or verify the table columns.` 
+        });
       }
     } catch (err: any) {
       console.error("⚠️ Failed to mirror product update to Supabase: ", err.message);
-      if (process.env.VERCEL) {
-        return res.status(500).json({ message: `Database connection error: ${err.message}` });
-      }
+      return res.status(500).json({ message: `Database integration error: ${err.message}` });
     }
 
     res.json(target);

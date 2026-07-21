@@ -706,6 +706,18 @@ export default function AdminPanel({
         })
       });
       if (res.ok) {
+        document.title = siteTitle;
+        const metaDescEl = document.querySelector('meta[name="description"]');
+        if (metaDescEl) metaDescEl.setAttribute('content', siteMetaDesc);
+
+        try {
+          const current = localStorage.getItem('stylex_settings');
+          const parsed = current ? JSON.parse(current) : {};
+          parsed.siteTitle = siteTitle;
+          parsed.siteMetaDesc = siteMetaDesc;
+          localStorage.setItem('stylex_settings', JSON.stringify(parsed));
+        } catch (err) {}
+
         setSettingsSuccess(true);
         if (onRefreshSettings) {
           onRefreshSettings();
@@ -1120,6 +1132,8 @@ export default function AdminPanel({
   const [formSeoSlug, setFormSeoSlug] = useState('');
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
+  const [seoPreviewTab, setSeoPreviewTab] = useState<'social' | 'google'>('social');
 
   // Other Simple Forms
   const [newCouponCode, setNewCouponCode] = useState('');
@@ -1728,53 +1742,25 @@ export default function AdminPanel({
       });
 
       if (res.ok) {
-        // Reset
-        setShowProductForm(false);
-        setEditingProduct(null);
-        setFormTitle('');
-        setFormDescription('');
-        setFormImageUrl('');
-        setFormPrice(100);
-        setFormDeliveryPrice(100);
-        setFormDeliveryPriceDhaka(100);
-        setFormDeliveryPriceChattogram(150);
-        setFormDeliveryPriceRajshahi(150);
-        setFormDeliveryPriceKhulna(150);
-        setFormDeliveryPriceBarishal(150);
-        setFormDeliveryPriceSylhet(150);
-        setFormDeliveryPriceRangpur(150);
-        setFormDeliveryPriceMymensingh(150);
-        setFormStock(50);
-        setFormWhyBuy('');
-        setFormImages([]);
-        setFormColors([]);
-        setColorNameInput('');
-        setColorHexInput('');
-        setColorImageInput('');
-        setSecondaryUrlInput('');
-        setFormLotteryEligible(true);
-        setFormIsPinned(false);
-        setFormFreeDelivery(false);
-        setFormCouponCode('');
-        setFormCouponDiscountPercent(15);
-        setFormOfferPrice('');
-        setFormOfferDiscountPercent('');
-        setFormTimerEndTime('');
-        setFormTimerMessage('');
-        setFormTimerActive(true);
-        setFormBkashNumber('');
-        setFormNagadNumber('');
-        setFormPaymentType('cod');
-        setFormPaymentPercentage(10);
-        setFormDeliveryCharge(100);
-        setFormDeliveryDays('3-5');
-        setFormLikes(0);
-        setFormSeoTitle('');
-        setFormSeoDescription('');
-        setFormSeoKeywords('');
-        setFormSeoSlug('');
-        setUploadProgress('');
         setFormError('');
+        setFormSuccess(isEditing 
+          ? 'Product and SEO details updated successfully! (পণ্য এবং এসইও তথ্য সফলভাবে সংরক্ষিত হয়েছে!)' 
+          : 'Magnificent new product and SEO details created successfully! (নতুন পণ্য এবং এসইও তথ্য সফলভাবে তৈরি করা হয়েছে!)'
+        );
+        
+        setAdminToast({
+          message: isEditing 
+            ? 'Bespoke product and SEO configuration updated successfully!' 
+            : 'Magnificent new creation and SEO configuration added successfully!',
+          type: 'success'
+        });
+
+        const savedProduct = await res.json().catch(() => null);
+        if (savedProduct && savedProduct.id) {
+          setEditingProduct(savedProduct);
+        }
+
+        setTimeout(() => setFormSuccess(''), 6000);
 
         onRefreshProducts();
         fetchAnalytics();
@@ -1793,6 +1779,7 @@ export default function AdminPanel({
   // Set Fields for Editing
   const handleInitiateEdit = (prod: Product) => {
     setFormError('');
+    setFormSuccess('');
     setEditingProduct(prod);
     setFormTitle(prod.title);
     setFormDescription(prod.description);
@@ -3172,6 +3159,13 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
                 )}
 
+                {formSuccess && (
+                  <div className="bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 p-3 rounded text-xs flex items-center gap-2 font-mono">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                    <span>{formSuccess}</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Title */}
                   <div>
@@ -3888,49 +3882,155 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       Search Engine Optimization (SEO / সার্চ ইঞ্জিন অপ্টিমাইজেশন)
                     </h4>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Title (মেটা টাইটেল)</label>
-                        <input 
-                          type="text" 
-                          value={formSeoTitle} 
-                          onChange={(e) => setFormSeoTitle(e.target.value)}
-                          placeholder="Bespoke luxury piece title optimized for search..."
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                        />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* SEO Input Fields */}
+                      <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Title (মেটা টাইটেল)</label>
+                          <input 
+                            type="text" 
+                            value={formSeoTitle} 
+                            onChange={(e) => setFormSeoTitle(e.target.value)}
+                            placeholder="Bespoke luxury piece title optimized for search..."
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO URL Slug / Handle (ইউআরএল স্ল্যাগ)</label>
+                          <input 
+                            type="text" 
+                            value={formSeoSlug} 
+                            onChange={(e) => setFormSeoSlug(e.target.value.toLowerCase().trim().replace(/\s+/g, '-'))}
+                            placeholder="e.g. royal-silk-panjabi"
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords (ফোকাস কিওয়ার্ডস)</label>
+                          <input 
+                            type="text" 
+                            value={formSeoKeywords} 
+                            onChange={(e) => setFormSeoKeywords(e.target.value)}
+                            placeholder="e.g. panjabi, premium clothing, silk, stylex"
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Description (মেটা ডেসক্রিপশন)</label>
+                          <textarea 
+                            rows={3} 
+                            value={formSeoDescription} 
+                            onChange={(e) => setFormSeoDescription(e.target.value)}
+                            placeholder="Enter metadata snippet optimized for search result engines (max 160 characters)..."
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold resize-none"
+                          />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO URL Slug / Handle (ইউআরএল স্ল্যাগ)</label>
-                        <input 
-                          type="text" 
-                          value={formSeoSlug} 
-                          onChange={(e) => setFormSeoSlug(e.target.value.toLowerCase().trim().replace(/\s+/g, '-'))}
-                          placeholder="e.g. royal-silk-panjabi"
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
-                        />
-                      </div>
+                      {/* Live Social Media Feed and Google Search Preview */}
+                      <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-white/5 pt-4 lg:pt-0 lg:pl-6 flex flex-col justify-start">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] uppercase font-mono tracking-widest text-blue-400 font-semibold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block animate-pulse"></span>
+                            Live Link Preview
+                          </span>
+                          
+                          {/* Segmented Platform Selector */}
+                          <div className="flex bg-white/[0.03] p-0.5 rounded border border-white/5 text-[9px] font-mono uppercase tracking-wider">
+                            <button
+                              type="button"
+                              onClick={() => setSeoPreviewTab('social')}
+                              className={`px-2 py-0.5 rounded transition-all duration-200 ${
+                                seoPreviewTab === 'social'
+                                  ? 'bg-blue-500 text-white font-bold'
+                                  : 'text-white/50 hover:text-white'
+                              }`}
+                            >
+                              Social
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSeoPreviewTab('google')}
+                              className={`px-2 py-0.5 rounded transition-all duration-200 ${
+                                seoPreviewTab === 'google'
+                                  ? 'bg-blue-500 text-white font-bold'
+                                  : 'text-white/50 hover:text-white'
+                              }`}
+                            >
+                              Google
+                            </button>
+                          </div>
+                        </div>
 
-                      <div className="md:col-span-2">
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords (ফোকাস কিওয়ার্ডস)</label>
-                        <input 
-                          type="text" 
-                          value={formSeoKeywords} 
-                          onChange={(e) => setFormSeoKeywords(e.target.value)}
-                          placeholder="e.g. panjabi, premium clothing, silk, stylex"
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                        />
-                      </div>
+                        {seoPreviewTab === 'social' ? (
+                          /* Facebook / iMessage / Social Post Card style */
+                          <div className="bg-[#0c0c0c] border border-white/10 rounded-lg overflow-hidden shadow-2xl transition-all duration-300 hover:border-white/20">
+                            {/* Live Thumbnail Preview */}
+                            <div className="relative w-full h-32 bg-white/[0.02] flex items-center justify-center border-b border-white/5 overflow-hidden">
+                              {formImageUrl ? (
+                                <img 
+                                  src={formImageUrl} 
+                                  alt="SEO Link Preview Card" 
+                                  className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="flex flex-col items-center gap-1.5 text-white/30 text-center p-4">
+                                  <ImageIcon size={24} className="stroke-[1.5]" />
+                                  <span className="text-[9px] font-mono uppercase tracking-wider">No Main Image URL Set</span>
+                                </div>
+                              )}
+                              
+                              <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider text-white/70 border border-white/5">
+                                og:image
+                              </div>
+                            </div>
 
-                      <div className="md:col-span-2">
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Meta Description (মেটা ডেসক্রিপশন)</label>
-                        <textarea 
-                          rows={2} 
-                          value={formSeoDescription} 
-                          onChange={(e) => setFormSeoDescription(e.target.value)}
-                          placeholder="Enter metadata snippet optimized for search result engines (max 160 characters)..."
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold resize-none"
-                        />
+                            {/* Link Info Box */}
+                            <div className="p-3 space-y-1 bg-[#121212]/50">
+                              <div className="text-[9px] font-mono uppercase tracking-widest text-[#d4af37] truncate flex items-center gap-1">
+                                <Globe size={10} className="text-[#d4af37]/70" />
+                                stylexbd.vercel.app
+                              </div>
+                              <h5 className="text-white text-[11px] font-semibold leading-tight line-clamp-1">
+                                {formSeoTitle || formTitle || "Untitled Premium Creation | Style X"}
+                              </h5>
+                              <p className="text-white/50 text-[10px] leading-snug line-clamp-2">
+                                {formSeoDescription || formDescription || "Exquisite style, handcrafted luxury apparel and heritage tailoring collections. Explore premium craftsmanship and unique designs."}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Google Search Result style */
+                          <div className="bg-[#0c0c0c] border border-white/5 rounded-lg p-3 space-y-1.5 hover:bg-[#121212]/30 transition-all duration-300">
+                            {/* Breadcrumb */}
+                            <div className="text-[9px] font-mono text-white/40 flex items-center gap-1 overflow-hidden truncate">
+                              <span>https://stylexbd.vercel.app</span>
+                              <span>›</span>
+                              <span>products</span>
+                              <span>›</span>
+                              <span className="text-[#d4af37] font-semibold">{formSeoSlug || "slug-handle"}</span>
+                            </div>
+
+                            {/* Clickable Title */}
+                            <span className="text-[#5a97f2] hover:underline cursor-pointer font-sans text-xs font-semibold leading-tight line-clamp-1 block">
+                              {formSeoTitle || formTitle || "Untitled Premium Creation | Style X"}
+                            </span>
+
+                            {/* Description snippet */}
+                            <p className="text-white/60 text-[10px] leading-snug line-clamp-3">
+                              {formSeoDescription || formDescription || "Discover handcrafted exquisite apparel from Style X. Custom tailoring, premium material and luxurious finish, optimized for comfort."}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mt-3 bg-blue-500/[0.02] border border-blue-500/10 rounded p-2 text-[9px] text-blue-300/80 leading-normal space-y-1">
+                          <p className="font-semibold font-mono uppercase text-[8px] tracking-wider text-blue-400">🔥 Live Feed Visualization</p>
+                          <p>Changes in SEO Meta fields above or the main product image/description will update this rich media card instantly.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -5920,6 +6020,17 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         });
                         if (res.ok) {
                           document.title = siteTitle;
+                          const metaDescEl = document.querySelector('meta[name="description"]');
+                          if (metaDescEl) metaDescEl.setAttribute('content', siteMetaDesc);
+
+                          try {
+                            const current = localStorage.getItem('stylex_settings');
+                            const parsed = current ? JSON.parse(current) : {};
+                            parsed.siteTitle = siteTitle;
+                            parsed.siteMetaDesc = siteMetaDesc;
+                            localStorage.setItem('stylex_settings', JSON.stringify(parsed));
+                          } catch (err) {}
+
                           setAdminToast({ message: "SEO মেটা ট্যাগ এবং টাইটেল সফলভাবে সংরক্ষিত হয়েছে! (SEO Tags Saved Successfully!)", type: "success" });
                           if (onRefreshSettings) {
                             onRefreshSettings();

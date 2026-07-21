@@ -134,17 +134,27 @@ export default function App() {
     accentColor?: string;
     siteTitle?: string;
     siteMetaDesc?: string;
-  }>({
-    whatsappNumber: "8801755104443",
-    facebookUrl: "https://www.facebook.com/stylex24/",
-    instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
-    logoUrl: "/stylex_logo.jpg",
-    globalTimerEndTime: "",
-    globalTimerMessage: "",
-    globalTimerActive: false,
-    globalPaymentSystem: "product_defined",
-    globalPaymentMethod: "both",
-    globalDeliveryDays: ""
+  }>(() => {
+    try {
+      const saved = localStorage.getItem('stylex_settings');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn("Failed loading local settings backup", e);
+    }
+    return {
+      whatsappNumber: "8801755104443",
+      facebookUrl: "https://www.facebook.com/stylex24/",
+      instagramUrl: "https://www.instagram.com/style_x25/?hl=en",
+      logoUrl: "/stylex_logo.jpg",
+      globalTimerEndTime: "",
+      globalTimerMessage: "",
+      globalTimerActive: false,
+      globalPaymentSystem: "product_defined",
+      globalPaymentMethod: "both",
+      globalDeliveryDays: ""
+    };
   });
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -883,6 +893,7 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setSettings(data);
+        localStorage.setItem('stylex_settings', JSON.stringify(data));
       }
     } catch (err) {
       console.error("Failed loading settings", err);
