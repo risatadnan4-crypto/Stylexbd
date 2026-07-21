@@ -156,9 +156,80 @@ export default function App() {
     prevCartCountRef.current = totalCartItemsCount;
   }, [totalCartItemsCount]);
 
-  // Parse initial category query parameter on startup
-  React.useEffect(() => {
+  // Clean URL parsing router function
+  const parseCurrentUrl = (productList = products) => {
+    const pathname = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
+
+    if (pathname === '/admin') {
+      setIsAdminView(true);
+      setIsTrackMode(false);
+      setIsWishlistPage(false);
+      setSelectedProduct(null);
+      return;
+    }
+
+    if (pathname === '/wishlist') {
+      setIsWishlistPage(true);
+      setIsAdminView(false);
+      setIsTrackMode(false);
+      setSelectedProduct(null);
+      return;
+    }
+
+    if (pathname.startsWith('/track')) {
+      setIsTrackMode(true);
+      setIsAdminView(false);
+      setIsWishlistPage(false);
+      setSelectedProduct(null);
+      return;
+    }
+
+    if (pathname.startsWith('/products/') || pathname.startsWith('/product/')) {
+      const segments = pathname.split('/');
+      const code = decodeURIComponent(segments[segments.length - 1] || '');
+      if (code && productList.length > 0) {
+        const found = productList.find(p => 
+          (p.code && p.code.toLowerCase() === code.toLowerCase()) || 
+          String(p.id) === code
+        );
+        if (found) {
+          setSelectedProduct(found);
+          setIsAdminView(false);
+          setIsTrackMode(false);
+          setIsWishlistPage(false);
+          return;
+        }
+      }
+    }
+
+    if (pathname.startsWith('/category/')) {
+      const segments = pathname.split('/');
+      const cat = decodeURIComponent(segments[segments.length - 1] || '').toUpperCase();
+      if (['ALL', 'MEN', 'WOMEN', 'UNISEX', 'ACCESSORIES'].includes(cat)) {
+        setActiveCategory(cat);
+        setSelectedProduct(null);
+        setIsAdminView(false);
+        setIsTrackMode(false);
+        setIsWishlistPage(false);
+        return;
+      }
+    }
+
+    if (pathname.startsWith('/search')) {
+      const q = urlParams.get('q') || pathname.split('/').pop() || '';
+      if (q) {
+        setSearchQuery(q);
+        setIsSearchPage(true);
+        setIsAdminView(false);
+        setIsTrackMode(false);
+        setIsWishlistPage(false);
+        setSelectedProduct(null);
+        return;
+      }
+    }
+
+    // Backwards compatibility fallbacks
     const catParam = urlParams.get('category');
     if (catParam) {
       const upperCat = catParam.toUpperCase().trim();
@@ -166,7 +237,55 @@ export default function App() {
         setActiveCategory(upperCat);
       }
     }
-  }, []);
+
+    const prodCodeParam = urlParams.get('product') || urlParams.get('productCode');
+    if (prodCodeParam && productList.length > 0) {
+      const found = productList.find(p => 
+        (p.code && p.code.toLowerCase() === prodCodeParam.toLowerCase()) || 
+        String(p.id) === prodCodeParam
+      );
+      if (found) {
+        setSelectedProduct(found);
+        setIsAdminView(false);
+        setIsTrackMode(false);
+        setIsWishlistPage(false);
+        return;
+      }
+    }
+
+    const hasAdminQuery = urlParams.get('admin') === 'true';
+    const hasAdminHash = window.location.hash === '#admin';
+    if (hasAdminQuery || hasAdminHash) {
+      setIsAdminView(true);
+      setIsTrackMode(false);
+      setIsWishlistPage(false);
+      setSelectedProduct(null);
+      return;
+    }
+
+    // Default to home page
+    setSelectedProduct(null);
+    setIsAdminView(false);
+    setIsTrackMode(false);
+    setIsWishlistPage(false);
+    setActiveCategory('ALL');
+  };
+
+  // Initial path parsing once products are loaded
+  React.useEffect(() => {
+    if (products && products.length > 0) {
+      parseCurrentUrl(products);
+    }
+  }, [products]);
+
+  // Support forward/back history buttons seamlessly
+  React.useEffect(() => {
+    const handlePopState = () => {
+      parseCurrentUrl(products);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
 
   // Dynamic SEO meta tags, canonical URL, and JSON-LD schema management client-side
   React.useEffect(() => {
@@ -215,7 +334,7 @@ export default function App() {
           },
           "offers": {
             "@type": "Offer",
-            "url": `https://stylexbd.vercel.app/?product=${encodeURIComponent(product.code || product.id)}`,
+            "url": `https://stylexbd.vercel.app/products/${encodeURIComponent(product.code || product.id)}`,
             "priceCurrency": "BDT",
             "price": product.price,
             "priceValidUntil": "2027-12-31",
@@ -246,52 +365,55 @@ export default function App() {
     let imageUrl = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
 
     if (selectedProduct) {
-      // 1. Specific product page
       const code = selectedProduct.code || selectedProduct.id;
       title = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
       desc = selectedProduct.seoDescription || selectedProduct.description || `Purchase ${selectedProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${selectedProduct.price} BDT.`;
       keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, style x bd, premium clothing, luxury apparel, streetwear bangladesh`;
-      canonical = `https://stylexbd.vercel.app/?product=${encodeURIComponent(code)}`;
+      canonical = `https://stylexbd.vercel.app/products/${encodeURIComponent(code)}`;
       if (selectedProduct.imageUrl) {
         imageUrl = selectedProduct.imageUrl;
       }
       updateJsonLdSchema(selectedProduct);
     } else {
-      // Clean up product schema
       updateJsonLdSchema(null);
 
       if (isAdminView) {
-        // 2. Admin page
         title = "VIP Admin Control Center | STYLE X BD";
         desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
-        canonical = "https://stylexbd.vercel.app/?admin=true";
+        canonical = "https://stylexbd.vercel.app/admin";
+      } else if (isWishlistPage) {
+        title = "My Curated Fashion Wishlist | STYLE X BD";
+        desc = "View your personal curated collection of favorite luxury garments, seasonal jackets, streetwear essentials, and styling masterpieces.";
+        canonical = "https://stylexbd.vercel.app/wishlist";
+      } else if (isTrackMode) {
+        title = "Authentic Order Tracking Portal | STYLE X BD";
+        desc = "Monitor the real-time shipping status, premium courier assignment, and safe hand-off fulfillment of your elite Style X garments.";
+        canonical = "https://stylexbd.vercel.app/track";
       } else if (searchQuery) {
-        // 3. Search query page
         title = `Search Results for "${searchQuery}" | STYLE X BD`;
         desc = `Explore high-end premium fashion products matching "${searchQuery}" at STYLE X BD. Find authentic streetwear, luxury essentials, and seasonal drops.`;
-        canonical = `https://stylexbd.vercel.app/?search=${encodeURIComponent(searchQuery)}`;
+        canonical = `https://stylexbd.vercel.app/search?q=${encodeURIComponent(searchQuery)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
-        // 4. Specific category pages
         if (activeCategory === 'MEN') {
           title = "Gentlemen's Luxury Fashion & Curated Streetwear | STYLE X";
           desc = "Shop curated Gentlemen's premium clothing at STYLE X. Explore luxury jackets, designer graphic t-shirts, hoodies, and cargo pants tailored for elegance.";
           keywords = "gentlemen streetwear, men fashion bangladesh, luxury menswear, style x gentlemen, premium jackets, custom hoodies, style x men";
-          canonical = "https://stylexbd.vercel.app/?category=MEN";
+          canonical = "https://stylexbd.vercel.app/category/men";
         } else if (activeCategory === 'WOMEN') {
           title = "Haute Couture & Women's Designer Collection | STYLE X";
           desc = "Unrivaled luxury and modern tailoring. Explore the signature Women's Haute Couture fashion line by STYLE X, featuring elegant styling and streetwear essentials.";
           keywords = "haute couture, women premium fashion, designer apparel women, style x women, elegant dresses, premium women streetwear";
-          canonical = "https://stylexbd.vercel.app/?category=WOMEN";
+          canonical = "https://stylexbd.vercel.app/category/women";
         } else if (activeCategory === 'UNISEX') {
           title = "Co-Ed Line - Premium Unisex Clothing & Streetwear | STYLE X";
           desc = "Discover gender-neutral designer wear and unisex clothing accessories at STYLE X. Gender-free signature fits engineered for premium luxury aesthetics.";
           keywords = "unisex streetwear, co-ed line, gender neutral clothing, gender free fashion, style x unisex, luxury hoodies unisex";
-          canonical = "https://stylexbd.vercel.app/?category=UNISEX";
+          canonical = "https://stylexbd.vercel.app/category/unisex";
         } else if (activeCategory === 'ACCESSORIES') {
           title = "Ensemble Accessories & Premium Lifestyle Goods | STYLE X";
           desc = "Refine your wardrobe and daily style with premium designer accessories and luxury lifestyle essentials by STYLE X. Perfect additions for every outfit.";
           keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
-          canonical = "https://stylexbd.vercel.app/?category=ACCESSORIES";
+          canonical = "https://stylexbd.vercel.app/category/accessories";
         }
       }
     }
@@ -315,53 +437,38 @@ export default function App() {
     updateOrCreateMeta('twitter:url', canonical);
     updateOrCreateMeta('twitter:image', imageUrl);
 
-  }, [selectedProduct, activeCategory, searchQuery, isAdminView]);
+  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode]);
 
-  // Dynamic URL Query Parameters Synchronizer for SEO and deep-linking compatibility
+  // Clean URL State Synchronizer for SEO deep-linking
   React.useEffect(() => {
-    // We only update if site is already booted to avoid early overwrite on page load
     if (products && products.length > 0) {
-      const urlParams = new URLSearchParams(window.location.search);
-      let changed = false;
+      let expectedPath = '/';
+      let expectedSearch = '';
 
-      // Sync product parameter
-      if (selectedProduct) {
-        const code = selectedProduct.code || selectedProduct.id;
-        if (urlParams.get('product') !== String(code)) {
-          urlParams.set('product', String(code));
-          changed = true;
-        }
-      } else {
-        if (urlParams.has('product')) {
-          urlParams.delete('product');
-          changed = true;
-        }
-        if (urlParams.has('productCode')) {
-          urlParams.delete('productCode');
-          changed = true;
-        }
+      if (isAdminView) {
+        expectedPath = '/admin';
+      } else if (isWishlistPage) {
+        expectedPath = '/wishlist';
+      } else if (isTrackMode) {
+        expectedPath = '/track';
+      } else if (selectedProduct) {
+        expectedPath = `/products/${encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
+      } else if (activeCategory && activeCategory !== 'ALL') {
+        expectedPath = `/category/${activeCategory.toLowerCase()}`;
+      } else if (searchQuery) {
+        expectedPath = `/search`;
+        expectedSearch = `?q=${encodeURIComponent(searchQuery)}`;
       }
 
-      // Sync category parameter
-      if (activeCategory && activeCategory !== 'ALL') {
-        if (urlParams.get('category') !== activeCategory) {
-          urlParams.set('category', activeCategory);
-          changed = true;
-        }
-      } else {
-        if (urlParams.has('category')) {
-          urlParams.delete('category');
-          changed = true;
-        }
-      }
+      const currentPath = window.location.pathname;
+      const currentSearch = window.location.search;
 
-      if (changed) {
-        const searchStr = urlParams.toString();
-        const newUrl = `${window.location.pathname}${searchStr ? '?' + searchStr : ''}`;
+      if (currentPath !== expectedPath || currentSearch !== expectedSearch) {
+        const newUrl = `${expectedPath}${expectedSearch}`;
         window.history.pushState({}, '', newUrl);
       }
     }
-  }, [selectedProduct, activeCategory, products]);
+  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, products]);
   const [confirmedOrderPayment, setConfirmedOrderPayment] = useState('CASH ON DELIVERY (COD)');
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [lastOrderToast, setLastOrderToast] = useState<Order | null>(null);

@@ -5259,14 +5259,20 @@ app.get("/sitemap.xml", (req, res) => {
     });
   };
 
-  // Base pages of Style X (only include canonical HTTPS URLs with no fragments or client-side anchor links)
+  // Base and Category pages of Style X (only include canonical HTTPS URLs)
   const pages = [
-    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" }
+    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+    { loc: `${baseUrl}/category/men`, priority: "0.8", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/women`, priority: "0.8", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/unisex`, priority: "0.8", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/accessories`, priority: "0.8", changefreq: "weekly" },
+    { loc: `${baseUrl}/wishlist`, priority: "0.5", changefreq: "monthly" },
+    { loc: `${baseUrl}/track`, priority: "0.5", changefreq: "monthly" }
   ];
 
-  // Include dynamic products from active luxury database
+  // Include dynamic products from active luxury database using clean path structure
   const productPages = (db.products || []).map((prod: any) => ({
-    loc: `${baseUrl}/?product=${encodeURIComponent(prod.code || prod.id)}`,
+    loc: `${baseUrl}/products/${encodeURIComponent(prod.code || prod.id)}`,
     priority: "0.9",
     changefreq: "weekly"
   }));
@@ -5287,6 +5293,26 @@ ${xmlEntries}
 
   res.header("Content-Type", "application/xml");
   res.send(sitemapXml);
+});
+
+// Dynamically generated robots.txt to direct and guide search crawlers
+app.get("/robots.txt", (req, res) => {
+  const robots = `User-agent: *
+Allow: /
+Allow: /products/
+Allow: /category/
+Allow: /search
+Disallow: /admin
+Disallow: /api/
+Disallow: /checkout
+Disallow: /track
+
+# Host & XML Sitemap Reference
+Host: https://stylexbd.vercel.app
+Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
+
+  res.header("Content-Type", "text/plain");
+  res.send(robots);
 });
 
 // Vite & Production Setup Middleware
@@ -5319,43 +5345,174 @@ async function startServer() {
         const fs = await import("fs/promises");
         let html = await fs.readFile(indexPath, "utf-8");
 
-        // Extract product query param
-        const productParam = req.query.product || req.query.productCode || req.query.slug;
-        if (productParam && db.products) {
-          const productCode = String(productParam).toLowerCase();
-          const foundProduct = db.products.find((p: any) => 
-            (p.code && p.code.toLowerCase() === productCode) || 
-            String(p.id).toLowerCase() === productCode || 
-            (p.seoSlug && p.seoSlug.toLowerCase() === productCode)
-          );
+        // Extract route parameters from the pathname (clean SEO friendly URLs)
+        const pathSegments = req.path.split("/").filter(Boolean);
+        let customTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
+        let desc = "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
+        let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
+        let image = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
+        let canonicalUrl = `https://stylexbd.vercel.app${req.path}`;
+        let productSchemaJson = "";
 
-          if (foundProduct) {
-            const customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
-            const desc = foundProduct.seoDescription || foundProduct.description || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion.";
-            const keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, stylex, premium clothing`;
-            const image = foundProduct.imageUrl || "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
+        let foundMatch = false;
 
-            // Inject title
-            html = html.replace(/<title>.*?<\/title>/gi, `<title>${customTitle}</title>`);
+        if (pathSegments[0] === "products" || pathSegments[0] === "product") {
+          const productCode = decodeURIComponent(pathSegments[1] || "").toLowerCase();
+          if (productCode && db.products) {
+            const foundProduct = db.products.find((p: any) => 
+              (p.code && p.code.toLowerCase() === productCode) || 
+              String(p.id).toLowerCase() === productCode || 
+              (p.seoSlug && p.seoSlug.toLowerCase() === productCode)
+            );
 
-            // Replace standard meta tags
-            html = html.replace(/<meta name="title" content=".*?" \/>/gi, `<meta name="title" content="${customTitle}" />`);
-            html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${desc}" />`);
-            html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${keywords}" />`);
+            if (foundProduct) {
+              customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
+              desc = foundProduct.seoDescription || foundProduct.description || `Purchase ${foundProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${foundProduct.price} BDT.`;
+              keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, style x bd, premium clothing, luxury apparel, streetwear bangladesh`;
+              image = foundProduct.imageUrl || image;
+              foundMatch = true;
 
-            // Replace OpenGraph meta tags
-            html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${customTitle}" />`);
-            html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${desc}" />`);
-            html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${image}" />`);
-
-            // Replace Twitter meta tags
-            html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${customTitle}" />`);
-            html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${desc}" />`);
-            html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${image}" />`);
-            html = html.replace(/<meta property="twitter:title" content=".*?" \/>/gi, `<meta property="twitter:title" content="${customTitle}" />`);
-            html = html.replace(/<meta property="twitter:description" content=".*?" \/>/gi, `<meta property="twitter:description" content="${desc}" />`);
-            html = html.replace(/<meta property="twitter:image" content=".*?" \/>/gi, `<meta property="twitter:image" content="${image}" />`);
+              // Product JSON-LD Schema
+              const schemaObj = {
+                "@context": "https://schema.org",
+                "@type": "Product",
+                "name": foundProduct.title,
+                "image": foundProduct.imageUrl || image,
+                "description": foundProduct.description || desc,
+                "sku": foundProduct.code || String(foundProduct.id),
+                "mpn": foundProduct.code || String(foundProduct.id),
+                "brand": {
+                  "@type": "Brand",
+                  "name": "Style X"
+                },
+                "offers": {
+                  "@type": "Offer",
+                  "url": canonicalUrl,
+                  "priceCurrency": "BDT",
+                  "price": foundProduct.price,
+                  "priceValidUntil": "2027-12-31",
+                  "itemCondition": "https://schema.org/NewCondition",
+                  "availability": foundProduct.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                  "seller": {
+                    "@type": "Organization",
+                    "name": "Style X"
+                  }
+                }
+              };
+              productSchemaJson = `<script id="json-ld-product-schema" type="application/ld+json">${JSON.stringify(schemaObj)}</script>`;
+            }
           }
+        } else if (pathSegments[0] === "category" && pathSegments[1]) {
+          const cat = pathSegments[1].toUpperCase();
+          foundMatch = true;
+          if (cat === "MEN") {
+            customTitle = "Gentlemen's Luxury Fashion & Curated Streetwear | STYLE X";
+            desc = "Shop curated Gentlemen's premium clothing at STYLE X. Explore luxury jackets, designer graphic t-shirts, hoodies, and cargo pants tailored for elegance.";
+            keywords = "gentlemen streetwear, men fashion bangladesh, luxury menswear, style x gentlemen, premium jackets, custom hoodies, style x men";
+          } else if (cat === "WOMEN") {
+            customTitle = "Haute Couture & Women's Designer Collection | STYLE X";
+            desc = "Unrivaled luxury and modern tailoring. Explore the signature Women's Haute Couture fashion line by STYLE X, featuring elegant styling and streetwear essentials.";
+            keywords = "haute couture, women premium fashion, designer apparel women, style x women, elegant dresses, premium women streetwear";
+          } else if (cat === "UNISEX") {
+            customTitle = "Co-Ed Line - Premium Unisex Clothing & Streetwear | STYLE X";
+            desc = "Discover gender-neutral designer wear and unisex clothing accessories at STYLE X. Gender-free signature fits engineered for premium luxury aesthetics.";
+            keywords = "unisex streetwear, co-ed line, gender neutral clothing, gender free fashion, style x unisex, luxury hoodies unisex";
+          } else if (cat === "ACCESSORIES") {
+            customTitle = "Ensemble Accessories & Premium Lifestyle Goods | STYLE X";
+            desc = "Refine your wardrobe and daily style with premium designer accessories and luxury lifestyle essentials by STYLE X. Perfect additions for every outfit.";
+            keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
+          } else {
+            foundMatch = false;
+          }
+        } else if (pathSegments[0] === "admin") {
+          customTitle = "VIP Admin Control Center | STYLE X BD";
+          desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "wishlist") {
+          customTitle = "My Curated Fashion Wishlist | STYLE X BD";
+          desc = "View your personal curated collection of favorite luxury garments, seasonal jackets, streetwear essentials, and styling masterpieces.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "track") {
+          customTitle = "Authentic Order Tracking Portal | STYLE X BD";
+          desc = "Monitor the real-time shipping status, premium courier assignment, and safe hand-off fulfillment of your elite Style X garments.";
+          foundMatch = true;
+        }
+
+        // Fallback to query param parsing if no clean route matched
+        if (!foundMatch) {
+          const productParam = req.query.product || req.query.productCode || req.query.slug;
+          if (productParam && db.products) {
+            const productCode = String(productParam).toLowerCase();
+            const foundProduct = db.products.find((p: any) => 
+              (p.code && p.code.toLowerCase() === productCode) || 
+              String(p.id).toLowerCase() === productCode || 
+              (p.seoSlug && p.seoSlug.toLowerCase() === productCode)
+            );
+
+            if (foundProduct) {
+              customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
+              desc = foundProduct.seoDescription || foundProduct.description || `Purchase ${foundProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${foundProduct.price} BDT.`;
+              keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, stylex, premium clothing`;
+              image = foundProduct.imageUrl || image;
+
+              const schemaObj = {
+                "@context": "https://schema.org",
+                "@type": "Product",
+                "name": foundProduct.title,
+                "image": foundProduct.imageUrl || image,
+                "description": foundProduct.description || desc,
+                "sku": foundProduct.code || String(foundProduct.id),
+                "mpn": foundProduct.code || String(foundProduct.id),
+                "brand": {
+                  "@type": "Brand",
+                  "name": "Style X"
+                },
+                "offers": {
+                  "@type": "Offer",
+                  "url": canonicalUrl,
+                  "priceCurrency": "BDT",
+                  "price": foundProduct.price,
+                  "priceValidUntil": "2027-12-31",
+                  "itemCondition": "https://schema.org/NewCondition",
+                  "availability": foundProduct.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                  "seller": {
+                    "@type": "Organization",
+                    "name": "Style X"
+                  }
+                }
+              };
+              productSchemaJson = `<script id="json-ld-product-schema" type="application/ld+json">${JSON.stringify(schemaObj)}</script>`;
+            }
+          }
+        }
+
+        // Apply dynamic titles and meta tags to html
+        html = html.replace(/<title>.*?<\/title>/gi, `<title>${customTitle}</title>`);
+        html = html.replace(/<meta name="title" content=".*?" \/>/gi, `<meta name="title" content="${customTitle}" />`);
+        html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${desc}" />`);
+        html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${keywords}" />`);
+
+        // Replace OpenGraph meta tags
+        html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${customTitle}" />`);
+        html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${desc}" />`);
+        html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${image}" />`);
+        html = html.replace(/<meta property="og:url" content=".*?" \/>/gi, `<meta property="og:url" content="${canonicalUrl}" />`);
+
+        // Replace Twitter meta tags
+        html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${customTitle}" />`);
+        html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${desc}" />`);
+        html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${image}" />`);
+        html = html.replace(/<meta name="twitter:url" content=".*?" \/>/gi, `<meta name="twitter:url" content="${canonicalUrl}" />`);
+        html = html.replace(/<meta property="twitter:title" content=".*?" \/>/gi, `<meta property="twitter:title" content="${customTitle}" />`);
+        html = html.replace(/<meta property="twitter:description" content=".*?" \/>/gi, `<meta property="twitter:description" content="${desc}" />`);
+        html = html.replace(/<meta property="twitter:image" content=".*?" \/>/gi, `<meta property="twitter:image" content="${image}" />`);
+
+        // Replace Canonical link
+        html = html.replace(/<link rel="canonical" href=".*?" \/>/gi, `<link rel="canonical" href="${canonicalUrl}" />`);
+
+        // Inject Product Schema if present
+        if (productSchemaJson) {
+          html = html.replace("</head>", `${productSchemaJson}\n</head>`);
         }
 
         res.send(html);
