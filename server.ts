@@ -1606,19 +1606,20 @@ app.post("/api/seo/generate", async (req, res) => {
     });
 
     const userPrompt = `
-      Please analyze this product from our premium fashion brand Style X (Style X BD):
+      Please analyze this premium fashion product from the official Style X (STYLE X BD) brand:
       - Title: ${title || "Untitled Product"}
       - Description: ${description || "No description provided"}
       - Highlights/Why Buy: ${whyBuy || "No highlights"}
       - Price: ${price || "100"} BDT
 
-      Your task is to generate highly optimized, high-converting, professional SEO fields in JSON format:
-      1. "seoTitle": An engaging, catchy, search-engine-optimized meta title (under 60 characters). Combine premium keywords, the brand name "Style X", and the product name (e.g. "Royal Blue Silk Panjabi | Premium Style X").
-      2. "seoSlug": A clean, lowercase URL handle/slug using hyphens (e.g., "royal-blue-silk-panjabi"). Do not include spaces, slashes or special characters.
-      3. "seoKeywords": A comma-separated list of 6-10 highly relevant keywords, tags, or search phrases (e.g. "silk panjabi, style x panjabi, luxury menswear, dhaka fashion, premium clothing").
-      4. "seoDescription": A compelling, high-CTR meta description (120-160 characters) with a clear call-to-action encouraging clicks.
+      Your task is to generate highly optimized, search-engine-ranking-saturated SEO fields in JSON format that will guarantee #1 position on Google search when users search for "stylex", "style x", "style x bd", "stylex bangladesh", or the product name:
 
-      Provide ONLY a clean JSON response matching the requested schema.
+      1. "seoTitle": Must be a high-converting meta title (under 60 characters). It must start with the exact or optimized product name and strictly end with " | STYLE X" or " | STYLE X BD" or " | Style X Bangladesh" (e.g., "Royal Blue Silk Panjabi | STYLE X BD"). This ensures brand-name proximity and rich snippet indexing.
+      2. "seoSlug": A clean, SEO-optimized, lowercase URL slug using hyphens. You must append "-stylex" or "-stylex-bd" at the end of the slug (e.g., "royal-blue-silk-panjabi-stylex") to guarantee URL-level relevance for brand + product query matches. No spaces or special characters.
+      3. "seoKeywords": A comma-separated list of 8-12 extremely search-dense phrases. You MUST include these exact phrases: "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, [product name] price in bangladesh, stylex [product name], buy [product name] online bd, authentic style x [product name]".
+      4. "seoDescription": A highly compelling, high-CTR meta description (120-160 characters). It must start with a brand-defining phrase (e.g. "Buy the official STYLE X [Product Name] online in Bangladesh.") and mention "100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation." with a strong CTA to click.
+
+      Provide ONLY a clean JSON response matching the requested schema. Do not include markdown wraps or anything else.
     `;
 
     const response = await ai.models.generateContent({

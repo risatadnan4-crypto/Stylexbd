@@ -88,9 +88,14 @@ export default function ProductDetailModal({
     }
   }, [isOpen]);
 
-  // Dynamically inject Product JSON-LD structured data for Google Search snippet optimization
+  // Dynamically inject Product JSON-LD structured data for Google Search snippet optimization and update page title
   useEffect(() => {
     if (isOpen && product) {
+      // Save original title
+      const prevTitle = document.title;
+      // Set new SEO-friendly title
+      document.title = product.seoTitle || `${product.title} | Style X Bangladesh`;
+
       // Remove any existing product schema script
       const existingScript = document.getElementById("dynamic-product-jsonld");
       if (existingScript) {
@@ -134,6 +139,8 @@ export default function ProductDetailModal({
       document.head.appendChild(script);
 
       return () => {
+        // Restore previous page title
+        document.title = prevTitle;
         const scriptToRemove = document.getElementById("dynamic-product-jsonld");
         if (scriptToRemove) {
           scriptToRemove.remove();

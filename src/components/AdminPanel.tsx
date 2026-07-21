@@ -6354,6 +6354,62 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
             return (
               <div className="space-y-6 animate-fade-in text-left text-white max-w-6xl">
+                {/* Google Search Dominance Explainer Banner */}
+                <div className="bg-[#120824]/40 border border-luxury-gold/30 p-5 rounded-2xl relative overflow-hidden shadow-[0_4px_30px_rgba(212,175,55,0.05)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-3xl"></div>
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                    <div className="space-y-2 max-w-3xl">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded bg-luxury-gold/10 text-luxury-gold text-[9px] font-mono uppercase tracking-widest border border-luxury-gold/20">Google SEO Engine</span>
+                        <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Active Dominance
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-serif font-bold text-white/95 leading-tight flex items-center gap-2">
+                        🎯 Google Search Dominance System <span className="text-xs text-white/60 font-sans font-normal">(সার্চ ইঞ্জিনে সবার আগে আসার সিস্টেম)</span>
+                      </h3>
+                      <p className="text-xs text-white/70 leading-relaxed font-sans">
+                        This system is custom-engineered to make your website **STYLE X** and your individual premium products rank **#1 on Google Search**. By aligning your metadata with Google's E-E-A-T guidelines, searchers looking for <span className="text-[#ffd700] font-mono">"stylex"</span>, <span className="text-[#ffd700] font-mono">"style x bd"</span>, or any specific product code/name will immediately find your official platform.
+                      </p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                        <div className="bg-black/30 border border-white/5 p-2.5 rounded-xl">
+                          <span className="text-[#ffd700] font-bold text-[10px] uppercase font-mono block">👑 Brand-Rich Titles</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-tight">Every title ends with " | STYLE X BD", boosting brand prominence.</span>
+                        </div>
+                        <div className="bg-black/30 border border-white/5 p-2.5 rounded-xl">
+                          <span className="text-[#ffd700] font-bold text-[10px] uppercase font-mono block">🔗 URL Path Matching</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-tight">URL slugs automatically append "-stylex" to double indexing relevancy.</span>
+                        </div>
+                        <div className="bg-black/30 border border-white/5 p-2.5 rounded-xl">
+                          <span className="text-[#ffd700] font-bold text-[10px] uppercase font-mono block">📍 Local Intent Tags</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-tight">Generates Bengali e-commerce tags like "price in Bangladesh", "online BD".</span>
+                        </div>
+                        <div className="bg-black/30 border border-white/5 p-2.5 rounded-xl">
+                          <span className="text-[#ffd700] font-bold text-[10px] uppercase font-mono block">📈 Maximum Click CTR</span>
+                          <span className="text-[9.5px] text-white/50 block mt-0.5 leading-tight">Meta descriptions outline nationwide Cash on Delivery to drive clicks.</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex flex-col gap-2 w-full md:w-auto">
+                      <button
+                        onClick={bulkFixAll}
+                        disabled={isBulkFixing || processedProducts.filter(item => item.hasIssues).length === 0}
+                        className={`w-full md:w-auto text-center px-4 py-2.5 rounded-xl text-[10px] font-mono font-black uppercase tracking-widest transition-all shadow-md active:scale-95 ${
+                          isBulkFixing || processedProducts.filter(item => item.hasIssues).length === 0
+                            ? 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-luxury-purple-glowing/25 via-luxury-gold/15 to-luxury-purple-glowing/25 text-luxury-gold border border-luxury-gold/40 hover:border-luxury-gold cursor-pointer'
+                        }`}
+                      >
+                        {isBulkFixing ? 'Fixing in Progress...' : '🚀 BULK AUTO-FIX ALL'}
+                      </button>
+                      <span className="text-[8.5px] text-center text-white/40 block font-mono">
+                        Auto-optimize {processedProducts.filter(item => item.hasIssues).length} suboptimal products
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Scorecards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {/* Health score card */}
