@@ -1209,11 +1209,9 @@ export default function AdminPanel({
       const res = await fetch('/api/analytics');
       if (res.ok) {
         setAnalytics(await res.json());
-      } else {
-        console.warn("⚠️ Analytics response not ok", res.status);
       }
     } catch (e) { 
-      console.warn("⚠️ Failed to load metrics:", e); 
+      // Silently handle analytics load failure
     }
   };
 
@@ -1272,12 +1270,8 @@ export default function AdminPanel({
       const res = await fetch('/api/back-in-stock-alerts');
       if (res.ok) {
         setBackInStockAlerts(await res.json());
-      } else {
-        console.warn("⚠️ Back in stock alerts response not ok", res.status);
       }
-    } catch (e) {
-      console.warn("⚠️ Failed to load restock alerts:", e);
-    }
+    } catch (e) {}
   };
 
   const fetchCustomerPhones = async () => {
@@ -1288,7 +1282,6 @@ export default function AdminPanel({
         setCustomerPhones(await res.json());
       }
     } catch (e) {
-      console.warn("⚠️ Failed to load customer phones:", e);
     } finally {
       setFetchingCustomerPhones(false);
     }

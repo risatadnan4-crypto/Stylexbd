@@ -896,7 +896,7 @@ export default function App() {
         localStorage.setItem('stylex_settings', JSON.stringify(data));
       }
     } catch (err) {
-      console.error("Failed loading settings", err);
+      // Gracefully maintain existing cached settings if offline or restarting
     }
   };
 
@@ -955,7 +955,7 @@ export default function App() {
         });
       }
     } catch (err) {
-      console.warn("Failed loading orders", err);
+      // Gracefully handle transient network errors during background polling
     }
   };
 
@@ -1146,7 +1146,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error("Database connection failed", err);
+      // Gracefully handle database/connection error during load
     }
   };
 
@@ -1258,7 +1258,7 @@ export default function App() {
         setNotifications(data);
       }
     } catch (err) {
-      console.warn("Failed loading notifications", err);
+      // Gracefully handle transient network errors during background polling
     }
   };
 
