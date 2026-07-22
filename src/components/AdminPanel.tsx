@@ -5,7 +5,7 @@ import {
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
   Bot, ShieldCheck, Undo, Search, Lock, AlertTriangle,
-  Activity, Terminal, Cpu, RefreshCw, Layers
+  Activity, Terminal, Cpu, RefreshCw, Layers, Key
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,6 +29,7 @@ import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage
 import { formatPrice, generateQrUrl } from '../utils';
 import { LotteryPrize } from './LotteryModal';
 import PerformanceDashboard from './PerformanceDashboard';
+import AiApiManager from './AiApiManager';
 
 interface AdminPanelProps {
   onBackToStore: () => void;
@@ -52,6 +53,7 @@ interface AdminPanelProps {
     isCatalogDeactivated?: boolean; 
     isXoroVoiceDisabled?: boolean; 
     isXoroVoiceAndAnswerDisabled?: boolean;
+    isXoroTextOnly?: boolean;
     smsProvider?: 'mock' | 'greenweb' | 'twilio';
     twilioAccountSid?: string;
     twilioAuthToken?: string;
@@ -85,7 +87,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai' | 'ai_api_manager'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -147,6 +149,7 @@ export default function AdminPanel({
   const [isCatalogDeactivatedInput, setIsCatalogDeactivatedInput] = useState(settings?.isCatalogDeactivated || false);
   const [isXoroVoiceDisabledInput, setIsXoroVoiceDisabledInput] = useState(settings?.isXoroVoiceDisabled || false);
   const [isXoroVoiceAndAnswerDisabledInput, setIsXoroVoiceAndAnswerDisabledInput] = useState(settings?.isXoroVoiceAndAnswerDisabled || false);
+  const [isXoroTextOnlyInput, setIsXoroTextOnlyInput] = useState(settings?.isXoroTextOnly || false);
   const [smsProviderInput, setSmsProviderInput] = useState<'mock' | 'greenweb' | 'twilio'>(settings?.smsProvider || 'mock');
   const [twilioAccountSidInput, setTwilioAccountSidInput] = useState(settings?.twilioAccountSid || '');
   const [twilioAuthTokenInput, setTwilioAuthTokenInput] = useState(settings?.twilioAuthToken || '');
@@ -606,6 +609,9 @@ export default function AdminPanel({
     if (settings?.isXoroVoiceAndAnswerDisabled !== undefined) {
       setIsXoroVoiceAndAnswerDisabledInput(settings.isXoroVoiceAndAnswerDisabled);
     }
+    if (settings?.isXoroTextOnly !== undefined) {
+      setIsXoroTextOnlyInput(settings.isXoroTextOnly);
+    }
     if (settings?.smsProvider !== undefined) {
       setSmsProviderInput(settings.smsProvider);
     }
@@ -686,6 +692,7 @@ export default function AdminPanel({
           isCatalogDeactivated: isCatalogDeactivatedInput,
           isXoroVoiceDisabled: isXoroVoiceDisabledInput,
           isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+          isXoroTextOnly: isXoroTextOnlyInput,
           smsProvider: smsProviderInput,
           twilioAccountSid: twilioAccountSidInput,
           twilioAuthToken: twilioAuthTokenInput,
@@ -1030,6 +1037,7 @@ export default function AdminPanel({
         isCatalogDeactivated: isCatalogDeactivatedInput,
         isXoroVoiceDisabled: isXoroVoiceDisabledInput,
         isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+        isXoroTextOnly: isXoroTextOnlyInput,
         smsProvider: smsProviderInput,
         twilioAccountSid: twilioAccountSidInput,
         twilioAuthToken: twilioAuthTokenInput,
@@ -1418,6 +1426,7 @@ export default function AdminPanel({
           isCatalogDeactivated: isCatalogDeactivatedInput,
           isXoroVoiceDisabled: isXoroVoiceDisabledInput,
           isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+          isXoroTextOnly: isXoroTextOnlyInput,
           deactivatedMessage: deactivatedMessageInput,
           isLotteryDeactivated: isLotteryDeactivatedInput,
           isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
@@ -2246,10 +2255,10 @@ export default function AdminPanel({
 }`;
 
   return (
-    <div className="min-h-screen bg-luxury-black text-white flex flex-col lg:flex-row antialiased relative overflow-x-hidden">
+    <div className="h-screen w-screen max-w-full bg-[#0B0B0F] text-white flex flex-col lg:flex-row antialiased relative overflow-hidden">
       
       {/* MOBILE TOP APP BAR */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#0a0a0a] border-b border-luxury-gold/15 sticky top-0 z-40 shadow-lg">
+      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#0E0E14] border-b border-white/10 shrink-0 z-40 shadow-lg">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setIsDrawerOpen(true)}
@@ -2259,7 +2268,7 @@ export default function AdminPanel({
             <Menu size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-sm text-luxury-gold font-bold">
+            <div className="w-8 h-8 bg-[#15151D] border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-sm text-luxury-gold font-bold shadow-md">
               SX
             </div>
             <span className="font-serif text-sm font-extrabold tracking-widest text-white uppercase">STYLE X</span>
@@ -2278,10 +2287,13 @@ export default function AdminPanel({
           {activeTab === 'coupons' && "Coupons"}
           {activeTab === 'campaigns' && "Campaigns"}
           {activeTab === 'chat' && "Support"}
+          {activeTab === 'xoro_ai' && "Xoro AI"}
+          {activeTab === 'ai_api_manager' && "AI API Manager"}
           {activeTab === 'seo' && "SEO"}
           {activeTab === 'seo_health' && "SEO Health Monitor"}
           {activeTab === 'alerts' && "Alerts"}
           {activeTab === 'sms' && "SMS Gateway"}
+          {activeTab === 'customer_phones' && "Customer Phones"}
           {activeTab === 'settings' && "Settings"}
         </div>
       </header>
@@ -2295,13 +2307,13 @@ export default function AdminPanel({
       )}
 
       {/* RESPONSIVE LEFT DRAWER / SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0a0a0a] border-r border-luxury-gold/15 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 h-full ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0E0E14] border-r border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 h-full shrink-0 shadow-2xl overflow-hidden ${
         isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Brand logo block */}
-        <div className="flex items-center justify-between pb-5 border-b border-white/5 shrink-0">
+        <div className="flex items-center justify-between pb-5 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-luxury-charcoal border border-luxury-gold/30 rounded flex items-center justify-center p-1 font-serif text-lg text-luxury-gold font-bold">
+            <div className="w-11 h-11 bg-[#15151D] border border-luxury-gold/40 rounded flex items-center justify-center p-1 font-serif text-lg text-luxury-gold font-bold shadow-md">
               SX
             </div>
             <div>
@@ -2436,6 +2448,21 @@ export default function AdminPanel({
             >
               <Bot size={13} className={activeTab === 'xoro_ai' ? 'text-luxury-black' : 'text-luxury-gold'} />
               🤖 Xoro AI
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('ai_api_manager'); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all cursor-pointer ${
+                activeTab === 'ai_api_manager' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Key size={13} className={activeTab === 'ai_api_manager' ? 'text-luxury-black' : 'text-cyan-400'} />
+                <span>AI API Manager</span>
+              </div>
+              {xoroRole !== 'super_admin' && (
+                <Lock size={10} className="text-amber-500/70" />
+              )}
             </button>
 
             <button 
@@ -2591,12 +2618,12 @@ export default function AdminPanel({
       </aside>
 
       {/* RIGHT MAIN WORKSPACE CONTAINERS */}
-      <main className="flex-1 bg-luxury-black p-4 md:p-8 overflow-y-auto max-h-screen">
+      <main className="flex-1 h-full min-w-0 flex flex-col overflow-hidden bg-[#0B0B0F]">
         
-        {/* UPPER STATUS STRIPS MATCHING SCREEN 1 */}
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/5 pb-4 mb-8 gap-4">
+        {/* UPPER STICKY HEADER */}
+        <header className="shrink-0 px-4 py-3.5 md:px-6 md:py-4 bg-[#15151D] border-b border-[rgba(255,255,255,0.08)] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10">
           <div>
-            <h1 className="font-serif text-2xl lg:text-3xl font-bold uppercase tracking-wide text-white">
+            <h1 className="font-serif text-xl lg:text-2xl font-bold uppercase tracking-wide text-white">
               {activeTab === 'dashboard' && "Overview Matrix"}
               {activeTab === 'performance_dashboard' && "Performance Analytics Suite"}
               {activeTab === 'inventory' && "Curated Inventory"}
@@ -2606,6 +2633,8 @@ export default function AdminPanel({
               {activeTab === 'coupons' && "VIP Coupons Engine"}
               {activeTab === 'campaigns' && "Launch Campaigns"}
               {activeTab === 'chat' && "Presence Concierge Help"}
+              {activeTab === 'xoro_ai' && "Xoro AI Assistant"}
+              {activeTab === 'ai_api_manager' && "AI API Key Manager"}
               {activeTab === 'seo' && "Search Optimizations"}
               {activeTab === 'seo_health' && "SEO Quality & Health Suite"}
               {activeTab === 'settings' && "VIP System Settings"}
@@ -2613,24 +2642,27 @@ export default function AdminPanel({
               {activeTab === 'sms' && "Bangla SMS Gateway Dashboard"}
               {activeTab === 'customer_phones' && "Customer Phone Vault"}
             </h1>
-            <p className="text-xs text-white/40 mt-0.5">Welcome, Risat Adnan. (Admin Account)</p>
+            <p className="text-[11px] text-white/60 mt-0.5">Welcome, Risat Adnan. (Admin Account)</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Live Visistors Count Indicators */}
-            <div className="bg-[#0c0c0c] border border-white/5 py-1.5 px-3 rounded flex items-center gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Live Visitors Count Indicators */}
+            <div className="bg-[#0B0B0F] border border-white/10 py-1 px-2.5 rounded-lg flex items-center gap-2 text-xs font-mono shadow-sm">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
-              <span className="text-white/40 uppercase">LIVE VIEWS:</span>
-              <span className="text-white font-bold leading-none">{analytics?.liveViews || 1}</span>
+              <span className="text-white/60 uppercase text-[10px]">LIVE VIEWS:</span>
+              <span className="text-white font-bold text-xs leading-none">{analytics?.liveViews || 1}</span>
             </div>
 
-            <div className="bg-[#0c0c0c] border border-white/5 py-1.5 px-3 rounded flex items-center gap-2 text-xs font-mono">
+            <div className="bg-[#0B0B0F] border border-white/10 py-1 px-2.5 rounded-lg flex items-center gap-2 text-xs font-mono shadow-sm">
               <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-              <span className="text-white/40 uppercase">AGGREGATED VISITS:</span>
-              <span className="text-white font-bold leading-none">{analytics?.visits || 125}</span>
+              <span className="text-white/60 uppercase text-[10px]">AGGREGATED VISITS:</span>
+              <span className="text-white font-bold text-xs leading-none">{analytics?.visits || 125}</span>
             </div>
           </div>
         </header>
+
+        {/* SCROLLABLE MAIN CONTENT AREA */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
 
         {/* CONTROLLERS PER ACTIVE MENU TAB */}
 
@@ -2649,76 +2681,76 @@ export default function AdminPanel({
             {/* Numeric Indicators rows */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg">
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-widest block">Accumulated Income</span>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Accumulated Income</span>
                 <p className="font-serif text-2xl lg:text-3xl font-bold text-luxury-gold mt-1">
                   {formatPrice(analytics.totalRevenue)}
                 </p>
                 <span className="text-[9px] text-green-400 font-mono block mt-2">▲ +12% from last drop cycle</span>
               </div>
 
-              <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg">
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-widest block">Total Receipts Logged</span>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Total Receipts Logged</span>
                 <p className="font-serif text-2xl lg:text-3xl font-bold text-white mt-1">
                   {analytics.totalOrders}
                 </p>
-                <p className="text-[9px] text-white/40 font-mono block mt-2">Across all destinations</p>
+                <p className="text-[9px] text-white/50 font-mono block mt-2">Across all destinations</p>
               </div>
 
-              <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg">
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-widest block">Pending Conciere Confirmations</span>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Pending Conciere Confirmations</span>
                 <p className={`font-serif text-2xl lg:text-3xl font-bold mt-1 ${analytics.pendingOrders > 0 ? 'text-red-400' : 'text-white'}`}>
                   {analytics.pendingOrders}
                 </p>
-                <span className="text-[9px] text-white/40 font-mono block mt-2">Need immediate phone calls</span>
+                <span className="text-[9px] text-white/50 font-mono block mt-2">Need immediate phone calls</span>
               </div>
 
-              <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg">
-                <span className="text-[10px] text-white/40 uppercase font-mono tracking-widest block">Low Inventories alerts</span>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Low Inventories alerts</span>
                 <p className={`font-serif text-2xl lg:text-3xl font-bold mt-1 ${analytics.lowStockStockCount > 0 ? 'text-yellow-400' : 'text-white'}`}>
                   {analytics.lowStockStockCount}
                 </p>
-                <p className="text-[9px] text-white/40 font-mono block mt-2">Fewer than 15 units left</p>
+                <p className="text-[9px] text-white/50 font-mono block mt-2">Fewer than 15 units left</p>
               </div>
 
             </div>
 
             {/* 100% Accurate High-Accuracy Visitor Presence Hub */}
-            <div className="bg-gradient-to-br from-[#120529] via-[#080211] to-[#040108] border border-luxury-gold/25 rounded-xl p-5 md:p-6 shadow-[0_4px_30px_rgba(154,77,255,0.15)] relative overflow-hidden group">
+            <div className="bg-[#15151D] border border-luxury-gold/30 rounded-2xl p-5 md:p-6 shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#9A4DFF]/5 rounded-full blur-3xl group-hover:bg-[#9A4DFF]/8 transition-all duration-700 pointer-events-none" />
               <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
               
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
                 <div className="space-y-2 max-w-xl">
-                  <div className="inline-flex items-center gap-2 bg-[#120c24] border border-[#9A4DFF]/30 px-2.5 py-1 rounded-full">
+                  <div className="inline-flex items-center gap-2 bg-[#0B0B0F] border border-[#9A4DFF]/30 px-2.5 py-1 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <span className="text-[9px] text-[#b689ff] uppercase tracking-widest font-mono font-black">100% ACCURATE HEARTBEAT METRICS ACTIVATED</span>
                   </div>
                   <h3 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide uppercase flex items-center gap-2">
                     ⚜️ Traffic & Audience Analytics Matrix
                   </h3>
-                  <p className="text-xs text-white/55 leading-relaxed font-sans">
+                  <p className="text-xs text-white/70 leading-relaxed font-sans">
                     Our high-precision, non-cookie audience telemetry fingerprints browser devices uniquely. Active sessions run a localized 12-second heartbeat loop to prevent session contamination.
                   </p>
                 </div>
 
                 {/* Real-time stats grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto flex-shrink-0">
-                  <div className="bg-black/40 border border-white/5 p-3.5 rounded-lg flex flex-col justify-center min-w-[130px] shadow-sm">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-400">Live Concurrences</span>
+                  <div className="bg-[#0B0B0F] border border-white/10 p-3.5 rounded-xl flex flex-col justify-center min-w-[130px] shadow-sm">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-300">Live Concurrences</span>
                     <p className="text-2xl font-black font-sans text-emerald-400 mt-1 flex items-baseline gap-1.5">
                       <span>{analytics?.liveViews || 1}</span>
                       <span className="text-[10px] font-mono text-emerald-500 font-bold animate-pulse">● online</span>
                     </p>
                   </div>
-                  <div className="bg-black/40 border border-white/5 p-3.5 rounded-lg flex flex-col justify-center min-w-[130px] shadow-sm">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-400">Total Unique Visitors</span>
+                  <div className="bg-[#0B0B0F] border border-white/10 p-3.5 rounded-xl flex flex-col justify-center min-w-[130px] shadow-sm">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-300">Total Unique Visitors</span>
                     <p className="text-2xl font-black font-sans text-luxury-gold mt-1">
                       {analytics?.visits || 125}
                     </p>
                   </div>
-                  <div className="bg-black/40 border border-white/5 p-3.5 rounded-lg flex flex-col justify-center min-w-[130px] col-span-2 sm:col-span-1 shadow-sm">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-400">Checkout Conversion</span>
+                  <div className="bg-[#0B0B0F] border border-white/10 p-3.5 rounded-xl flex flex-col justify-center min-w-[130px] col-span-2 sm:col-span-1 shadow-sm">
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-300">Checkout Conversion</span>
                     <p className="text-2xl font-black font-sans text-[#a78bfa] mt-1">
                       {((Number(analytics?.totalOrders || 0) / Math.max(1, Number(analytics?.visits || 125))) * 100).toFixed(1)}%
                     </p>
@@ -2727,20 +2759,20 @@ export default function AdminPanel({
               </div>
 
               {/* Heartbeat pulse animation bar */}
-              <div className="mt-6 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-zinc-400 relative z-10">
+              <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-mono text-zinc-300 relative z-10">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-zinc-500">Live Pulse:</span>
+                  <span className="text-[10px] text-zinc-400">Live Pulse:</span>
                   <div className="flex items-end gap-[3px] h-4">
-                    <span className="w-1 bg-[#9A4DFF]/20 h-2 rounded animate-pulse"></span>
-                    <span className="w-1 bg-emerald-500/60 h-4 rounded animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="w-1 bg-emerald-500/40 h-3 rounded animate-bounce [animation-delay:0.4s]"></span>
-                    <span className="w-1 bg-[#9A4DFF]/40 h-1.5 rounded animate-pulse"></span>
-                    <span className="w-1 bg-emerald-500/80 h-3.5 rounded animate-bounce"></span>
-                    <span className="w-1 bg-[#9A4DFF]/30 h-1 rounded animate-pulse [animation-delay:0.1s]"></span>
+                    <span className="w-1 bg-[#9A4DFF]/30 h-2 rounded animate-pulse"></span>
+                    <span className="w-1 bg-emerald-500/70 h-4 rounded animate-bounce [animation-delay:0.2s]"></span>
+                    <span className="w-1 bg-emerald-500/50 h-3 rounded animate-bounce [animation-delay:0.4s]"></span>
+                    <span className="w-1 bg-[#9A4DFF]/50 h-1.5 rounded animate-pulse"></span>
+                    <span className="w-1 bg-emerald-500/90 h-3.5 rounded animate-bounce"></span>
+                    <span className="w-1 bg-[#9A4DFF]/40 h-1 rounded animate-pulse [animation-delay:0.1s]"></span>
                   </div>
                   <span className="text-[9px] text-[#a78bfa] font-bold">Secure connection logs active</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-zinc-400">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-zinc-300">
                   <span className="flex items-center gap-1">🛡️ Anti-bot filters: <span className="text-emerald-400 font-bold">ENABLED</span></span>
                   <span className="flex items-center gap-1">🔒 Cookies: <span className="text-yellow-400 font-bold">BYPASSED (0-risk)</span></span>
                 </div>
@@ -2748,39 +2780,39 @@ export default function AdminPanel({
             </div>
 
             {/* Recent Orders table inside metrics overview */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
               <h3 className="font-serif text-base uppercase tracking-wider text-white mb-4">Executive Recent Transactions</h3>
               {orders.length === 0 ? (
-                <p className="text-xs text-white/40 italic py-4">No luxury transactions logged yet.</p>
+                <p className="text-xs text-white/60 italic py-4">No luxury transactions logged yet.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs divide-y divide-white/5">
-                    <thead>
-                      <tr className="text-white/40 uppercase font-mono text-[10px]">
-                        <th className="py-2.5">Date</th>
-                        <th>Order Track ID</th>
-                        <th>RECIPIENT Info</th>
-                        <th>Total Amount</th>
-                        <th>Courier Status</th>
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="w-full text-left text-xs divide-y divide-white/10">
+                    <thead className="bg-[#1C1C26]">
+                      <tr className="text-white/80 uppercase font-mono text-[10px]">
+                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Order Track ID</th>
+                        <th className="py-3 px-4">RECIPIENT Info</th>
+                        <th className="py-3 px-4">Total Amount</th>
+                        <th className="py-3 px-4">Courier Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 text-white/85">
+                    <tbody className="divide-y divide-white/5 text-white/90 bg-[#15151D]">
                       {orders.slice(-5).reverse().map((ord, i) => (
-                        <tr key={i} className="hover:bg-white/[0.02]">
-                          <td className="py-3 font-mono text-[10.5px]">{new Date(ord.date).toLocaleDateString()}</td>
-                          <td className="font-mono text-luxury-gold font-bold">{ord.id}</td>
-                          <td>
-                            <div>{ord.customerName}</div>
-                            <div className="text-[10px] text-white/40 font-mono">{ord.customerPhone}</div>
+                        <tr key={i} className="hover:bg-[#1E1E2B] transition-colors">
+                          <td className="py-3 px-4 font-mono text-[10.5px]">{new Date(ord.date).toLocaleDateString()}</td>
+                          <td className="py-3 px-4 font-mono text-luxury-gold font-bold">{ord.id}</td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-white">{ord.customerName}</div>
+                            <div className="text-[10px] text-white/50 font-mono">{ord.customerPhone}</div>
                           </td>
-                          <td className="font-mono font-semibold">{formatPrice(ord.totalAmount)}</td>
-                          <td>
-                            <span className={`px-2 py-0.5 rounded text-[9.5px] font-mono border uppercase tracking-wider ${
+                          <td className="py-3 px-4 font-mono font-semibold text-white">{formatPrice(ord.totalAmount)}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2.5 py-1 rounded text-[9.5px] font-mono border uppercase tracking-wider font-bold ${
                               ord.status === 'DELIVERED' 
-                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                ? 'bg-green-500/20 text-green-300 border-green-500/30'
                                 : ord.status === 'PENDING'
-                                  ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                  : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                  ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                  : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
                             }`}>
                               {ord.status}
                             </span>
@@ -6030,6 +6062,17 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
           </div>
         )}
 
+        {/* 🛡️ AI API MANAGER DASHBOARD */}
+        {activeTab === 'ai_api_manager' && (
+          <div className="animate-fade-in text-left">
+            <AiApiManager
+              settings={settings}
+              adminPassword={settings?.adminPassword || 'risat123'}
+              xoroRole={xoroRole}
+            />
+          </div>
+        )}
+
         {/* 9. SEO MASTER OPTIMIZATION TOOL */}
         {activeTab === 'seo' && (
           <div className="space-y-6 animate-fade-in text-left">
@@ -6098,6 +6141,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             isCatalogDeactivated: isCatalogDeactivatedInput,
                             isXoroVoiceDisabled: isXoroVoiceDisabledInput,
                             isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+                            isXoroTextOnly: isXoroTextOnlyInput,
                             smsProvider: smsProviderInput,
                             twilioAccountSid: twilioAccountSidInput,
                             twilioAuthToken: twilioAuthTokenInput,
@@ -7829,6 +7873,28 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or upload a custom image for Xoro's avatar. Highly visible on the homepage assistant container.</p>
                   </div>
 
+                  {/* XORO ONLY ANSWER IN TEXT TOGGLE */}
+                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                          <span>💬 Xoro Only Answer in Text</span>
+                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">TEXT ONLY</span>
+                        </label>
+                        <p className="text-[9px] text-zinc-500 font-mono">অন করলে জোরো শুধু টেক্সটে উত্তর দিবে, কোনো ভয়েস বা উচ্চারণ করবে না। (When ON, Xoro answers strictly in text without voice audio).</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isXoroTextOnlyInput}
+                          onChange={(e) => setIsXoroTextOnlyInput(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* XORO VOICE OVERLAY TOGGLE */}
                   <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
@@ -7837,7 +7903,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           <span>🎙️ Xoro Voice Output</span>
                           <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">SPEECH API</span>
                         </label>
-                        <p className="text-[9px] text-zinc-500 font-mono">Toggle whether Xoro uses the browser's audio synthesizer voice output by default.</p>
+                        <p className="text-[9px] text-zinc-500 font-mono">অন থাকলে জোরো ভয়েস দিয়ে উত্তর পড়ে শোনাবে। (Toggle whether Xoro reads answers aloud with voice output).</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -8647,6 +8713,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
           </div>
         )}
 
+        </div>
       </main>
 
       {adminToast && (

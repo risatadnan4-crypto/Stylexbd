@@ -51,10 +51,35 @@ html {
 
 /* Glassmorphism Classes */
 .glass-panel {
-  background: rgba(18, 18, 18, 0.7);
+  background: rgba(21, 21, 29, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Admin Panel Global Contrast Classes */
+.admin-card-surface {
+  background-color: #15151D !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+}
+
+.admin-card-inner {
+  background-color: #0B0B0F !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.admin-input-style {
+  background-color: #0B0B0F !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+}
+
+.admin-input-style:focus {
+  border-color: #D4AF37 !important;
+  box-shadow: 0 0 0 1px #D4AF37 !important;
+  outline: none !important;
 }
 
 .glass-dropdown {

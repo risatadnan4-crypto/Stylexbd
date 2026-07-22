@@ -267,38 +267,38 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
   return (
     <div className="space-y-8 animate-fade-in text-white pb-12">
       {/* HEADER CONTROLS BAR */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#0a0a0a] border border-white/5 p-4 rounded-xl shadow-lg">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
         <div className="flex items-center gap-2.5">
           <TrendingUp className="text-luxury-gold w-5 h-5" />
           <div>
             <h2 className="text-sm font-serif font-bold uppercase tracking-wider text-luxury-gold">VIP Sales &amp; Traffic Ledger</h2>
-            <p className="text-[10px] text-zinc-500 font-mono">REALTIME ENGINE REPORTING</p>
+            <p className="text-[10px] text-zinc-400 font-mono">REALTIME ENGINE REPORTING</p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* CATEGORY FILTER */}
-          <div className="flex items-center gap-1.5 bg-[#121212] border border-white/10 rounded px-2 py-1 text-xs">
+          <div className="flex items-center gap-1.5 bg-[#0B0B0F] border border-white/15 rounded-xl px-3 py-1.5 text-xs shadow-inner">
             <Filter size={12} className="text-luxury-gold" />
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Curation:</span>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Curation:</span>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="bg-transparent border-none text-white text-xs font-mono font-bold focus:outline-none cursor-pointer pr-1"
             >
-              <option value="ALL" className="bg-[#121212] text-white">ALL PIECES</option>
-              <option value="MEN" className="bg-[#121212] text-white">MEN</option>
-              <option value="WOMEN" className="bg-[#121212] text-white">WOMEN</option>
-              <option value="UNISEX" className="bg-[#121212] text-white">UNISEX</option>
-              <option value="ACCESSORIES" className="bg-[#121212] text-white">ACCESSORIES</option>
+              <option value="ALL" className="bg-[#15151D] text-white">ALL PIECES</option>
+              <option value="MEN" className="bg-[#15151D] text-white">MEN</option>
+              <option value="WOMEN" className="bg-[#15151D] text-white">WOMEN</option>
+              <option value="UNISEX" className="bg-[#15151D] text-white">UNISEX</option>
+              <option value="ACCESSORIES" className="bg-[#15151D] text-white">ACCESSORIES</option>
             </select>
           </div>
 
           {/* TIME RANGE FILTER */}
-          <div className="flex bg-[#121212] border border-white/10 rounded p-1">
+          <div className="flex bg-[#0B0B0F] border border-white/15 rounded-xl p-1 shadow-inner">
             <button
               onClick={() => setTimeRange('7d')}
-              className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded transition-all cursor-pointer ${
+              className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer ${
                 timeRange === '7d' 
                   ? 'bg-luxury-gold text-luxury-black shadow-md' 
                   : 'text-zinc-400 hover:text-white'
@@ -308,7 +308,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
             </button>
             <button
               onClick={() => setTimeRange('30d')}
-              className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded transition-all cursor-pointer ${
+              className={`px-3 py-1 text-[10px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer ${
                 timeRange === '30d' 
                   ? 'bg-luxury-gold text-luxury-black shadow-md' 
                   : 'text-zinc-400 hover:text-white'
@@ -323,10 +323,10 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
       {/* KPI METRICS GRIDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Gross Sales */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-md relative overflow-hidden group hover:border-luxury-gold/30 transition-all duration-300">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden group hover:border-luxury-gold/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl group-hover:bg-luxury-gold/10 transition-all"></div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block font-bold">Gross Cumulative Revenue</span>
+            <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-widest block font-bold">Gross Cumulative Revenue</span>
             <div className="p-1.5 rounded bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold">
               <DollarSign size={14} />
             </div>
@@ -335,23 +335,23 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
             {formatPrice(Math.round(computedStats.grossSales))}
           </p>
           <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15">
+            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15 font-bold">
               <ArrowUpRight size={10} /> +14.2%
             </span>
-            <span className="text-[9px] text-zinc-500 font-mono">vs previous drop</span>
+            <span className="text-[9px] text-zinc-400 font-mono">vs previous drop</span>
           </div>
           {computedStats.realSales > 0 && (
-            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/5 pt-2">
+            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/10 pt-2">
               📂 Database live contribution: <span className="text-white font-bold">{formatPrice(computedStats.realSales)}</span>
             </p>
           )}
         </div>
 
         {/* KPI 2: Order receipts */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-md relative overflow-hidden group hover:border-luxury-gold/30 transition-all duration-300">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden group hover:border-luxury-gold/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl group-hover:bg-luxury-gold/10 transition-all"></div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block font-bold">Total Receipts logged</span>
+            <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-widest block font-bold">Total Receipts logged</span>
             <div className="p-1.5 rounded bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold">
               <ShoppingBag size={14} />
             </div>
@@ -360,23 +360,23 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
             {computedStats.totalOrders}
           </p>
           <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15">
+            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15 font-bold">
               <ArrowUpRight size={10} /> +9.8%
             </span>
-            <span className="text-[9px] text-zinc-500 font-mono">Across all nodes</span>
+            <span className="text-[9px] text-zinc-400 font-mono">Across all nodes</span>
           </div>
           {computedStats.realOrders > 0 && (
-            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/5 pt-2">
+            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/10 pt-2">
               🛒 Database live contribution: <span className="text-white font-bold">{computedStats.realOrders} Orders</span>
             </p>
           )}
         </div>
 
         {/* KPI 3: Average Order Value */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-md relative overflow-hidden group hover:border-luxury-gold/30 transition-all duration-300">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden group hover:border-luxury-gold/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl group-hover:bg-luxury-gold/10 transition-all"></div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block font-bold">Average Order Value (AOV)</span>
+            <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-widest block font-bold">Average Order Value (AOV)</span>
             <div className="p-1.5 rounded bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold">
               <Percent size={14} />
             </div>
@@ -385,23 +385,23 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
             {formatPrice(Math.round(computedStats.aov))}
           </p>
           <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="text-[9px] font-mono text-amber-500 flex items-center bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/15">
+            <span className="text-[9px] font-mono text-amber-400 flex items-center bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/15 font-bold">
               ▲ +3.4% BDT
             </span>
-            <span className="text-[9px] text-zinc-500 font-mono">Basket optimization</span>
+            <span className="text-[9px] text-zinc-400 font-mono">Basket optimization</span>
           </div>
           {computedStats.realAOV > 0 && (
-            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/5 pt-2">
+            <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/10 pt-2">
               💳 Real orders baseline AOV: <span className="text-white font-bold">{formatPrice(Math.round(computedStats.realAOV))}</span>
             </p>
           )}
         </div>
 
         {/* KPI 4: Conversion & Traffic Success */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-md relative overflow-hidden group hover:border-luxury-gold/30 transition-all duration-300">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden group hover:border-luxury-gold/40 transition-all duration-300">
           <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl group-hover:bg-luxury-gold/10 transition-all"></div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block font-bold">Vibe Conversion Ratio</span>
+            <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-widest block font-bold">Vibe Conversion Ratio</span>
             <div className="p-1.5 rounded bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold">
               <Users size={14} />
             </div>
@@ -410,12 +410,12 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
             {computedStats.conversionRate.toFixed(2)}%
           </p>
           <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15">
+            <span className="text-[9px] font-mono text-green-400 flex items-center bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/15 font-bold">
               <ArrowUpRight size={10} /> +1.2% rate
             </span>
-            <span className="text-[9px] text-zinc-500 font-mono">Store conversion curve</span>
+            <span className="text-[9px] text-zinc-400 font-mono">Store conversion curve</span>
           </div>
-          <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/5 pt-2">
+          <p className="text-[8.5px] font-mono text-zinc-400 mt-2 border-t border-white/10 pt-2">
             📶 Success fulfillment index: <span className="text-white font-bold">{computedStats.successRate}%</span>
           </p>
         </div>
@@ -424,7 +424,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
       {/* CHARTS CONTAINER GRID 1 - DAILY REVENUE & TRAFFIC TRENDS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CHART A: Daily Revenue & Order count */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg lg:col-span-2 space-y-4">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-luxury-gold" />

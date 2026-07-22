@@ -617,7 +617,7 @@ export default function XoroAssistant({
   // Helper to read aloud text using Web Speech API (Text-to-Speech)
   // Tuned for crystal-clear pronunciation, organic articulation, and zero background interference.
   const speakText = (text: string) => {
-    if (!isSoundEnabled || settings?.isXoroVoiceAndAnswerDisabled) return;
+    if (!isSoundEnabled || settings?.isXoroVoiceDisabled || settings?.isXoroVoiceAndAnswerDisabled || settings?.isXoroTextOnly) return;
     try {
       // Disabled introductory beep sounds to guarantee a purely natural, non-robotic, and professional human greeting experience
       // const isShort = text.length < 50;
