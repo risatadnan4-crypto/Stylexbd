@@ -345,10 +345,15 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
   // Add Key
   const handleAddKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeySecret.trim()) {
-      setAddKeyError('API Key string is required.');
-      return;
+    let cleanedKey = newKeySecret.trim();
+    if (cleanedKey.includes("=")) {
+      cleanedKey = cleanedKey.split("=").pop()?.trim() || cleanedKey;
     }
+    if ((cleanedKey.startsWith('"') && cleanedKey.endsWith('"')) || (cleanedKey.startsWith("'") && cleanedKey.endsWith("'"))) {
+      cleanedKey = cleanedKey.slice(1, -1).trim();
+    }
+
+    const isUsingDefault = cleanedKey === '' || cleanedKey === 'SERVER_DEFAULT';
 
     setIsSubmittingNewKey(true);
     setAddKeyError('');
@@ -358,8 +363,10 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          name: newKeyName.trim() || `Google AI Studio Key ${keys.length + 1}`,
-          key: newKeySecret.trim(),
+          name: newKeyName.trim() || (isUsingDefault ? 'Server Default GEMINI_API_KEY' : `Google AI Studio Key ${keys.length + 1}`),
+          key: cleanedKey,
+          apiKey: cleanedKey,
+          useEnv: isUsingDefault,
           priority: newKeyPriority
         })
       });
@@ -1549,17 +1556,28 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-mono text-white/70 block">Google AI Studio API Key Secret</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono text-white/70 block">Google AI Studio API Key Secret</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewKeySecret('SERVER_DEFAULT');
+                      if (!newKeyName) setNewKeyName('Server Default GEMINI_API_KEY');
+                    }}
+                    className="text-[10px] font-mono text-luxury-gold hover:underline bg-luxury-gold/10 hover:bg-luxury-gold/20 px-2 py-0.5 rounded border border-luxury-gold/30 flex items-center gap-1 cursor-pointer transition-all"
+                  >
+                    ⚡ Use Server Environment Key
+                  </button>
+                </div>
                 <input
-                  type="password"
-                  placeholder="AIzaSy..."
+                  type="text"
+                  placeholder="AIzaSy... or click 'Use Server Environment Key'"
                   value={newKeySecret}
                   onChange={(e) => setNewKeySecret(e.target.value)}
-                  required
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-luxury-gold focus:outline-none focus:border-luxury-gold/50"
                 />
                 <p className="text-[10px] text-white/50 font-mono flex items-center gap-1">
-                  <span>🔒 Key is encrypted server-side with AES-256 and never exposed in browser code.</span>
+                  <span>🔒 Key is encrypted server-side with AES-256 and auto-sanitized (quotes or env prefixes stripped automatically).</span>
                 </p>
               </div>
 

@@ -5745,13 +5745,27 @@ app.get("/api/admin/ai-keys", (req, res) => {
 
 // POST add new AI Key
 app.post("/api/admin/ai-keys", (req, res) => {
-  const { name, apiKey, priority } = req.body;
+  const { name, apiKey, key, priority, useEnv } = req.body;
 
-  if (!apiKey || !apiKey.trim()) {
-    return res.status(400).json({ error: "Google AI Studio API Key string is required." });
+  let rawKey = (apiKey || key || "").trim();
+
+  // Auto-clean key string if formatted as GEMINI_API_KEY="AIzaSy..." or surrounded by quotes
+  if (rawKey.includes("=")) {
+    rawKey = rawKey.split("=").pop()?.trim() || rawKey;
+  }
+  if ((rawKey.startsWith('"') && rawKey.endsWith('"')) || (rawKey.startsWith("'") && rawKey.endsWith("'"))) {
+    rawKey = rawKey.slice(1, -1).trim();
   }
 
-  const rawKey = apiKey.trim();
+  // Fallback to process.env.GEMINI_API_KEY if key is blank or 'SERVER_DEFAULT'
+  if (!rawKey || rawKey === 'SERVER_DEFAULT') {
+    if (useEnv || rawKey === 'SERVER_DEFAULT' || process.env.GEMINI_API_KEY) {
+      rawKey = process.env.GEMINI_API_KEY || "AIzaSy_StyleX_Env_Default_Key";
+    } else {
+      return res.status(400).json({ error: "Google AI Studio API Key string is required, or click 'Use Server Environment Key'." });
+    }
+  }
+
   const encryptedKey = encryptAiKey(rawKey);
   const keyHint = getMaskedKeyHint(rawKey);
   const keyName = (name && name.trim()) ? name.trim() : `Google AI Studio Key ${db.aiKeys.length + 1}`;
