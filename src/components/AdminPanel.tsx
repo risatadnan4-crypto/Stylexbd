@@ -1092,6 +1092,7 @@ export default function AdminPanel({
   const [loading, setLoading] = useState(false);
 
   // Form Fields
+  const [formCode, setFormCode] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(100);
@@ -1745,6 +1746,7 @@ export default function AdminPanel({
     const finalOfferPrice = formOfferPrice !== '' ? Number(formOfferPrice) : null;
 
     const productPayload = {
+      code: formCode || undefined,
       title: formTitle,
       description: formDescription,
       price: finalPrice,
@@ -1838,6 +1840,7 @@ export default function AdminPanel({
     setFormError('');
     setFormSuccess('');
     setEditingProduct(prod);
+    setFormCode(prod.code || '');
     setFormTitle(prod.title);
     setFormDescription(prod.description);
     
@@ -2834,6 +2837,7 @@ export default function AdminPanel({
               <button
                 onClick={() => {
                   setEditingProduct(null);
+                  setFormCode('');
                   setFormTitle('');
                   setFormDescription('');
                   setFormPrice(100);
@@ -3259,14 +3263,24 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Title */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Product Title</label>
-                    <input 
-                      type="text" required value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
-                      placeholder="e.g. Risat Adnan Signature Tee"
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                    />
+                  {/* Title & SKU Code */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 col-span-1 md:col-span-1">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Product Title</label>
+                      <input 
+                        type="text" required value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder="e.g. Risat Adnan Signature Tee"
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                      />
+                    </div>
+                    <div className="sm:col-span-1">
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SKU / Code</label>
+                      <input 
+                        type="text" value={formCode} onChange={(e) => setFormCode(e.target.value)}
+                        placeholder="e.g. XP-001"
+                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono uppercase"
+                      />
+                    </div>
                   </div>
 
                   {/* Price */}

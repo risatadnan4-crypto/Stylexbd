@@ -868,42 +868,21 @@ async function syncFromSupabase() {
       if (!productsResult.error && productsResult.data) {
         const productsData = productsResult.data;
         if (productsData.length > 0) {
-          db.products = productsData.map((p: any) => {
-            const localProduct = db.products ? db.products.find((lp: any) => lp.id === p.id) : null;
+          const fetchedIds = new Set(productsData.map((p: any) => String(p.id)));
+          const supabaseProducts = productsData.map((p: any) => {
+            const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
             const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
-            return {
-              ...p,
-              sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
-              trending: p.trending !== undefined ? !!p.trending : true,
-              featured: p.featured !== undefined ? !!p.featured : true,
-              price: Number(p.price || 0),
-              stock: Number(p.stock || 0),
-              lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
-              couponCode: p.couponCode || "",
-              couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
-              offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
-              timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
-              timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
-              timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (p.timerActive !== undefined ? !!p.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
-              bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
-              nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
-              paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
-              paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
-              deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
-              deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
-              isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-              likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
-              seoTitle: p.seo_title !== undefined && p.seo_title !== null ? String(p.seo_title) : (p.seoTitle !== undefined && p.seoTitle !== null ? String(p.seoTitle) : (localProduct?.seoTitle || "")),
-              seoDescription: p.seo_description !== undefined && p.seo_description !== null ? String(p.seo_description) : (p.seoDescription !== undefined && p.seoDescription !== null ? String(p.seoDescription) : (localProduct?.seoDescription || "")),
-              seoKeywords: p.seo_keywords !== undefined && p.seo_keywords !== null ? String(p.seo_keywords) : (p.seoKeywords !== undefined && p.seoKeywords !== null ? String(p.seoKeywords) : (localProduct?.seoKeywords || "")),
-              seoSlug: p.seo_slug !== undefined && p.seo_slug !== null ? String(p.seo_slug) : (p.seoSlug !== undefined && p.seoSlug !== null ? String(p.seoSlug) : (localProduct?.seoSlug || ""))
-            };
+            return buildProductObject(p, localProduct, pm);
           });
+
+          // Retain local-only products that are not yet in Supabase
+          const localOnlyProducts = (db.products || []).filter((lp: any) => !fetchedIds.has(String(lp.id)));
+          db.products = [...supabaseProducts, ...localOnlyProducts];
           db.seededProducts = true;
           saveDB();
-          console.log(`✅ Synced ${db.products.length} products from Supabase.`);
+          console.log(`✅ Synced ${db.products.length} products from Supabase/Local.`);
         } else {
-          if (!isDbInitialized && db.products && db.products.length > 0) {
+          if (db.products && db.products.length > 0) {
             console.log("🌱 Supabase 'products' table is empty. Seeding Supabase from local database backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
@@ -925,7 +904,7 @@ async function syncFromSupabase() {
             db.seededProducts = true;
             saveDB();
           } else {
-            db.products = [];
+            db.products = db.products || [];
             saveDB();
           }
         }
@@ -1737,208 +1716,258 @@ app.post("/api/settings", async (req, res) => {
   }
 });
 
+// Helper to safely build a consolidated Product object merging Supabase row, local cache, and payment metadata
+function tryJsonParse(val: any) {
+  if (val === null || val === undefined) return null;
+  if (typeof val !== "string") return val;
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return null;
+  }
+}
+
+function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
+  const local = localProduct || {};
+  const paymentMeta = pm && Object.keys(pm).length > 0 
+    ? pm 
+    : ((db.settings?.productPayments && p?.id && db.settings.productPayments[p.id]) || {});
+
+  // Sizes
+  let parsedSizes: string[] = [];
+  const rawSizes = p?.sizes ?? local.sizes;
+  if (rawSizes !== undefined && rawSizes !== null) {
+    const res = tryJsonParse(rawSizes);
+    if (Array.isArray(res)) {
+      parsedSizes = res;
+    } else if (typeof rawSizes === "string") {
+      parsedSizes = rawSizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(rawSizes)) {
+      parsedSizes = rawSizes;
+    }
+  }
+
+  // Images
+  let parsedImages: string[] = [];
+  const rawImages = p?.images ?? local.images;
+  if (rawImages !== undefined && rawImages !== null) {
+    const res = tryJsonParse(rawImages);
+    if (Array.isArray(res)) {
+      parsedImages = res;
+    } else if (Array.isArray(rawImages)) {
+      parsedImages = rawImages;
+    }
+  }
+
+  // Colors
+  let parsedColors: any[] = [];
+  const rawColors = p?.colors ?? local.colors;
+  if (rawColors !== undefined && rawColors !== null) {
+    const res = tryJsonParse(rawColors);
+    if (Array.isArray(res)) {
+      parsedColors = res;
+    } else if (Array.isArray(rawColors)) {
+      parsedColors = rawColors;
+    }
+  }
+
+  const getStr = (...vals: any[]): string => {
+    for (const v of vals) {
+      if (v !== undefined && v !== null && String(v).trim() !== "") {
+        return String(v);
+      }
+    }
+    return "";
+  };
+
+  const getBool = (...vals: any[]): boolean => {
+    for (const v of vals) {
+      if (v !== undefined && v !== null) {
+        return !!v;
+      }
+    }
+    return false;
+  };
+
+  const getNum = (...vals: any[]): number | null => {
+    for (const v of vals) {
+      if (v !== undefined && v !== null && v !== "" && !isNaN(Number(v))) {
+        return Number(v);
+      }
+    }
+    return null;
+  };
+
+  const id = String(p?.id || local.id || Math.random().toString(36).substring(2, 10));
+
+  return {
+    id,
+    code: getStr(p?.code, p?.product_code, paymentMeta.code, local.code, `XP-${Math.floor(100 + Math.random() * 900)}`),
+    title: getStr(p?.title, p?.product_title, local.title, "Untitled Creation"),
+    description: getStr(p?.description, p?.product_description, local.description, ""),
+    price: getNum(p?.price, local.price, 0) ?? 0,
+    category: (getStr(p?.category, local.category, "UNISEX") as any),
+    stock: getNum(p?.stock, local.stock, 0) ?? 0,
+    imageUrl: getStr(p?.imageUrl, p?.image_url, local.imageUrl, ""),
+    images: parsedImages,
+    colors: parsedColors,
+    sizes: parsedSizes,
+    dimensions: getStr(p?.dimensions, local.dimensions, "Standard Fitting"),
+    whyBuy: getStr(p?.whyBuy, p?.why_buy, local.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
+    trending: getBool(p?.trending, local.trending, true),
+    featured: getBool(p?.featured, local.featured, true),
+    isPinned: getBool(p?.isPinned, p?.is_pinned, paymentMeta.isPinned, local.isPinned, false),
+    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, paymentMeta.deliveryPrice, local.deliveryPrice, 100) ?? 100,
+    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
+    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
+    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
+    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
+    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
+    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
+    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
+    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
+    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, local.lotteryEligible, true),
+    couponCode: getStr(p?.couponCode, p?.coupon_code, local.couponCode, ""),
+    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, local.couponDiscountPercent) ?? undefined,
+    offerPrice: getNum(p?.offerPrice, p?.offer_price, paymentMeta.offerPrice, local.offerPrice) ?? undefined,
+    timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, paymentMeta.timerEndTime, local.timerEndTime, ""),
+    timerMessage: getStr(p?.timerMessage, p?.timer_message, paymentMeta.timerMessage, local.timerMessage, ""),
+    timerActive: getBool(p?.timerActive, p?.timer_active, paymentMeta.timerActive, local.timerActive, true),
+    bkashNumber: getStr(p?.bkashNumber, p?.bkash_number, paymentMeta.bkashNumber, local.bkashNumber, ""),
+    nagadNumber: getStr(p?.nagadNumber, p?.nagad_number, paymentMeta.nagadNumber, local.nagadNumber, ""),
+    paymentType: (getStr(p?.paymentType, p?.payment_type, paymentMeta.paymentType, local.paymentType, "cod") as any),
+    paymentPercentage: getNum(p?.paymentPercentage, p?.payment_percentage, paymentMeta.paymentPercentage, local.paymentPercentage, 10) ?? 10,
+    deliveryCharge: getNum(p?.deliveryCharge, p?.delivery_charge, paymentMeta.deliveryCharge, local.deliveryCharge, 100) ?? 100,
+    deliveryDays: getStr(p?.deliveryDays, p?.delivery_days, paymentMeta.deliveryDays, local.deliveryDays, "3-5"),
+    freeDelivery: getBool(p?.freeDelivery, p?.free_delivery, paymentMeta.freeDelivery, local.freeDelivery, false),
+    likes: getNum(p?.likes, paymentMeta.likes, local.likes, 0) ?? 0,
+    seoTitle: getStr(p?.seoTitle, p?.seo_title, local.seoTitle, ""),
+    seoDescription: getStr(p?.seoDescription, p?.seo_description, local.seoDescription, ""),
+    seoKeywords: getStr(p?.seoKeywords, p?.seo_keywords, local.seoKeywords, ""),
+    seoSlug: getStr(p?.seoSlug, p?.seo_slug, local.seoSlug, "")
+  };
+}
+
 // Products Base API
 app.get("/api/products", async (req, res) => {
   try {
     const { data: productsData, error: pError } = await supabase.from("products").select("*");
     if (!pError && productsData && productsData.length > 0) {
-      const products = productsData.map((p: any) => {
+      const fetchedIds = new Set(productsData.map((p: any) => String(p.id)));
+      const supabaseProducts = productsData.map((p: any) => {
         const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
         const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
-        return {
-          ...p,
-          sizes: typeof p.sizes === "string" ? JSON.parse(p.sizes) : (Array.isArray(p.sizes) ? p.sizes : []),
-          images: typeof p.images === "string" ? JSON.parse(p.images) : (Array.isArray(p.images) ? p.images : []),
-          colors: typeof p.colors === "string" ? JSON.parse(p.colors) : (Array.isArray(p.colors) ? p.colors : (localProduct?.colors || [])),
-          trending: p.trending !== undefined ? !!p.trending : true,
-          featured: p.featured !== undefined ? !!p.featured : true,
-          price: Number(p.price || 0),
-          stock: Number(p.stock || 0),
-          lotteryEligible: p.lotteryEligible !== undefined ? !!p.lotteryEligible : true,
-          couponCode: p.couponCode || "",
-          couponDiscountPercent: p.couponDiscountPercent !== undefined && p.couponDiscountPercent !== null ? Number(p.couponDiscountPercent) : undefined,
-          offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((p.offerPrice !== undefined && p.offerPrice !== null) ? Number(p.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
-          timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (p.timerEndTime || localProduct?.timerEndTime || undefined),
-          timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (p.timerMessage || localProduct?.timerMessage || undefined),
-          timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (p.timerActive !== undefined ? !!p.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
-          bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (p.bkashNumber || localProduct?.bkashNumber || ""),
-          nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (p.nagadNumber || localProduct?.nagadNumber || ""),
-          paymentType: pm.paymentType !== undefined ? pm.paymentType : (p.paymentType || localProduct?.paymentType || "cod"),
-          paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (p.paymentPercentage !== undefined && p.paymentPercentage !== null ? Number(p.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
-          deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (p.deliveryCharge !== undefined && p.deliveryCharge !== null ? Number(p.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(p.deliveryPrice || 100))),
-          deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (p.deliveryDays || localProduct?.deliveryDays || "3-5"),
-          isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (p.isPinned !== undefined ? !!p.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-          likes: pm.likes !== undefined ? Number(pm.likes) : (p.likes !== undefined ? Number(p.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
-          seoTitle: p.seo_title !== undefined && p.seo_title !== null ? String(p.seo_title) : (p.seoTitle !== undefined && p.seoTitle !== null ? String(p.seoTitle) : (localProduct?.seoTitle || "")),
-          seoDescription: p.seo_description !== undefined && p.seo_description !== null ? String(p.seo_description) : (p.seoDescription !== undefined && p.seoDescription !== null ? String(p.seoDescription) : (localProduct?.seoDescription || "")),
-          seoKeywords: p.seo_keywords !== undefined && p.seo_keywords !== null ? String(p.seo_keywords) : (p.seoKeywords !== undefined && p.seoKeywords !== null ? String(p.seoKeywords) : (localProduct?.seoKeywords || "")),
-          seoSlug: p.seo_slug !== undefined && p.seo_slug !== null ? String(p.seo_slug) : (p.seoSlug !== undefined && p.seoSlug !== null ? String(p.seoSlug) : (localProduct?.seoSlug || ""))
-        };
+        return buildProductObject(p, localProduct, pm);
       });
-      db.products = products;
+
+      // Retain any local-only products not returned by Supabase
+      const localOnlyProducts = (db.products || []).filter((lp: any) => !fetchedIds.has(String(lp.id)));
+      const mergedProducts = [...supabaseProducts, ...localOnlyProducts];
+
+      db.products = mergedProducts;
       saveDB();
-      return res.json(products);
+      return res.json(mergedProducts);
     }
   } catch (err: any) {
     console.warn("⚠️ Direct products fetch fallback to memory cache:", err.message);
   }
-  res.json(db.products);
+  res.json(db.products || []);
 });
 
 app.get("/api/products/:id", async (req, res) => {
+  const prodId = req.params.id;
+  const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(prodId)) : null;
+  const pm = (db.settings.productPayments && db.settings.productPayments[prodId]) || {};
+
   try {
-    const { data, error } = await supabase.from("products").select("*").eq("id", req.params.id).single();
+    const { data, error } = await supabase.from("products").select("*").eq("id", prodId).single();
     if (!error && data) {
-      const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(req.params.id)) : null;
-      const pm = (db.settings.productPayments && db.settings.productPayments[req.params.id]) || {};
-      const prod = {
-        ...data,
-        sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : (Array.isArray(data.sizes) ? data.sizes : []),
-        images: typeof data.images === "string" ? JSON.parse(data.images) : (Array.isArray(data.images) ? data.images : []),
-        colors: typeof data.colors === "string" ? JSON.parse(data.colors) : (Array.isArray(data.colors) ? data.colors : (localProduct?.colors || [])),
-        trending: data.trending !== undefined ? !!data.trending : true,
-        featured: data.featured !== undefined ? !!data.featured : true,
-        price: Number(data.price || 0),
-        stock: Number(data.stock || 0),
-        lotteryEligible: data.lotteryEligible !== undefined ? !!data.lotteryEligible : true,
-        couponCode: data.couponCode || "",
-        couponDiscountPercent: data.couponDiscountPercent !== undefined && data.couponDiscountPercent !== null ? Number(data.couponDiscountPercent) : undefined,
-        offerPrice: pm.offerPrice !== undefined && pm.offerPrice !== null ? pm.offerPrice : ((data.offerPrice !== undefined && data.offerPrice !== null) ? Number(data.offerPrice) : (localProduct?.offerPrice !== undefined ? localProduct.offerPrice : undefined)),
-        timerEndTime: pm.timerEndTime !== undefined && pm.timerEndTime !== null ? pm.timerEndTime : (data.timerEndTime || localProduct?.timerEndTime || undefined),
-        timerMessage: pm.timerMessage !== undefined && pm.timerMessage !== null ? pm.timerMessage : (data.timerMessage || localProduct?.timerMessage || undefined),
-        timerActive: pm.timerActive !== undefined ? !!pm.timerActive : (data.timerActive !== undefined ? !!data.timerActive : (localProduct?.timerActive !== undefined ? !!localProduct.timerActive : true)),
-        bkashNumber: pm.bkashNumber !== undefined ? pm.bkashNumber : (data.bkashNumber || localProduct?.bkashNumber || ""),
-        nagadNumber: pm.nagadNumber !== undefined ? pm.nagadNumber : (data.nagadNumber || localProduct?.nagadNumber || ""),
-        paymentType: pm.paymentType !== undefined ? pm.paymentType : (data.paymentType || localProduct?.paymentType || "cod"),
-        paymentPercentage: pm.paymentPercentage !== undefined ? (pm.paymentPercentage !== null ? Number(pm.paymentPercentage) : null) : (data.paymentPercentage !== undefined && data.paymentPercentage !== null ? Number(data.paymentPercentage) : (localProduct?.paymentPercentage !== undefined ? Number(localProduct.paymentPercentage) : null)),
-        deliveryCharge: pm.deliveryCharge !== undefined ? Number(pm.deliveryCharge) : (data.deliveryCharge !== undefined && data.deliveryCharge !== null ? Number(data.deliveryCharge) : (localProduct?.deliveryCharge !== undefined ? Number(localProduct.deliveryCharge) : Number(data.deliveryPrice || 100))),
-        deliveryDays: pm.deliveryDays !== undefined ? pm.deliveryDays : (data.deliveryDays || localProduct?.deliveryDays || "3-5"),
-        isPinned: pm.isPinned !== undefined ? !!pm.isPinned : (data.isPinned !== undefined ? !!data.isPinned : (localProduct?.isPinned !== undefined ? !!localProduct.isPinned : false)),
-        likes: pm.likes !== undefined ? Number(pm.likes) : (data.likes !== undefined ? Number(data.likes) : (localProduct?.likes !== undefined ? Number(localProduct.likes) : 0)),
-        seoTitle: data.seo_title !== undefined && data.seo_title !== null ? String(data.seo_title) : (data.seoTitle !== undefined && data.seoTitle !== null ? String(data.seoTitle) : (localProduct?.seoTitle || "")),
-        seoDescription: data.seo_description !== undefined && data.seo_description !== null ? String(data.seo_description) : (data.seoDescription !== undefined && data.seoDescription !== null ? String(data.seoDescription) : (localProduct?.seoDescription || "")),
-        seoKeywords: data.seo_keywords !== undefined && data.seo_keywords !== null ? String(data.seo_keywords) : (data.seoKeywords !== undefined && data.seoKeywords !== null ? String(data.seoKeywords) : (localProduct?.seoKeywords || "")),
-        seoSlug: data.seo_slug !== undefined && data.seo_slug !== null ? String(data.seo_slug) : (data.seoSlug !== undefined && data.seoSlug !== null ? String(data.seoSlug) : (localProduct?.seoSlug || ""))
-      };
+      const prod = buildProductObject(data, localProduct, pm);
       return res.json(prod);
     }
   } catch (err: any) {
     console.warn("⚠️ Direct product selected select fallback:", err.message);
   }
-  const prod = db.products.find(p => p.id === req.params.id);
-  if (prod) {
-    res.json(prod);
-  } else {
-    res.status(404).json({ message: "Product not found" });
+
+  if (localProduct) {
+    return res.json(buildProductObject({}, localProduct, pm));
   }
+  res.status(404).json({ message: "Product not found" });
 });
 
 // Resilient helper to upsert product data to Supabase, automatically handling schema columns mismatch and database alters
 async function upsertProductToSupabase(productPayload: any) {
-  // Try to automatically execute ALTER TABLE queries to add missing columns in case they are not in Supabase yet
-  try {
-    const alterQuery = `
-      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_title TEXT;
-      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_slug TEXT;
-      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_keywords TEXT;
-      ALTER TABLE public.products ADD COLUMN IF NOT EXISTS seo_description TEXT;
-    `;
-    // Attempt standard SQL RPC endpoints if available
-    const rpcNames = ["exec_sql", "execute_sql", "run_sql", "sql"];
-    for (const rpcName of rpcNames) {
-      try {
-        await supabase.rpc(rpcName, { sql: alterQuery, query: alterQuery, sql_query: alterQuery });
-      } catch (e) {}
-    }
-  } catch (err) {}
+  // Strip local-only payment & setting metadata before sending to Supabase
+  const basePayload = { ...productPayload };
+  delete basePayload.bkashNumber;
+  delete basePayload.nagadNumber;
+  delete basePayload.paymentType;
+  delete basePayload.paymentPercentage;
+  delete basePayload.deliveryCharge;
+  delete basePayload.deliveryDays;
+  delete basePayload.isPinned;
+  delete basePayload.freeDelivery;
 
-  const payload = { ...productPayload };
-  
-  // Try with everything first
-  let result = await supabase.from("products").upsert(payload);
+  // Try Option 1: Clean payload with snake_case SEO columns
+  const payloadSnake = { ...basePayload };
+  delete payloadSnake.seoTitle;
+  delete payloadSnake.seoDescription;
+  delete payloadSnake.seoKeywords;
+  delete payloadSnake.seoSlug;
+
+  let result = await supabase.from("products").upsert(payloadSnake);
   if (!result.error) {
     return result;
   }
 
-  // Handle column missing errors gracefully by removing incompatible/custom payment/timer variables or camelCase/snake_case SEO
-  const errMessage = result.error.message || "";
-  const isColumnError = errMessage.includes("column") || result.error.code === "P0002" || errMessage.includes("does not exist") || errMessage.includes("not found");
-  
-  if (isColumnError) {
-    console.warn("⚠️ Column missing error detected during upsert, applying resilient fallbacks:", errMessage);
+  // Try Option 2: Clean payload with camelCase SEO columns
+  const payloadCamel = { ...basePayload };
+  delete payloadCamel.seo_title;
+  delete payloadCamel.seo_description;
+  delete payloadCamel.seo_keywords;
+  delete payloadCamel.seo_slug;
 
-    // Fallback Option A: Try with snake_case SEO columns (retaining snake_case SEO columns as user requested)
-    const payloadA = { ...productPayload };
-    delete payloadA.seoTitle;
-    delete payloadA.seoDescription;
-    delete payloadA.seoKeywords;
-    delete payloadA.seoSlug;
-    
-    // Also strip out other custom columns that might fail in default schemas
-    delete payloadA.bkashNumber;
-    delete payloadA.nagadNumber;
-    delete payloadA.paymentType;
-    delete payloadA.paymentPercentage;
-    delete payloadA.deliveryCharge;
-    delete payloadA.deliveryDays;
-    delete payloadA.isPinned;
-    delete payloadA.freeDelivery;
-    delete payloadA.timerActive;
-    delete payloadA.colors;
-
-    result = await supabase.from("products").upsert(payloadA);
-    if (!result.error) {
-      return result;
-    }
-
-    // Fallback Option B: Try with camelCase SEO columns (in case they have camelCase columns instead of snake_case)
-    const payloadB = { ...productPayload };
-    delete payloadB.seo_title;
-    delete payloadB.seo_description;
-    delete payloadB.seo_keywords;
-    delete payloadB.seo_slug;
-
-    delete payloadB.bkashNumber;
-    delete payloadB.nagadNumber;
-    delete payloadB.paymentType;
-    delete payloadB.paymentPercentage;
-    delete payloadB.deliveryCharge;
-    delete payloadB.deliveryDays;
-    delete payloadB.isPinned;
-    delete payloadB.freeDelivery;
-    delete payloadB.timerActive;
-    delete payloadB.colors;
-
-    result = await supabase.from("products").upsert(payloadB);
-    if (!result.error) {
-      return result;
-    }
-
-    // Fallback Option C: Basic properties only (strip all SEO and custom payment options)
-    const payloadC = { ...productPayload };
-    delete payloadC.seoTitle;
-    delete payloadC.seoDescription;
-    delete payloadC.seoKeywords;
-    delete payloadC.seoSlug;
-    delete payloadC.seo_title;
-    delete payloadC.seo_description;
-    delete payloadC.seo_keywords;
-    delete payloadC.seo_slug;
-
-    delete payloadC.bkashNumber;
-    delete payloadC.nagadNumber;
-    delete payloadC.paymentType;
-    delete payloadC.paymentPercentage;
-    delete payloadC.deliveryCharge;
-    delete payloadC.deliveryDays;
-    delete payloadC.isPinned;
-    delete payloadC.freeDelivery;
-    delete payloadC.timerActive;
-    delete payloadC.colors;
-
-    result = await supabase.from("products").upsert(payloadC);
+  result = await supabase.from("products").upsert(payloadCamel);
+  if (!result.error) {
+    return result;
   }
 
+  // Try Option 3: Base payload without any SEO columns
+  const payloadNoSeo = { ...basePayload };
+  delete payloadNoSeo.seoTitle;
+  delete payloadNoSeo.seoDescription;
+  delete payloadNoSeo.seoKeywords;
+  delete payloadNoSeo.seoSlug;
+  delete payloadNoSeo.seo_title;
+  delete payloadNoSeo.seo_description;
+  delete payloadNoSeo.seo_keywords;
+  delete payloadNoSeo.seo_slug;
+
+  result = await supabase.from("products").upsert(payloadNoSeo);
+  if (!result.error) {
+    return result;
+  }
+
+  // Try Option 4: Core product fields only
+  const payloadCore = {
+    id: productPayload.id,
+    code: productPayload.code,
+    title: productPayload.title,
+    description: productPayload.description,
+    price: productPayload.price,
+    category: productPayload.category,
+    stock: productPayload.stock,
+    imageUrl: productPayload.imageUrl,
+    images: productPayload.images,
+    sizes: productPayload.sizes,
+    dimensions: productPayload.dimensions,
+    whyBuy: productPayload.whyBuy,
+    trending: productPayload.trending,
+    featured: productPayload.featured,
+    deliveryPrice: productPayload.deliveryPrice
+  };
+
+  result = await supabase.from("products").upsert(payloadCore);
   return result;
 }
 
