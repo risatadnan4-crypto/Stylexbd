@@ -41,6 +41,7 @@ interface CartDrawerProps {
   customer?: Customer | null;
   isLoading?: boolean;
   onRequireLogin?: () => void;
+  onClearCart?: () => void;
 }
 
 // High performance inline Canvas Confetti component
@@ -123,7 +124,8 @@ export default function CartDrawer({
   initialShowCheckout = false,
   customer,
   isLoading = false,
-  onRequireLogin
+  onRequireLogin,
+  onClearCart
 }: CartDrawerProps) {
   // Navigation & Step State: 'cart' (bag) | 'step1' (info form) | 'step2' (premium verification/checkout) | 'success' (success window)
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'step1' | 'step2' | 'success'>('cart');
@@ -728,7 +730,7 @@ export default function CartDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-0 sm:p-6' : 'justify-end'}`}>
+        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-2 sm:p-4 md:p-6' : 'justify-end'}`}>
           {inlineStyles}
           {/* Dimmed glass background */}
           <motion.div 
@@ -742,13 +744,13 @@ export default function CartDrawer({
           {/* Premium Drawer/Modal Panel */}
           <motion.div 
             key={checkoutStep}
-            initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.92, y: 15 } : { x: '100%' }}
             animate={checkoutStep !== 'cart' ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
-            exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.95, y: 15 } : { x: '100%' }}
+            exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.92, y: 15 } : { x: '100%' }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={`relative w-full bg-[#05010a]/95 border flex flex-col shadow-2xl z-10 overflow-hidden ${
+            className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'max-w-[95vw] lg:max-w-[95vw] xl:max-w-[1200px] border-purple-500/20 rounded-none sm:rounded-3xl h-full sm:h-[95vh] lg:h-[95vh] max-h-full sm:max-h-[95vh] lg:max-h-[95vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
+                ? 'max-w-[98vw] lg:max-w-[95vw] xl:max-w-[1240px] border-purple-500/20 rounded-2xl sm:rounded-3xl h-[94vh] max-h-[94vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
                 : 'max-w-lg border-l border-white/5 h-full'
             }`}
           >
@@ -768,12 +770,25 @@ export default function CartDrawer({
                 </h3>
               </div>
               {checkoutStep !== 'success' && (
-                <button 
-                  onClick={onClose}
-                  className="text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/10 border border-transparent hover:border-white/15"
-                >
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  {checkoutStep === 'cart' && cartItems.length > 0 && onClearCart && (
+                    <button 
+                      type="button"
+                      onClick={onClearCart}
+                      className="text-[9px] font-mono text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded-md border border-red-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Clear all cart items"
+                    >
+                      <Trash2 size={11} />
+                      <span>Clear</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={onClose}
+                    className="text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/10 border border-transparent hover:border-white/15 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               )}
             </div>
 
@@ -792,17 +807,7 @@ export default function CartDrawer({
               </div>
             )}
 
-            {isLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <div className="relative w-16 h-16 flex items-center justify-center mb-4">
-                  <div className="absolute inset-0 border-2 border-white/5 rounded-full" />
-                  <div className="absolute inset-0 border-2 border-t-luxury-gold rounded-full animate-spin" />
-                  <ShoppingBag size={20} className="text-luxury-gold animate-pulse" />
-                </div>
-                <h4 className="font-serif text-xs text-white/80 uppercase tracking-widest mb-1 font-bold">Synchronizing</h4>
-                <p className="text-[10px] text-white/40 max-w-xs font-light">Retrieving bespoke catalog parameters...</p>
-              </div>
-            ) : enrichedCartItems.length === 0 ? (
+            {enrichedCartItems.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <div className="w-16 h-16 bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center text-luxury-gold mb-4">
                   <ShoppingBag size={24} />
@@ -817,12 +822,12 @@ export default function CartDrawer({
                 </button>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
 
                 {/* STEP 0: SHOPPING BAG REVIEW (DEFAULT) */}
                 {checkoutStep === 'cart' && (
-                  <div className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                  <div className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="space-y-3">
                          {enrichedCartItems.map((item, idx) => {
                            const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
@@ -873,11 +878,11 @@ export default function CartDrawer({
 
                       {/* Coupon Redemption in Cart view */}
                       <div className="border-t border-white/5 pt-5 space-y-3">
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold block font-black">Membership Invitation Code</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold block font-black">Coupon code</label>
                         <div className="flex gap-2">
                           <input 
                             type="text" 
-                            placeholder="ENTER PROMO CODE"
+                            placeholder="ENTER COUPON CODE"
                             value={couponCode}
                             onChange={(e) => setCouponCode(e.target.value)}
                             className="flex-1 bg-black/40 text-white font-mono text-xs border border-white/10 hover:border-white/20 rounded-xl py-2.5 px-3 focus:outline-none focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] transition-all duration-300 placeholder-white/25 uppercase tracking-wider"
@@ -901,7 +906,9 @@ export default function CartDrawer({
                           <span className="text-luxury-gold font-mono text-sm font-black">{formatPrice(itemsTotal - discountAmount)}</span>
                         </div>
                       </div>
-                      <button 
+                      <LuxuryCheckoutButton
+                        isCheckingOut={false}
+                        disabled={false}
                         onClick={() => {
                           if (!customer) {
                             if (onRequireLogin) onRequireLogin();
@@ -909,19 +916,17 @@ export default function CartDrawer({
                             setCheckoutStep('step1');
                           }
                         }}
-                        className="w-full bg-gradient-to-r from-purple-800 to-amber-600 hover:brightness-110 text-white text-[10px] font-mono font-extrabold tracking-[0.2em] py-3.5 rounded-xl uppercase transition-all flex items-center justify-center gap-2 group shadow-xl"
-                      >
-                        PROCEED TO SECURE DISPATCH
-                        <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
+                        label="PROCEED TO SECURE DISPATCH"
+                        vesselType="CART"
+                      />
                     </div>
                   </div>
                 )}
 
                 {/* STEP 1: CUSTOMER INFORMATION FORM */}
                 {checkoutStep === 'step1' && (
-                  <form onSubmit={handleContinueToCheckout} className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-2 sm:p-2.5 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                  <form onSubmit={handleContinueToCheckout} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
                         
@@ -1109,55 +1114,6 @@ export default function CartDrawer({
                                     </AnimatePresence>
                                   </div>
                                 </div>
-
-                                {/* Product Image Selection Option (Moved below contact credentials inputs) */}
-                                {enrichedCartItems.some(item => [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean).length > 1) && (
-                                  <div className="mt-4 pt-3.5 border-t border-white/5 space-y-3 relative z-10">
-                                    <span className="text-[10px] md:text-[11px] font-mono tracking-widest text-[#d4af37] font-extrabold uppercase block drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">
-                                      ⚜️ পছন্দের প্রোডাক্ট কালার/ইমেজ সিলেক্ট করুন (Select Image)
-                                    </span>
-                                    <div className="space-y-3">
-                                      {enrichedCartItems.map((item, idx) => {
-                                        const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
-                                        if (productImagesList.length > 1) {
-                                          const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
-                                          return (
-                                            <div key={`image-select-${idx}`} className="p-2 sm:p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-2">
-                                              <span className="text-[10px] font-sans font-bold text-zinc-300 tracking-wide block truncate">
-                                                {item.product.title}
-                                              </span>
-                                              <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden">
-                                                {productImagesList.map((imgUrl, imgIdx) => {
-                                                  const isSelected = itemDisplayImage === imgUrl;
-                                                  return (
-                                                    <button
-                                                      key={imgIdx}
-                                                      type="button"
-                                                      onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
-                                                      className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 ${
-                                                        isSelected
-                                                          ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
-                                                          : 'border-white/10 hover:border-[#d4af37]/35'
-                                                      }`}
-                                                    >
-                                                      <img 
-                                                        src={imgUrl} 
-                                                        alt={`Option ${imgIdx + 1}`} 
-                                                        className="w-full h-full object-cover"
-                                                        referrerPolicy="no-referrer"
-                                                      />
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-                                        return null;
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             </motion.div>
 
@@ -1174,8 +1130,8 @@ export default function CartDrawer({
                               </div>
 
                               <div className="space-y-3 relative z-10">
-                                {/* Desktop Division/District Side-by-Side Dropdowns */}
-                                <div className="hidden lg:grid grid-cols-2 gap-4">
+                                {/* Division/District Stacked Dropdowns */}
+                                <div className="grid grid-cols-1 gap-3">
                                   {/* Division Select */}
                                   <div className="relative group/input">
                                     <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
@@ -1407,127 +1363,165 @@ export default function CartDrawer({
                                     </AnimatePresence>
                                   </div>
                                 </div>
-                              </div>
-                            </motion.div>
-                          </div>
-                        </div>
 
-                        {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
-                        <div className="space-y-1.5 lg:col-span-4">
-                          <div className="flex items-center gap-1.5 pb-0.5 border-b border-white/5">
-                            <ShoppingBag size={12} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
-                            <span className="text-[9.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
+                                </div>
+                              </motion.div>
+                            </div>
                           </div>
-                          
-                          <div className="space-y-1.5 bg-[#0f0a1c] border border-white/10 rounded-xl p-1.5 sm:p-2.5 md:p-3.5 shadow-xl max-h-[160px] sm:max-h-[200px] md:max-h-[250px] lg:max-h-[350px] xl:max-h-[420px] overflow-y-auto scrollbar-hidden">
-                            {enrichedCartItems.map((item, idx) => {
-                              const availableSizes = item.product.sizes && item.product.sizes.length > 0 
-                                ? item.product.sizes 
-                                : ['S', 'M', 'L', 'XL', 'XXL'];
-                              
-                               const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
-                              return (
-                                <div key={idx} className="flex items-center gap-3.5 bg-black/40 p-2 sm:p-2.5 md:p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300">
-                                  {/* Product Photo - Consistent luxury size, perfectly fit */}
-                                  <div 
-                                    onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
-                                    className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
-                                    title="Click to view full image"
-                                  >
-                                    <img 
-                                      src={itemDisplayImage} 
-                                      alt={item.product.title} 
-                                      referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110"
-                                    />
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                      <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
-                                    </div>
-                                  </div>
 
-                                  {/* Item Info & Size preference inline */}
-                                  <div className="flex-1 min-w-0 flex flex-col justify-center space-y-1.5">
-                                    <h4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-bold text-white leading-tight truncate">{item.product.title}</h4>
-                                    
-                                    {/* Color selector inline in Order Form */}
-                                    {item.product.colors && item.product.colors.length > 0 && (
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Color:</span>
-                                        <div className="flex flex-wrap gap-1">
-                                          {item.product.colors.map((colorObj) => {
-                                            const isSelected = item.selectedColor === colorObj.name;
-                                            return (
+                          {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
+                          <div className="space-y-1.5 lg:col-span-4">
+                            <div className="flex items-center gap-1.5 pb-0.5 border-b border-white/5">
+                              <ShoppingBag size={12} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.4)]" />
+                              <span className="text-[9.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
+                            </div>
+                            
+                            <div className="space-y-2 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 md:p-3.5 shadow-xl max-h-[300px] sm:max-h-[400px] md:max-h-[500px] lg:max-h-[600px] overflow-y-auto scrollbar-hidden">
+                              {enrichedCartItems.map((item, idx) => {
+                                const availableSizes = item.product.sizes && item.product.sizes.length > 0 
+                                  ? item.product.sizes 
+                                  : ['S', 'M', 'L', 'XL', 'XXL'];
+                                
+                                const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
+                                const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
+
+                                return (
+                                  <div key={idx} className="bg-black/40 p-2 sm:p-2.5 md:p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300 space-y-2">
+                                    <div className="flex items-center gap-3">
+                                      {/* Product Photo - Consistent luxury size, perfectly fit */}
+                                      <div 
+                                        onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
+                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                        title="Click to view full image"
+                                      >
+                                        <img 
+                                          src={itemDisplayImage} 
+                                          alt={item.product.title} 
+                                          referrerPolicy="no-referrer"
+                                          className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-115 group-hover/img:brightness-110"
+                                        />
+                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                          <ZoomIn size={14} className="text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                                        </div>
+                                      </div>
+
+                                      {/* Item Info & Size preference inline */}
+                                      <div className="flex-1 min-w-0 flex flex-col justify-center space-y-1.5">
+                                        <h4 className="text-[11px] sm:text-[12px] md:text-[13px] lg:text-[14px] font-bold text-white leading-tight truncate">{item.product.title}</h4>
+                                        
+                                        {/* Color selector inline in Order Form */}
+                                        {item.product.colors && item.product.colors.length > 0 && (
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Color:</span>
+                                            <div className="flex flex-wrap gap-1">
+                                              {item.product.colors.map((colorObj) => {
+                                                const isSelected = item.selectedColor === colorObj.name;
+                                                return (
+                                                  <button
+                                                    key={colorObj.name}
+                                                    type="button"
+                                                    onClick={() => onUpdateColor && onUpdateColor(idx, colorObj.name, colorObj.imageUrl)}
+                                                    className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[8.5px] md:text-[9px] font-sans font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
+                                                      isSelected
+                                                        ? 'bg-[#d4af37] text-black font-black shadow-[0_0_4px_rgba(212,175,55,0.3)]'
+                                                        : 'bg-black/40 text-white/50 border border-white/5 hover:text-white'
+                                                    }`}
+                                                  >
+                                                    {colorObj.hex && (
+                                                      <span 
+                                                        className="w-1.5 h-1.5 rounded-full border border-white/20 shrink-0" 
+                                                        style={{ backgroundColor: colorObj.hex }}
+                                                      />
+                                                    )}
+                                                    <span>{colorObj.name}</span>
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Size:</span>
+                                          <div className="flex gap-1 flex-wrap">
+                                            {availableSizes.map((size) => (
                                               <button
-                                                key={colorObj.name}
+                                                key={size}
                                                 type="button"
-                                                onClick={() => onUpdateColor && onUpdateColor(idx, colorObj.name, colorObj.imageUrl)}
-                                                className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[8.5px] md:text-[9px] font-sans font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0 ${
-                                                  isSelected
-                                                    ? 'bg-[#d4af37] text-black font-black shadow-[0_0_4px_rgba(212,175,55,0.3)]'
-                                                    : 'bg-black/40 text-white/50 border border-white/5 hover:text-white'
+                                                onClick={() => onUpdateSize && onUpdateSize(idx, size)}
+                                                className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[9px] md:text-[9.5px] font-mono font-bold cursor-pointer transition-all ${
+                                                  item.selectedSize === size
+                                                    ? 'bg-[#d4af37] text-black font-black shadow-[0_0_6px_rgba(212,175,55,0.3)]'
+                                                    : 'bg-black/60 text-white/60 border border-white/5 hover:text-white'
                                                 }`}
                                               >
-                                                {colorObj.hex && (
-                                                  <span 
-                                                    className="w-1.5 h-1.5 rounded-full border border-white/20 shrink-0" 
-                                                    style={{ backgroundColor: colorObj.hex }}
-                                                  />
-                                                )}
-                                                <span>{colorObj.name}</span>
+                                                {size}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Quantity & Price Adjuster inline */}
+                                      <div className="flex flex-col items-end gap-1.5 shrink-0 pr-1">
+                                        <span className="text-[11.5px] sm:text-[12.5px] md:text-[13.5px] font-mono font-bold text-[#d4af37]">
+                                          {formatPrice(getProductActivePrice(item.product) * item.quantity)}
+                                        </span>
+                                        <div className="flex items-center bg-black/60 border border-white/10 rounded-md overflow-hidden h-5 md:h-5.5">
+                                          <button 
+                                            type="button" 
+                                            onClick={() => onUpdateQty(idx, item.quantity - 1)} 
+                                            className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
+                                          >
+                                            <Minus size={8} />
+                                          </button>
+                                          <span className="px-1.5 text-[10px] md:text-[11px] font-mono font-bold text-white min-w-[12px] text-center">
+                                            {item.quantity}
+                                          </span>
+                                          <button 
+                                            type="button" 
+                                            onClick={() => onUpdateQty(idx, item.quantity + 1)} 
+                                            className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
+                                          >
+                                            <Plus size={8} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Select Image options directly under product photo */}
+                                    {productImagesList.length > 1 && (
+                                      <div className="pt-2 border-t border-white/10">
+                                        <span className="text-[9px] sm:text-[9.5px] font-mono tracking-wider text-[#d4af37] font-bold uppercase block mb-1 flex items-center gap-1">
+                                          <span>⚜️ পছন্দের ছবি/কালার সিলেক্ট করুন (Select Image):</span>
+                                        </span>
+                                        <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden">
+                                          {productImagesList.map((imgUrl, imgIdx) => {
+                                            const isSelected = itemDisplayImage === imgUrl;
+                                            return (
+                                              <button
+                                                key={imgIdx}
+                                                type="button"
+                                                onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
+                                                className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg overflow-hidden border transition-all cursor-pointer shrink-0 ${
+                                                  isSelected
+                                                    ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
+                                                    : 'border-white/10 hover:border-[#d4af37]/35 opacity-70 hover:opacity-100'
+                                                }`}
+                                              >
+                                                <img 
+                                                  src={imgUrl} 
+                                                  alt={`Option ${imgIdx + 1}`} 
+                                                  className="w-full h-full object-cover"
+                                                  referrerPolicy="no-referrer"
+                                                />
                                               </button>
                                             );
                                           })}
                                         </div>
                                       </div>
                                     )}
-
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Size:</span>
-                                      <div className="flex gap-1 flex-wrap">
-                                        {availableSizes.map((size) => (
-                                          <button
-                                            key={size}
-                                            type="button"
-                                            onClick={() => onUpdateSize && onUpdateSize(idx, size)}
-                                            className={`h-5 md:h-5.5 px-1.5 sm:px-2 rounded-md text-[9px] md:text-[9.5px] font-mono font-bold cursor-pointer transition-all ${
-                                              item.selectedSize === size
-                                                ? 'bg-[#d4af37] text-black font-black shadow-[0_0_6px_rgba(212,175,55,0.3)]'
-                                                : 'bg-black/60 text-white/60 border border-white/5 hover:text-white'
-                                            }`}
-                                          >
-                                            {size}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
                                   </div>
-
-                                  {/* Quantity & Price Adjuster inline */}
-                                  <div className="flex flex-col items-end gap-1.5 shrink-0 pr-1">
-                                    <span className="text-[11.5px] sm:text-[12.5px] md:text-[13.5px] font-mono font-bold text-[#d4af37]">
-                                      {formatPrice(getProductActivePrice(item.product) * item.quantity)}
-                                    </span>
-                                    <div className="flex items-center bg-black/60 border border-white/10 rounded-md overflow-hidden h-5 md:h-5.5">
-                                      <button 
-                                        type="button" 
-                                        onClick={() => onUpdateQty(idx, item.quantity - 1)} 
-                                        className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
-                                      >
-                                        <Minus size={8} />
-                                      </button>
-                                      <span className="px-1.5 text-[10px] md:text-[11px] font-mono font-bold text-white min-w-[12px] text-center">
-                                        {item.quantity}
-                                      </span>
-                                      <button 
-                                        type="button" 
-                                        onClick={() => onUpdateQty(idx, item.quantity + 1)} 
-                                        className="px-1 text-white/60 hover:text-[#d4af37] transition-colors cursor-pointer"
-                                      >
-                                        <Plus size={8} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
                               );
                             })}
                           </div>
@@ -1566,8 +1560,8 @@ export default function CartDrawer({
 
                 {/* STEP 2: PREMIUM CHECKOUT */}
                 {checkoutStep === 'step2' && (
-                  <form onSubmit={handlePlaceOrder} className="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/[0.04] via-purple-950/[0.06] to-[#05010a]">
+                  <form onSubmit={handlePlaceOrder} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="w-full">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
                         
@@ -1833,7 +1827,7 @@ export default function CartDrawer({
                                 <Sparkles size={12} className="mr-1 animate-pulse" /> COUPON SECURED!
                               </div>
                             )}
-                            <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase">PROMOTION CODES</span>
+                            <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase">Coupon code</span>
                             <div className="flex gap-2">
                               <input 
                                 type="text" 

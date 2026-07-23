@@ -3,6 +3,7 @@ import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Fac
 import { motion } from 'motion/react';
 import { Product, ProductColor } from '../types';
 import { formatPrice } from '../utils';
+import LuxuryCheckoutButton from './LuxuryCheckoutButton';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -337,7 +338,7 @@ export default function ProductDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 md:p-10 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 overflow-hidden">
       {/* Absolute gray backing dim */}
       <div 
         onClick={onClose}
@@ -345,12 +346,12 @@ export default function ProductDetailModal({
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-6xl lg:max-w-7xl bg-[#080808] border border-luxury-gold/20 rounded-lg p-5 md:p-8 text-left shadow-2xl z-10 flex flex-col overflow-hidden max-h-[calc(100vh-48px)] md:max-h-[calc(100vh-80px)] animate-fade-in gold-glow-border">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl lg:scale-[0.92] xl:scale-[0.88] origin-center bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-lg p-3 sm:p-4 md:p-5 text-left shadow-2xl z-10 flex flex-col overflow-hidden max-h-[calc(100vh-20px)] md:max-h-[calc(100vh-40px)] animate-fade-in gold-glow-border transition-all">
         
         {/* Close Button top-right */}
         <button 
           onClick={onClose}
-          className="absolute right-5 top-5 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-10"
+          className="absolute right-4 top-4 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-10"
           title="Close Details"
         >
           <X size={18} />
@@ -362,7 +363,7 @@ export default function ProductDetailModal({
           id="product-modal-scroll-body"
           className="overflow-y-auto flex-1 min-h-0 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10 overscroll-contain"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 mt-2 md:mt-3 items-start">
           
           {/* Left Column Wrapper (Sticky on desktop) */}
           <div className="md:sticky md:top-2 h-fit w-full space-y-3.5">
@@ -501,7 +502,7 @@ export default function ProductDetailModal({
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
                     <button
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
@@ -513,16 +514,18 @@ export default function ProductDetailModal({
                       <span className="relative z-10">Add to Bag</span>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
-                        onClose();
-                      }}
-                      className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <span className="relative z-10">👑</span>
-                      <span className="relative z-10">Buy Now</span>
-                    </button>
+                    <div className="w-full">
+                      <LuxuryCheckoutButton
+                        isCheckingOut={false}
+                        disabled={false}
+                        onClick={() => {
+                          onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                          onClose();
+                        }}
+                        label="ORDER NOW"
+                        vesselType="CAR"
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -962,7 +965,7 @@ export default function ProductDetailModal({
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
                     <button
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
@@ -974,16 +977,18 @@ export default function ProductDetailModal({
                       <span className="relative z-10">Add to Bag</span>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
-                        onClose();
-                      }}
-                      className="w-full running-glow-gold-filled text-white font-display font-black text-[10px] min-[440px]:text-[11px] uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(154,77,255,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <span className="relative z-10">👑</span>
-                      <span className="relative z-10">Buy Now</span>
-                    </button>
+                    <div className="w-full">
+                      <LuxuryCheckoutButton
+                        isCheckingOut={false}
+                        disabled={false}
+                        onClick={() => {
+                          onOrderNow(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
+                          onClose();
+                        }}
+                        label="ORDER NOW"
+                        vesselType="CAR"
+                      />
+                    </div>
                   </div>
 
                   <button

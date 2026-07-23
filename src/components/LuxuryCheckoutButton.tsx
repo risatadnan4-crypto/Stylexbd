@@ -700,7 +700,15 @@ export default function LuxuryCheckoutButton({
 
         {/* Active Default Interface State */}
         <div className="content-plate state-default">
-          <span className="label-text">{label}</span>
+          <span className="label-text flex items-center justify-center gap-2">
+            <svg className="w-5 h-5 text-luxury-gold shrink-0 drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="2" />
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+              <circle cx="5.5" cy="18.5" r="2.5" fill="#d4af37" />
+              <circle cx="18.5" cy="18.5" r="2.5" fill="#d4af37" />
+            </svg>
+            <span>{label}</span>
+          </span>
           <span className="icon-arrow" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>

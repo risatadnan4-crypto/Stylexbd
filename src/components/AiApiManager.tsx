@@ -599,9 +599,10 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
 
             <button
               onClick={() => { setIsAddModalOpen(true); setAddKeyError(''); }}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-luxury-gold/90 via-amber-400 to-luxury-gold text-luxury-black font-extrabold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] transition-all cursor-pointer active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-luxury-gold via-amber-400 to-luxury-gold text-luxury-black font-extrabold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:shadow-[0_0_30px_rgba(212,175,55,0.6)] transition-all cursor-pointer active:scale-95 group"
             >
-              <Plus size={14} /> Add API Key
+              <Plus size={15} className="group-hover:rotate-90 transition-transform duration-300" /> 
+              <span>+ Add Your Custom Key</span>
             </button>
           </div>
         </div>
@@ -1518,12 +1519,21 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
       {/* MODAL 1: ADD NEW API KEY */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#120822] border border-luxury-gold/40 rounded-2xl p-6 max-w-md w-full space-y-5 shadow-[0_25px_60px_rgba(0,0,0,0.8)] animate-scale-in">
+          <div className="bg-[#120822] border border-luxury-gold/50 rounded-2xl p-6 max-w-md w-full space-y-5 shadow-[0_25px_60px_rgba(0,0,0,0.9)] animate-scale-in">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-lg font-bold font-serif text-white flex items-center gap-2">
-                <Plus className="text-luxury-gold" size={20} /> Add Google AI Studio Key
+                <Plus className="text-luxury-gold" size={20} /> Add Custom Google AI Key
               </h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-white/40 hover:text-white">✕</button>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-white/40 hover:text-white text-lg">✕</button>
+            </div>
+
+            <div className="p-3 bg-luxury-gold/10 border border-luxury-gold/25 rounded-xl text-xs text-amber-200/90 font-sans space-y-1">
+              <p className="font-semibold text-luxury-gold flex items-center gap-1.5">
+                <Key size={13} /> Set Your Own Key
+              </p>
+              <p className="text-[11px] text-white/70 leading-relaxed">
+                You can generate a free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-luxury-gold underline hover:text-white">aistudio.google.com</a> and paste it below.
+              </p>
             </div>
 
             <form onSubmit={handleAddKey} className="space-y-4">
@@ -1531,7 +1541,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
                 <label className="text-xs font-mono text-white/70 block">Key Name / Identifier</label>
                 <input
                   type="text"
-                  placeholder="e.g. Primary Free Key 1 or Backup Key Pro"
+                  placeholder="e.g. My Personal Gemini Key or Backup Key 1"
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-luxury-gold/50"
@@ -1548,8 +1558,8 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
                   required
                   className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-luxury-gold focus:outline-none focus:border-luxury-gold/50"
                 />
-                <p className="text-[10px] text-white/40 font-mono">
-                  🔒 Key is encrypted server-side with AES-256 and never sent back to the browser.
+                <p className="text-[10px] text-white/50 font-mono flex items-center gap-1">
+                  <span>🔒 Key is encrypted server-side with AES-256 and never exposed in browser code.</span>
                 </p>
               </div>
 

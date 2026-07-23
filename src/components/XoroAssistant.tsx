@@ -1377,10 +1377,10 @@ export default function XoroAssistant({
           transition={{ duration: 0.45, ease: "easeInOut" }}
           drag
           dragControls={dragControls}
-          dragListener={false}
+          dragListener={true}
           dragMomentum={false}
           dragElastic={0.05}
-          className="fixed left-4 bottom-4 md:left-6 md:bottom-6 z-[100] flex flex-col items-start select-none touch-none"
+          className="fixed left-3 md:left-5 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-start select-none touch-none cursor-grab active:cursor-grabbing"
         >
         
         {/* SPEECH BUBBLE OUTLET */}

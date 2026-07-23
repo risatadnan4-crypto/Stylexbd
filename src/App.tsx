@@ -175,6 +175,7 @@ export default function App() {
   });
   const [isCartLoading, setIsCartLoading] = useState(false);
   const cartInitializedRef = React.useRef(false);
+  const cartLoadedEmailRef = React.useRef<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRadialMenuOpen, setIsRadialMenuOpen] = useState(false);
@@ -685,12 +686,17 @@ export default function App() {
   useEffect(() => {
     let active = true;
     async function loadAndMergeCart() {
+      const emailKey = currentCustomer ? currentCustomer.email.toLowerCase().trim() : 'guest';
+      if (cartLoadedEmailRef.current === emailKey) {
+        return;
+      }
+      cartLoadedEmailRef.current = emailKey;
+
       setIsCartLoading(true);
-      cartInitializedRef.current = false;
 
       if (currentCustomer) {
         console.log("[CART PERSIST] Loading database cart for customer:", currentCustomer.email);
-        const customerEmailKey = `stylex_cart_${currentCustomer.email.toLowerCase().trim()}`;
+        const customerEmailKey = `stylex_cart_${emailKey}`;
         try {
           const res = await fetch(`/api/cart?email=${encodeURIComponent(currentCustomer.email)}`);
           if (res.ok && active) {
@@ -698,17 +704,15 @@ export default function App() {
             const dbCart: CartItem[] = data.items || [];
             
             setCart((currentGuestCart) => {
-              if (currentGuestCart.length > 0) {
+              if (currentGuestCart.length > 0 && !cartInitializedRef.current) {
                 console.log("[CART PERSIST] Merging guest items into persistent database cart:", currentGuestCart);
-                const merged = [...dbCart];
-                currentGuestCart.forEach(gItem => {
+                const merged = [...currentGuestCart];
+                dbCart.forEach(dItem => {
                   const matchIdx = merged.findIndex(
-                    dItem => dItem.product.id === gItem.product.id && dItem.selectedSize === gItem.selectedSize
+                    mItem => mItem.product.id === dItem.product.id && mItem.selectedSize === dItem.selectedSize && mItem.selectedColor === dItem.selectedColor
                   );
-                  if (matchIdx !== -1) {
-                    merged[matchIdx].quantity += gItem.quantity;
-                  } else {
-                    merged.push(gItem);
+                  if (matchIdx === -1) {
+                    merged.push(dItem);
                   }
                 });
 
@@ -726,35 +730,34 @@ export default function App() {
                 localStorage.setItem(customerEmailKey, JSON.stringify(merged));
 
                 return merged;
-              } else {
+              } else if (!cartInitializedRef.current) {
                 // Save to customer local cache
                 localStorage.setItem(customerEmailKey, JSON.stringify(dbCart));
                 return dbCart;
               }
+              return currentGuestCart;
             });
           }
         } catch (err) {
           console.error("[CART PERSIST] Error loading database cart:", err);
         }
       } else {
-        // Guest user: load from localStorage
-        console.log("[CART PERSIST] Loading guest cart from localStorage");
-        try {
-          const savedGuestCart = localStorage.getItem('stylex_guest_cart');
-          setCart(savedGuestCart ? JSON.parse(savedGuestCart) : []);
-        } catch (err) {
-          console.warn("[CART PERSIST] Guest cart in localStorage is corrupted, resetting:", err);
-          setCart([]);
+        if (!cartInitializedRef.current) {
+          // Guest user: load from localStorage
+          console.log("[CART PERSIST] Loading guest cart from localStorage");
+          try {
+            const savedGuestCart = localStorage.getItem('stylex_guest_cart');
+            setCart(savedGuestCart ? JSON.parse(savedGuestCart) : []);
+          } catch (err) {
+            console.warn("[CART PERSIST] Guest cart in localStorage is corrupted, resetting:", err);
+            setCart([]);
+          }
         }
       }
 
       if (active) {
-        setTimeout(() => {
-          if (active) {
-            cartInitializedRef.current = true;
-            setIsCartLoading(false);
-          }
-        }, 100);
+        cartInitializedRef.current = true;
+        setIsCartLoading(false);
       }
     }
 
@@ -1271,6 +1274,7 @@ export default function App() {
       setShowCustomerAuthModal(true);
       return;
     }
+    cartInitializedRef.current = true;
     const freshCart = [...cart];
     const matchIdx = freshCart.findIndex(item => 
       item.product.id === product.id && 
@@ -1303,6 +1307,7 @@ export default function App() {
       setShowCustomerAuthModal(true);
       return;
     }
+    cartInitializedRef.current = true;
     // Direct checkout for a specific product should clear previous cart items
     // and initialize the cart with ONLY the chosen product at quantity 1
     // to match the product price perfectly on the payment checkout screen.
@@ -1316,6 +1321,22 @@ export default function App() {
     setCart(directCart);
     setInitialShowCheckout(true);
     setIsCartOpen(true);
+  };
+
+  const handleClearCart = () => {
+    cartInitializedRef.current = true;
+    setCart([]);
+    if (currentCustomer) {
+      const customerEmailKey = `stylex_cart_${currentCustomer.email.toLowerCase().trim()}`;
+      localStorage.setItem(customerEmailKey, JSON.stringify([]));
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentCustomer.email, items: [] })
+      }).catch(err => console.error("Error clearing backend cart:", err));
+    } else {
+      localStorage.setItem('stylex_guest_cart', JSON.stringify([]));
+    }
   };
 
   const handleUpdateCartQty = (idx: number, newQty: number) => {
@@ -3602,6 +3623,7 @@ export default function App() {
         initialShowCheckout={initialShowCheckout}
         customer={currentCustomer}
         isLoading={isCartLoading}
+        onClearCart={handleClearCart}
         onRequireLogin={() => {
           setPendingCheckoutAfterLogin(true);
           setCustomerAuthTab('login');
