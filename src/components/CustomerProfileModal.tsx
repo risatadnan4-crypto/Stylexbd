@@ -157,7 +157,7 @@ export default function CustomerProfileModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="relative w-full max-w-4xl h-[90vh] max-h-[850px] bg-gradient-to-b from-[#0e061b] via-[#06030c] to-[#030106] border border-luxury-gold/30 rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.18)] z-10 flex flex-col overflow-hidden text-white font-sans"
+          className="relative w-full max-w-4xl h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[850px] bg-gradient-to-b from-[#0e061b] via-[#06030c] to-[#030106] border-0 sm:border border-luxury-gold/30 rounded-none sm:rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.18)] z-10 flex flex-col overflow-hidden text-white font-sans"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/[0.06] p-4 sm:p-5 flex-shrink-0 bg-black/30">

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, 
   Tag, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
-  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
@@ -727,10 +727,72 @@ export default function CartDrawer({
     `}</style>
   );
 
+  const renderMiniOrderSummary = (isStep2 = false) => {
+    const totalItemCount = enrichedCartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = isStep2 ? grandTotal : (itemsTotal - discountAmount + resolvedDeliveryCharge);
+
+    return (
+      <div className="bg-gradient-to-r from-[#1c0e3a] via-[#120728] to-[#0a0319] border border-luxury-gold/35 rounded-xl p-2.5 sm:p-3.5 shadow-[0_4px_20px_rgba(212,175,55,0.12)] relative overflow-hidden mb-3">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-lg bg-luxury-gold/15 border border-luxury-gold/35 flex items-center justify-center text-luxury-gold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.25)]">
+              <Receipt size={13} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-[10px] sm:text-[12px] font-serif font-black text-white uppercase tracking-wider flex items-center gap-1 truncate">
+                <span>Mini Order Summary</span>
+              </h4>
+              <p className="text-[7.5px] sm:text-[8.5px] text-zinc-400 font-mono truncate">Verify selection before finalizing order</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 bg-luxury-gold/15 border border-luxury-gold/30 text-luxury-gold text-[8.5px] sm:text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
+            <span>{totalItemCount} {totalItemCount === 1 ? 'Item' : 'Items'}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 text-[10px]">
+          {/* Product Count */}
+          <div className="bg-black/50 border border-white/10 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between hover:border-white/20 transition-all min-w-0">
+            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-400 uppercase tracking-widest block font-bold truncate">Count</span>
+            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
+              <span className="text-white font-mono font-extrabold text-xs sm:text-sm">{enrichedCartItems.length}</span>
+              <span className="text-[7.5px] sm:text-[8.5px] text-zinc-400 font-mono hidden xs:inline">Items</span>
+            </div>
+          </div>
+
+          {/* Selected Sizes */}
+          <div className="bg-black/50 border border-white/10 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between hover:border-white/20 transition-all min-w-0">
+            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-400 uppercase tracking-widest block font-bold truncate">Sizes</span>
+            <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5 sm:mt-1 max-h-[32px] sm:max-h-[42px] overflow-y-auto scrollbar-none">
+              {enrichedCartItems.map((item, idx) => (
+                <span key={idx} className="bg-luxury-gold/15 border border-luxury-gold/30 text-[#d4af37] text-[7.5px] sm:text-[8.5px] font-mono font-bold px-1 sm:px-1.5 py-0.5 rounded flex items-center gap-0.5 whitespace-nowrap">
+                  <span>{item.selectedSize || 'Free'}</span>
+                  <span className="text-white/60">({item.quantity}x)</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Total Price */}
+          <div className="bg-black/50 border border-luxury-gold/30 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between bg-gradient-to-br from-luxury-gold/[0.08] to-transparent hover:border-luxury-gold/50 transition-all min-w-0">
+            <span className="text-[7px] sm:text-[8px] font-mono text-luxury-gold uppercase tracking-widest block font-bold truncate">Total</span>
+            <div className="flex items-baseline justify-between mt-0.5 sm:mt-1">
+              <span className="text-luxury-gold font-mono font-black text-xs sm:text-base drop-shadow-[0_0_8px_rgba(212,175,55,0.4)] truncate">
+                {formatPrice(totalPrice)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-2 sm:p-4 md:p-6' : 'justify-end'}`}>
+        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-0 sm:p-4 md:p-6' : 'justify-end'}`}>
           {inlineStyles}
           {/* Dimmed glass background */}
           <motion.div 
@@ -750,7 +812,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'max-w-[98vw] lg:max-w-[95vw] xl:max-w-[1240px] border-purple-500/20 rounded-2xl sm:rounded-3xl h-[94vh] max-h-[94vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
+                ? 'w-full sm:max-w-[98vw] lg:max-w-[95vw] xl:max-w-[1240px] border-0 sm:border border-purple-500/20 rounded-none sm:rounded-2xl md:rounded-3xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
                 : 'max-w-lg border-l border-white/5 h-full'
             }`}
           >
@@ -928,6 +990,7 @@ export default function CartDrawer({
                   <form onSubmit={handleContinueToCheckout} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="w-full">
+                        {renderMiniOrderSummary(false)}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
@@ -1563,6 +1626,7 @@ export default function CartDrawer({
                   <form onSubmit={handlePlaceOrder} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
                     <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-3.5 space-y-3 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="w-full">
+                        {renderMiniOrderSummary(true)}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
                         
                         {/* Left column: Payments */}

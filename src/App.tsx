@@ -2855,7 +2855,7 @@ export default function App() {
       </main>
                   {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-4 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(212,175,55,0.15),0_0_50px_rgba(154,77,255,0.1)] border border-white/10 hover:border-luxury-gold/40 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.015] bg-[#030107]/45 backdrop-blur-2xl">
+        <div className="fixed bottom-3 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(212,175,55,0.15),0_0_50px_rgba(154,77,255,0.1)] border border-white/10 hover:border-luxury-gold/40 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.015] bg-[#030107]/60 backdrop-blur-2xl">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -2867,7 +2867,7 @@ export default function App() {
           </div>
 
           {/* Inner scrollable wrapper for buttons */}
-          <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-1.5 sm:gap-2.5 py-0.5 px-1.5 justify-end">
+          <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-2 sm:gap-2.5 py-0.5 px-1.5 justify-end touch-pan-x overscroll-contain">
             
             {/* Premium Interactive Brand Crest/Badge */}
             <div className="hidden xs:flex items-center gap-2 pl-3.5 pr-2.5 py-1 border-r border-white/10 mr-1 select-none">
@@ -2893,7 +2893,7 @@ export default function App() {
                   setLastReadTimestamp(now);
                   localStorage.setItem('stylex_notif_last_read_ts', String(now));
               }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
               title="VIP Dispatch & Product Alerts Hub"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2905,16 +2905,16 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Bell className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+              <Bell className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20">
+                <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20 pointer-events-none">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[7.5px] text-white font-extrabold items-center justify-center leading-none">
                     {unreadNotificationsCount}
                   </span>
                 </span>
               )}
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 NOTICES
               </span>
             </button>
@@ -2922,7 +2922,7 @@ export default function App() {
             {/* Claim Discount Option */}
             <button 
               onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Request Campaign Discount Coupon"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2934,8 +2934,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Percent className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <Percent className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 GET DISCOUNT
               </span>
             </button>
@@ -2944,7 +2944,7 @@ export default function App() {
             {!settings?.isLotteryDeactivated && (
               <button 
                 onClick={() => setIsLotteryOpen(true)}
-                className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn"
+                className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
                 title="Imperial Fortune Game"
               >
                 {/* Animated multi-layered running glow border around the button */}
@@ -2956,12 +2956,12 @@ export default function App() {
                   <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
                 </div>
                 
-                <Gift className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20">
+                <Gift className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20 pointer-events-none">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
                 </span>
-                <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+                <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                   VOUCHER WHEEL
                 </span>
               </button>
@@ -2970,7 +2970,7 @@ export default function App() {
             {/* Track Existing Receipts */}
             <button 
               onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Track Existing Receipts"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2982,8 +2982,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <Ticket className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 TRACK RECEIPT
               </span>
             </button>
@@ -2991,7 +2991,7 @@ export default function App() {
             {/* View Current Bag */}
             <button 
               onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
               title="View Current Luxury Bag"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -3014,15 +3014,16 @@ export default function App() {
                   duration: 0.85,
                   ease: "easeInOut"
                 }}
+                className="pointer-events-none"
               >
-                <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+                <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
               </motion.div>
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8px] sm:text-[10px] w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8.5px] sm:text-[10px] w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce pointer-events-none">
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 LUXURY BAG
               </span>
             </button>
@@ -3032,7 +3033,7 @@ export default function App() {
               href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
               title="WhatsApp Live Concierge"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -3046,8 +3047,8 @@ export default function App() {
               
               {/* Pulsing visual halo rings */}
               <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
-              <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <MessageCircle className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 WHATSAPP
               </span>
             </a>
@@ -3057,7 +3058,7 @@ export default function App() {
               href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Facebook Official Collection"
             >
               {/* Animated border */}
@@ -3067,8 +3068,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
               </div>
               
-              <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <Facebook className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 FACEBOOK
               </span>
             </a>
@@ -3078,7 +3079,7 @@ export default function App() {
               href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn"
+              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Instagram Gallery Reel"
             >
               {/* Animated border */}
@@ -3088,8 +3089,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20">
+              <Instagram className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 INSTAGRAM
               </span>
             </a>

@@ -682,6 +682,50 @@
       "seoSlug": ""
     },
     {
+      "id": "15r0rsdf",
+      "code": "XP-889",
+      "title": "Royal Golden Chrono Elite (3826)",
+      "description": "A masterwork of horological elegance featuring a precision sweep movement and fully hand-carved celestial moonphase markers.",
+      "price": 24500,
+      "category": "WATCHES",
+      "stock": 5,
+      "imageUrl": "https://images.unsplash.com/photo-1547996160-81dfa63595aa?q=80&w=300&auto=format&fit=crop",
+      "images": "[]",
+      "sizes": [
+        "Standard"
+      ],
+      "dimensions": null,
+      "whyBuy": null,
+      "trending": false,
+      "featured": false,
+      "deliveryPrice": 100,
+      "deliveryPriceDhaka": 100,
+      "deliveryPriceOutside": 150,
+      "deliveryPriceChattogram": 150,
+      "deliveryPriceRajshahi": 150,
+      "deliveryPriceKhulna": 150,
+      "deliveryPriceBarishal": 150,
+      "deliveryPriceSylhet": 150,
+      "deliveryPriceRangpur": 150,
+      "deliveryPriceMymensingh": 150,
+      "lotteryEligible": true,
+      "couponCode": "",
+      "created_at": "2026-07-23T08:46:48.878423+00:00",
+      "timerActive": true,
+      "bkashNumber": "",
+      "nagadNumber": "",
+      "paymentType": "cod",
+      "paymentPercentage": null,
+      "deliveryCharge": 100,
+      "deliveryDays": "",
+      "isPinned": false,
+      "likes": 0,
+      "seoTitle": "",
+      "seoDescription": "",
+      "seoKeywords": "",
+      "seoSlug": ""
+    },
+    {
       "id": "dyxngd1g",
       "code": "XP-440",
       "title": "Premium Gararah  |  Style X",
@@ -1177,8 +1221,23 @@
       "status": "pending"
     }
   ],
-  "smsSubscriptions": [],
+  "smsSubscriptions": [
+    {
+      "phone": "01816027964",
+      "name": "RRRRRRR",
+      "orderId": "STX-348557",
+      "optInSMS": true,
+      "optInNewProducts": true,
+      "timestamp": "2026-07-23T08:46:55.121Z"
+    }
+  ],
   "outboundSMSLogs": [
+    {
+      "id": "sms-1784796415121-6800",
+      "phone": "01816027964",
+      "message": "📱 STYLE X Alert Activated 📱\nHello RRRRRRR, you have successfully opted-in to receive premium order status SMS updates and instant alerts for new bespoke product drops. Thank you for your subscription.",
+      "timestamp": "2026-07-23T08:46:55.121Z"
+    },
     {
       "id": "sms-1784114541209-75",
       "phone": "01816027852",
@@ -1231,8 +1290,8 @@
       "phone": "01816027964",
       "name": "RRRRRRR",
       "email": "risatadnan27@gmail.com",
-      "source": "checkout_step1",
-      "timestamp": "2026-07-19T08:57:36.710Z"
+      "source": "sms_opt_in",
+      "timestamp": "2026-07-23T08:46:55.115Z"
     }
   ],
   "banners": [
@@ -12325,6 +12384,150 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-07-23T08:24:20.356Z",
       "created_at": "2026-07-23T08:24:21.039814+00:00"
+    },
+    {
+      "id": "room-izn8dmx5",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:37:47.138Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:37:47.138Z",
+      "created_at": "2026-07-23T08:37:47.832522+00:00"
+    },
+    {
+      "id": "room-ydzpzh1n",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:37:54.691Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:37:54.691Z",
+      "created_at": "2026-07-23T08:37:54.887562+00:00"
+    },
+    {
+      "id": "room-fr1ozros",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:42:21.275Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:42:21.275Z",
+      "created_at": "2026-07-23T08:42:21.485598+00:00"
+    },
+    {
+      "id": "room-peq60kp4",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:42:22.516Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:42:22.516Z",
+      "created_at": "2026-07-23T08:42:23.226823+00:00"
+    },
+    {
+      "id": "room-9thxk27g",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:43:43.333Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:43:43.333Z",
+      "created_at": "2026-07-23T08:43:43.552207+00:00"
+    },
+    {
+      "id": "room-bcxpsj9v",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:51:29.927Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:51:29.927Z",
+      "created_at": "2026-07-23T08:51:30.108885+00:00"
+    },
+    {
+      "id": "room-443qtijh",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:52:24.391Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:52:24.391Z",
+      "created_at": "2026-07-23T08:52:24.596962+00:00"
+    },
+    {
+      "id": "room-l4nw9g0c",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-23T08:52:24.174Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-23T08:52:24.174Z",
+      "created_at": "2026-07-23T08:52:24.852383+00:00"
     }
   ],
   "carts": {
@@ -12472,67 +12675,7 @@
         "quantity": 27
       }
     ],
-    "risatadnan27@gmail.com": [
-      {
-        "product": {
-          "id": "dyxngd1g",
-          "code": "XP-440",
-          "title": "Premium Gararah  |  Style X",
-          "description": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট।\nভারি এমব্রয়ডারি কাজ করা।\nফুল বডিতে রিপিট বসানো।\nকামিজ এন্ড প্যান্ট এর ইনসাইডে ইনার আছে।\nকামিজ লং ৩৬-৩৮ ইঞ্চি।\nপ্যান্টের লং ৪০ ইঞ্চি।\n৩৬-৪৬ বডি সাইজ পর্যন্ত পড়া যাবে।",
-          "price": 2999,
-          "category": "WOMEN",
-          "stock": 19,
-          "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
-          "images": [
-            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
-            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png"
-          ],
-          "sizes": [
-            "M",
-            "L",
-            "XL"
-          ],
-          "dimensions": "Bespoke Fit",
-          "whyBuy": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট",
-          "trending": true,
-          "featured": true,
-          "deliveryPrice": 100,
-          "deliveryPriceDhaka": 130,
-          "deliveryPriceOutside": 150,
-          "deliveryPriceChattogram": 70,
-          "deliveryPriceRajshahi": 130,
-          "deliveryPriceKhulna": 130,
-          "deliveryPriceBarishal": 130,
-          "deliveryPriceSylhet": 130,
-          "deliveryPriceRangpur": 130,
-          "deliveryPriceMymensingh": 130,
-          "lotteryEligible": false,
-          "couponCode": "",
-          "couponDiscountPercent": 15,
-          "offerPrice": 2489,
-          "timerEndTime": "2026-07-21T13:33",
-          "timerMessage": "Limited",
-          "created_at": "2026-07-16T08:53:25.217217+00:00",
-          "colors": [],
-          "timerActive": true,
-          "bkashNumber": "01816027852",
-          "nagadNumber": "01816027852",
-          "paymentType": "percentage",
-          "paymentPercentage": 10,
-          "deliveryCharge": 100,
-          "deliveryDays": "3-5",
-          "isPinned": true,
-          "likes": 753,
-          "seoTitle": "",
-          "seoDescription": "",
-          "seoKeywords": "",
-          "seoSlug": ""
-        },
-        "selectedSize": "M",
-        "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png",
-        "quantity": 1
-      }
-    ]
+    "risatadnan27@gmail.com": []
   },
   "visits": 157,
   "liveViews": 1,
@@ -12696,6 +12839,14 @@
     "visitor_11j1bffkgpmo_1784721201239"
   ],
   "notifications": [
+    {
+      "id": "notif-1784796408544-139",
+      "type": "new_product",
+      "title": "New Creation Addition",
+      "message": "A magnificent new creation has been placed in the collective catalog: \"Royal Golden Chrono Elite (3826)\". Inspect the bespoke custom piece and register interest now.",
+      "date": "2026-07-23T08:46:48.544Z",
+      "productId": "15r0rsdf"
+    },
     {
       "id": "notif-1784113393591-996",
       "type": "order_status",
@@ -12919,6 +13070,21 @@
         "timerActive": true,
         "freeDelivery": false,
         "likes": 436
+      },
+      "15r0rsdf": {
+        "bkashNumber": "",
+        "nagadNumber": "",
+        "paymentType": "cod",
+        "paymentPercentage": null,
+        "deliveryCharge": 100,
+        "deliveryDays": "",
+        "isPinned": false,
+        "offerPrice": null,
+        "timerEndTime": null,
+        "timerMessage": null,
+        "timerActive": true,
+        "freeDelivery": false,
+        "likes": 0
       }
     }
   }
