@@ -278,7 +278,7 @@ export default function OrderTracker({
   const activeIndex = order ? getStepIndex(order.status) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 md:py-16">
+    <div className="max-w-4xl mx-auto px-4 py-8 md:py-16 touch-pan-y overscroll-y-auto">
       
       {/* Search Header box */}
       <div className="text-center mb-10">
@@ -769,7 +769,7 @@ export default function OrderTracker({
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#030303] scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-start">
+              <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-3 space-y-2.5 bg-[#030303] scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-start">
                 {smsLogs.length === 0 ? (
                   <div className="my-auto flex flex-col items-center justify-center text-center p-4">
                     <Smartphone size={24} className="text-white/20 mb-2 animate-bounce" />

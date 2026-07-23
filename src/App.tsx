@@ -1956,7 +1956,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans select-none overflow-x-hidden antialiased">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans overflow-x-hidden antialiased">
       {/* Premium Loader Overlay */}
       <AnimatePresence mode="wait">
         {isSiteLoading && (
@@ -2218,7 +2218,7 @@ export default function App() {
           </div>
         ) : isTrackMode ? (
           /* Track Order Layout view */
-          <div id="order-tracker-container" className="bg-[#050505] min-h-[50vh] border-b border-white/5 py-10">
+          <div id="order-tracker-container" className="bg-[#050505] min-h-[50vh] border-b border-white/5 py-10 touch-pan-y overscroll-y-auto">
             <OrderTracker 
               whatsappNumber={settings.whatsappNumber} 
               activeTrackId={activeTrackId}
