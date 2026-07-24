@@ -48,7 +48,13 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
+  metaKeywords?: string;
   seoSlug?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  robots?: string;
 }
 
 export interface CartItem {

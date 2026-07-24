@@ -30,8 +30,42 @@ export default function LuxuryCheckoutButton({
   useEffect(() => {
     if (isCheckingOut && animState === 'IDLE') {
       triggerLoadingAnimation();
+    } else if (!isCheckingOut && animState !== 'IDLE') {
+      resetAnimation();
     }
   }, [isCheckingOut]);
+
+  const resetAnimation = () => {
+    setAnimState('IDLE');
+    const btn = buttonRef.current;
+    if (!btn) return;
+
+    btn.classList.add('idle');
+
+    gsap.killTweensOf(btn);
+    if (vanRef.current) gsap.killTweensOf(vanRef.current);
+    if (wBackRef.current) gsap.killTweensOf(wBackRef.current);
+    if (wFrontRef.current) gsap.killTweensOf(wFrontRef.current);
+    if (packageRef.current) gsap.killTweensOf(packageRef.current);
+
+    gsap.set(btn, { rotateX: 0, rotateY: 0, scale: 1 });
+    const defState = btn.querySelector('.state-default');
+    const loadState = btn.querySelector('.state-loading');
+    const succState = btn.querySelector('.state-success');
+    const progTrack = btn.querySelector('.progress-track');
+
+    if (defState) gsap.set(defState, { opacity: 1, y: 0 });
+    if (loadState) gsap.set(loadState, { opacity: 0, y: 8 });
+    if (succState) gsap.set(succState, { opacity: 0, scale: 0.92 });
+    if (progTrack) gsap.set(progTrack, { width: '0%', opacity: 1 });
+
+    if (vanRef.current) {
+      gsap.set(vanRef.current, { left: '-160px' });
+    }
+    if (packageRef.current) {
+      gsap.set(packageRef.current, { opacity: 0, scale: 0.4 });
+    }
+  };
 
   // Particle System Canvas
   useEffect(() => {
@@ -701,12 +735,6 @@ export default function LuxuryCheckoutButton({
         {/* Active Default Interface State */}
         <div className="content-plate state-default">
           <span className="label-text flex items-center justify-center gap-2">
-            <svg className="w-5 h-5 text-luxury-gold shrink-0 drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13" rx="2" />
-              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-              <circle cx="5.5" cy="18.5" r="2.5" fill="#d4af37" />
-              <circle cx="18.5" cy="18.5" r="2.5" fill="#d4af37" />
-            </svg>
             <span>{label}</span>
           </span>
           <span className="icon-arrow" aria-hidden="true">
@@ -722,98 +750,6 @@ export default function LuxuryCheckoutButton({
           <span className="label-text">Preparing your order...</span>
         </div>
 
-        {/* Cinema Runway Theater Properties */}
-        <div className="theater-runway" aria-hidden="true">
-          <div className="delivery-vessel" id="van-model" ref={vanRef}>
-            <svg className="van-body-svg" viewBox="0 0 140 70" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="70" cy="63" rx="48" ry="2" fill="rgba(0,0,0,0.95)"/>
-              
-              {vesselType === 'CAR' ? (
-                <>
-                  {/* Chameleon Liquid Titanium Dynamic Coating Chassis */}
-                  <path d="M12 16H95V55H12V16Z" fill="#050308" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
-                  <path d="M95 23H110L124 37V55H95V23Z" fill="#08050D" stroke="url(#liquid-metallic-chameleon)" strokeWidth="0.95"/>
-                  <path d="M106 26H114L119 34H106V26Z" fill="#020104" stroke="rgba(233,213,255,0.2)" strokeWidth="0.5"/>
-                  
-                  <line x1="12" y1="45" x2="95" y2="45" stroke="rgba(192, 132, 252, 0.45)" strokeWidth="0.5"/>
-                  
-                  {/* Laser Engraved Core Logo Matrix */}
-                  <text x="32" y="36" fill="url(#gold-mirror-matrix)" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fontWeight="700" fontSize="11" letterSpacing="1">Style X</text>
-                  
-                  <g id="van-door">
-                    <rect x="5" y="18" width="2.5" height="35" fill="#030105" stroke="rgba(233, 213, 255, 0.4)" strokeWidth="0.5"/>
-                  </g>
-                </>
-              ) : (
-                <>
-                  {/* Premium Luxury Shopping Cart Wireframe Basket */}
-                  {/* Main Outer Rim & Frame */}
-                  <path d="M25 20 H98 L85 48 H35 Z" fill="#050308" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  
-                  {/* Slanted Handle */}
-                  <path d="M25 20 L15 14 H8" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="8" cy="14" r="2.5" fill="url(#gold-mirror-matrix)"/>
-                  
-                  {/* Sleek Under-chassis Base Bar */}
-                  <path d="M24 55 H93" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5" strokeLinecap="round"/>
-                  
-                  {/* Struts connecting basket to base */}
-                  <path d="M35 48 L24 55" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5"/>
-                  <path d="M85 48 L93 55" stroke="url(#liquid-metallic-chameleon)" strokeWidth="1.5"/>
-                  <path d="M55 48 L24 55" stroke="rgba(192, 132, 252, 0.3)" strokeWidth="1"/>
-                  <path d="M70 48 L93 55" stroke="rgba(192, 132, 252, 0.3)" strokeWidth="1"/>
-                  
-                  {/* Elegant Basket Grid Lines for Swiss/Modern Tech feel */}
-                  {/* Horizontals */}
-                  <line x1="28" y1="28" x2="94" y2="28" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
-                  <line x1="31" y1="38" x2="89" y2="38" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
-                  
-                  {/* Verticals */}
-                  <line x1="43" y1="20" x2="43" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
-                  <line x1="61" y1="20" x2="61" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
-                  <line x1="79" y1="20" x2="79" y2="48" stroke="rgba(192, 132, 252, 0.4)" strokeWidth="0.8" />
-                  
-                  {/* Laser Engraved Style X Logo on a gold-rimmed center plate */}
-                  <rect x="38" y="24" width="46" height="18" rx="3" fill="#08050D" stroke="url(#gold-mirror-matrix)" strokeWidth="0.75" />
-                  <text x="43" y="37" fill="url(#gold-mirror-matrix)" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif" fontWeight="900" fontSize="8" letterSpacing="0.8">STYLE X</text>
-                  
-                  {/* Glowing Luxury Cargo Items inside the cart */}
-                  <path d="M48 20 L58 12 L68 20 Z" fill="#08050D" stroke="#EAD080" strokeWidth="0.75"/>
-                  <path d="M68 20 L74 15 L80 20 Z" fill="#08050D" stroke="#C084FC" strokeWidth="0.75"/>
-                </>
-              )}
-              
-              <defs>
-                <linearGradient id="liquid-metallic-chameleon" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#C084FC"/>
-                  <stop offset="35%" stopColor="#E9D5FF"/>
-                  <stop offset="70%" stopColor="#EAD080"/>
-                  <stop offset="100%" stopColor="#701A75"/>
-                </linearGradient>
-                <linearGradient id="gold-mirror-matrix" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FFFFFF"/>
-                  <stop offset="50%" stopColor="#FFF0D0"/>
-                  <stop offset="100%" stopColor="#EAD080"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            {/* Engineering Wheel Matrix */}
-            <div className="wheel wheel-back" id="w-back" ref={wBackRef}>
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="#030205" stroke="#C084FC" strokeWidth="1.35"/><circle cx="12" cy="12" r="4.5" fill="#09060F" stroke="#EAD080" strokeWidth="0.5"/><circle cx="12" cy="12" r="1" fill="#FFFFFF"/></svg>
-            </div>
-            <div className="wheel wheel-front" id="w-front" ref={wFrontRef}>
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="#030205" stroke="#C084FC" strokeWidth="1.35"/><circle cx="12" cy="12" r="4.5" fill="#09060F" stroke="#EAD080" strokeWidth="0.5"/><circle cx="12" cy="12" r="1" fill="#FFFFFF"/></svg>
-            </div>
-          </div>
-
-          {/* 3D Kinetic Spin Ejection Object */}
-          <div className="cargo-package" id="package-model" ref={packageRef}>
-            <div className="cargo-geometry">
-              <span className="cargo-brand">X</span>
-            </div>
-          </div>
-        </div>
-
         {/* Complete Confirmed Order State (Amethyst Imperial Luxury) */}
         <div className="content-plate state-success" aria-hidden="true">
           <div className="success-row">
@@ -824,6 +760,80 @@ export default function LuxuryCheckoutButton({
             <span className="headline-success">Order Confirmed</span>
           </div>
           <span className="subtext-success">Thank you for shopping with Style X</span>
+        </div>
+
+        {/* Delivery Vehicle Runway Animation (Style X Express Vessel) */}
+        <div className="theater-runway" aria-hidden="true">
+          <div className="delivery-vessel" ref={vanRef}>
+            {vesselType === 'CART' ? (
+              /* Sleek Aerodynamic Style X Gold Hypercar / Coupe (Step 1 VIP Speed Machine) */
+              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_16px_rgba(212,175,55,0.65)]" viewBox="0 0 160 80" fill="none">
+                {/* Hypercar aerodynamic silhouette */}
+                <path d="M5 52 C18 52, 28 46, 48 34 C68 22, 100 20, 118 26 C134 31, 150 42, 156 48 C159 51, 159 55, 152 55 L5 55 Z" fill="url(#hypercarGrad)" stroke="#EAD080" strokeWidth="1.75" />
+                {/* Glass canopy roof */}
+                <path d="M54 31 C70 19, 96 17, 112 25 C102 25, 68 28, 54 31 Z" fill="#0c051a" stroke="#C084FC" strokeWidth="1.2" />
+                {/* Side window tint */}
+                <path d="M60 30 C72 22, 92 21, 104 25 C90 25, 70 27, 60 30 Z" fill="#24103e" opacity="0.9" />
+                {/* Gold body side accent / racing line */}
+                <path d="M22 47 Q72 41 146 47" stroke="#EAD080" strokeWidth="1.2" strokeDasharray="4 1.5" />
+                {/* Rear spoiler wing */}
+                <path d="M6 38 L22 36 L24 42 L8 42 Z" fill="#d4af37" stroke="#EAD080" strokeWidth="0.8" />
+                {/* Branding text */}
+                <text x="48" y="47" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" letterSpacing="1.5">STYLE X</text>
+                <text x="96" y="47" fill="#EAD080" fontSize="7.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">VIP</text>
+                {/* Hyper Xenon Headlight Beam */}
+                <circle cx="154" cy="49" r="3" fill="#FFF0D0" className="drop-shadow-[0_0_12px_#FFF0D0]" />
+                {/* Red LED Taillight Bar */}
+                <rect x="5" y="47" width="8" height="3" rx="1.5" fill="#EF4444" className="drop-shadow-[0_0_8px_#EF4444]" />
+                <defs>
+                  <linearGradient id="hypercarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0c0617" />
+                    <stop offset="35%" stopColor="#2a1444" />
+                    <stop offset="70%" stopColor="#130826" />
+                    <stop offset="100%" stopColor="#080310" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ) : (
+              /* Style X Express Heavy Freight Delivery Vessel (Step 2 Final Order) */
+              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_12px_rgba(212,175,55,0.4)]" viewBox="0 0 160 80" fill="none">
+                <path d="M10 50 L25 25 L65 20 L110 20 L145 38 L155 50 L155 60 L10 60 Z" fill="url(#vanGrad)" stroke="#EAD080" strokeWidth="1.5" />
+                <path d="M70 24 L105 24 L132 38 L70 38 Z" fill="#120c1f" stroke="#C084FC" strokeWidth="1" />
+                <text x="32" y="48" fill="#FFFFFF" fontSize="11" fontWeight="900" fontFamily="sans-serif" letterSpacing="1">STYLE X</text>
+                <text x="80" y="48" fill="#EAD080" fontSize="8" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.5">EXPRESS</text>
+                <circle cx="150" cy="46" r="3" fill="#FFF0D0" className="drop-shadow-[0_0_8px_#FFF0D0]" />
+                <rect x="12" y="44" width="10" height="3" rx="1.5" fill="#EF4444" />
+                <defs>
+                  <linearGradient id="vanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#0c0617" />
+                    <stop offset="50%" stopColor="#1a0f2e" />
+                    <stop offset="100%" stopColor="#080310" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            )}
+            <div className="wheel wheel-back" ref={wBackRef}>
+              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.8)]">
+                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#EAD080" strokeWidth="2" />
+                <circle cx="10" cy="10" r="4" fill="#C084FC" />
+                <line x1="10" y1="1" x2="10" y2="19" stroke="#EAD080" strokeWidth="1.5" />
+                <line x1="1" y1="10" x2="19" y2="10" stroke="#EAD080" strokeWidth="1.5" />
+              </svg>
+            </div>
+            <div className="wheel wheel-front" ref={wFrontRef}>
+              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.8)]">
+                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#EAD080" strokeWidth="2" />
+                <circle cx="10" cy="10" r="4" fill="#C084FC" />
+                <line x1="10" y1="1" x2="10" y2="19" stroke="#EAD080" strokeWidth="1.5" />
+                <line x1="1" y1="10" x2="19" y2="10" stroke="#EAD080" strokeWidth="1.5" />
+              </svg>
+            </div>
+          </div>
+          <div className="cargo-package" ref={packageRef}>
+            <div className="cargo-geometry">
+              <span className="cargo-brand">SX</span>
+            </div>
+          </div>
         </div>
 
         <canvas id="fx-canvas" ref={canvasRef} className="canvas-particles"></canvas>

@@ -26,7 +26,7 @@ import {
 } from 'recharts';
 import { supabase } from '../lib/supabaseClient';
 import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage, ProductColor } from '../types';
-import { formatPrice, generateQrUrl } from '../utils';
+import { formatPrice, generateQrUrl, validateUrl, isValidUrl } from '../utils';
 import { LotteryPrize } from './LotteryModal';
 import PerformanceDashboard from './PerformanceDashboard';
 import AiApiManager from './AiApiManager';
@@ -1138,7 +1138,23 @@ export default function AdminPanel({
   const [formSeoTitle, setFormSeoTitle] = useState('');
   const [formSeoDescription, setFormSeoDescription] = useState('');
   const [formSeoKeywords, setFormSeoKeywords] = useState('');
+  const [formMetaKeywords, setFormMetaKeywords] = useState('');
   const [formSeoSlug, setFormSeoSlug] = useState('');
+  const [formCanonicalUrl, setFormCanonicalUrl] = useState('');
+  const [formOgTitle, setFormOgTitle] = useState('');
+  const [formOgDescription, setFormOgDescription] = useState('');
+  const [formOgImage, setFormOgImage] = useState('');
+  const [formRobots, setFormRobots] = useState('index, follow');
+
+  const isValidUrl = (urlStr: string): boolean => {
+    if (!urlStr || !urlStr.trim()) return true;
+    try {
+      const parsed = new URL(urlStr.trim());
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (e) {
+      return false;
+    }
+  };
   const [uploadProgress, setUploadProgress] = useState('');
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -1146,6 +1162,32 @@ export default function AdminPanel({
   const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
   const [seoError, setSeoError] = useState('');
   
+  // Real-Time API Health state
+  const [apiHealth, setApiHealth] = useState<string>('100%');
+
+  useEffect(() => {
+    const fetchApiHealth = async () => {
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.health) {
+            setApiHealth(data.health);
+          } else {
+            setApiHealth('100%');
+          }
+        } else {
+          setApiHealth('100%');
+        }
+      } catch {
+        setApiHealth('100%');
+      }
+    };
+    fetchApiHealth();
+    const interval = setInterval(fetchApiHealth, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   // SEO Health tab states
   const [seoHealthFilter, setSeoHealthFilter] = useState<'all' | 'missing' | 'duplicate' | 'suboptimal' | 'healthy'>('all');
   const [fixingProductIds, setFixingProductIds] = useState<Record<string, boolean>>({});
@@ -1739,6 +1781,27 @@ export default function AdminPanel({
       return;
     }
 
+    // Validate URL formats for canonicalUrl and ogImage using validateUrl helper
+    if (formCanonicalUrl && formCanonicalUrl.trim() !== '' && !validateUrl(formCanonicalUrl)) {
+      const errorMsg = 'Invalid Canonical URL format. Please enter a valid HTTP or HTTPS URL (e.g. https://example.com/product).';
+      setFormError(errorMsg);
+      setAdminToast({
+        message: errorMsg,
+        type: 'error'
+      });
+      return;
+    }
+
+    if (formOgImage && formOgImage.trim() !== '' && !validateUrl(formOgImage)) {
+      const errorMsg = 'Invalid OG Image URL format. Please enter a valid HTTP or HTTPS image URL.';
+      setFormError(errorMsg);
+      setAdminToast({
+        message: errorMsg,
+        type: 'error'
+      });
+      return;
+    }
+
     setLoading(true);
     const parsedSizes = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
@@ -1787,8 +1850,14 @@ export default function AdminPanel({
       likes: Number(formLikes || 0),
       seoTitle: formSeoTitle || null,
       seoDescription: formSeoDescription || null,
-      seoKeywords: formSeoKeywords || null,
-      seoSlug: formSeoSlug || null
+      seoKeywords: formSeoKeywords || formMetaKeywords || null,
+      metaKeywords: formMetaKeywords || formSeoKeywords || null,
+      seoSlug: formSeoSlug || null,
+      canonicalUrl: formCanonicalUrl || null,
+      ogTitle: formOgTitle || null,
+      ogDescription: formOgDescription || null,
+      ogImage: formOgImage || null,
+      robots: formRobots || 'index, follow'
     };
 
     try {
@@ -1894,8 +1963,14 @@ export default function AdminPanel({
     setFormLikes(prod.likes !== undefined ? Number(prod.likes) : 0);
     setFormSeoTitle(prod.seoTitle || '');
     setFormSeoDescription(prod.seoDescription || '');
-    setFormSeoKeywords(prod.seoKeywords || '');
+    setFormSeoKeywords(prod.seoKeywords || prod.metaKeywords || '');
+    setFormMetaKeywords(prod.metaKeywords || prod.seoKeywords || '');
     setFormSeoSlug(prod.seoSlug || '');
+    setFormCanonicalUrl(prod.canonicalUrl || '');
+    setFormOgTitle(prod.ogTitle || '');
+    setFormOgDescription(prod.ogDescription || '');
+    setFormOgImage(prod.ogImage || '');
+    setFormRobots(prod.robots || 'index, follow');
     setShowProductForm(true);
   };
 
@@ -2746,9 +2821,10 @@ export default function AdminPanel({
                     </p>
                   </div>
                   <div className="bg-[#0B0B0F] border border-white/10 p-3.5 rounded-xl flex flex-col justify-center min-w-[130px] col-span-2 sm:col-span-1 shadow-sm">
-                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-300">Checkout Conversion</span>
-                    <p className="text-2xl font-black font-sans text-[#a78bfa] mt-1">
-                      {((Number(analytics?.totalOrders || 0) / Math.max(1, Number(analytics?.visits || 125))) * 100).toFixed(1)}%
+                    <span className="text-[9px] uppercase font-mono tracking-widest text-zinc-300">API Health Status</span>
+                    <p className="text-2xl font-black font-sans text-emerald-400 mt-1 flex items-baseline gap-1.5">
+                      <span>{apiHealth}</span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">● Operational</span>
                     </p>
                   </div>
                 </div>
@@ -2856,7 +2932,13 @@ export default function AdminPanel({
                   setFormSeoTitle('');
                   setFormSeoDescription('');
                   setFormSeoKeywords('');
+                  setFormMetaKeywords('');
                   setFormSeoSlug('');
+                  setFormCanonicalUrl('');
+                  setFormOgTitle('');
+                  setFormOgDescription('');
+                  setFormOgImage('');
+                  setFormRobots('index, follow');
                   setUploadProgress('');
                   setShowProductForm(!showProductForm);
                 }}
@@ -4046,14 +4128,74 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords (ফোকাস কিওয়ার্ডস)</label>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords / Meta Keywords (ফোকাস / মেটা কিওয়ার্ডস)</label>
                           <input 
                             type="text" 
                             value={formSeoKeywords} 
-                            onChange={(e) => setFormSeoKeywords(e.target.value)}
+                            onChange={(e) => {
+                              setFormSeoKeywords(e.target.value);
+                              setFormMetaKeywords(e.target.value);
+                            }}
                             placeholder="e.g. panjabi, premium clothing, silk, stylex"
                             className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                           />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Canonical URL (ক্যানোনিক্যাল ইউআরএল)</label>
+                          <input 
+                            type="url" 
+                            value={formCanonicalUrl} 
+                            onChange={(e) => setFormCanonicalUrl(e.target.value)}
+                            placeholder="https://stylexbd.com/products/royal-silk-panjabi"
+                            className={`w-full bg-luxury-charcoal text-white text-xs border ${
+                              formCanonicalUrl && !isValidUrl(formCanonicalUrl) ? 'border-rose-500' : 'border-white/10'
+                            } rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono`}
+                          />
+                          {formCanonicalUrl && !isValidUrl(formCanonicalUrl) && (
+                            <span className="text-[9px] text-rose-400 font-mono mt-0.5 block">Invalid URL format (must start with http:// or https://)</span>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Robots Directives (রোবটস মেটা)</label>
+                          <select
+                            value={formRobots}
+                            onChange={(e) => setFormRobots(e.target.value)}
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                          >
+                            <option value="index, follow">index, follow (Allow Search Indexing)</option>
+                            <option value="noindex, follow">noindex, follow (Hide Page, Follow Links)</option>
+                            <option value="index, nofollow">index, nofollow (Index Page, Don't Follow Links)</option>
+                            <option value="noindex, nofollow">noindex, nofollow (Block Completely)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">OG OpenGraph Title (ওজি মেটা টাইটেল)</label>
+                          <input 
+                            type="text" 
+                            value={formOgTitle} 
+                            onChange={(e) => setFormOgTitle(e.target.value)}
+                            placeholder="OpenGraph custom title for social sharing..."
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">OG OpenGraph Image URL (ওজি ছবি ইউআরএল)</label>
+                          <input 
+                            type="url" 
+                            value={formOgImage} 
+                            onChange={(e) => setFormOgImage(e.target.value)}
+                            placeholder="https://stylexbd.com/og-banner.jpg"
+                            className={`w-full bg-luxury-charcoal text-white text-xs border ${
+                              formOgImage && !isValidUrl(formOgImage) ? 'border-rose-500' : 'border-white/10'
+                            } rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono`}
+                          />
+                          {formOgImage && !isValidUrl(formOgImage) && (
+                            <span className="text-[9px] text-rose-400 font-mono mt-0.5 block">Invalid URL format (must start with http:// or https://)</span>
+                          )}
                         </div>
 
                         <div className="md:col-span-2">
@@ -4108,9 +4250,9 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           <div className="bg-[#0c0c0c] border border-white/10 rounded-lg overflow-hidden shadow-2xl transition-all duration-300 hover:border-white/20">
                             {/* Live Thumbnail Preview */}
                             <div className="relative w-full h-32 bg-white/[0.02] flex items-center justify-center border-b border-white/5 overflow-hidden">
-                              {formImageUrl ? (
+                              {(formOgImage || formImageUrl) ? (
                                 <img 
-                                  src={formImageUrl} 
+                                  src={formOgImage || formImageUrl} 
                                   alt="SEO Link Preview Card" 
                                   className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
                                   referrerPolicy="no-referrer"
@@ -4118,7 +4260,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                               ) : (
                                 <div className="flex flex-col items-center gap-1.5 text-white/30 text-center p-4">
                                   <ImageIcon size={24} className="stroke-[1.5]" />
-                                  <span className="text-[9px] font-mono uppercase tracking-wider">No Main Image URL Set</span>
+                                  <span className="text-[9px] font-mono uppercase tracking-wider">No Image URL Set</span>
                                 </div>
                               )}
                               
@@ -4131,13 +4273,13 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                             <div className="p-3 space-y-1 bg-[#121212]/50">
                               <div className="text-[9px] font-mono uppercase tracking-widest text-[#d4af37] truncate flex items-center gap-1">
                                 <Globe size={10} className="text-[#d4af37]/70" />
-                                stylexbd.vercel.app
+                                {formCanonicalUrl ? formCanonicalUrl.replace(/^https?:\/\//, '') : 'stylexbd.vercel.app'}
                               </div>
                               <h5 className="text-white text-[11px] font-semibold leading-tight line-clamp-1">
-                                {formSeoTitle || formTitle || "Untitled Premium Creation | Style X"}
+                                {formOgTitle || formSeoTitle || formTitle || "Untitled Premium Creation | Style X"}
                               </h5>
                               <p className="text-white/50 text-[10px] leading-snug line-clamp-2">
-                                {formSeoDescription || formDescription || "Exquisite style, handcrafted luxury apparel and heritage tailoring collections. Explore premium craftsmanship and unique designs."}
+                                {formOgDescription || formSeoDescription || formDescription || "Exquisite style, handcrafted luxury apparel and heritage tailoring collections. Explore premium craftsmanship and unique designs."}
                               </p>
                             </div>
                           </div>

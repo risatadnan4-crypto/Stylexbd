@@ -1,5 +1,17 @@
 // Style X Client-Side Utilities
 
+export function validateUrl(urlStr?: string | null): boolean {
+  if (!urlStr || !urlStr.trim()) return true;
+  try {
+    const parsed = new URL(urlStr.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export const isValidUrl = validateUrl;
+
 export function formatPrice(amount: number): string {
   return `৳${amount}`;
 }

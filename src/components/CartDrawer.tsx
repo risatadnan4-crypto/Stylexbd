@@ -234,16 +234,18 @@ export default function CartDrawer({
 
   // Pricing calculations
   // Enrich cart items with latest product data from the master list to guarantee up-to-date prices, delivery fees, and payment settings!
-  const enrichedCartItems = cartItems.map(item => {
-    const freshProduct = products?.find(p => String(p.id).trim().toLowerCase() === String(item.product.id).trim().toLowerCase());
-    if (freshProduct) {
-      return {
-        ...item,
-        product: freshProduct
-      };
-    }
-    return item;
-  });
+  const enrichedCartItems = (cartItems || [])
+    .filter(item => item && item.product)
+    .map(item => {
+      const freshProduct = products?.find(p => p && String(p.id).trim().toLowerCase() === String(item.product?.id || '').trim().toLowerCase());
+      if (freshProduct) {
+        return {
+          ...item,
+          product: freshProduct
+        };
+      }
+      return item;
+    });
 
   const itemsTotal = enrichedCartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
   let discountAmount = 0;
@@ -530,11 +532,11 @@ export default function CartDrawer({
 
     try {
       const formattedItems = enrichedCartItems.map(item => ({
-        title: item.product.title,
-        selectedSize: item.selectedSize,
-        selectedColor: item.selectedColor,
-        selectedColorImage: item.selectedColorImage,
-        quantity: item.quantity,
+        title: item.product?.title || 'Item',
+        selectedSize: item.selectedSize || '',
+        selectedColor: item.selectedColor || '',
+        selectedColorImage: item.selectedColorImage || '',
+        quantity: item.quantity || 1,
         price: getProductActivePrice(item.product)
       }));
 
@@ -562,7 +564,7 @@ export default function CartDrawer({
     setTimeout(() => {
       setIsTransitioningStep(false);
       setCheckoutStep('step2');
-    }, 3800);
+    }, 3600);
   };
 
   // Mouse absolute ripple builder
@@ -728,65 +730,7 @@ export default function CartDrawer({
   );
 
   const renderMiniOrderSummary = (isStep2 = false) => {
-    const totalItemCount = enrichedCartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const totalPrice = isStep2 ? grandTotal : (itemsTotal - discountAmount + resolvedDeliveryCharge);
-
-    return (
-      <div className="bg-gradient-to-r from-[#1c0e3a] via-[#120728] to-[#0a0319] border border-luxury-gold/35 rounded-xl p-2.5 sm:p-3.5 shadow-[0_4px_20px_rgba(212,175,55,0.12)] relative overflow-hidden mb-3">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <div className="w-5.5 h-5.5 sm:w-6.5 sm:h-6.5 rounded-lg bg-luxury-gold/15 border border-luxury-gold/35 flex items-center justify-center text-luxury-gold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.25)]">
-              <Receipt size={13} />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-[10px] sm:text-[12px] font-serif font-black text-white uppercase tracking-wider flex items-center gap-1 truncate">
-                <span>Mini Order Summary</span>
-              </h4>
-              <p className="text-[7.5px] sm:text-[8.5px] text-zinc-400 font-mono truncate">Verify selection before finalizing order</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 bg-luxury-gold/15 border border-luxury-gold/30 text-luxury-gold text-[8.5px] sm:text-[9px] font-mono font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
-            <span>{totalItemCount} {totalItemCount === 1 ? 'Item' : 'Items'}</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 text-[10px]">
-          {/* Product Count */}
-          <div className="bg-black/50 border border-white/10 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between hover:border-white/20 transition-all min-w-0">
-            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-400 uppercase tracking-widest block font-bold truncate">Count</span>
-            <div className="flex items-baseline gap-1 mt-0.5 sm:mt-1">
-              <span className="text-white font-mono font-extrabold text-xs sm:text-sm">{enrichedCartItems.length}</span>
-              <span className="text-[7.5px] sm:text-[8.5px] text-zinc-400 font-mono hidden xs:inline">Items</span>
-            </div>
-          </div>
-
-          {/* Selected Sizes */}
-          <div className="bg-black/50 border border-white/10 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between hover:border-white/20 transition-all min-w-0">
-            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-400 uppercase tracking-widest block font-bold truncate">Sizes</span>
-            <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5 sm:mt-1 max-h-[32px] sm:max-h-[42px] overflow-y-auto scrollbar-none">
-              {enrichedCartItems.map((item, idx) => (
-                <span key={idx} className="bg-luxury-gold/15 border border-luxury-gold/30 text-[#d4af37] text-[7.5px] sm:text-[8.5px] font-mono font-bold px-1 sm:px-1.5 py-0.5 rounded flex items-center gap-0.5 whitespace-nowrap">
-                  <span>{item.selectedSize || 'Free'}</span>
-                  <span className="text-white/60">({item.quantity}x)</span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Total Price */}
-          <div className="bg-black/50 border border-luxury-gold/30 rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between bg-gradient-to-br from-luxury-gold/[0.08] to-transparent hover:border-luxury-gold/50 transition-all min-w-0">
-            <span className="text-[7px] sm:text-[8px] font-mono text-luxury-gold uppercase tracking-widest block font-bold truncate">Total</span>
-            <div className="flex items-baseline justify-between mt-0.5 sm:mt-1">
-              <span className="text-luxury-gold font-mono font-black text-xs sm:text-base drop-shadow-[0_0_8px_rgba(212,175,55,0.4)] truncate">
-                {formatPrice(totalPrice)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   };
 
   return (
@@ -812,8 +756,8 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'w-full sm:max-w-[98vw] lg:max-w-[95vw] xl:max-w-[1240px] border-0 sm:border border-purple-500/20 rounded-none sm:rounded-2xl md:rounded-3xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] shadow-[0_0_60px_rgba(123,44,191,0.25)] mx-auto' 
-                : 'max-w-lg border-l border-white/5 h-full'
+                ? 'w-full sm:max-w-[100vw] lg:max-w-[99vw] xl:max-w-[2200px] 2xl:max-w-[2500px] border-0 sm:border border-purple-500/20 rounded-none sm:rounded-2xl md:rounded-3xl h-[100dvh] sm:h-[99vh] max-h-[100dvh] sm:max-h-[99vh] shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
+                : 'max-w-xl lg:max-w-2xl xl:max-w-3xl border-l border-white/5 h-full'
             }`}
           >
             {/* Header */}
@@ -1020,7 +964,7 @@ export default function CartDrawer({
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">১. যোগাযোগের তথ্য (CONTACT CREDENTIALS)</span>
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
                               </div>
 
                               <div className="grid grid-cols-1 gap-3 relative z-10">
@@ -1044,17 +988,17 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 font-bold h-[42px] md:h-[52px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 font-bold h-[44px] md:h-[48px] shadow-sm focus:outline-none ${
                                       customerName
                                         ? isNameValid
-                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
-                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-2 focus:ring-red-400/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)]'
                                     }`}
                                   />
                                   <label 
                                     htmlFor="customer_name" 
-                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[11px] md:peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1062,9 +1006,9 @@ export default function CartDrawer({
                                         : 'text-zinc-400 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
                                     }`}
                                   >
-                                    আপনার সম্পূর্ণ নাম * (Full Name)
+                                    Full Name *
                                   </label>
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
                                       {customerName && (
                                         isNameValid ? (
@@ -1103,14 +1047,14 @@ export default function CartDrawer({
 
                                 {/* Mobile Number */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 transition-all duration-300 ${
                                     customerPhone
                                       ? isPhoneValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <Phone className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                    <Phone className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                   </div>
                                   <input 
                                     ref={phoneInputRef}
@@ -1121,17 +1065,17 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
                                     onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 font-mono font-bold h-[42px] md:h-[52px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 font-mono font-bold h-[44px] md:h-[48px] shadow-sm focus:outline-none ${
                                       customerPhone
                                         ? isPhoneValid
-                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-4 focus:ring-red-400/20 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
-                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                                          ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                                          : 'border-red-500/30 bg-red-500/[0.01] focus:border-red-400 focus:ring-2 focus:ring-red-400/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)]'
                                     }`}
                                   />
                                   <label 
                                     htmlFor="customer_phone" 
-                                    className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[11px] md:peer-placeholder-shown:top-[15px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1139,9 +1083,9 @@ export default function CartDrawer({
                                         : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
                                     }`}
                                   >
-                                    আপনার মোবাইল নম্বর * (Mobile Number)
+                                    Mobile Number *
                                   </label>
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
                                       {customerPhone && (
                                         isPhoneValid ? (
@@ -1170,7 +1114,7 @@ export default function CartDrawer({
                                             exit={{ scale: 0, opacity: 0 }}
                                             transition={{ duration: 0.15 }}
                                           >
-                                            <span className="text-[7px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">১১ ডিজিট</span>
+                                            <span className="text-[7px] font-mono text-red-400 font-black bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded tracking-wide uppercase">11 DIGITS</span>
                                           </motion.div>
                                         )
                                       )}
@@ -1184,21 +1128,21 @@ export default function CartDrawer({
                             <motion.div 
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+                              transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
                               className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">২. ডেলিভারি ঠিকানা (SHIPPING DESTINATION)</span>
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. SHIPPING DESTINATION</span>
                               </div>
 
-                              <div className="space-y-3 relative z-10">
+                              <div className="space-y-2.5 relative z-10">
                                 {/* Division/District Stacked Dropdowns */}
-                                <div className="grid grid-cols-1 gap-3">
+                                <div className="grid grid-cols-1 gap-2.5">
                                   {/* Division Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                     </div>
                                     <select
                                       value={getDivisionForCity(customerCity)}
@@ -1209,33 +1153,33 @@ export default function CartDrawer({
                                           setCustomerCity(districtsInDiv[0]);
                                         }
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] md:text-[14.5px] text-white font-bold h-[42px] md:h-[52px] pl-9 md:pl-12 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[13px] md:text-[14.5px] text-white font-bold h-[44px] md:h-[48px] pl-8 md:pl-9.5 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {Object.keys(DIVISION_MAPS).map((div) => (
                                         <option key={div} value={div} className="bg-[#0c0617] text-white">
-                                          {div} বিভাগ (Division)
+                                          {div} Division
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      বিভাগ * (Division)
+                                    <label className="absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                      Division *
                                     </label>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
                                       <ChevronDown size={14} />
                                     </div>
                                   </div>
 
                                   {/* District Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                     </div>
                                     <select
                                       value={customerCity}
                                       onChange={(e) => {
                                         setCustomerCity(e.target.value);
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold/25 focus:shadow-[0_0_20px_rgba(212,175,55,0.3)] text-[12.5px] md:text-[14.5px] text-white font-bold h-[42px] md:h-[52px] pl-9 md:pl-12 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[13px] md:text-[14.5px] text-white font-bold h-[44px] md:h-[48px] pl-8 md:pl-9.5 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
                                         <option key={district} value={district} className="bg-[#0c0617] text-white">
@@ -1243,11 +1187,11 @@ export default function CartDrawer({
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      জেলা/শহর * (District/City)
+                                    <label className="absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                      District/City *
                                     </label>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                      <ChevronDown size={14} />
+                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                      <ChevronDown size={13} />
                                     </div>
                                   </div>
                                 </div>
@@ -1257,7 +1201,7 @@ export default function CartDrawer({
                                    <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
                                      <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
                                      <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
-                                       জেলা/শহর * (City/District)
+                                       District/City *
                                      </span>
                                    </span>
                                    
@@ -1317,12 +1261,12 @@ export default function CartDrawer({
                                                      {isDistrictsExpanded ? (
                                                        <>
                                                          <ChevronUp size={8} className="text-luxury-gold relative z-10" />
-                                                         <span className="relative z-10 text-[7.5px]">কম দেখুন (Less)</span>
+                                                         <span className="relative z-10 text-[7.5px]">Show Less</span>
                                                        </>
                                                      ) : (
                                                        <>
                                                          <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
-                                                         <span className="relative z-10 text-[7.5px]">আরো দেখুন (More)</span>
+                                                         <span className="relative z-10 text-[7.5px]">Show More</span>
                                                        </>
                                                      )}
                                                    </button>
@@ -1344,7 +1288,7 @@ export default function CartDrawer({
                                            >
                                              <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                                              <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                             <span className="font-bold text-[8.5px] tracking-wide">অন্যান্য জেলা (Other)</span>
+                                             <span className="font-bold text-[8.5px] tracking-wide">Other District</span>
                                            </button>
                                          </div>
                                        </div>
@@ -1370,7 +1314,7 @@ export default function CartDrawer({
                                      value={customerAddress}
                                      onChange={(e) => setCustomerAddress(e.target.value)}
                                      placeholder=" "
-                                     className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4.5 pl-9 pr-9 md:pl-12 md:pr-12 text-[12.5px] md:text-[14.5px] text-white transition-all duration-300 h-[44px] md:h-[56px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                     className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 h-[56px] md:h-[62px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
                                        customerAddress
                                          ? isAddressValid
                                            ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1380,7 +1324,7 @@ export default function CartDrawer({
                                    />
                                    <label 
                                      htmlFor="customer_address" 
-                                     className={`absolute left-9 md:left-12 top-1 md:top-2 text-[8px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-xs md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-2 peer-focus:text-[8px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                     className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                        customerAddress
                                          ? isAddressValid
                                            ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1388,7 +1332,7 @@ export default function CartDrawer({
                                          : 'text-zinc-300 peer-focus:text-luxury-gold peer-focus:drop-shadow-[0_0_6px_rgba(212,175,55,0.7)]'
                                      }`}
                                    >
-                                     সম্পূর্ণ ঠিকানা (গ্রাম/থানা/জেলা) * (Address)
+                                     Full Address *
                                    </label>
                                   <div className="absolute right-3 top-3 flex items-center justify-center">
                                     <AnimatePresence mode="wait">
@@ -1454,7 +1398,7 @@ export default function CartDrawer({
                                       {/* Product Photo - Consistent luxury size, perfectly fit */}
                                       <div 
                                         onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
-                                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                        className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-2xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                         title="Click to view full image"
                                       >
                                         <img 
@@ -1556,7 +1500,7 @@ export default function CartDrawer({
                                     {productImagesList.length > 1 && (
                                       <div className="pt-2 border-t border-white/10">
                                         <span className="text-[9px] sm:text-[9.5px] font-mono tracking-wider text-[#d4af37] font-bold uppercase block mb-1 flex items-center gap-1">
-                                          <span>⚜️ পছন্দের ছবি/কালার সিলেক্ট করুন (Select Image):</span>
+                                          <span>⚜️ Select Image / Color Variant:</span>
                                         </span>
                                         <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden">
                                           {productImagesList.map((imgUrl, imgIdx) => {
@@ -1566,7 +1510,7 @@ export default function CartDrawer({
                                                 key={imgIdx}
                                                 type="button"
                                                 onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
-                                                className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-lg overflow-hidden border transition-all cursor-pointer shrink-0 ${
+                                                className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 ${
                                                   isSelected
                                                     ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
                                                     : 'border-white/10 hover:border-[#d4af37]/35 opacity-70 hover:opacity-100'
@@ -1844,15 +1788,15 @@ export default function CartDrawer({
                           {/* Itemization Report */}
                           <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
                             <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[120px] lg:max-h-[135px] overflow-y-auto scrollbar-hidden pr-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[280px] lg:max-h-[360px] overflow-y-auto scrollbar-hidden pr-1">
                               {enrichedCartItems.map((item, idx) => {
                                 const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
                                 return (
-                                  <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-2.5 rounded-xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
+                                  <div key={idx} className="flex flex-row gap-3 items-center bg-[#090514]/60 p-3 sm:p-3.5 rounded-2xl border border-white/5 hover:border-[#d4af37]/30 transition-all duration-300">
                                     {/* Product Photo - Consistent luxury size, perfectly fit */}
                                     <div 
                                       onClick={() => setLightboxImage({ url: itemDisplayImage, title: item.product.title })}
-                                      className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
+                                      className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden border border-white/10 shrink-0 relative cursor-zoom-in group/img bg-black/40 shadow-inner"
                                       title="Click to view full image"
                                     >
                                       <img 

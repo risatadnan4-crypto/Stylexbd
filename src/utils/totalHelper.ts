@@ -1,10 +1,11 @@
 import { CartItem, Product } from '../types';
 
-export function getProductActivePrice(product: Product): number {
+export function getProductActivePrice(product?: Product | null): number {
+  if (!product) return 0;
   if (product.offerPrice !== undefined && product.offerPrice !== null) {
-    return product.offerPrice; // Active offer forever
+    return Number(product.offerPrice); // Active offer forever
   }
-  return product.price;
+  return Number(product.price || 0);
 }
 
 export function getValidatedTotal(
@@ -12,7 +13,7 @@ export function getValidatedTotal(
   deliveryCharge: number,
   discountAmount: number = 0
 ): number {
-  const itemsTotal = cartItems.reduce((sum, item) => sum + (getProductActivePrice(item.product) * item.quantity), 0);
+  const itemsTotal = (cartItems || []).reduce((sum, item) => sum + (getProductActivePrice(item?.product) * (item?.quantity || 1)), 0);
   return Math.max(0, itemsTotal - discountAmount + deliveryCharge);
 }
 

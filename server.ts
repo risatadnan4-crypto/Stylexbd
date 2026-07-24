@@ -1731,7 +1731,8 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
   const local = localProduct || {};
   const paymentMeta = pm && Object.keys(pm).length > 0 
     ? pm 
-    : ((db.settings?.productPayments && p?.id && db.settings.productPayments[p.id]) || {});
+    : (((db.settings as any)?.productPayments && p?.id && (db.settings as any).productPayments[p.id]) || {});
+  const seoMeta = ((db.settings as any)?.productSeo && p?.id && (db.settings as any).productSeo[p.id]) || {};
 
   // Sizes
   let parsedSizes: string[] = [];
@@ -1841,10 +1842,16 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     deliveryDays: getStr(p?.deliveryDays, p?.delivery_days, paymentMeta.deliveryDays, local.deliveryDays, "3-5"),
     freeDelivery: getBool(p?.freeDelivery, p?.free_delivery, paymentMeta.freeDelivery, local.freeDelivery, false),
     likes: getNum(p?.likes, paymentMeta.likes, local.likes, 0) ?? 0,
-    seoTitle: getStr(p?.seoTitle, p?.seo_title, local.seoTitle, ""),
-    seoDescription: getStr(p?.seoDescription, p?.seo_description, local.seoDescription, ""),
-    seoKeywords: getStr(p?.seoKeywords, p?.seo_keywords, local.seoKeywords, ""),
-    seoSlug: getStr(p?.seoSlug, p?.seo_slug, local.seoSlug, "")
+    seoTitle: getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, ""),
+    seoDescription: getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, ""),
+    seoKeywords: getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, ""),
+    metaKeywords: getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, ""),
+    seoSlug: getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, ""),
+    canonicalUrl: getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, ""),
+    ogTitle: getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, ""),
+    ogDescription: getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, ""),
+    ogImage: getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, ""),
+    robots: getStr(p?.robots, seoMeta.robots, local.robots, "index, follow")
   };
 }
 
@@ -1908,12 +1915,29 @@ async function upsertProductToSupabase(productPayload: any) {
   delete basePayload.isPinned;
   delete basePayload.freeDelivery;
 
-  // Try Option 1: Clean payload with snake_case SEO columns
-  const payloadSnake = { ...basePayload };
+  // Try Option 1: Clean payload with snake_case SEO & OpenGraph columns
+  const payloadSnake = {
+    ...basePayload,
+    seo_title: basePayload.seoTitle || null,
+    seo_description: basePayload.seoDescription || null,
+    seo_keywords: basePayload.seoKeywords || basePayload.metaKeywords || null,
+    meta_keywords: basePayload.metaKeywords || basePayload.seoKeywords || null,
+    seo_slug: basePayload.seoSlug || null,
+    canonical_url: basePayload.canonicalUrl || null,
+    og_title: basePayload.ogTitle || null,
+    og_description: basePayload.ogDescription || null,
+    og_image: basePayload.ogImage || null,
+    robots: basePayload.robots || null
+  };
   delete payloadSnake.seoTitle;
   delete payloadSnake.seoDescription;
   delete payloadSnake.seoKeywords;
+  delete payloadSnake.metaKeywords;
   delete payloadSnake.seoSlug;
+  delete payloadSnake.canonicalUrl;
+  delete payloadSnake.ogTitle;
+  delete payloadSnake.ogDescription;
+  delete payloadSnake.ogImage;
 
   let result = await supabase.from("products").upsert(payloadSnake);
   if (!result.error) {
@@ -1925,7 +1949,12 @@ async function upsertProductToSupabase(productPayload: any) {
   delete payloadCamel.seo_title;
   delete payloadCamel.seo_description;
   delete payloadCamel.seo_keywords;
+  delete payloadCamel.meta_keywords;
   delete payloadCamel.seo_slug;
+  delete payloadCamel.canonical_url;
+  delete payloadCamel.og_title;
+  delete payloadCamel.og_description;
+  delete payloadCamel.og_image;
 
   result = await supabase.from("products").upsert(payloadCamel);
   if (!result.error) {
@@ -1937,11 +1966,22 @@ async function upsertProductToSupabase(productPayload: any) {
   delete payloadNoSeo.seoTitle;
   delete payloadNoSeo.seoDescription;
   delete payloadNoSeo.seoKeywords;
+  delete payloadNoSeo.metaKeywords;
   delete payloadNoSeo.seoSlug;
+  delete payloadNoSeo.canonicalUrl;
+  delete payloadNoSeo.ogTitle;
+  delete payloadNoSeo.ogDescription;
+  delete payloadNoSeo.ogImage;
+  delete payloadNoSeo.robots;
   delete payloadNoSeo.seo_title;
   delete payloadNoSeo.seo_description;
   delete payloadNoSeo.seo_keywords;
+  delete payloadNoSeo.meta_keywords;
   delete payloadNoSeo.seo_slug;
+  delete payloadNoSeo.canonical_url;
+  delete payloadNoSeo.og_title;
+  delete payloadNoSeo.og_description;
+  delete payloadNoSeo.og_image;
 
   result = await supabase.from("products").upsert(payloadNoSeo);
   if (!result.error) {
@@ -1970,6 +2010,15 @@ async function upsertProductToSupabase(productPayload: any) {
   result = await supabase.from("products").upsert(payloadCore);
   return result;
 }
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    health: "100%",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.post("/api/seo/generate", async (req, res) => {
   const { title, description, whyBuy, price } = req.body;
@@ -2138,13 +2187,32 @@ app.post("/api/products", async (req, res) => {
       freeDelivery: !!newProduct.freeDelivery,
       seoTitle: newProduct.seoTitle || null,
       seoDescription: newProduct.seoDescription || null,
-      seoKeywords: newProduct.seoKeywords || null,
+      seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || null,
+      metaKeywords: newProduct.metaKeywords || newProduct.seoKeywords || null,
       seoSlug: newProduct.seoSlug || null,
-      seo_title: newProduct.seoTitle || null,
-      seo_description: newProduct.seoDescription || null,
-      seo_keywords: newProduct.seoKeywords || null,
-      seo_slug: newProduct.seoSlug || null
+      canonicalUrl: newProduct.canonicalUrl || null,
+      ogTitle: newProduct.ogTitle || null,
+      ogDescription: newProduct.ogDescription || null,
+      ogImage: newProduct.ogImage || null,
+      robots: newProduct.robots || "index, follow"
     };
+
+    if (!(db.settings as any).productSeo) {
+      (db.settings as any).productSeo = {};
+    }
+    (db.settings as any).productSeo[newProduct.id] = {
+      seoTitle: newProduct.seoTitle || "",
+      seoDescription: newProduct.seoDescription || "",
+      seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || "",
+      metaKeywords: newProduct.metaKeywords || newProduct.seoKeywords || "",
+      seoSlug: newProduct.seoSlug || "",
+      canonicalUrl: newProduct.canonicalUrl || "",
+      ogTitle: newProduct.ogTitle || "",
+      ogDescription: newProduct.ogDescription || "",
+      ogImage: newProduct.ogImage || "",
+      robots: newProduct.robots || "index, follow"
+    };
+    syncSettingsToCloud();
     
     let { error: upsertError } = await upsertProductToSupabase(payload);
 
@@ -2174,10 +2242,24 @@ app.post("/api/products", async (req, res) => {
   res.status(201).json(newProduct);
 });
 
-app.put("/api/products/:id", async (req, res) => {
+  app.put("/api/products/:id", async (req, res) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx !== -1) {
+    const existingProd = db.products[idx];
     const updatedBody = { ...req.body };
+
+    // Do not overwrite existing non-empty SEO fields if updatedBody passed undefined
+    if (updatedBody.seoTitle === undefined && existingProd.seoTitle) updatedBody.seoTitle = existingProd.seoTitle;
+    if (updatedBody.seoDescription === undefined && existingProd.seoDescription) updatedBody.seoDescription = existingProd.seoDescription;
+    if (updatedBody.seoKeywords === undefined && existingProd.seoKeywords) updatedBody.seoKeywords = existingProd.seoKeywords;
+    if (updatedBody.metaKeywords === undefined && existingProd.metaKeywords) updatedBody.metaKeywords = existingProd.metaKeywords;
+    if (updatedBody.seoSlug === undefined && existingProd.seoSlug) updatedBody.seoSlug = existingProd.seoSlug;
+    if (updatedBody.canonicalUrl === undefined && existingProd.canonicalUrl) updatedBody.canonicalUrl = existingProd.canonicalUrl;
+    if (updatedBody.ogTitle === undefined && existingProd.ogTitle) updatedBody.ogTitle = existingProd.ogTitle;
+    if (updatedBody.ogDescription === undefined && existingProd.ogDescription) updatedBody.ogDescription = existingProd.ogDescription;
+    if (updatedBody.ogImage === undefined && existingProd.ogImage) updatedBody.ogImage = existingProd.ogImage;
+    if (updatedBody.robots === undefined && existingProd.robots) updatedBody.robots = existingProd.robots;
+
     if (updatedBody.deliveryPrice !== undefined) {
       updatedBody.deliveryPrice = Number(updatedBody.deliveryPrice);
     }
@@ -2226,6 +2308,22 @@ app.put("/api/products/:id", async (req, res) => {
       freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
       likes: target.likes !== undefined ? Number(target.likes) : 0
     };
+
+    if (!(db.settings as any).productSeo) {
+      (db.settings as any).productSeo = {};
+    }
+    (db.settings as any).productSeo[target.id] = {
+      seoTitle: target.seoTitle || "",
+      seoDescription: target.seoDescription || "",
+      seoKeywords: target.seoKeywords || target.metaKeywords || "",
+      metaKeywords: target.metaKeywords || target.seoKeywords || "",
+      seoSlug: target.seoSlug || "",
+      canonicalUrl: target.canonicalUrl || "",
+      ogTitle: target.ogTitle || "",
+      ogDescription: target.ogDescription || "",
+      ogImage: target.ogImage || "",
+      robots: target.robots || "index, follow"
+    };
     syncSettingsToCloud();
 
     try {
@@ -2271,12 +2369,14 @@ app.put("/api/products/:id", async (req, res) => {
         freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
         seoTitle: target.seoTitle || null,
         seoDescription: target.seoDescription || null,
-        seoKeywords: target.seoKeywords || null,
+        seoKeywords: target.seoKeywords || target.metaKeywords || null,
+        metaKeywords: target.metaKeywords || target.seoKeywords || null,
         seoSlug: target.seoSlug || null,
-        seo_title: target.seoTitle || null,
-        seo_description: target.seoDescription || null,
-        seo_keywords: target.seoKeywords || null,
-        seo_slug: target.seoSlug || null
+        canonicalUrl: target.canonicalUrl || null,
+        ogTitle: target.ogTitle || null,
+        ogDescription: target.ogDescription || null,
+        ogImage: target.ogImage || null,
+        robots: target.robots || "index, follow"
       };
 
       let { error: upsertError } = await upsertProductToSupabase(payload);

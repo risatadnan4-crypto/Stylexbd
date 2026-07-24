@@ -267,10 +267,18 @@ export default function ProductCard({
         
         {/* Premium Floating Free Delivery Badge */}
         {product.freeDelivery && (
-          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-emerald-500/90 backdrop-blur-md text-white text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] border border-emerald-400/30 select-none">
-            <Truck size={9} className="animate-bounce" />
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart(product, selectedSize);
+            }}
+            className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-emerald-500/90 hover:bg-emerald-500 backdrop-blur-md text-white text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] border border-emerald-400/30 cursor-pointer active:scale-95 transition-all"
+            title="Add to Cart & Open Cart"
+          >
+            <ShoppingBag size={9} className="animate-pulse" />
             <span>FREE DELIVERY</span>
-          </div>
+          </button>
         )}
 
         {/* Premium Floating Limited Stock Badge */}
@@ -486,15 +494,31 @@ export default function ProductCard({
 
           {/* Delivery Row Capsule */}
           {product.freeDelivery ? (
-            <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-emerald-400 my-0.5 tracking-wide shadow-sm">
-              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
-              <span>🚀 DELIVERY: FREE - {product.deliveryDays || globalDeliveryDays || '3-5 DAYS'} (ফ্রি ডেলিভারি)</span>
-            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToCart(product, selectedSize);
+              }}
+              className="w-full bg-emerald-950/20 hover:bg-emerald-950/40 border border-emerald-500/20 hover:border-emerald-500/50 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-emerald-400 my-0.5 tracking-wide shadow-sm cursor-pointer active:scale-95 transition-all"
+              title="Add to Cart & Open Cart"
+            >
+              <ShoppingBag size={10} className="text-emerald-400 animate-pulse shrink-0" />
+              <span>DELIVERY: FREE - {product.deliveryDays || globalDeliveryDays || '3-5 DAYS'} (ফ্রি ডেলিভারি)</span>
+            </button>
           ) : (
-            <div className="bg-purple-950/20 border border-purple-500/20 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-purple-400 my-0.5 tracking-wide shadow-sm">
-              <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_#a78bfa]"></span>
-              <span>🚀 DELIVERY: ৳{product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100} (Dhaka) / ৳{product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150} (Outside)</span>
-            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToCart(product, selectedSize);
+              }}
+              className="w-full bg-purple-950/20 hover:bg-purple-950/40 border border-purple-500/20 hover:border-purple-500/50 rounded-xl py-0.5 px-1.5 flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-mono font-extrabold text-purple-400 my-0.5 tracking-wide shadow-sm cursor-pointer active:scale-95 transition-all"
+              title="Add to Cart & Open Cart"
+            >
+              <ShoppingBag size={10} className="text-purple-400 animate-pulse shrink-0" />
+              <span>DELIVERY: ৳{product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100} (Dhaka) / ৳{product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150} (Outside)</span>
+            </button>
           )}
 
 
