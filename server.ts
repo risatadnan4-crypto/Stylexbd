@@ -804,22 +804,19 @@ async function syncFromSupabase() {
       if (!productsResult.error && productsResult.data) {
         const productsData = productsResult.data;
         if (productsData.length > 0) {
-          const fetchedIds = new Set(productsData.map((p: any) => String(p.id)));
           const supabaseProducts = productsData.map((p: any) => {
             const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
             const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
             return buildProductObject(p, localProduct, pm);
           });
 
-          // Retain local-only products that are not yet in Supabase
-          const localOnlyProducts = (db.products || []).filter((lp: any) => !fetchedIds.has(String(lp.id)));
-          db.products = [...supabaseProducts, ...localOnlyProducts];
+          db.products = supabaseProducts;
           db.seededProducts = true;
           saveDB();
-          console.log(`✅ Synced ${db.products.length} products from Supabase/Local.`);
+          console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if (db.products && db.products.length > 0) {
-            console.log("🌱 Supabase 'products' table is empty. Seeding Supabase from local database backup...");
+          if (!db.seededProducts && db.products && db.products.length > 0) {
+            console.log("🌱 Initial seeding Supabase 'products' table from local backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
                 id: prod.id,
@@ -840,7 +837,7 @@ async function syncFromSupabase() {
             db.seededProducts = true;
             saveDB();
           } else {
-            db.products = db.products || [];
+            db.products = [];
             saveDB();
           }
         }
@@ -2361,31 +2358,56 @@ app.post("/api/products/:id/like", async (req, res) => {
 });
 
 app.delete("/api/products/:id", async (req, res) => {
-  const idx = db.products.findIndex(p => p.id === req.params.id);
-  if (idx !== -1) {
-    const deleted = db.products.splice(idx, 1)[0];
-    saveDB();
-    if (db.settings.productPayments) {
-      delete db.settings.productPayments[req.params.id];
-    }
-    syncSettingsToCloud();
-
-    try {
-      const { error: deleteError } = await supabase.from("products").delete().eq("id", req.params.id);
-      if (deleteError) {
-        console.error("⚠️ Failed to mirror product deletion to Supabase: ", deleteError.message);
-        if (process.env.VERCEL) {
-          return res.status(500).json({ message: `Product deletion failed on Supabase: ${deleteError.message}` });
-        }
-      }
-    } catch (err: any) {
-      console.error("⚠️ Failed to mirror product deletion to Supabase: ", err.message);
-    }
-
-    res.json(deleted);
-  } else {
-    res.status(404).json({ message: "Product not found" });
+  const targetId = String(req.params.id || "").trim();
+  if (!targetId) {
+    return res.status(400).json({ error: "Product ID is required" });
   }
+
+  console.log(`[DELETE PRODUCT] Initiating delete for product ID/Code: "${targetId}"`);
+
+  // Remove matching products from memory db.products
+  const deletedProducts = db.products.filter(
+    p => String(p.id).trim() === targetId || String(p.code || "").trim().toUpperCase() === targetId.toUpperCase()
+  );
+
+  db.products = db.products.filter(
+    p => String(p.id).trim() !== targetId && String(p.code || "").trim().toUpperCase() !== targetId.toUpperCase()
+  );
+
+  // Clean up product payment settings
+  if (db.settings?.productPayments) {
+    delete db.settings.productPayments[targetId];
+    for (const dp of deletedProducts) {
+      delete db.settings.productPayments[dp.id];
+    }
+  }
+
+  saveDB();
+  syncSettingsToCloud();
+
+  // Delete from Supabase cloud database
+  try {
+    const { error: deleteError } = await supabase
+      .from("products")
+      .delete()
+      .or(`id.eq.${targetId},code.eq.${targetId}`);
+
+    if (deleteError) {
+      console.error("⚠️ Supabase product deletion error: ", deleteError.message);
+    } else {
+      console.log(`✅ Product "${targetId}" deleted from Supabase successfully.`);
+    }
+  } catch (err: any) {
+    console.error("⚠️ Exception deleting product from Supabase: ", err?.message || err);
+  }
+
+  lastSyncCompletedAt = 0;
+
+  return res.json({
+    success: true,
+    deletedCount: deletedProducts.length,
+    message: "Product deleted successfully"
+  });
 });
 
 // Banners API

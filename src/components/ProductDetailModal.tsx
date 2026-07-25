@@ -378,7 +378,7 @@ export default function ProductDetailModal({
                   const y = ((e.clientY - top) / height) * 100;
                   setZoomPos({ x, y });
                 }}
-                className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[270px] lg:max-w-[310px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2.5 shadow-xl"
+                className="w-full max-w-[230px] sm:max-w-[280px] md:max-w-[325px] lg:max-w-[365px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2.5 shadow-xl"
               >
                 <img 
                   src={displayImage} 
@@ -405,7 +405,7 @@ export default function ProductDetailModal({
 
               {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
               {allImages.length > 1 && (
-                <div className="flex flex-row md:flex-col gap-2 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1 md:pb-0 w-full md:w-auto md:max-h-[310px]">
+                <div className="flex flex-row md:flex-col gap-2 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1 md:pb-0 w-full md:w-auto md:max-h-[365px]">
                   {allImages.map((img, i) => (
                     <button
                       key={img + i}
@@ -425,7 +425,7 @@ export default function ProductDetailModal({
             </div>
 
             {/* Direct ordering actions (DESKTOP ONLY - placed underneath image on the left) */}
-            <div className="hidden md:block w-full border-t border-white/5 pt-3">
+            <div className="hidden md:block w-full border-t border-white/10 pt-5 mt-4">
               {product.stock === 0 ? (
                 <div className="space-y-2 w-full">
                   {isNotifyMeDeactivated ? (
@@ -888,7 +888,7 @@ export default function ProductDetailModal({
             )}
 
             {/* Direct ordering actions (MOBILE ONLY - hidden on desktop since they are rendered on the left) */}
-            <div className="md:hidden">
+            <div className="md:hidden border-t border-white/10 pt-5 mt-4">
               {product.stock === 0 ? (
                 <div className="space-y-2 w-full">
                   {isNotifyMeDeactivated ? (

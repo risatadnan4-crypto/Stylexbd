@@ -1976,14 +1976,23 @@ export default function AdminPanel({
 
   // Remove Item
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Are you sure you want to archive this piece permanently?")) return;
+    if (!confirm("Are you sure you want to delete this product permanently?")) return;
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        setAdminToast({ message: "Product deleted successfully!", type: 'success' });
+        setTimeout(() => setAdminToast(null), 3000);
         onRefreshProducts();
         fetchAnalytics();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setAdminToast({ message: errData.message || "Failed to delete product.", type: 'error' });
+        setTimeout(() => setAdminToast(null), 4000);
       }
-    } catch (e) {}
+    } catch (e: any) {
+      setAdminToast({ message: "Network error while deleting product.", type: 'error' });
+      setTimeout(() => setAdminToast(null), 4000);
+    }
   };
 
   // Update Order tracking status
