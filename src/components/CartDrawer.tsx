@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, 
   Tag, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
-  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt, Image as ImageIcon
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
@@ -435,7 +435,14 @@ export default function CartDrawer({
   const isNameValid = customerName.trim().length >= 3;
   const isPhoneValid = /^01[3-9]\d{8}$/.test(customerPhone.trim().replace(/[^0-9]/g, ''));
   const isAddressValid = customerAddress.trim().length >= 8;
-  const isStep1Valid = isNameValid && isPhoneValid && isAddressValid;
+  const areImagesValid = enrichedCartItems.every(item => {
+    const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
+    if (productImagesList.length > 1) {
+      return Boolean(item.selectedColorImage);
+    }
+    return true;
+  });
+  const isStep1Valid = isNameValid && isPhoneValid && isAddressValid && areImagesValid;
 
   const validateTransactionId = (txId: string) => {
     if (!txId) return 'Transaction ID is required for verification.';
@@ -524,6 +531,12 @@ export default function CartDrawer({
   const handleContinueToCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+
+    if (!areImagesValid) {
+      setErrorMessage('Please select a product image / color variant for all items before proceeding. / অনুগ্রহ করে প্রতিটি পণ্যের ছবি পছন্দ করুন।');
+      return;
+    }
+
     if (!isStep1Valid) {
       setErrorMessage('Please ensure all required customer fields are valid.');
       return;
@@ -1120,6 +1133,48 @@ export default function CartDrawer({
                                       )}
                                     </AnimatePresence>
                                   </div>
+
+                                  {/* Size Selection Options directly under Contact Credentials */}
+                                  {enrichedCartItems && enrichedCartItems.length > 0 && (
+                                    <div className="pt-2.5 border-t border-white/10 space-y-2">
+                                      <label className="text-[10px] md:text-[11px] font-mono font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Tag size={12} className="text-purple-400 animate-pulse" />
+                                        Select Size / সাইজ নির্বাচন করুন *
+                                      </label>
+
+                                      {enrichedCartItems.map((item, idx) => {
+                                        const availableSizes = item.product.sizes && item.product.sizes.length > 0 
+                                          ? item.product.sizes 
+                                          : ["S", "M", "L", "XL", "XXL"];
+
+                                        return (
+                                          <div key={idx} className="space-y-1">
+                                            {enrichedCartItems.length > 1 && (
+                                              <span className="text-[9.5px] font-mono text-zinc-300 block truncate font-semibold">
+                                                {item.product.title}:
+                                              </span>
+                                            )}
+                                            <div className="flex gap-1.5 flex-wrap">
+                                              {availableSizes.map((size) => (
+                                                <button
+                                                  key={size}
+                                                  type="button"
+                                                  onClick={() => onUpdateSize && onUpdateSize(idx, size)}
+                                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] md:text-[11px] font-mono font-bold cursor-pointer transition-all border ${
+                                                    item.selectedSize === size
+                                                      ? "bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white font-extrabold border-purple-300 shadow-[0_0_18px_rgba(168,85,247,0.85)] scale-105 ring-2 ring-purple-400/60"
+                                                      : "bg-purple-950/35 text-purple-200/90 border-purple-500/25 hover:border-purple-400/60 hover:bg-purple-900/40 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:scale-102"
+                                                  }`}
+                                                >
+                                                  {size}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </motion.div>
@@ -1133,7 +1188,7 @@ export default function CartDrawer({
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
                                 <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. SHIPPING DESTINATION</span>
+                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. DELIVERY DESTINATION</span>
                               </div>
 
                               <div className="space-y-2.5 relative z-10">
@@ -1196,105 +1251,6 @@ export default function CartDrawer({
                                   </div>
                                 </div>
 
-                                 {/* City / District (Mobile/Tablet Only) */}
-                                 <div className="lg:hidden relative group/city bg-black/20 border border-white/5 hover:border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between shadow-inner transition-all duration-300">
-                                   <span className="text-[9px] text-white uppercase font-mono tracking-[0.15em] font-extrabold mb-1.5 flex items-center gap-1.5 relative">
-                                     <MapPin size={11} className="text-luxury-gold animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                     <span className="bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent font-black drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]">
-                                       District/City *
-                                     </span>
-                                   </span>
-                                   
-                                   {(() => {
-                                     const displayedCities = [...CITIES_LIST];
-                                     if (!CITIES_LIST.includes(customerCity)) {
-                                       displayedCities.push(customerCity);
-                                     }
-
-                                     const defaultToShowCount = 3;
-                                     let visibleCities = [...displayedCities];
-                                     if (!isDistrictsExpanded) {
-                                       const initialSelection = displayedCities.slice(0, defaultToShowCount);
-                                       if (customerCity && !initialSelection.includes(customerCity)) {
-                                         initialSelection.push(customerCity);
-                                       }
-                                       visibleCities = initialSelection;
-                                     }
-
-                                     return (
-                                       <div className="flex flex-col gap-1">
-                                         <div className="grid grid-cols-2 gap-2 mt-1">
-                                           {visibleCities.map((city) => {
-                                             const isSelected = customerCity === city;
-                                             return (
-                                               <div
-                                                 key={city}
-                                                 onClick={() => setCustomerCity(city)}
-                                                 className={`relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-between border ${
-                                                   isSelected
-                                                     ? 'bg-gradient-to-r from-luxury-gold/25 via-luxury-gold/15 to-luxury-gold/25 border-luxury-gold text-white font-black shadow-[0_0_12px_rgba(212,175,55,0.35),_inset_0_0_4px_rgba(212,175,55,0.15)]'
-                                                     : 'bg-[#0a0614]/80 hover:bg-[#120a24]/90 border-white/5 hover:border-white/15 text-zinc-300 hover:text-white'
-                                                 }`}
-                                               >
-                                                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                   <div className={`w-2 h-2 rounded-full transition-all duration-300 shrink-0 ${
-                                                     isSelected 
-                                                       ? 'bg-luxury-gold shadow-[0_0_6px_rgba(212,175,55,1)] scale-110' 
-                                                       : 'bg-zinc-700 border border-zinc-600'
-                                                   }`} />
-                                                   <span className="truncate ml-1 font-bold">{city}</span>
-                                                 </div>
-
-                                                 {city === 'Dhaka' && (
-                                                   <button
-                                                     type="button"
-                                                     onClick={(e) => {
-                                                       e.preventDefault();
-                                                       e.stopPropagation();
-                                                       setIsDistrictsExpanded(!isDistrictsExpanded);
-                                                     }}
-                                                     className="py-0.5 px-1 text-[7.5px] font-mono text-white bg-[#1a0833] border border-luxury-gold/40 hover:border-luxury-gold rounded flex items-center gap-0.5 cursor-pointer transition-all duration-300 uppercase font-bold shadow-[0_0_4px_rgba(212,175,55,0.15)] active:scale-95 ml-1 shrink-0 relative overflow-hidden z-10"
-                                                     id="btn_dhaka_districts_toggle"
-                                                   >
-                                                     <div className="luxury-glow-shimmer" />
-                                                     
-                                                     {isDistrictsExpanded ? (
-                                                       <>
-                                                         <ChevronUp size={8} className="text-luxury-gold relative z-10" />
-                                                         <span className="relative z-10 text-[7.5px]">Show Less</span>
-                                                       </>
-                                                     ) : (
-                                                       <>
-                                                         <ChevronDown size={8} className="text-luxury-gold relative z-10 animate-bounce" />
-                                                         <span className="relative z-10 text-[7.5px]">Show More</span>
-                                                       </>
-                                                     )}
-                                                   </button>
-                                                 )}
-                                               </div>
-                                             );
-                                           })}
-
-                                           {/* Other District button inside the grid */}
-                                           <button
-                                             type="button"
-                                             onClick={(e) => {
-                                               e.preventDefault();
-                                               e.stopPropagation();
-                                               setShowAllDistrictsModal(true);
-                                             }}
-                                             className="relative py-1.5 px-2.5 rounded-lg text-[9px] font-mono uppercase tracking-wider cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 border bg-luxury-gold/10 hover:bg-luxury-gold/20 border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:text-white overflow-hidden font-bold"
-                                             id="btn_show_other_districts"
-                                           >
-                                             <div className="absolute inset-0 bg-gradient-to-r from-luxury-gold/10 via-transparent to-luxury-gold/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                             <Plus size={9} className="text-luxury-gold animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
-                                             <span className="font-bold text-[8.5px] tracking-wide">Other District</span>
-                                           </button>
-                                         </div>
-                                       </div>
-                                     );
-                                   })()}
-                                 </div>
 
                                  {/* Complete Address */}
                                  <div className="relative group/input">
@@ -1394,6 +1350,7 @@ export default function CartDrawer({
 
                                 return (
                                   <div key={idx} className="bg-black/40 p-2 sm:p-2.5 md:p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300 space-y-2">
+
                                     <div className="flex items-center gap-3">
                                       {/* Product Photo - Consistent luxury size, perfectly fit */}
                                       <div 
@@ -1448,7 +1405,7 @@ export default function CartDrawer({
                                           </div>
                                         )}
 
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="hidden md:flex items-center gap-1.5">
                                           <span className="text-[8.5px] md:text-[9px] font-mono text-zinc-400 uppercase tracking-wider shrink-0">Size:</span>
                                           <div className="flex gap-1 flex-wrap">
                                             {availableSizes.map((size) => (
@@ -1498,22 +1455,36 @@ export default function CartDrawer({
 
                                     {/* Select Image options directly under product photo */}
                                     {productImagesList.length > 1 && (
-                                      <div className="pt-2 border-t border-white/10">
-                                        <span className="text-[9px] sm:text-[9.5px] font-mono tracking-wider text-[#d4af37] font-bold uppercase block mb-1 flex items-center gap-1">
-                                          <span>⚜️ Select Image / Color Variant:</span>
+                                      <div className={`pt-2 border-t transition-all duration-300 ${!item.selectedColorImage ? 'border-red-500/40 bg-red-500/[0.04] p-2 rounded-xl ring-1 ring-red-500/30' : 'border-white/10'}`}>
+                                        <span className="text-[9px] sm:text-[9.5px] font-mono tracking-wider text-[#d4af37] font-bold uppercase block mb-1 flex items-center justify-between flex-wrap gap-1">
+                                          <span className="flex items-center gap-1">
+                                            <ImageIcon size={12} className={!item.selectedColorImage ? "text-red-400 animate-pulse" : "text-[#d4af37]"} />
+                                            Select Image / Color Variant * :
+                                          </span>
+                                          {!item.selectedColorImage ? (
+                                            <span className="text-[8.5px] font-mono text-red-300 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/60 font-bold animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.4)]">
+                                              REQUIRED / ছবি নির্বাচন আবশ্যক *
+                                            </span>
+                                          ) : (
+                                            <span className="text-[8.5px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
+                                              ✓ Selected
+                                            </span>
+                                          )}
                                         </span>
-                                        <div className="flex gap-2 overflow-x-auto py-1 scrollbar-hidden">
+                                        <div className="flex gap-2 overflow-x-auto py-1.5 scrollbar-hidden">
                                           {productImagesList.map((imgUrl, imgIdx) => {
-                                            const isSelected = itemDisplayImage === imgUrl;
+                                            const isSelected = Boolean(item.selectedColorImage && item.selectedColorImage === imgUrl);
                                             return (
                                               <button
                                                 key={imgIdx}
                                                 type="button"
                                                 onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
-                                                className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 ${
+                                                className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 relative ${
                                                   isSelected
-                                                    ? 'border-[#d4af37] ring-2 ring-[#d4af37]/40 shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
-                                                    : 'border-white/10 hover:border-[#d4af37]/35 opacity-70 hover:opacity-100'
+                                                    ? 'border-[#d4af37] ring-2 ring-[#d4af37]/80 shadow-[0_0_14px_rgba(212,175,55,0.7)] scale-105'
+                                                    : !item.selectedColorImage
+                                                    ? 'border-red-500/30 hover:border-red-400 opacity-80 hover:opacity-100 hover:scale-102'
+                                                    : 'border-white/10 hover:border-[#d4af37]/35 opacity-60 hover:opacity-100'
                                                 }`}
                                               >
                                                 <img 
@@ -1522,6 +1493,11 @@ export default function CartDrawer({
                                                   className="w-full h-full object-cover"
                                                   referrerPolicy="no-referrer"
                                                 />
+                                                {isSelected && (
+                                                  <div className="absolute top-1 right-1 bg-[#d4af37] text-black rounded-full p-0.5 shadow-md">
+                                                    <Check size={10} strokeWidth={3} />
+                                                  </div>
+                                                )}
                                               </button>
                                             );
                                           })}
