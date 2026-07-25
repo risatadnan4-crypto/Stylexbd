@@ -346,7 +346,7 @@ export default function ProductDetailModal({
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-4xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1650px] origin-center bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-4 sm:p-6 md:p-8 text-left shadow-2xl z-10 flex flex-col overflow-hidden h-[96vh] max-h-[96vh] animate-fade-in gold-glow-border transition-all">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl origin-center bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-3 sm:p-5 md:p-6 text-left shadow-2xl z-10 flex flex-col overflow-hidden h-auto max-h-[92vh] animate-fade-in gold-glow-border transition-all">
         
         {/* Close Button top-right */}
         <button 
@@ -363,7 +363,7 @@ export default function ProductDetailModal({
           id="product-modal-scroll-body"
           className="overflow-y-auto flex-1 min-h-0 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10 overscroll-contain"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 mt-2 md:mt-3 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-1 md:mt-2 items-start">
           
           {/* Left Column Wrapper (Sticky on desktop) */}
           <div className="md:sticky md:top-2 h-fit w-full space-y-3.5">
@@ -378,7 +378,7 @@ export default function ProductDetailModal({
                   const y = ((e.clientY - top) / height) * 100;
                   setZoomPos({ x, y });
                 }}
-                className="w-full max-w-[320px] sm:max-w-[420px] md:max-w-[500px] lg:max-w-[620px] xl:max-w-[720px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-4 shadow-2xl"
+                className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[270px] lg:max-w-[310px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2.5 shadow-xl"
               >
                 <img 
                   src={displayImage} 
@@ -405,13 +405,13 @@ export default function ProductDetailModal({
 
               {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
               {allImages.length > 1 && (
-                <div className="flex flex-row md:flex-col gap-2.5 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1.5 md:pb-0 w-full md:w-auto md:max-h-[550px]">
+                <div className="flex flex-row md:flex-col gap-2 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1 md:pb-0 w-full md:w-auto md:max-h-[310px]">
                   {allImages.map((img, i) => (
                     <button
                       key={img + i}
                       type="button"
                       onClick={() => setActiveImgUrl(img)}
-                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
                         img === displayImage 
                           ? 'border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105' 
                           : 'border-white/5 hover:border-white/20 hover:scale-105'
@@ -554,7 +554,7 @@ export default function ProductDetailModal({
               </div>
 
               <h2 
-                className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase leading-snug"
+                className="font-serif text-lg sm:text-xl lg:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase leading-snug"
                 style={{ 
                   wordSpacing: 'normal', 
                   letterSpacing: 'normal', 
@@ -618,7 +618,7 @@ export default function ProductDetailModal({
                       {/* Main & Original Price Row */}
                       <div className="flex items-center flex-nowrap gap-3.5 select-all font-display">
                         {/* Main Price */}
-                        <div className="text-[42px] sm:text-[52px] md:text-[64px] font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-center shrink-0">
+                        <div className="text-3xl sm:text-4xl md:text-5xl font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-center shrink-0">
                           <span className="text-[0.72em] font-serif font-bold mr-0.5 relative select-none">৳</span>
                           <span className="font-sans font-black tracking-tight">{sellingPrice.toLocaleString('en-US')}</span>
                         </div>
@@ -817,7 +817,7 @@ export default function ProductDetailModal({
                             setActiveImgUrl(color.imageUrl);
                           }
                         }}
-                        className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm border cursor-pointer transition-all duration-300 ${
+                        className={`group relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer transition-all duration-300 ${
                           isSelected
                             ? 'bg-luxury-gold/10 border-luxury-gold shadow-[0_0_15px_rgba(212,175,55,0.35)] scale-105 font-bold text-white'
                             : 'bg-black/40 border-white/5 hover:border-white/25 text-zinc-400 hover:text-white'
@@ -833,7 +833,7 @@ export default function ProductDetailModal({
                           <img 
                             src={color.imageUrl} 
                             alt={color.name} 
-                            className="w-8 h-8 object-cover rounded-md border border-white/10 flex-shrink-0"
+                            className="w-6 h-6 object-cover rounded border border-white/10 flex-shrink-0"
                             referrerPolicy="no-referrer"
                           />
                         )}
@@ -857,7 +857,7 @@ export default function ProductDetailModal({
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`h-11 min-w-12 px-6 rounded-xl text-xs sm:text-sm font-display border uppercase tracking-[0.2em] flex items-center justify-center cursor-pointer transition-all ${
+                      className={`h-9 min-w-10 px-4 rounded-xl text-xs font-display border uppercase tracking-[0.2em] flex items-center justify-center cursor-pointer transition-all ${
                         selectedSize === size
                           ? 'luxury-size-btn-active scale-105 shadow-[0_0_20px_rgba(154,77,255,0.75)]'
                           : 'luxury-size-btn-inactive'
