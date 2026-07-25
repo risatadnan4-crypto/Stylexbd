@@ -1133,49 +1133,49 @@ export default function CartDrawer({
                                       )}
                                     </AnimatePresence>
                                   </div>
-
-                                  {/* Size Selection Options directly under Contact Credentials */}
-                                  {enrichedCartItems && enrichedCartItems.length > 0 && (
-                                    <div className="pt-2.5 border-t border-white/10 space-y-2">
-                                      <label className="text-[10px] md:text-[11px] font-mono font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
-                                        <Tag size={12} className="text-purple-400 animate-pulse" />
-                                        Select Size / সাইজ নির্বাচন করুন *
-                                      </label>
-
-                                      {enrichedCartItems.map((item, idx) => {
-                                        const availableSizes = item.product.sizes && item.product.sizes.length > 0 
-                                          ? item.product.sizes 
-                                          : ["S", "M", "L", "XL", "XXL"];
-
-                                        return (
-                                          <div key={idx} className="space-y-1">
-                                            {enrichedCartItems.length > 1 && (
-                                              <span className="text-[9.5px] font-mono text-zinc-300 block truncate font-semibold">
-                                                {item.product.title}:
-                                              </span>
-                                            )}
-                                            <div className="flex gap-1.5 flex-wrap">
-                                              {availableSizes.map((size) => (
-                                                <button
-                                                  key={size}
-                                                  type="button"
-                                                  onClick={() => onUpdateSize && onUpdateSize(idx, size)}
-                                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] md:text-[11px] font-mono font-bold cursor-pointer transition-all border ${
-                                                    item.selectedSize === size
-                                                      ? "bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white font-extrabold border-purple-300 shadow-[0_0_18px_rgba(168,85,247,0.85)] scale-105 ring-2 ring-purple-400/60"
-                                                      : "bg-purple-950/35 text-purple-200/90 border-purple-500/25 hover:border-purple-400/60 hover:bg-purple-900/40 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:scale-102"
-                                                  }`}
-                                                >
-                                                  {size}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
                                 </div>
+
+                                {/* Size Selection Options directly under Contact Credentials */}
+                                {enrichedCartItems && enrichedCartItems.length > 0 && (
+                                  <div className="pt-2.5 border-t border-white/10 space-y-2">
+                                    <label className="text-[10px] md:text-[11px] font-mono font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                                      <Tag size={12} className="text-purple-400 animate-pulse" />
+                                      Select Size / সাইজ নির্বাচন করুন *
+                                    </label>
+
+                                    {enrichedCartItems.map((item, idx) => {
+                                      const availableSizes = item.product.sizes && item.product.sizes.length > 0 
+                                        ? item.product.sizes 
+                                        : ["S", "M", "L", "XL", "XXL"];
+
+                                      return (
+                                        <div key={idx} className="space-y-1">
+                                          {enrichedCartItems.length > 1 && (
+                                            <span className="text-[9.5px] font-mono text-zinc-300 block truncate font-semibold">
+                                              {item.product.title}:
+                                            </span>
+                                          )}
+                                          <div className="flex gap-1.5 flex-wrap">
+                                            {availableSizes.map((size) => (
+                                              <button
+                                                key={size}
+                                                type="button"
+                                                onClick={() => onUpdateSize && onUpdateSize(idx, size)}
+                                                className={`px-2.5 py-1.5 rounded-lg text-[10px] md:text-[11px] font-mono font-bold cursor-pointer transition-all border ${
+                                                  item.selectedSize === size
+                                                    ? "bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 text-white font-extrabold border-purple-300 shadow-[0_0_18px_rgba(168,85,247,0.85)] scale-105 ring-2 ring-purple-400/60"
+                                                    : "bg-purple-950/35 text-purple-200/90 border-purple-500/25 hover:border-purple-400/60 hover:bg-purple-900/40 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:scale-102"
+                                                }`}
+                                              >
+                                                {size}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             </motion.div>
 
