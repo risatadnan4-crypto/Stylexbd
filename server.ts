@@ -16,15 +16,16 @@ export const app = express();
 const PORT = 3000;
 
 // Setup directories for data and uploads
-const DATA_DIR = path.join(process.cwd(), "data");
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+const DATA_DIR = (isServerless && fs.existsSync("/tmp")) ? "/tmp" : path.join(process.cwd(), "data");
+const UPLOADS_DIR = (isServerless && fs.existsSync("/tmp")) ? path.join("/tmp", "uploads") : path.join(process.cwd(), "public", "uploads");
 
 try {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 } catch (e: any) {
-  console.warn("⚠️ Local DATA_DIR creation bypassed (read-only filesystem on Vercel):", e.message);
+  // Silent fallback
 }
 
 try {
@@ -32,10 +33,10 @@ try {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   }
 } catch (e: any) {
-  console.warn("⚠️ Local UPLOADS_DIR creation bypassed (read-only filesystem on Vercel):", e.message);
+  // Silent fallback
 }
 
-const DB_FILE = path.join(DATA_DIR, "luxury_db.json");
+let DB_FILE = path.join(DATA_DIR, "luxury_db.json");
 
 // Default initial data
 const initialProducts: Product[] = [
@@ -317,7 +318,7 @@ try {
       privateKey: keys.privateKey
     };
     // Save DB after modifying key fields
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
+    saveDB();
   }
   webPush.setVapidDetails(
     "mailto:risatadnan4@gmail.com",
@@ -334,8 +335,19 @@ function saveDB() {
   lastSyncCompletedAt = 0; // Force immediate refetch on subsequent requests on this instance
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-  } catch (err) {
-    console.error("Error saving DB to filesystem:", err);
+  } catch (err: any) {
+    if (err?.code === "EROFS" || err?.message?.includes("read-only")) {
+      if (!DB_FILE.startsWith("/tmp") && fs.existsSync("/tmp")) {
+        try {
+          DB_FILE = path.join("/tmp", "luxury_db.json");
+          fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
+        } catch (tmpErr) {
+          // Silent fallback for read-only serverless environment
+        }
+      }
+    } else {
+      console.warn("Notice: Local filesystem cache write skipped:", err?.message || err);
+    }
   }
 }
 
