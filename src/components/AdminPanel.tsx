@@ -5,7 +5,7 @@ import {
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
   Bot, ShieldCheck, Undo, Search, Lock, AlertTriangle,
-  Activity, Terminal, Cpu, RefreshCw, Layers, Key
+  Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -30,6 +30,7 @@ import { formatPrice, generateQrUrl, validateUrl, isValidUrl } from '../utils';
 import { LotteryPrize } from './LotteryModal';
 import PerformanceDashboard from './PerformanceDashboard';
 import AiApiManager from './AiApiManager';
+import ProfitCalculator from './ProfitCalculator';
 
 interface AdminPanelProps {
   onBackToStore: () => void;
@@ -87,7 +88,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai' | 'ai_api_manager'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'profit_calculator' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai' | 'ai_api_manager'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -2360,6 +2361,7 @@ export default function AdminPanel({
           <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-pulse"></span>
           {activeTab === 'dashboard' && "Dashboard"}
           {activeTab === 'performance_dashboard' && "Performance"}
+          {activeTab === 'profit_calculator' && "Profit Calculator"}
           {activeTab === 'inventory' && "Inventory"}
           {activeTab === 'orders' && "Orders"}
           {activeTab === 'banners' && "Banners"}
@@ -2434,6 +2436,16 @@ export default function AdminPanel({
             >
               <Activity size={13} className={activeTab === 'performance_dashboard' ? 'text-luxury-black' : 'text-luxury-gold'} />
               Performance Dashboard
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('profit_calculator'); setSelectedChat(null); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'profit_calculator' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Calculator size={13} className={activeTab === 'profit_calculator' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              Profit Calculator
             </button>
 
             <button 
@@ -2753,6 +2765,11 @@ export default function AdminPanel({
             products={products} 
             analytics={analytics} 
           />
+        )}
+
+        {/* PROFIT CALCULATOR TAB */}
+        {activeTab === 'profit_calculator' && (
+          <ProfitCalculator />
         )}
 
         {/* 1. OVERVIEW DASHBOARD */}

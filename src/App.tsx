@@ -21,6 +21,7 @@ import XoroAssistant from './components/XoroAssistant';
 // @ts-ignore
 import defaultXoroAvatar from './assets/images/xoro_mascot_3d_1782635214676.jpg';
 import CustomerProfileModal from './components/CustomerProfileModal';
+import SourceProtectionModal from './components/SourceProtectionModal';
 import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
 import AcousticScrollManager from './components/AcousticScrollManager';
@@ -75,6 +76,24 @@ export default function App() {
     }
     return false;
   });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Catch Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, F12
+      const isCtrlU = (e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U');
+      const isDevTools = (e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C'].includes(e.key);
+      const isF12 = e.key === 'F12';
+
+      if (isCtrlU || isDevTools || isF12) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowSourceProtectionModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -183,6 +202,7 @@ export default function App() {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isLotteryOpen, setIsLotteryOpen] = useState(false);
+  const [showSourceProtectionModal, setShowSourceProtectionModal] = useState(false);
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
   const [discountPhone, setDiscountPhone] = useState('');
   const [isSubmittingDiscount, setIsSubmittingDiscount] = useState(false);
@@ -4122,6 +4142,11 @@ export default function App() {
       />
 
       <AcousticScrollManager />
+
+      <SourceProtectionModal 
+        isOpen={showSourceProtectionModal}
+        onClose={() => setShowSourceProtectionModal(false)}
+      />
 
     </div>
   );

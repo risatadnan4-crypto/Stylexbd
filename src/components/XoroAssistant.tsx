@@ -1391,7 +1391,7 @@ export default function XoroAssistant({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.9 }}
               transition={{ type: 'spring', damping: 15 }}
-              className="mb-3 max-w-[240px] bg-zinc-950 border-2 border-luxury-gold/50 shadow-[0_10px_30px_rgba(212,175,55,0.25)] rounded-2xl p-3.5 text-left relative"
+              className="mb-2.5 max-w-[230px] sm:max-w-[250px] bg-zinc-950 border-2 border-luxury-gold/50 shadow-[0_10px_30px_rgba(212,175,55,0.25)] rounded-2xl p-2.5 sm:p-3 text-left relative"
             >
               <button 
                 onClick={(e) => {
@@ -1403,7 +1403,7 @@ export default function XoroAssistant({
               >
                 <X size={12} />
               </button>
-              <p className="text-[11px] leading-relaxed text-zinc-100 font-sans pr-3">
+              <p className="text-[10.5px] sm:text-[11px] leading-relaxed text-zinc-100 font-sans pr-3">
                 {speechBubbleText}
               </p>
               
@@ -1426,22 +1426,35 @@ export default function XoroAssistant({
                   // Prevent drag listener from stealing focus/events
                   e.stopPropagation();
                 }}
-                className="mt-3.5 flex items-center gap-1.5 border-t border-white/5 pt-3"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                className="mt-2 flex items-center gap-1 border-t border-white/10 pt-1.5 pointer-events-auto"
               >
                 <input 
                   type="text"
                   value={bubbleInput}
                   onChange={(e) => setBubbleInput(e.target.value)}
-                  disabled={settings?.isXoroVoiceAndAnswerDisabled}
-                  placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট নিষ্ক্রিয় রয়েছে" : "Xoro-কে প্রশ্ন করুন..."}
-                  className="flex-1 bg-zinc-900 border border-white/10 hover:border-white/20 focus:border-luxury-gold/75 focus:outline-none rounded-xl text-[10px] px-2.5 py-1.5 font-sans text-white transition-all disabled:opacity-50"
+                  onFocus={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  disabled={Boolean(settings?.isXoroVoiceAndAnswerDisabled)}
+                  placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "নিষ্ক্রিয় রয়েছে" : "Xoro-কে প্রশ্ন করুন..."}
+                  className="flex-1 min-w-0 bg-zinc-900/90 border border-white/15 hover:border-white/30 focus:border-luxury-gold focus:outline-none rounded-md text-[9px] sm:text-[9.5px] px-1.5 py-0.5 font-sans text-white transition-all disabled:opacity-50 shadow-inner pointer-events-auto select-text touch-auto cursor-text"
                 />
                 <button 
                   type="submit"
-                  disabled={settings?.isXoroVoiceAndAnswerDisabled || !bubbleInput.trim()}
-                  className="h-7 w-7 bg-luxury-gold hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-luxury-black rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border-0 outline-none"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  disabled={Boolean(settings?.isXoroVoiceAndAnswerDisabled || !bubbleInput.trim())}
+                  className="h-5 w-5 sm:h-5.5 sm:w-5.5 bg-luxury-gold hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:hover:brightness-100 text-luxury-black rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border-0 outline-none shadow-md pointer-events-auto"
                 >
-                  <Send size={10} />
+                  <Send size={9} />
                 </button>
               </form>
               {/* Little arrow pointing at button */}

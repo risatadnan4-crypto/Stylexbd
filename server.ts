@@ -2635,31 +2635,168 @@ async function sendAdminEmail({ subject, text, html, toEmail }: { subject: strin
   throw new Error(finalErrorMessage);
 }
 
-app.post("/api/checkout-step1-notify", express.json(), async (req, res) => {
+// --- CHECKOUT SESSION TRACKING SYSTEM FOR ABANDONED VS COMPLETED ORDERS ---
+interface CheckoutSessionData {
+  sessionId: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerCity: string;
+  customerDistrict: string;
+  customerArea?: string;
+  customerNotes?: string;
+  customerEmail?: string;
+  items: any[];
+  estimatedTotal: number;
+  createdAt: string;
+  step1CompletedAt?: string;
+  abandonedEmailSent: boolean;
+  orderCompleted: boolean;
+  orderId?: string;
+}
+
+const checkoutSessions = new Map<string, CheckoutSessionData>();
+
+// Save Step 1 Customer Information without immediately sending email
+const handleSaveStep1Session = async (req: express.Request, res: express.Response) => {
   const { 
+    sessionId,
     customerName, 
     customerPhone, 
     customerAddress, 
     customerCity, 
     customerDistrict,
+    customerArea,
+    customerNotes,
     customerEmail,
     items,
     estimatedTotal
   } = req.body;
 
   if (!customerName || !customerPhone || !customerAddress) {
-    return res.status(400).json({ message: "Missing required details." });
+    return res.status(400).json({ message: "Missing required customer details." });
   }
 
-  // Store new user phone number
+  // Store new user phone number in directory
   registerCustomerPhone(customerPhone, customerName, customerEmail, 'checkout_step1');
 
-  const orderItemsText = items && Array.isArray(items) 
-    ? items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"})${i.selectedColor ? ` [Color: ${i.selectedColor}]` : ""}${i.selectedColorImage ? ` [Img: ${i.selectedColorImage}]` : ""} x${i.quantity} @ ৳${i.price}`).join("\n")
+  const sessId = sessionId || `SESS-CHK-${Date.now()}`;
+  const existing = checkoutSessions.get(sessId);
+
+  const sessionData: CheckoutSessionData = {
+    sessionId: sessId,
+    customerName,
+    customerPhone,
+    customerAddress,
+    customerCity: customerCity || 'Dhaka',
+    customerDistrict: customerDistrict || customerCity || 'Dhaka',
+    customerArea: customerArea || '',
+    customerNotes: customerNotes || '',
+    customerEmail: customerEmail || 'guest@example.com',
+    items: items || [],
+    estimatedTotal: Number(estimatedTotal) || 0,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    step1CompletedAt: new Date().toISOString(),
+    abandonedEmailSent: existing?.abandonedEmailSent || false,
+    orderCompleted: existing?.orderCompleted || false,
+    orderId: existing?.orderId
+  };
+
+  checkoutSessions.set(sessId, sessionData);
+
+  return res.json({ 
+    success: true, 
+    sessionId: sessId, 
+    message: "Step 1 information saved successfully." 
+  });
+};
+
+app.post("/api/checkout-step1-save", express.json(), handleSaveStep1Session);
+app.post("/api/checkout-step1-notify", express.json(), handleSaveStep1Session);
+
+// Handle Abandoned Checkout Notification (Triggered ONLY when user leaves checkout after completing Step 1)
+app.post("/api/checkout-abandon", express.text({ type: '*/*' }), async (req, res) => {
+  let body: any = {};
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    body = req.body || {};
+  }
+
+  const {
+    sessionId,
+    customerName,
+    customerPhone,
+    customerAddress,
+    customerCity,
+    customerDistrict,
+    customerArea,
+    customerNotes,
+    customerEmail,
+    items,
+    estimatedTotal
+  } = body;
+
+  const sessId = sessionId;
+  let session = sessId ? checkoutSessions.get(sessId) : null;
+
+  // Use payload fallback if session not found in memory
+  const name = session?.customerName || customerName;
+  const phone = session?.customerPhone || customerPhone;
+  const address = session?.customerAddress || customerAddress;
+  const city = session?.customerCity || customerCity || '';
+  const district = session?.customerDistrict || customerDistrict || city;
+  const area = session?.customerArea || customerArea || '';
+  const notes = session?.customerNotes || customerNotes || '';
+  const email = session?.customerEmail || customerEmail || 'Guest';
+  const orderItems = session?.items || items || [];
+  const total = session?.estimatedTotal || estimatedTotal || 0;
+
+  if (!name || !phone || !address) {
+    return res.status(200).json({ success: false, message: "Insufficient details for abandoned notification." });
+  }
+
+  // 1. STRICT RULE: If order was already completed for this session, DO NOT send abandoned email!
+  if (session?.orderCompleted) {
+    console.log(`[CHECKOUT_ABANDON_SUPPRESSED] Order already placed for session ${sessId}. Abandoned email blocked.`);
+    return res.json({ success: true, message: "Order completed. Abandoned email suppressed." });
+  }
+
+  // 2. STRICT RULE: Prevent duplicate emails if already sent
+  if (session?.abandonedEmailSent) {
+    console.log(`[CHECKOUT_ABANDON_SUPPRESSED] Abandoned email already sent for session ${sessId}. Duplicate suppressed.`);
+    return res.json({ success: true, message: "Abandoned email already sent previously." });
+  }
+
+  // Mark abandoned email as sent for this session
+  if (session) {
+    session.abandonedEmailSent = true;
+  } else if (sessId) {
+    checkoutSessions.set(sessId, {
+      sessionId: sessId,
+      customerName: name,
+      customerPhone: phone,
+      customerAddress: address,
+      customerCity: city,
+      customerDistrict: district,
+      customerArea: area,
+      customerNotes: notes,
+      customerEmail: email,
+      items: orderItems,
+      estimatedTotal: total,
+      createdAt: new Date().toISOString(),
+      abandonedEmailSent: true,
+      orderCompleted: false
+    });
+  }
+
+  // Prepare Abandoned Email Content
+  const orderItemsText = orderItems && Array.isArray(orderItems)
+    ? orderItems.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"})${i.selectedColor ? ` [Color: ${i.selectedColor}]` : ""} x${i.quantity} @ ৳${i.price}`).join("\n")
     : "No items specified";
 
-  const orderItemsHtml = items && Array.isArray(items)
-    ? items.map((i: any) => {
+  const orderItemsHtml = orderItems && Array.isArray(orderItems)
+    ? orderItems.map((i: any) => {
         const prod = db.products.find(p => p.id === i.productId);
         const imgUrl = i.selectedColorImage || prod?.imageUrl || "";
         const colorText = i.selectedColor ? `<br/><span style="font-size: 11px; color: #aaa;">Color: <b>${i.selectedColor}</b></span>` : "";
@@ -2687,43 +2824,52 @@ app.post("/api/checkout-step1-notify", express.json(), async (req, res) => {
       }).join("")
     : "";
 
-  const emailSubject = `📋 Step 1 Form Submitted by: ${customerName}`;
+  const emailSubject = `⚠️ Abandoned Checkout After Step 1: ${name}`;
   const emailBody = `
 ========================================
-📋 STEP 1 CHECKOUT FORM DETAILS
+⚠️ ABANDONED CHECKOUT NOTIFICATION
 ========================================
-👤 Customer Name: ${customerName}
-📞 Mobile Number: ${customerPhone}
-✉️ Email: ${customerEmail || 'Guest'}
-🏠 Delivery Address: ${customerAddress}
-🏙️ City/District: ${customerCity || 'N/A'} / ${customerDistrict || 'N/A'}
-💰 Estimated Total: ৳${estimatedTotal || 'N/A'}
-📦 Selected Items:
+👤 Customer Name: ${name}
+📞 Mobile Number: ${phone}
+✉️ Email: ${email}
+🏠 Delivery Address: ${address}
+🏙️ City / District / Area: ${city} / ${district} / ${area || 'N/A'}
+📝 Notes: ${notes || 'None'}
+📦 Products in Cart:
 ${orderItemsText}
-⏰ Clicked Time: ${new Date().toLocaleString()}
+💰 Total Price: ৳${total}
+⏰ Cancelled Time: ${new Date().toLocaleString()}
+🚦 Status: Checkout Cancelled After Step 1
 ========================================
   `;
 
   const emailHtml = `
-    <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1.5px dashed #d4af37; border-radius: 8px; background-color: #0f0a1c; color: #fff;">
-      <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 10px; margin-top: 0;">📋 Step 1 Form Submitted</h2>
-      <p style="font-size: 14px; color: #eaeaea;">The customer has filled out the primary checkout form and clicked the button to proceed to payment.</p>
+    <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 2px dashed #f59e0b; border-radius: 8px; background-color: #0f0a1c; color: #fff;">
+      <div style="background-color: #7c2d12; color: #fef3c7; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; display: inline-block;">
+        ⚠️ Status: Checkout Cancelled After Step 1
+      </div>
+      <h2 style="color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; margin-top: 0;">⚠️ Abandoned Checkout Notification</h2>
+      <p style="font-size: 13px; color: #eaeaea;">Customer completed Step 1 form but cancelled or left checkout before placing the order.</p>
       
       <table style="width: 100%; border-collapse: collapse; margin-top: 15px; color: #fff;">
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); width: 150px; color: #d4af37;">Customer Name:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerName}</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); width: 150px; color: #f59e0b;">Customer Name:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${name}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Mobile Number:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerPhone}</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #f59e0b;">Mobile Number:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${phone}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Email:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${customerEmail || 'Guest'}</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #f59e0b;">Email:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${email}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; vertical-align: top;" colspan="2">Selected Items:</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #f59e0b;">Address:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${address}, ${city} (${district})</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #f59e0b; vertical-align: top;" colspan="2">Products in Cart:</td>
         </tr>
         <tr>
           <td style="padding: 0; border-bottom: 1px solid rgba(255,255,255,0.1);" colspan="2">
@@ -2733,12 +2879,12 @@ ${orderItemsText}
           </td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37; padding-top: 15px;">Delivery Address:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">${customerAddress}, ${customerCity || ''}</td>
+          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #f59e0b;">Total Price:</td>
+          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: #22c55e;">৳${total}</td>
         </tr>
         <tr>
-          <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); color: #d4af37;">Estimated Total:</td>
-          <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: #22c55e;">৳${estimatedTotal}</td>
+          <td style="padding: 8px; font-weight: bold; color: #f59e0b;">Cancelled Time:</td>
+          <td style="padding: 8px;">${new Date().toLocaleString()}</td>
         </tr>
       </table>
     </div>
@@ -2746,9 +2892,10 @@ ${orderItemsText}
 
   try {
     await sendAdminEmail({ subject: emailSubject, text: emailBody, html: emailHtml });
-    res.json({ success: true, message: "Step 1 notification sent successfully to admin email." });
+    console.log(`[CHECKOUT_ABANDON] Sent 1 Abandoned Checkout email for session ${sessId || 'unknown'}`);
+    res.json({ success: true, message: "Abandoned checkout email sent." });
   } catch (err: any) {
-    console.error("Step 1 email dispatch failed:", err.message);
+    console.error(`[CHECKOUT_ABANDON_ERR] Failed to send abandoned email:`, err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -3064,6 +3211,7 @@ function sendPushNotification(payload: { title: string; body: string; icon?: str
 
 app.post("/api/orders", async (req, res) => {
   const { 
+    sessionId,
     customerName, 
     customerPhone, 
     customerAddress, 
@@ -3532,6 +3680,30 @@ app.post("/api/orders", async (req, res) => {
   db.orders.push(newOrder);
   saveDB();
 
+  // Mark checkout session as completed so NO abandoned email will be sent
+  if (sessionId) {
+    const session = checkoutSessions.get(sessionId);
+    if (session) {
+      session.orderCompleted = true;
+      session.orderId = newOrder.id;
+    } else {
+      checkoutSessions.set(sessionId, {
+        sessionId,
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity: customerCity || 'Dhaka',
+        customerDistrict: customerDistrict || customerCity || 'Dhaka',
+        items: items || [],
+        estimatedTotal: totalAmount,
+        createdAt: new Date().toISOString(),
+        abandonedEmailSent: false,
+        orderCompleted: true,
+        orderId: newOrder.id
+      });
+    }
+  }
+
   try {
     const payload: any = {
       id: newOrder.id,
@@ -3600,6 +3772,27 @@ app.post("/api/orders", async (req, res) => {
 
     // Send direct admin email notification via Multi-Method Email System
     const orderItemsText = items.map((i: any) => `- ${i.title} (${i.selectedSize || "Standard"}) x${i.quantity} @ ৳${i.price}`).join("\n");
+    const orderItemsHtml = items && Array.isArray(items)
+      ? items.map((i: any) => {
+          const prod = db.products.find(p => p.id === i.productId);
+          const imgUrl = i.selectedColorImage || prod?.imageUrl || "";
+          const colorText = i.selectedColor ? `<br/><span style="font-size: 11px; color: #666;">Color: <b>${i.selectedColor}</b></span>` : "";
+          const sizeText = i.selectedSize ? `<br/><span style="font-size: 11px; color: #666;">Size: <b>${i.selectedSize}</b></span>` : "";
+
+          return `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee;">
+              ${imgUrl ? `<img src="${imgUrl}" alt="${i.title}" style="width: 65px; height: 65px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; flex-shrink: 0;" />` : ''}
+              <div style="flex: 1;">
+                <div style="font-weight: bold; font-size: 13.5px; color: #111;">${i.title}</div>
+                ${sizeText}
+                ${colorText}
+                <div style="font-size: 12px; color: #444; margin-top: 4px;">Qty: <b>${i.quantity}</b> × <b>৳${i.price}</b> = <b style="color: #d4af37;">৳${Number(i.price) * Number(i.quantity)}</b></div>
+              </div>
+            </div>
+          `;
+        }).join("")
+      : orderItemsText;
+
     const emailSubject = `🛍️ New Order Placed: #${newOrder.id}`;
     const emailBody = `
 ========================================
@@ -3620,7 +3813,7 @@ ${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionI
 
     const emailHtml = `
       <div style="font-family: sans-serif; padding: 20px; max-width: 600px; border: 1px solid #d4af37; border-radius: 8px;">
-        <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">👑 Style X Luxury Order Confirmation</h2>
+        <h2 style="color: #d4af37; border-bottom: 2px solid #d4af37; padding-bottom: 10px; margin-top: 0;">👑 Style X Luxury Order Confirmation</h2>
         <p style="font-size: 14px; font-weight: bold; color: #111;">Order ID: #${newOrder.id}</p>
         
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
@@ -3638,7 +3831,7 @@ ${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionI
           </tr>
           <tr>
             <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee; vertical-align: top;">Product Details:</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; white-space: pre-line;">${orderItemsText}</td>
+            <td style="padding: 0 8px; border-bottom: 1px solid #eee;">${orderItemsHtml}</td>
           </tr>
           <tr>
             <td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Delivery Address:</td>
@@ -3676,40 +3869,9 @@ ${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionI
       </div>
     `;
 
+    // Dispatch single email via unified system
     sendAdminEmail({ subject: emailSubject, text: emailBody, html: emailHtml })
       .catch(err => console.error("Error sending admin order email:", err));
-
-    fetch(scriptUrl, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        email: targetEmail,
-        recipient: targetEmail,
-        recipientEmail: targetEmail,
-        targetEmail: targetEmail,
-        target_email: targetEmail,
-        adminEmail: targetEmail,
-        storeEmail: targetEmail,
-        toEmail: targetEmail,
-        notifyEmail: targetEmail,
-        name: customerName,
-        phone: customerPhone,
-        location: orderLocation,
-        items: itemsFormatted,
-        total: `৳${totalAmount} (৳${subtotal} Products + ৳${shippingValue} Courier Delivery)`,
-        payment: paymentDetailText,
-        paymentStatus: paymentStatusLabel,
-        trxid: newOrder.transactionId || `STX-TRX-${trackingId.split("-")[1]}`,
-        screenshot: newOrder.paymentScreenshot || "",
-        date: new Date().toLocaleString("en-US", { timeZone: "Asia/Dhaka" })
-      })
-    })
-    .then(async (r) => {
-      console.log(`✉️ Google Apps Script hook invoked! Status: ${r.status}`);
-    })
-    .catch((err) => {
-      console.error("⚠️ Google Apps Script webhook integration error: ", err.message);
-    });
   } catch (gasErr: any) {
     console.error("⚠️ Failed to initiate email notification trigger: ", gasErr.message);
   }

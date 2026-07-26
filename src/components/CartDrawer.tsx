@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, 
+  X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, FileText,
   Tag, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
-  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt, Image as ImageIcon
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt, Image as ImageIcon, Camera
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
@@ -137,6 +137,12 @@ export default function CartDrawer({
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerCity, setCustomerCity] = useState('Dhaka');
   const [customerDistrict, setCustomerDistrict] = useState('Dhaka');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [orderImagePreview, setOrderImagePreview] = useState<string | null>(null);
+  const [orderImageBase64, setOrderImageBase64] = useState<string | null>(null);
+
+  // Main drawer container ref for mobile keyboard scrolling
+  const drawerContentRef = useRef<HTMLDivElement>(null);
 
   // District modal states
   const [showAllDistrictsModal, setShowAllDistrictsModal] = useState(false);
@@ -175,6 +181,12 @@ export default function CartDrawer({
   // Premium Lightbox Zoom State
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
+  // Session & Tracking Refs for Abandoned vs Completed Order Emails
+  const checkoutSessionIdRef = useRef<string>(`SESS-CHK-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`);
+  const step1CompletedRef = useRef<boolean>(false);
+  const orderCompletedRef = useRef<boolean>(false);
+  const abandonedEmailSentRef = useRef<boolean>(false);
+
   // Input Focus Refs
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
@@ -188,12 +200,14 @@ export default function CartDrawer({
       const savedPhone = localStorage.getItem('stylex_checkout_phone');
       const savedAddress = localStorage.getItem('stylex_checkout_address');
       const savedCity = localStorage.getItem('stylex_checkout_city');
+      const savedNotes = localStorage.getItem('stylex_checkout_notes');
       const savedUsedTx = sessionStorage.getItem('stylex_used_txids');
 
       if (savedName) setCustomerName(savedName);
       if (savedPhone) setCustomerPhone(savedPhone);
       if (savedAddress) setCustomerAddress(savedAddress);
       if (savedCity) setCustomerCity(savedCity);
+      if (savedNotes) setCustomerNotes(savedNotes);
       if (savedUsedTx) setUsedTransactionIds(JSON.parse(savedUsedTx));
     } catch (e) {
       console.warn('Error reading storage progress: ', e);
@@ -205,6 +219,139 @@ export default function CartDrawer({
   useEffect(() => { localStorage.setItem('stylex_checkout_phone', customerPhone); }, [customerPhone]);
   useEffect(() => { localStorage.setItem('stylex_checkout_address', customerAddress); }, [customerAddress]);
   useEffect(() => { localStorage.setItem('stylex_checkout_city', customerCity); setCustomerDistrict(customerCity); }, [customerCity]);
+  useEffect(() => { localStorage.setItem('stylex_checkout_notes', customerNotes); }, [customerNotes]);
+
+  // Mobile virtual keyboard scrolling and viewport handling for form inputs
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const container = drawerContentRef.current;
+    if (!container) return;
+
+    let initialScrollTop = 0;
+    let initialWinScrollY = 0;
+    let activeFocusTimer: ReturnType<typeof setTimeout> | null = null;
+    let restoreTimer: ReturnType<typeof setTimeout> | null = null;
+    let isEditingSession = false;
+
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      const tagName = target.tagName;
+      const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+      if (!isInput) return;
+
+      const inputType = target.getAttribute('type');
+      if (inputType === 'file' || inputType === 'hidden' || inputType === 'checkbox' || inputType === 'radio') {
+        return;
+      }
+
+      if (restoreTimer) {
+        clearTimeout(restoreTimer);
+        restoreTimer = null;
+      }
+
+      // Find closest scrollable container
+      const scrollableParent = (target.closest('.overflow-y-auto') as HTMLElement) || container;
+
+      if (!isEditingSession) {
+        isEditingSession = true;
+        initialScrollTop = scrollableParent.scrollTop;
+        initialWinScrollY = window.scrollY;
+      }
+
+      const adjustScrollPosition = () => {
+        if (!scrollableParent || !document.activeElement || !scrollableParent.contains(document.activeElement)) {
+          return;
+        }
+
+        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const keyboardEstimatedHeight = Math.max(220, window.innerHeight - vvHeight);
+
+        // Dynamically add extra bottom padding so elements at the bottom can scroll high above keyboard
+        scrollableParent.style.paddingBottom = `${keyboardEstimatedHeight + 120}px`;
+
+        const targetRect = target.getBoundingClientRect();
+        const parentRect = scrollableParent.getBoundingClientRect();
+
+        // Target position: ~22% from top of visual viewport (gives ~78% screen room for keyboard & user comfort)
+        const desiredTopInViewport = Math.max(60, vvHeight * 0.22);
+        const currentOffsetInParent = targetRect.top - parentRect.top;
+        const targetScrollTop = scrollableParent.scrollTop + currentOffsetInParent - desiredTopInViewport;
+
+        scrollableParent.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: 'smooth'
+        });
+
+        if (window.scrollY !== 0) {
+          window.scrollTo({ top: 0, behavior: 'instant' as any });
+        }
+      };
+
+      adjustScrollPosition();
+      if (activeFocusTimer) clearTimeout(activeFocusTimer);
+      activeFocusTimer = setTimeout(adjustScrollPosition, 120);
+      setTimeout(adjustScrollPosition, 320);
+
+      if (window.visualViewport) {
+        const onVVResize = () => {
+          if (document.activeElement === target) {
+            adjustScrollPosition();
+          }
+        };
+        window.visualViewport.addEventListener('resize', onVVResize, { once: true });
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      const tagName = target.tagName;
+      const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+      if (!isInput) return;
+
+      restoreTimer = setTimeout(() => {
+        const currentActive = document.activeElement;
+        const isStillInFormInput = currentActive && (
+          currentActive.tagName === 'INPUT' || 
+          currentActive.tagName === 'TEXTAREA' || 
+          currentActive.tagName === 'SELECT'
+        ) && (currentActive.getAttribute('type') !== 'file');
+
+        if (!isStillInFormInput) {
+          isEditingSession = false;
+
+          const scrollableContainers = container.querySelectorAll('.overflow-y-auto');
+          scrollableContainers.forEach((sc) => {
+            const scEl = sc as HTMLElement;
+            scEl.style.paddingBottom = '';
+            scEl.scrollTo({
+              top: initialScrollTop,
+              behavior: 'smooth'
+            });
+          });
+
+          window.scrollTo({
+            top: initialWinScrollY,
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
+    };
+
+    container.addEventListener('focusin', handleFocusIn);
+    container.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      container.removeEventListener('focusin', handleFocusIn);
+      container.removeEventListener('focusout', handleFocusOut);
+      if (activeFocusTimer) clearTimeout(activeFocusTimer);
+      if (restoreTimer) clearTimeout(restoreTimer);
+    };
+  }, [isOpen, checkoutStep]);
 
   // Synchronize when customer logs in
   useEffect(() => {
@@ -214,9 +361,15 @@ export default function CartDrawer({
     }
   }, [customer, isOpen]);
 
-  // Sync step state when drawer opens
+  // Sync step state and reset checkout session when drawer opens
   useEffect(() => {
     if (isOpen) {
+      if (orderCompletedRef.current || !checkoutSessionIdRef.current) {
+        checkoutSessionIdRef.current = `SESS-CHK-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        step1CompletedRef.current = false;
+        orderCompletedRef.current = false;
+        abandonedEmailSentRef.current = false;
+      }
       setCheckoutStep(initialShowCheckout ? 'step1' : 'cart');
       setErrorMessage('');
     }
@@ -519,6 +672,22 @@ export default function CartDrawer({
     }
   };
 
+  const handleOrderImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        setOrderImagePreview(res);
+        if (!screenshotPreview) {
+          setScreenshotPreview(res);
+          setScreenshotBase64(res);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Keyboard Navigation Helpers
   const handleKeyDown = (e: React.KeyboardEvent, nextRef: React.RefObject<any>) => {
     if (e.key === 'Enter') {
@@ -526,6 +695,86 @@ export default function CartDrawer({
       nextRef.current?.focus();
     }
   };
+
+  // Dispatch abandoned checkout email if customer completed Step 1 but left/cancelled before ordering
+  const handleAbandonCheckout = (isUnload = false) => {
+    if (!step1CompletedRef.current || orderCompletedRef.current || abandonedEmailSentRef.current) {
+      return;
+    }
+    abandonedEmailSentRef.current = true;
+
+    try {
+      const formattedItems = enrichedCartItems.map(item => ({
+        title: item.product?.title || 'Item',
+        selectedSize: item.selectedSize || '',
+        selectedColor: item.selectedColor || '',
+        selectedColorImage: item.selectedColorImage || '',
+        quantity: item.quantity || 1,
+        price: getProductActivePrice(item.product)
+      }));
+
+      const payloadStr = JSON.stringify({
+        sessionId: checkoutSessionIdRef.current,
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity,
+        customerDistrict,
+        customerNotes,
+        customerEmail: customer?.email || 'guest@example.com',
+        items: formattedItems,
+        estimatedTotal: itemsTotal - discountAmount
+      });
+
+      if (isUnload && typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const blob = new Blob([payloadStr], { type: 'application/json' });
+        navigator.sendBeacon('/api/checkout-abandon', blob);
+      } else {
+        fetch('/api/checkout-abandon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payloadStr,
+          keepalive: true
+        }).catch(err => {
+          console.warn('Silent warning: Abandoned checkout dispatch failed:', err);
+        });
+      }
+    } catch (err) {
+      console.warn('Silent warning: Error preparing abandoned checkout payload:', err);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    if (checkoutStep !== 'success') {
+      handleAbandonCheckout();
+    }
+    onClose();
+  };
+
+  // Event listener for page unload / tab close / browser back navigation after Step 1
+  useEffect(() => {
+    const handleUnload = () => {
+      if (step1CompletedRef.current && !orderCompletedRef.current && !abandonedEmailSentRef.current) {
+        handleAbandonCheckout(true);
+      }
+    };
+
+    const handlePopState = () => {
+      if (step1CompletedRef.current && !orderCompletedRef.current && !abandonedEmailSentRef.current) {
+        handleAbandonCheckout(false);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [customerName, customerPhone, customerAddress, customerCity, customerDistrict, enrichedCartItems, itemsTotal, discountAmount, customer]);
 
   // Step 1 to Step 2 Transition
   const handleContinueToCheckout = (e: React.FormEvent) => {
@@ -542,6 +791,7 @@ export default function CartDrawer({
       return;
     }
     setIsTransitioningStep(true);
+    step1CompletedRef.current = true;
 
     try {
       const formattedItems = enrichedCartItems.map(item => ({
@@ -553,25 +803,27 @@ export default function CartDrawer({
         price: getProductActivePrice(item.product)
       }));
 
-      // Fire off the Step 1 notification to the server so it dispatches the email
-      fetch('/api/checkout-step1-notify', {
+      // Save Step 1 information on the server without immediately sending an email
+      fetch('/api/checkout-step1-save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          sessionId: checkoutSessionIdRef.current,
           customerName,
           customerPhone,
           customerAddress,
           customerCity,
           customerDistrict,
+          customerNotes,
           customerEmail: customer?.email || 'guest@example.com',
           items: formattedItems,
           estimatedTotal: itemsTotal - discountAmount
         })
       }).catch(err => {
-        console.warn('Silent warning: Step 1 notify failed to send:', err);
+        console.warn('Silent warning: Step 1 save failed:', err);
       });
     } catch (err) {
-      console.warn('Silent warning: Error preparing Step 1 notification:', err);
+      console.warn('Silent warning: Error preparing Step 1 save:', err);
     }
 
     setTimeout(() => {
@@ -623,13 +875,14 @@ export default function CartDrawer({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          sessionId: checkoutSessionIdRef.current,
           customerName,
           customerPhone,
           customerAddress,
           customerCity,
           customerDistrict,
           customerArea: '',
-          customerNotes: '',
+          customerNotes: customerNotes,
           customerEmail: customer?.email,
           userId: customer?.id,
           items: dbFormatItems,
@@ -652,6 +905,9 @@ export default function CartDrawer({
       if (!res.ok) {
         throw new Error(data.message || 'COULD NOT REGISTER DISPATCH');
       }
+
+      // Mark order completed so NO abandoned email will ever be triggered
+      orderCompletedRef.current = true;
 
       // Record transaction
       if (activePaymentMethod !== 'cod' && transactionId) {
@@ -753,7 +1009,7 @@ export default function CartDrawer({
           {inlineStyles}
           {/* Dimmed glass background */}
           <motion.div 
-            onClick={checkoutStep === 'success' ? undefined : onClose}
+            onClick={checkoutStep === 'success' ? undefined : handleCloseDrawer}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -762,6 +1018,7 @@ export default function CartDrawer({
 
           {/* Premium Drawer/Modal Panel */}
           <motion.div 
+            ref={drawerContentRef}
             key={checkoutStep}
             initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.92, y: 15 } : { x: '100%' }}
             animate={checkoutStep !== 'cart' ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
@@ -802,7 +1059,7 @@ export default function CartDrawer({
                     </button>
                   )}
                   <button 
-                    onClick={onClose}
+                    onClick={handleCloseDrawer}
                     className="text-white/50 hover:text-luxury-gold hover:rotate-90 transition-all duration-300 p-1 rounded-full hover:bg-white/10 border border-transparent hover:border-white/15 cursor-pointer"
                   >
                     <X size={18} />
@@ -834,7 +1091,7 @@ export default function CartDrawer({
                 <h4 className="font-serif text-sm text-white/80 uppercase tracking-widest mb-2 font-bold">Your bag is empty</h4>
                 <p className="text-xs text-white/40 max-w-xs mb-6 font-light">Select from our exclusive collection and drops to register checkout.</p>
                 <button 
-                  onClick={onClose}
+                  onClick={handleCloseDrawer}
                   className="border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-black font-mono text-[9px] uppercase font-bold tracking-widest py-2 px-6 rounded-xl transition-all"
                 >
                   Continue Exploring
@@ -1176,6 +1433,102 @@ export default function CartDrawer({
                                     })}
                                   </div>
                                 )}
+
+                                {/* Image Selection directly under Size Selection (Mobile Only) */}
+                                {enrichedCartItems && enrichedCartItems.length > 0 && (
+                                  <div className="md:hidden pt-2.5 border-t border-white/10 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[10px] font-mono font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1.5">
+                                        <ImageIcon size={12} className="text-luxury-gold animate-pulse" />
+                                        Select Image / ছবি নির্বাচন করুন *
+                                      </label>
+                                      
+                                      <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-luxury-gold/10 hover:bg-luxury-gold/20 border border-luxury-gold/30 text-luxury-gold text-[9.5px] font-semibold transition-all">
+                                        <input 
+                                          type="file" 
+                                          accept="image/*" 
+                                          onChange={handleOrderImageChange} 
+                                          className="hidden" 
+                                        />
+                                        <Camera className="w-3 h-3" />
+                                        <span>+ Upload Photo</span>
+                                      </label>
+                                    </div>
+
+                                    {enrichedCartItems.map((item, idx) => {
+                                      const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
+                                      return (
+                                        <div key={idx} className="space-y-1">
+                                          {enrichedCartItems.length > 1 && (
+                                            <span className="text-[9.5px] font-mono text-zinc-300 block truncate font-semibold">
+                                              {item.product.title}:
+                                            </span>
+                                          )}
+                                          
+                                          <div className="flex gap-1.5 overflow-x-auto py-1 scrollbar-hidden">
+                                            {productImagesList.map((imgUrl, imgIdx) => {
+                                              const isSelected = Boolean(item.selectedColorImage && item.selectedColorImage === imgUrl);
+                                              return (
+                                                <button
+                                                  key={imgIdx}
+                                                  type="button"
+                                                  onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
+                                                  className={`w-12 h-12 rounded-lg overflow-hidden border transition-all cursor-pointer shrink-0 relative ${
+                                                    isSelected
+                                                      ? 'border-[#d4af37] ring-2 ring-[#d4af37]/80 scale-105 shadow-[0_0_10px_rgba(212,175,55,0.6)]'
+                                                      : 'border-white/15 opacity-70 hover:opacity-100'
+                                                  }`}
+                                                >
+                                                  <img 
+                                                    src={imgUrl} 
+                                                    alt={`Option ${imgIdx + 1}`} 
+                                                    className="w-full h-full object-cover"
+                                                    referrerPolicy="no-referrer"
+                                                  />
+                                                  {isSelected && (
+                                                    <div className="absolute top-0.5 right-0.5 bg-[#d4af37] text-black rounded-full p-0.5">
+                                                      <Check size={8} strokeWidth={3} />
+                                                    </div>
+                                                  )}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {orderImagePreview && (
+                                      <div className="flex items-center justify-between bg-luxury-gold/10 border border-luxury-gold/40 p-1.5 rounded-lg">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                          <img 
+                                            src={orderImagePreview} 
+                                            alt="Uploaded Attachment" 
+                                            className="w-8 h-8 object-cover rounded-md border border-white/20 shrink-0 cursor-pointer" 
+                                            onClick={() => setLightboxImage({ url: orderImagePreview, title: 'Uploaded Image' })}
+                                          />
+                                          <div className="min-w-0">
+                                            <p className="text-[10px] text-white font-medium truncate">Attached Photo</p>
+                                            <button 
+                                              type="button" 
+                                              onClick={() => setLightboxImage({ url: orderImagePreview, title: 'Uploaded Image' })} 
+                                              className="text-[8.5px] text-luxury-gold hover:underline flex items-center gap-0.5 border-0 bg-transparent p-0 cursor-pointer font-medium"
+                                            >
+                                              <ZoomIn size={9} /> View
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <button 
+                                          type="button" 
+                                          onClick={() => setOrderImagePreview(null)} 
+                                          className="text-[9px] font-bold text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/10 px-1.5 py-0.5 rounded cursor-pointer"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </motion.div>
 
@@ -1187,8 +1540,8 @@ export default function CartDrawer({
                               className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
-                                <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">2. DELIVERY DESTINATION</span>
+                                <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)] shrink-0" />
+                                <span className="text-[9px] sm:text-[9.5px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)] truncate">2. DELIVERY DESTINATION</span>
                               </div>
 
                               <div className="space-y-2.5 relative z-10">
@@ -1331,6 +1684,8 @@ export default function CartDrawer({
                               </motion.div>
                             </div>
                           </div>
+
+
 
                           {/* RIGHT COLUMN: SELECTED ITEMS & SIZES */}
                           <div className="space-y-1.5 lg:col-span-4">
