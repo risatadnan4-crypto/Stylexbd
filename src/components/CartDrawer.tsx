@@ -221,6 +221,25 @@ export default function CartDrawer({
   useEffect(() => { localStorage.setItem('stylex_checkout_city', customerCity); setCustomerDistrict(customerCity); }, [customerCity]);
   useEffect(() => { localStorage.setItem('stylex_checkout_notes', customerNotes); }, [customerNotes]);
 
+  // Prevent background page scrolling when modal/drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [isOpen]);
+
   // Mobile virtual keyboard scrolling and viewport handling for form inputs
   useEffect(() => {
     if (!isOpen) return;
@@ -228,11 +247,7 @@ export default function CartDrawer({
     const container = drawerContentRef.current;
     if (!container) return;
 
-    let initialScrollTop = 0;
-    let initialWinScrollY = 0;
     let activeFocusTimer: ReturnType<typeof setTimeout> | null = null;
-    let restoreTimer: ReturnType<typeof setTimeout> | null = null;
-    let isEditingSession = false;
 
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement;
@@ -247,109 +262,33 @@ export default function CartDrawer({
         return;
       }
 
-      if (restoreTimer) {
-        clearTimeout(restoreTimer);
-        restoreTimer = null;
-      }
-
-      // Find closest scrollable container
-      const scrollableParent = (target.closest('.overflow-y-auto') as HTMLElement) || container;
-
-      if (!isEditingSession) {
-        isEditingSession = true;
-        initialScrollTop = scrollableParent.scrollTop;
-        initialWinScrollY = window.scrollY;
-      }
-
       const adjustScrollPosition = () => {
-        if (!scrollableParent || !document.activeElement || !scrollableParent.contains(document.activeElement)) {
+        if (!document.activeElement || !container.contains(document.activeElement)) {
           return;
         }
 
-        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const keyboardEstimatedHeight = Math.max(220, window.innerHeight - vvHeight);
-
-        // Dynamically add extra bottom padding so elements at the bottom can scroll high above keyboard
-        scrollableParent.style.paddingBottom = `${keyboardEstimatedHeight + 120}px`;
-
-        const targetRect = target.getBoundingClientRect();
-        const parentRect = scrollableParent.getBoundingClientRect();
-
-        // Target position: ~22% from top of visual viewport (gives ~78% screen room for keyboard & user comfort)
-        const desiredTopInViewport = Math.max(60, vvHeight * 0.22);
-        const currentOffsetInParent = targetRect.top - parentRect.top;
-        const targetScrollTop = scrollableParent.scrollTop + currentOffsetInParent - desiredTopInViewport;
-
-        scrollableParent.scrollTo({
-          top: Math.max(0, targetScrollTop),
-          behavior: 'smooth'
-        });
+        try {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        } catch {
+          target.scrollIntoView(false);
+        }
 
         if (window.scrollY !== 0) {
-          window.scrollTo({ top: 0, behavior: 'instant' as any });
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
         }
       };
 
       adjustScrollPosition();
       if (activeFocusTimer) clearTimeout(activeFocusTimer);
-      activeFocusTimer = setTimeout(adjustScrollPosition, 120);
-      setTimeout(adjustScrollPosition, 320);
-
-      if (window.visualViewport) {
-        const onVVResize = () => {
-          if (document.activeElement === target) {
-            adjustScrollPosition();
-          }
-        };
-        window.visualViewport.addEventListener('resize', onVVResize, { once: true });
-      }
-    };
-
-    const handleFocusOut = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target) return;
-
-      const tagName = target.tagName;
-      const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
-      if (!isInput) return;
-
-      restoreTimer = setTimeout(() => {
-        const currentActive = document.activeElement;
-        const isStillInFormInput = currentActive && (
-          currentActive.tagName === 'INPUT' || 
-          currentActive.tagName === 'TEXTAREA' || 
-          currentActive.tagName === 'SELECT'
-        ) && (currentActive.getAttribute('type') !== 'file');
-
-        if (!isStillInFormInput) {
-          isEditingSession = false;
-
-          const scrollableContainers = container.querySelectorAll('.overflow-y-auto');
-          scrollableContainers.forEach((sc) => {
-            const scEl = sc as HTMLElement;
-            scEl.style.paddingBottom = '';
-            scEl.scrollTo({
-              top: initialScrollTop,
-              behavior: 'smooth'
-            });
-          });
-
-          window.scrollTo({
-            top: initialWinScrollY,
-            behavior: 'smooth'
-          });
-        }
-      }, 150);
+      activeFocusTimer = setTimeout(adjustScrollPosition, 150);
+      setTimeout(adjustScrollPosition, 300);
     };
 
     container.addEventListener('focusin', handleFocusIn);
-    container.addEventListener('focusout', handleFocusOut);
 
     return () => {
       container.removeEventListener('focusin', handleFocusIn);
-      container.removeEventListener('focusout', handleFocusOut);
       if (activeFocusTimer) clearTimeout(activeFocusTimer);
-      if (restoreTimer) clearTimeout(restoreTimer);
     };
   }, [isOpen, checkoutStep]);
 
@@ -1005,7 +944,7 @@ export default function CartDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`fixed inset-0 z-50 overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-0 sm:p-4 md:p-6' : 'justify-end'}`}>
+        <div className={`fixed inset-0 z-[9999] overflow-hidden flex transition-all duration-300 ease-in-out ${checkoutStep !== 'cart' ? 'items-center justify-center p-2 sm:p-4 md:p-6' : 'justify-end'}`}>
           {inlineStyles}
           {/* Dimmed glass background */}
           <motion.div 
@@ -1020,13 +959,13 @@ export default function CartDrawer({
           <motion.div 
             ref={drawerContentRef}
             key={checkoutStep}
-            initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.92, y: 15 } : { x: '100%' }}
+            initial={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.96, y: 10 } : { x: '100%' }}
             animate={checkoutStep !== 'cart' ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
-            exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.92, y: 15 } : { x: '100%' }}
+            exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.96, y: 10 } : { x: '100%' }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'w-full sm:max-w-[100vw] lg:max-w-[99vw] xl:max-w-[2200px] 2xl:max-w-[2500px] border-0 sm:border border-purple-500/20 rounded-none sm:rounded-2xl md:rounded-3xl h-[100dvh] sm:h-[99vh] max-h-[100dvh] sm:max-h-[99vh] shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
+                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl max-h-[90dvh] sm:max-h-[85vh] h-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
                 : 'max-w-xl lg:max-w-2xl xl:max-w-3xl border-l border-white/5 h-full'
             }`}
           >
@@ -1694,7 +1633,7 @@ export default function CartDrawer({
                               <span className="text-[9.5px] font-mono tracking-wider text-[#d4af37] block font-bold uppercase">SELECTED ITEMS & SIZES</span>
                             </div>
                             
-                            <div className="space-y-2 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 md:p-3.5 shadow-xl max-h-[300px] sm:max-h-[400px] md:max-h-[500px] lg:max-h-[600px] overflow-y-auto scrollbar-hidden">
+                            <div className="space-y-2 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 md:p-3.5 shadow-xl">
                               {enrichedCartItems.map((item, idx) => {
                                 const availableSizes = item.product.sizes && item.product.sizes.length > 0 
                                   ? item.product.sizes 
@@ -2119,7 +2058,7 @@ export default function CartDrawer({
                           {/* Itemization Report */}
                           <div className="bg-gradient-to-b from-[#130d22]/95 to-[#080511]/98 border border-white/10 rounded-xl p-3 space-y-2.5 shadow-lg">
                             <span className="text-[8.5px] font-mono tracking-[0.15em] text-[#d4af37] block font-bold uppercase border-b border-white/5 pb-1">ITEMIZATION REPORT</span>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[280px] lg:max-h-[360px] overflow-y-auto scrollbar-hidden pr-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-1">
                               {enrichedCartItems.map((item, idx) => {
                                 const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
                                 return (
