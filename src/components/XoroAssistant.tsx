@@ -2073,30 +2073,38 @@ export default function XoroAssistant({
                 </button>
               </div>
 
-              {/* INPUT BAR */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage(inputValue);
-                }}
-                className="p-2.5 sm:p-3 bg-black border-t border-white/10 flex gap-2 items-center"
-              >
-                <input 
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  disabled={settings?.isXoroVoiceAndAnswerDisabled}
-                  placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট বর্তমানে নিষ্ক্রিয় রয়েছে" : "Ask Xoro styling tips, track order..."}
-                  className="flex-1 h-[46px] bg-white/[0.08] text-white text-[15px] border border-white/15 rounded-xl py-2.5 px-3.5 transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans disabled:opacity-50"
-                />
-                <button 
-                  type="submit"
-                  disabled={settings?.isXoroVoiceAndAnswerDisabled || !inputValue.trim()}
-                  className="h-[46px] w-[46px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:scale-105 disabled:opacity-40 text-black rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0"
-                >
-                  <Send size={15} />
-                </button>
-              </form>
+              {/* COMPACT LUXURY CHAT COMPOSER WITH RUNNING GLOW EFFECT */}
+              <div className="p-3 bg-black/95 border-t border-white/10 shrink-0">
+                <div className="relative w-full rounded-[22px] p-[1.5px] overflow-hidden group shadow-[0_0_15px_rgba(255,215,0,0.25),0_0_30px_rgba(168,85,247,0.2)]">
+                  {/* Continuous Running Gradient Glow Ring */}
+                  <div className="absolute -inset-[150%] bg-[conic-gradient(from_0deg,#FFD700_0deg,#a855f7_120deg,#00ffff_240deg,#FFD700_360deg)] animate-[spin_3.5s_linear_infinite] opacity-85 group-hover:opacity-100 transition-opacity blur-[1px]" />
+                  
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendMessage(inputValue);
+                    }}
+                    className="relative w-full h-[62px] bg-[#090412]/95 backdrop-blur-xl rounded-[20px] pl-[18px] pr-[8px] flex items-center justify-between transition-all duration-300 ease-out z-10"
+                  >
+                    <input 
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      disabled={settings?.isXoroVoiceAndAnswerDisabled}
+                      placeholder={settings?.isXoroVoiceAndAnswerDisabled ? "জোরো অ্যাসিস্ট্যান্ট বর্তমানে নিষ্ক্রিয় রয়েছে" : "Ask Xoro styling tips, track order..."}
+                      className="flex-1 min-w-0 h-[50px] bg-transparent text-white text-[15px] border-0 outline-none focus:outline-none focus:ring-0 placeholder-white/50 caret-[#FFD700] font-sans disabled:opacity-50 select-text leading-normal flex items-center"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={settings?.isXoroVoiceAndAnswerDisabled || !inputValue.trim()}
+                      className="h-[46px] w-[46px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] hover:brightness-110 active:scale-95 disabled:opacity-30 text-black rounded-[15px] flex items-center justify-center transition-all duration-300 cursor-pointer shrink-0 outline-none border-0 shadow-[0_0_12px_rgba(255,215,0,0.3)]"
+                      title="Send message"
+                    >
+                      <Send size={19} className="translate-x-[0.5px]" />
+                    </button>
+                  </form>
+                </div>
+              </div>
             </>
           ) : (
             /* EXPLORE MAP BODY */

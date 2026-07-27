@@ -742,6 +742,79 @@ export default function AdminPanel({
     }
   };
 
+  const handleToggleXoroSetting = async (updates: {
+    isXoroTextOnly?: boolean;
+    isXoroVoiceDisabled?: boolean;
+    isXoroVoiceAndAnswerDisabled?: boolean;
+  }) => {
+    const newTextOnly = updates.isXoroTextOnly !== undefined ? updates.isXoroTextOnly : isXoroTextOnlyInput;
+    const newVoiceDisabled = updates.isXoroVoiceDisabled !== undefined ? updates.isXoroVoiceDisabled : isXoroVoiceDisabledInput;
+    const newVoiceAndAnswerDisabled = updates.isXoroVoiceAndAnswerDisabled !== undefined ? updates.isXoroVoiceAndAnswerDisabled : isXoroVoiceAndAnswerDisabledInput;
+
+    setIsXoroTextOnlyInput(newTextOnly);
+    setIsXoroVoiceDisabledInput(newVoiceDisabled);
+    setIsXoroVoiceAndAnswerDisabledInput(newVoiceAndAnswerDisabled);
+
+    try {
+      const current = localStorage.getItem('stylex_settings');
+      const parsed = current ? JSON.parse(current) : {};
+      parsed.isXoroTextOnly = newTextOnly;
+      parsed.isXoroVoiceDisabled = newVoiceDisabled;
+      parsed.isXoroVoiceAndAnswerDisabled = newVoiceAndAnswerDisabled;
+      localStorage.setItem('stylex_settings', JSON.stringify(parsed));
+    } catch (err) {}
+
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          whatsappNumber: whatsappNumberInput,
+          adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
+          appsScriptUrl: appsScriptUrlInput,
+          logoUrl: logoUrlInput,
+          xoroAvatarUrl: xoroAvatarUrlInput,
+          bkashLogoUrl: bkashLogoUrlInput,
+          nagadLogoUrl: nagadLogoUrlInput,
+          lotteryPrizes: lotteryPrizesInput,
+          lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
+          paymentBadgeTitle: paymentBadgeTitleInput,
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          isXoroVoiceDisabled: newVoiceDisabled,
+          isXoroVoiceAndAnswerDisabled: newVoiceAndAnswerDisabled,
+          isXoroTextOnly: newTextOnly,
+          smsProvider: smsProviderInput,
+          twilioAccountSid: twilioAccountSidInput,
+          twilioAuthToken: twilioAuthTokenInput,
+          twilioFromNumber: twilioFromNumberInput,
+          greenwebToken: greenwebTokenInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+          globalTimerEndTime: globalTimerEndTimeInput,
+          globalTimerMessage: globalTimerMessageInput,
+          globalTimerActive: globalTimerActiveInput,
+          globalPaymentSystem: globalPaymentSystemInput,
+          globalPaymentMethod: globalPaymentMethodInput,
+          globalDeliveryDays: globalDeliveryDaysInput,
+          accentColor: accentColorInput,
+          siteTitle: siteTitle,
+          siteMetaDesc: siteMetaDesc
+        })
+      });
+      if (onRefreshSettings) {
+        onRefreshSettings();
+      }
+    } catch (err) {
+      console.error("Failed to persist Xoro toggle state:", err);
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -8062,7 +8135,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         <input 
                           type="checkbox" 
                           checked={isXoroTextOnlyInput}
-                          onChange={(e) => setIsXoroTextOnlyInput(e.target.checked)}
+                          onChange={(e) => handleToggleXoroSetting({ isXoroTextOnly: e.target.checked })}
                           className="sr-only peer"
                         />
                         <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
@@ -8084,7 +8157,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         <input 
                           type="checkbox" 
                           checked={!isXoroVoiceDisabledInput}
-                          onChange={(e) => setIsXoroVoiceDisabledInput(!e.target.checked)}
+                          onChange={(e) => handleToggleXoroSetting({ isXoroVoiceDisabled: !e.target.checked })}
                           className="sr-only peer"
                         />
                         <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
@@ -8106,7 +8179,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         <input 
                           type="checkbox" 
                           checked={!isXoroVoiceAndAnswerDisabledInput}
-                          onChange={(e) => setIsXoroVoiceAndAnswerDisabledInput(!e.target.checked)}
+                          onChange={(e) => handleToggleXoroSetting({ isXoroVoiceAndAnswerDisabled: !e.target.checked })}
                           className="sr-only peer"
                         />
                         <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>

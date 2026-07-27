@@ -153,6 +153,9 @@ export default function App() {
     accentColor?: string;
     siteTitle?: string;
     siteMetaDesc?: string;
+    isXoroVoiceDisabled?: boolean;
+    isXoroVoiceAndAnswerDisabled?: boolean;
+    isXoroTextOnly?: boolean;
   }>(() => {
     try {
       const saved = localStorage.getItem('stylex_settings');

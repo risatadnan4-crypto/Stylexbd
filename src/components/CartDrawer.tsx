@@ -965,7 +965,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl max-h-[90dvh] sm:max-h-[85vh] h-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
+                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl max-h-[98dvh] sm:max-h-[96vh] h-[96dvh] sm:h-[93vh] shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
                 : 'max-w-xl lg:max-w-2xl xl:max-w-3xl border-l border-white/5 h-full'
             }`}
           >
