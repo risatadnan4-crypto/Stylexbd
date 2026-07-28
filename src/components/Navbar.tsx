@@ -24,7 +24,7 @@ interface NavbarProps {
   customer: Customer | null;
   onCustomerAuthClick: () => void;
   onCustomerLogout: () => void;
-  onViewMyOrdersClick?: () => void;
+  onViewMyOrdersClick?: (tab?: 'profile' | 'orders' | 'wishlist') => void;
   isCatalogDeactivated?: boolean;
   isLotteryDeactivated?: boolean;
 }
@@ -167,9 +167,9 @@ export default function Navbar({
                     <button 
                       onClick={() => {
                         setShowPortalMenu(false);
-                        onViewMyOrdersClick();
+                        onViewMyOrdersClick('profile');
                       }}
-                      className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                      className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold cursor-pointer"
                     >
                       <User size={13} className="text-luxury-gold" />
                       My VIP Profile
@@ -178,12 +178,16 @@ export default function Navbar({
                   <button 
                     onClick={() => {
                       setShowPortalMenu(false);
-                      onTrackOrderClick();
+                      if (onViewMyOrdersClick) {
+                        onViewMyOrdersClick('orders');
+                      } else {
+                        onTrackOrderClick();
+                      }
                     }}
-                    className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                    className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold cursor-pointer"
                   >
                     <History size={13} className="text-luxury-gold animate-pulse" />
-                    My Orders ↗
+                    My Orders
                   </button>
 
                 </div>
@@ -339,9 +343,9 @@ export default function Navbar({
                           <button 
                             onClick={() => {
                               setShowPortalMenu(false);
-                              onViewMyOrdersClick();
+                              onViewMyOrdersClick('profile');
                             }}
-                            className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                            className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold cursor-pointer"
                           >
                             <User size={13} className="text-luxury-gold" />
                             My VIP Profile
@@ -350,12 +354,16 @@ export default function Navbar({
                         <button 
                           onClick={() => {
                             setShowPortalMenu(false);
-                            onTrackOrderClick();
+                            if (onViewMyOrdersClick) {
+                              onViewMyOrdersClick('orders');
+                            } else {
+                              onTrackOrderClick();
+                            }
                           }}
-                          className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold"
+                          className="w-full flex items-center gap-2.5 text-[10.5px] text-white/80 hover:text-luxury-gold py-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all uppercase tracking-[0.12em] font-bold cursor-pointer"
                         >
                           <History size={13} className="text-luxury-gold animate-pulse" />
-                          My Orders ↗
+                          My Orders
                         </button>
 
                       </div>

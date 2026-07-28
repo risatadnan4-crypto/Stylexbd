@@ -224,7 +224,12 @@ export default function ProductDetailModal({
     }
 
     const calculateTimeLeft = () => {
-      const end = new Date(product.timerEndTime!).getTime();
+      const rawStr = String(product.timerEndTime!).trim();
+      const normalized = rawStr.replace(' ', 'T');
+      let end = new Date(normalized).getTime();
+      if (isNaN(end)) {
+        end = new Date(rawStr).getTime();
+      }
       if (isNaN(end)) {
         setTimeLeft(null);
         setTimerExpired(true);
@@ -642,7 +647,7 @@ export default function ProductDetailModal({
                     </motion.div>
 
                     {/* Countdown banner inside modal */}
-                    {hasActiveOffer && timeLeft && !timerExpired && product.timerActive !== false && (
+                    {timeLeft && !timerExpired && product.timerActive !== false && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         

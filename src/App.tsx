@@ -879,6 +879,7 @@ export default function App() {
 
   const [showCustomerAuthModal, setShowCustomerAuthModal] = useState(false);
   const [showCustomerProfileModal, setShowCustomerProfileModal] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState<'profile' | 'orders' | 'wishlist'>('profile');
   const [customerAuthTab, setCustomerAuthTab] = useState<'login' | 'signup'>('login');
   
   // Custom input states for Customer Auth
@@ -2156,7 +2157,8 @@ export default function App() {
           setShowCustomerAuthModal(true);
         }}
         onCustomerLogout={handleCustomerLogout}
-        onViewMyOrdersClick={() => {
+        onViewMyOrdersClick={(tab = 'profile') => {
+          setProfileModalTab(tab);
           setShowCustomerProfileModal(true);
         }}
       />
@@ -3674,6 +3676,7 @@ export default function App() {
       <CustomerProfileModal
         isOpen={showCustomerProfileModal}
         onClose={() => setShowCustomerProfileModal(false)}
+        initialTab={profileModalTab}
         customer={currentCustomer}
         onUpdateCustomer={handleUpdateCustomer}
         orders={allOrders}

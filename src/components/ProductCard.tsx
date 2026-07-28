@@ -99,7 +99,12 @@ export default function ProductCard({
     }
 
     const calculateTimeLeft = () => {
-      const end = new Date(product.timerEndTime!).getTime();
+      const rawStr = String(product.timerEndTime!).trim();
+      const normalized = rawStr.replace(' ', 'T');
+      let end = new Date(normalized).getTime();
+      if (isNaN(end)) {
+        end = new Date(rawStr).getTime();
+      }
       if (isNaN(end)) {
         setTimeLeft(null);
         setTimerExpired(true);
@@ -444,7 +449,7 @@ export default function ProductCard({
               )}
             </div>
             
-            {!hasActiveOffer ? (
+            {(!hasActiveOffer && !product.timerEndTime) ? (
               <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0 self-center">
                 ⚜️ EXCLUSIVE
               </div>
@@ -457,7 +462,7 @@ export default function ProductCard({
           </div>
 
           {/* Large Countdown Timer Block - Perfect mobile-friendly full-width row */}
-          {hasActiveOffer && product.timerEndTime && product.timerActive !== false && !timerExpired && (
+          {product.timerEndTime && product.timerActive !== false && !timerExpired && (
             <div className="bg-red-950/30 hover:bg-red-950/50 border border-red-500/20 hover:border-red-500/45 rounded-xl px-2 py-1 flex items-center justify-between gap-1 mt-1 transition-all duration-300">
               <div className="flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 uppercase tracking-widest font-extrabold shrink-0">
                 <span>{product.timerMessage || "HURRY"}:</span>

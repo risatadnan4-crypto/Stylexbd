@@ -70,6 +70,7 @@ const initialCampaigns: Campaign[] = [
 let db = {
   xoroAdminLogs: [] as any[],
   aiKeys: [] as any[],
+  aiKeysInitialized: false,
   aiApiAuditLogs: [] as any[],
   products: initialProducts,
   orders: [] as Order[],
@@ -158,6 +159,7 @@ if (fs.existsSync(DB_FILE)) {
     db = { ...db, ...parsedData };
     db.xoroAdminLogs = parsedData.xoroAdminLogs || [];
     db.aiKeys = parsedData.aiKeys || [];
+    db.aiKeysInitialized = parsedData.aiKeysInitialized !== undefined ? !!parsedData.aiKeysInitialized : false;
     db.aiApiAuditLogs = parsedData.aiApiAuditLogs || [];
     db.countedSessions = db.countedSessions || [];
     db.customerPhones = parsedData.customerPhones || [];
@@ -342,7 +344,7 @@ function initializeAiKeyPool() {
   db.aiKeys = db.aiKeys || [];
   db.aiApiAuditLogs = db.aiApiAuditLogs || [];
 
-  if (!Array.isArray(db.aiKeys) || db.aiKeys.length === 0) {
+  if (!db.aiKeysInitialized && (!Array.isArray(db.aiKeys) || db.aiKeys.length === 0)) {
     const defaultEnvKey = process.env.GEMINI_API_KEY || "";
     const now = new Date();
     const nowIso = now.toISOString();
@@ -451,8 +453,10 @@ function initializeAiKeyPool() {
     ];
 
     db.aiKeys = initialKeys;
+    db.aiKeysInitialized = true;
     logAiApiAudit("SYSTEM_INIT", "Pool Initialized", "System", "Pre-seeded 5 Google AI Studio Free Tier Keys with Load Balancing & Auto-Rotation.");
     saveDB();
+    syncSettingsToCloud();
   }
 }
 
@@ -723,8 +727,13 @@ async function syncSettingsToCloud() {
     await supabase.from("banners").upsert({
       id: "system_settings_metadata",
       title: "SYSTEM_SETTINGS_METADATA",
-      subtitle: JSON.stringify(db.settings),
-      imageUrl: db.settings.logoUrl || "/stylex_logo.jpg",
+      subtitle: JSON.stringify({
+        ...db.settings,
+        aiKeys: db.aiKeys || [],
+        aiKeysInitialized: db.aiKeysInitialized ?? true,
+        aiApiAuditLogs: db.aiApiAuditLogs || []
+      }),
+      imageUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
       active: false,
       isVideo: false
     }, { onConflict: "id" });
@@ -909,6 +918,16 @@ async function syncFromSupabase() {
               if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
+              if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
+                db.aiKeys = fallbackSettings.aiKeys;
+              }
+              if (fallbackSettings.aiKeysInitialized !== undefined) {
+                db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
+              }
+              if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs)) {
+                db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
+              }
+
               saveDB();
             } catch (jsonErr: any) {
               console.warn("⚠️ Failed to parse fallback settings from banners table:", jsonErr.message);
@@ -1600,6 +1619,15 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
             if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+            if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
+              db.aiKeys = fallbackSettings.aiKeys;
+            }
+            if (fallbackSettings.aiKeysInitialized !== undefined) {
+              db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
+            }
+            if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs)) {
+              db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
+            }
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
           }
@@ -6124,8 +6152,10 @@ app.post("/api/admin/ai-keys", (req, res) => {
   };
 
   db.aiKeys.push(newKey);
+  db.aiKeysInitialized = true;
   logAiApiAudit("CREATE_KEY", keyName, "Super Admin", `Added new API Key with Priority ${newKey.priority}.`, keyHint);
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   return res.json({ message: "API Key added successfully.", key: sanitizeAiKeyObject(newKey) });
 });
@@ -6152,31 +6182,36 @@ app.put("/api/admin/ai-keys/:id", (req, res) => {
   }
 
   logAiApiAudit("UPDATE_KEY", keyObj.name, "Super Admin", `Updated settings (Priority: ${keyObj.priority}, Status: ${keyObj.status}).`, keyObj.keyHint);
+  db.aiKeysInitialized = true;
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   return res.json({ message: "API Key updated successfully.", key: sanitizeAiKeyObject(keyObj) });
 });
 
 // DELETE AI Key (Super Admin password confirmed)
-app.delete("/api/admin/ai-keys/:id", (req, res) => {
+app.delete("/api/admin/ai-keys/:id", async (req, res) => {
   const { id } = req.params;
-  const password = req.body.password || req.body.confirmPassword;
+  const password = req.body?.password || req.body?.confirmPassword || req.query?.password;
 
   const adminPassword = db.settings?.adminPassword || "risat123";
-  if (!password || password !== adminPassword) {
+  if (!password || String(password).trim() !== String(adminPassword).trim()) {
     return res.status(401).json({ error: "Invalid Super Admin password confirmation." });
   }
 
+  db.aiKeys = db.aiKeys || [];
   const index = db.aiKeys.findIndex((k: any) => k.id === id);
   if (index === -1) {
-    return res.status(404).json({ error: "API Key not found." });
+    return res.status(404).json({ error: "API Key not found or already deleted." });
   }
 
   const deleted = db.aiKeys.splice(index, 1)[0];
+  db.aiKeysInitialized = true;
   logAiApiAudit("DELETE_KEY", deleted.name, "Super Admin", "Permanently deleted API key from vault.", deleted.keyHint);
   saveDB();
+  await syncSettingsToCloud();
 
-  return res.json({ message: "API Key deleted successfully." });
+  return res.json({ message: "API Key deleted successfully.", deletedId: id });
 });
 
 // POST toggle Enable/Disable
@@ -6197,6 +6232,8 @@ app.post("/api/admin/ai-keys/:id/toggle", (req, res) => {
   }
 
   saveDB();
+  db.aiKeysInitialized = true;
+  syncSettingsToCloud().catch(() => {});
   return res.json({ message: `API Key status changed to ${keyObj.status}`, key: sanitizeAiKeyObject(keyObj) });
 });
 

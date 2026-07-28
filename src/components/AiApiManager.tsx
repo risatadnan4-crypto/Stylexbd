@@ -499,6 +499,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
 
       setSuccessMsg(`🗑️ API Key '${deletingKey.name}' permanently deleted.`);
       setIsDeleteModalOpen(false);
+      setKeys(prev => prev.filter(k => k.id !== deletingKey.id));
       setDeletingKey(null);
       setDeletePasswordInput('');
       fetchKeyData();
