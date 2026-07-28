@@ -487,6 +487,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
         method: 'DELETE',
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          password: deletePasswordInput.trim(),
           confirmPassword: deletePasswordInput.trim()
         })
       });
@@ -992,7 +993,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
       {activeSubTab === 'health_monitor' && (
         <div className="space-y-6">
           {/* TOP CONTROLS & REAL-TIME BENCHMARK BAR */}
-          <div className="bg-[#120822]/70 border border-white/10 p-5 rounded-2xl space-y-4 backdrop-blur-xl">
+          <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -1169,7 +1170,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
           )}
 
           {/* RECHARTS SECTION 1: TIME-SERIES API LATENCY TRENDS */}
-          <div className="bg-[#120822]/70 border border-white/10 p-5 rounded-2xl space-y-4 backdrop-blur-xl">
+          <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
               <div>
                 <h4 className="text-sm font-bold text-white font-mono flex items-center gap-2">
@@ -1241,7 +1242,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
           {/* RECHARTS SECTION 2 & 3: GRID WITH KEY LATENCY COMPARISON & RESPONSE DISTRIBUTION */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* BAR CHART: LATENCY vs ERROR RATE COMPARISON */}
-            <div className="bg-[#120822]/70 border border-white/10 p-5 rounded-2xl space-y-4 backdrop-blur-xl">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <div>
                 <h4 className="text-sm font-bold text-white font-mono flex items-center gap-2">
                   <BarChart2 className="text-luxury-gold" size={16} /> Key Performance Comparison
@@ -1282,7 +1283,7 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
             </div>
 
             {/* SPEED BUCKET DISTRIBUTION */}
-            <div className="bg-[#120822]/70 border border-white/10 p-5 rounded-2xl space-y-4 backdrop-blur-xl">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <div>
                 <h4 className="text-sm font-bold text-white font-mono flex items-center gap-2">
                   <Gauge className="text-purple-400" size={16} /> Latency Distribution Breakdown

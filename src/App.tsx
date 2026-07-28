@@ -156,6 +156,9 @@ export default function App() {
     isXoroVoiceDisabled?: boolean;
     isXoroVoiceAndAnswerDisabled?: boolean;
     isXoroTextOnly?: boolean;
+    sourceProtectionTitle?: string;
+    sourceProtectionDescription?: string;
+    sourceProtectionImageUrl?: string;
   }>(() => {
     try {
       const saved = localStorage.getItem('stylex_settings');
@@ -912,6 +915,17 @@ export default function App() {
       fetchCountry();
     }
   }, [showCustomerAuthModal, detectedCountry]);
+
+  // Lock body scroll when Customer Auth Modal is open
+  useEffect(() => {
+    if (showCustomerAuthModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showCustomerAuthModal]);
 
   const loadSettings = async () => {
     try {
@@ -2739,7 +2753,7 @@ export default function App() {
               </div>
 
               {/* Center List Column */}
-              <div className="lg:col-span-1 space-y-4 max-h-[420px] overflow-y-auto pr-1">
+              <div className="lg:col-span-1 space-y-4 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
                 <h4 className="text-[10px] text-white/40 tracking-[0.2em] uppercase font-mono mb-4">APPROVED LEDGERS</h4>
                 {publicReviews.length === 0 ? (
                   <p className="text-xs text-white/30 italic">No verifications logged yet.</p>
@@ -3311,12 +3325,12 @@ export default function App() {
 
       {/* Customer Privilege Auth Modal (Login / Sign Up) - Visme Styled Single Column Form */}
       {showCustomerAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div onClick={() => setShowCustomerAuthModal(false)} className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md"></div>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overscroll-contain">
+          <div onClick={() => setShowCustomerAuthModal(false)} className="fixed inset-0 bg-luxury-black/90 backdrop-blur-md"></div>
           
           <form 
             onSubmit={handleCustomerSubmit}
-            className="relative w-full max-w-md bg-[#080410] border-2 border-[#d4af37]/35 rounded-3xl shadow-[0_25px_60px_rgba(212,175,55,0.18)] p-6 md:p-8 z-10 space-y-6 animate-fade-in text-white luxury-glow-border"
+            className="relative w-full max-w-md my-auto bg-[#080410] border-2 border-[#d4af37]/35 rounded-3xl shadow-[0_25px_60px_rgba(212,175,55,0.18)] p-6 md:p-8 z-10 space-y-6 animate-fade-in text-white luxury-glow-border"
           >
             {/* Close button */}
             <button 
@@ -4149,6 +4163,9 @@ export default function App() {
       <SourceProtectionModal 
         isOpen={showSourceProtectionModal}
         onClose={() => setShowSourceProtectionModal(false)}
+        title={settings?.sourceProtectionTitle}
+        description={settings?.sourceProtectionDescription}
+        imageUrl={settings?.sourceProtectionImageUrl}
       />
 
     </div>

@@ -338,15 +338,15 @@ export default function ProductDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-3 sm:p-4 md:p-6 lg:p-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overscroll-contain">
       {/* Absolute gray backing dim */}
       <div 
         onClick={onClose}
-        className="absolute inset-0 bg-luxury-black/90 backdrop-blur-sm"
+        className="fixed inset-0 bg-luxury-black/90 backdrop-blur-sm"
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl origin-center bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-3 sm:p-5 md:p-6 text-left shadow-2xl z-10 flex flex-col overflow-hidden h-auto max-h-[92vh] animate-fade-in gold-glow-border transition-all">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl my-auto bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-3 sm:p-5 md:p-6 text-left shadow-2xl z-10 flex flex-col max-h-[90vh] sm:max-h-[88vh] animate-fade-in gold-glow-border transition-all">
         
         {/* Close Button top-right */}
         <button 

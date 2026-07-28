@@ -4,9 +4,10 @@ import {
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
-  Bot, ShieldCheck, Undo, Search, Lock, AlertTriangle,
+  Bot, ShieldCheck, ShieldAlert, Undo, Search, Lock, AlertTriangle,
   Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator
 } from 'lucide-react';
+import SourceProtectionModal from './SourceProtectionModal';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -74,6 +75,9 @@ interface AdminPanelProps {
     accentColor?: string;
     siteTitle?: string;
     siteMetaDesc?: string;
+    sourceProtectionTitle?: string;
+    sourceProtectionDescription?: string;
+    sourceProtectionImageUrl?: string;
   };
   onRefreshSettings?: () => void;
   onRefreshCoupons?: () => void;
@@ -151,6 +155,12 @@ export default function AdminPanel({
   const [isXoroVoiceDisabledInput, setIsXoroVoiceDisabledInput] = useState(settings?.isXoroVoiceDisabled || false);
   const [isXoroVoiceAndAnswerDisabledInput, setIsXoroVoiceAndAnswerDisabledInput] = useState(settings?.isXoroVoiceAndAnswerDisabled || false);
   const [isXoroTextOnlyInput, setIsXoroTextOnlyInput] = useState(settings?.isXoroTextOnly || false);
+  const [sourceProtectionTitleInput, setSourceProtectionTitleInput] = useState(settings?.sourceProtectionTitle || "Nice Try! 🛑");
+  const [sourceProtectionDescriptionInput, setSourceProtectionDescriptionInput] = useState(settings?.sourceProtectionDescription || "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls.");
+  const [sourceProtectionImageUrlInput, setSourceProtectionImageUrlInput] = useState(settings?.sourceProtectionImageUrl || "");
+  const [sourceProtectionUploading, setSourceProtectionUploading] = useState(false);
+  const [sourceProtectionUploadProgress, setSourceProtectionUploadProgress] = useState('');
+  const [showTestProtectionModal, setShowTestProtectionModal] = useState(false);
   const [smsProviderInput, setSmsProviderInput] = useState<'mock' | 'greenweb' | 'twilio'>(settings?.smsProvider || 'mock');
   const [twilioAccountSidInput, setTwilioAccountSidInput] = useState(settings?.twilioAccountSid || '');
   const [twilioAuthTokenInput, setTwilioAuthTokenInput] = useState(settings?.twilioAuthToken || '');
@@ -177,6 +187,35 @@ export default function AdminPanel({
   const [bkashUploadProgress, setBkashUploadProgress] = useState('');
   const [nagadUploading, setNagadUploading] = useState(false);
   const [nagadUploadProgress, setNagadUploadProgress] = useState('');
+
+  // 🧹 CLEAR DASHBOARD DATA STATES & HANDLER
+  const [showClearDashboardModal, setShowClearDashboardModal] = useState(false);
+  const [clearDashboardTarget, setClearDashboardTarget] = useState<'all' | 'traffic' | 'orders' | 'logs'>('all');
+  const [isClearingDashboard, setIsClearingDashboard] = useState(false);
+
+  const handleClearDashboard = async () => {
+    setIsClearingDashboard(true);
+    try {
+      const res = await fetch('/api/admin/clear-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: clearDashboardTarget })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.analytics) setAnalytics(data.analytics);
+        setAdminToast({ message: data.message || "ড্যাশবোর্ড ডাটা সফলভাবে ক্লিয়ার করা হয়েছে! (Dashboard data cleared successfully)", type: 'success' });
+        setShowClearDashboardModal(false);
+        if (onRefreshSettings) onRefreshSettings();
+      } else {
+        setAdminToast({ message: data.error || "ড্যাশবোর্ড ডাটা ক্লিয়ার করতে ব্যর্থ হয়েছে!", type: 'error' });
+      }
+    } catch (e: any) {
+      setAdminToast({ message: "Error clearing dashboard data: " + e.message, type: 'error' });
+    } finally {
+      setIsClearingDashboard(false);
+    }
+  };
 
   // ==========================================
   // 🤖 XORO AI ADMIN ASSISTANT STATES & HANDLERS
@@ -613,6 +652,15 @@ export default function AdminPanel({
     if (settings?.isXoroTextOnly !== undefined) {
       setIsXoroTextOnlyInput(settings.isXoroTextOnly);
     }
+    if (settings?.sourceProtectionTitle !== undefined) {
+      setSourceProtectionTitleInput(settings.sourceProtectionTitle);
+    }
+    if (settings?.sourceProtectionDescription !== undefined) {
+      setSourceProtectionDescriptionInput(settings.sourceProtectionDescription);
+    }
+    if (settings?.sourceProtectionImageUrl !== undefined) {
+      setSourceProtectionImageUrlInput(settings.sourceProtectionImageUrl);
+    }
     if (settings?.smsProvider !== undefined) {
       setSmsProviderInput(settings.smsProvider);
     }
@@ -694,6 +742,9 @@ export default function AdminPanel({
           isXoroVoiceDisabled: isXoroVoiceDisabledInput,
           isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
           isXoroTextOnly: isXoroTextOnlyInput,
+          sourceProtectionTitle: sourceProtectionTitleInput,
+          sourceProtectionDescription: sourceProtectionDescriptionInput,
+          sourceProtectionImageUrl: sourceProtectionImageUrlInput,
           smsProvider: smsProviderInput,
           twilioAccountSid: twilioAccountSidInput,
           twilioAuthToken: twilioAuthTokenInput,
@@ -788,6 +839,9 @@ export default function AdminPanel({
           isXoroVoiceDisabled: newVoiceDisabled,
           isXoroVoiceAndAnswerDisabled: newVoiceAndAnswerDisabled,
           isXoroTextOnly: newTextOnly,
+          sourceProtectionTitle: sourceProtectionTitleInput,
+          sourceProtectionDescription: sourceProtectionDescriptionInput,
+          sourceProtectionImageUrl: sourceProtectionImageUrlInput,
           smsProvider: smsProviderInput,
           twilioAccountSid: twilioAccountSidInput,
           twilioAuthToken: twilioAuthTokenInput,
@@ -943,7 +997,7 @@ export default function AdminPanel({
     }
   };
 
-  const handlePaymentLogoUpload = async (type: 'bkash' | 'nagad' | 'xoro', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePaymentLogoUpload = async (type: 'bkash' | 'nagad' | 'xoro' | 'source_protection', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -963,10 +1017,14 @@ export default function AdminPanel({
       setUploading = setXoroUploading;
       setProgress = setXoroUploadProgress;
       setUrlInput = setXoroAvatarUrlInput;
+    } else if (type === 'source_protection') {
+      setUploading = setSourceProtectionUploading;
+      setProgress = setSourceProtectionUploadProgress;
+      setUrlInput = setSourceProtectionImageUrlInput;
     }
 
     setUploading(true);
-    const friendlyName = type === 'xoro' ? 'Xoro Mascot' : (type === 'bkash' ? 'bKash' : 'Nagad');
+    const friendlyName = type === 'xoro' ? 'Xoro Mascot' : (type === 'source_protection' ? 'Security Notice' : (type === 'bkash' ? 'bKash' : 'Nagad'));
     setProgress(`Preparing luxury ${friendlyName} image asset...`);
 
     try {
@@ -1090,7 +1148,7 @@ export default function AdminPanel({
     }
   };
 
-  const handleAutoSaveSettings = async (logoType: 'brand' | 'bkash' | 'nagad' | 'xoro', url: string) => {
+  const handleAutoSaveSettings = async (logoType: 'brand' | 'bkash' | 'nagad' | 'xoro' | 'source_protection', url: string) => {
     try {
       const payload = { 
         whatsappNumber: whatsappNumberInput,
@@ -1101,6 +1159,9 @@ export default function AdminPanel({
         xoroAvatarUrl: logoType === 'xoro' ? url : xoroAvatarUrlInput,
         bkashLogoUrl: logoType === 'bkash' ? url : bkashLogoUrlInput,
         nagadLogoUrl: logoType === 'nagad' ? url : nagadLogoUrlInput,
+        sourceProtectionTitle: sourceProtectionTitleInput,
+        sourceProtectionDescription: sourceProtectionDescriptionInput,
+        sourceProtectionImageUrl: logoType === 'source_protection' ? url : sourceProtectionImageUrlInput,
         lotteryPrizes: lotteryPrizesInput,
         lotteryDiscountPercentage: lotteryDiscountPercentageInput,
         lotteryCouponPrefix: lotteryCouponPrefixInput,
@@ -2409,7 +2470,7 @@ export default function AdminPanel({
 }`;
 
   return (
-    <div className="h-screen w-screen max-w-full bg-[#0B0B0F] text-white flex flex-col lg:flex-row antialiased relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#0B0B0F] text-white flex flex-col lg:flex-row antialiased relative">
       
       {/* MOBILE TOP APP BAR */}
       <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#0E0E14] border-b border-white/10 shrink-0 z-40 shadow-lg">
@@ -2462,7 +2523,7 @@ export default function AdminPanel({
       )}
 
       {/* RESPONSIVE LEFT DRAWER / SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0E0E14] border-r border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 h-full shrink-0 shadow-2xl overflow-hidden ${
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0E0E14] border-r border-white/10 p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 h-screen shrink-0 shadow-2xl overflow-hidden ${
         isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Brand logo block */}
@@ -2783,10 +2844,10 @@ export default function AdminPanel({
       </aside>
 
       {/* RIGHT MAIN WORKSPACE CONTAINERS */}
-      <main className="flex-1 h-full min-w-0 flex flex-col overflow-hidden bg-[#0B0B0F]">
+      <main className="flex-1 min-w-0 flex flex-col bg-[#0B0B0F] lg:pl-64">
         
         {/* UPPER STICKY HEADER */}
-        <header className="shrink-0 px-4 py-3.5 md:px-6 md:py-4 bg-[#15151D] border-b border-[rgba(255,255,255,0.08)] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 z-10">
+        <header className="sticky top-0 z-30 shrink-0 px-4 py-3.5 md:px-6 md:py-4 bg-[#15151D]/95 backdrop-blur-md border-b border-[rgba(255,255,255,0.08)] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-xl lg:text-2xl font-bold uppercase tracking-wide text-white">
               {activeTab === 'dashboard' && "Overview Matrix"}
@@ -2826,8 +2887,8 @@ export default function AdminPanel({
           </div>
         </header>
 
-        {/* SCROLLABLE MAIN CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 p-4 md:p-6 space-y-6">
 
         {/* CONTROLLERS PER ACTIVE MENU TAB */}
 
@@ -2848,39 +2909,62 @@ export default function AdminPanel({
         {/* 1. OVERVIEW DASHBOARD */}
         {activeTab === 'dashboard' && analytics && (
           <div className="space-y-8 animate-fade-in">
+            {/* Dashboard Control Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#111116] border border-white/10 p-4 rounded-xl shadow-md">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-luxury-gold/10 border border-luxury-gold/30 rounded-lg text-luxury-gold">
+                  <BarChart3 size={18} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">Overview Dashboard & Analytics</h3>
+                  <p className="text-[10px] text-zinc-400 font-sans">স্টোরের লাইভ মেট্রিক্স, সেলস ডাটা এবং ভিজিটর এনালিটিক্স</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearDashboardModal(true)}
+                  className="px-3.5 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                >
+                  <Trash2 size={13} />
+                  <span>Clear Dashboard Data (ক্লিয়ার ডাটা)</span>
+                </button>
+              </div>
+            </div>
+
             {/* Numeric Indicators rows */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Accumulated Income</span>
-                <p className="font-serif text-2xl lg:text-3xl font-bold text-luxury-gold mt-1">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex flex-col justify-between h-full min-h-[140px]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block h-[28px] line-clamp-2">Accumulated Income</span>
+                <p className="font-serif text-2xl lg:text-3xl font-bold text-luxury-gold h-[44px] flex items-center leading-none">
                   {formatPrice(analytics.totalRevenue)}
                 </p>
-                <span className="text-[9px] text-green-400 font-mono block mt-2">▲ +12% from last drop cycle</span>
+                <span className="text-[9px] text-green-400 font-mono block mt-auto">▲ +12% from last drop cycle</span>
               </div>
 
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Total Receipts Logged</span>
-                <p className="font-serif text-2xl lg:text-3xl font-bold text-white mt-1">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex flex-col justify-between h-full min-h-[140px]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block h-[28px] line-clamp-2">Total Receipts Logged</span>
+                <p className="font-serif text-2xl lg:text-3xl font-bold text-white h-[44px] flex items-center leading-none">
                   {analytics.totalOrders}
                 </p>
-                <p className="text-[9px] text-white/50 font-mono block mt-2">Across all destinations</p>
+                <p className="text-[9px] text-white/50 font-mono block mt-auto">Across all destinations</p>
               </div>
 
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Pending Conciere Confirmations</span>
-                <p className={`font-serif text-2xl lg:text-3xl font-bold mt-1 ${analytics.pendingOrders > 0 ? 'text-red-400' : 'text-white'}`}>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex flex-col justify-between h-full min-h-[140px]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block h-[28px] line-clamp-2">Pending Concierge Confirmations</span>
+                <p className={`font-serif text-2xl lg:text-3xl font-bold h-[44px] flex items-center leading-none ${analytics.pendingOrders > 0 ? 'text-red-400' : 'text-white'}`}>
                   {analytics.pendingOrders}
                 </p>
-                <span className="text-[9px] text-white/50 font-mono block mt-2">Need immediate phone calls</span>
+                <span className="text-[9px] text-white/50 font-mono block mt-auto">Need immediate phone calls</span>
               </div>
 
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block">Low Inventories alerts</span>
-                <p className={`font-serif text-2xl lg:text-3xl font-bold mt-1 ${analytics.lowStockStockCount > 0 ? 'text-yellow-400' : 'text-white'}`}>
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] flex flex-col justify-between h-full min-h-[140px]">
+                <span className="text-[10px] text-white/60 uppercase font-mono tracking-widest block h-[28px] line-clamp-2">Low Inventories alerts</span>
+                <p className={`font-serif text-2xl lg:text-3xl font-bold h-[44px] flex items-center leading-none ${analytics.lowStockStockCount > 0 ? 'text-yellow-400' : 'text-white'}`}>
                   {analytics.lowStockStockCount}
                 </p>
-                <p className="text-[9px] text-white/50 font-mono block mt-2">Fewer than 15 units left</p>
+                <p className="text-[9px] text-white/50 font-mono block mt-auto">Fewer than 15 units left</p>
               </div>
 
             </div>
@@ -3411,7 +3495,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
             {/* Interactive Add/Edit Form Overlay wrapper */}
             {showProductForm && (
-              <form onSubmit={handleSaveProductSubmit} className="bg-[#0a0a0a] border border-luxury-gold/30 p-6 rounded-lg space-y-4">
+              <form onSubmit={handleSaveProductSubmit} className="bg-[#15151D] border border-luxury-gold/40 p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <h3 className="font-serif text-lg text-white font-bold uppercase">
                     {editingProduct ? `Edit Curated Piece: ${editingProduct.title}` : "Create Exquisite Product Collection"}
@@ -4434,7 +4518,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             )}
 
             {/* Inventory table listing exactly matching Screen 1 visual cards */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs divide-y divide-white/5">
                   <thead>
@@ -4569,7 +4653,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 3. ORDERS TRACKING UPDATER */}
         {activeTab === 'orders' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               {orders.length === 0 ? (
                 <p className="text-xs text-white/40 py-8 text-center italic">No orders received yet.</p>
               ) : (
@@ -4669,7 +4753,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 4. CINEMATIC BANNERS */}
         {activeTab === 'banners' && (
           <div className="space-y-6 animate-fade-in">
-            <form onSubmit={handleCreateBanner} className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg space-y-4">
+            <form onSubmit={handleCreateBanner} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2">
                 {editingBannerId ? "Edit cinematic promotional banner" : "Add cinematic promotional banner"}
               </h3>
@@ -4759,7 +4843,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               </div>
             </form>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4 flex items-center justify-between">
                 <span>Active Banners Archives</span>
                 <span className="text-[9px] font-mono text-white/40 tracking-wider">Configure showcase active presentation</span>
@@ -4856,7 +4940,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 5. REVIEWS MODERATION PANEL */}
         {activeTab === 'reviews' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               <h3 className="font-serif text-sm text-white uppercase tracking-wider mb-4">Customer Review archives</h3>
               {reviews.length === 0 ? (
                 <p className="text-xs text-white/40 py-8 text-center italic">No customer reviews written yet.</p>
@@ -4904,7 +4988,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 6. VIP COUPON ENGINE */}
         {activeTab === 'coupons' && (
           <div className="space-y-6 animate-fade-in">
-            <form onSubmit={handleCreateCoupon} className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg space-y-4">
+            <form onSubmit={handleCreateCoupon} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2 font-bold">Generate coupon discount</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -4949,7 +5033,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               </button>
             </form>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4">Manage active VIP key codes</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coupons.map(c => (
@@ -4991,7 +5075,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 7. LAUNCH CAMPAIGNS */}
         {activeTab === 'campaigns' && (
           <div className="space-y-6 animate-fade-in">
-            <form onSubmit={handleCreateCampaign} className="bg-[#0a0a0a] border border-white/5 p-5 rounded-lg space-y-4">
+            <form onSubmit={handleCreateCampaign} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2 font-bold">Register limited collections event</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
@@ -5026,7 +5110,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               </button>
             </form>
 
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
               <h4 className="font-serif text-sm text-white uppercase tracking-wider mb-4">Promotional Campaign cards</h4>
               <div className="grid grid-cols-1 gap-4">
                 {campaigns.map(c => (
@@ -5055,7 +5139,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
         {/* 8. ACTIVE CONCIERGE CHATS (Realtime simulation updates) */}
         {activeTab === 'chat' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[550px] animate-fade-in bg-[#080808] border border-white/5 p-4 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[550px] animate-fade-in bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl">
             
             {/* Rooms Lists sidebar */}
             <div className="md:col-span-1 border-r border-white/5 pr-4 overflow-y-auto space-y-2">
@@ -5159,7 +5243,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {activeTab === 'xoro_ai' && (
           <div className="space-y-6 animate-fade-in text-left">
             {!isXoroUnlocked ? (
-              <div className="max-w-md mx-auto my-12 bg-[#0a0a0a] border border-luxury-gold/20 rounded-xl p-8 shadow-2xl text-center space-y-6 relative overflow-hidden">
+              <div className="max-w-md mx-auto my-12 bg-[#15151D] border border-luxury-gold/30 rounded-2xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.35)] text-center space-y-6 relative overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-luxury-gold via-[#ffd700] to-luxury-gold"></div>
                 
                 <div className="flex justify-center">
@@ -5210,7 +5294,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             ) : (
               <>
                 {/* Control Header Grid */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <div className="bg-luxury-gold/15 p-1.5 rounded border border-luxury-gold/20">
@@ -5304,7 +5388,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Left Column: Command Chat terminal */}
-              <div className="lg:col-span-5 flex flex-col bg-[#070707] border border-white/5 rounded-lg overflow-hidden h-[620px]">
+              <div className="lg:col-span-5 flex flex-col bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden h-[620px]">
                 
                 {/* Chat Shell Header */}
                 <div className="bg-luxury-black border-b border-white/5 p-3 flex items-center justify-between">
@@ -5435,7 +5519,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               <div className="lg:col-span-7 flex flex-col gap-6">
                 
                 {/* Active Plan Board */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 flex-1 flex flex-col min-h-[300px]">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 flex-1 flex flex-col min-h-[300px]">
                   
                   <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center justify-between">
                     <h4 className="font-serif text-sm text-white uppercase font-bold tracking-wider">
@@ -5596,7 +5680,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
 
                 {/* Secure Audit Trail Logs Ledger */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 h-[290px] flex flex-col">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 h-[290px] flex flex-col">
                   
                   {/* Ledger Header with searching */}
                   <div className="border-b border-white/5 pb-3 mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -5725,7 +5809,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             {xoroOsTab === 'code' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
                 {/* File Explorer Tree Panel */}
-                <div className="lg:col-span-4 bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between h-[620px]">
+                <div className="lg:col-span-4 bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between h-[620px]">
                   <div>
                     <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center gap-2">
                       <Layers size={14} className="text-luxury-gold" />
@@ -5840,7 +5924,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
 
                 {/* Scan Results Panel */}
-                <div className="lg:col-span-8 bg-[#0a0a0a] border border-white/5 rounded-lg p-5 flex flex-col justify-between h-[620px] overflow-y-auto custom-scrollbar">
+                <div className="lg:col-span-8 bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 flex flex-col justify-between h-[620px] overflow-y-auto custom-scrollbar">
                   {isScanningCode ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-4 font-mono">
                       <Terminal size={36} className="text-luxury-gold animate-bounce" />
@@ -5978,7 +6062,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             {xoroOsTab === 'health' && (
               <div className="space-y-6 animate-fade-in text-left">
                 {/* Active Server Resource Monitoring telemetry */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
                   <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Activity size={14} className="text-luxury-gold" />
@@ -6034,7 +6118,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 {/* Split media optimizer and compliance checks */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Media & Image Speed Optimizer */}
-                  <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 flex flex-col justify-between min-h-[320px]">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 flex flex-col justify-between min-h-[320px]">
                     <div>
                       <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -6097,7 +6181,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
 
                   {/* Security & Compliance Firewall Checks */}
-                  <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 flex flex-col justify-between min-h-[320px]">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 flex flex-col justify-between min-h-[320px]">
                     <div>
                       <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -6151,7 +6235,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             {xoroOsTab === 'analytics' && (
               <div className="space-y-6 animate-fade-in text-left">
                 {/* Advanced charts/stats grid */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
                   <div className="border-b border-white/5 pb-2.5 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <BarChart3 size={14} className="text-luxury-gold" />
@@ -6205,7 +6289,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
 
                 {/* Xoro AI Smart Recommendations Section */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5">
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
                   <div className="border-b border-white/5 pb-2.5 mb-4">
                     <h4 className="font-serif text-sm text-white uppercase font-bold tracking-wider">
                       🔥 Xoro AI Autonomous Store Recommendations
@@ -6324,7 +6408,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
         {/* 9. SEO MASTER OPTIMIZATION TOOL */}
         {activeTab === 'seo' && (
           <div className="space-y-6 animate-fade-in text-left">
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-6 space-y-4">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-6 space-y-4">
               
               <div className="border-b border-white/5 pb-2">
                 <h3 className="font-serif text-base text-white uppercase font-bold">Search Metadata Override</h3>
@@ -6705,7 +6789,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 {/* Scorecards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   {/* Health score card */}
-                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col justify-between">
                     <div>
                       <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50">Overall Catalog SEO Health</h4>
                       <p className="text-3xl font-serif font-extrabold mt-2 text-luxury-gold">{healthScore}%</p>
@@ -6726,7 +6810,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
 
                   {/* Missing fields card */}
-                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col justify-between">
                     <div>
                       <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -6740,7 +6824,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
 
                   {/* Duplicate slugs card */}
-                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col justify-between">
                     <div>
                       <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
@@ -6754,7 +6838,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   </div>
 
                   {/* Suboptimal lengths card */}
-                  <div className="bg-[#0a0a0a] border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col justify-between">
                     <div>
                       <h4 className="text-[10px] uppercase font-mono tracking-wider text-white/50 font-semibold flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -6769,7 +6853,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
 
                 {/* Filters and actions row */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#15151D] p-4 rounded-2xl border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                   <div className="flex flex-wrap gap-1.5">
                     <button
                       onClick={() => setSeoHealthFilter('all')}
@@ -6852,7 +6936,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 {/* Filtered list of products */}
                 <div className="space-y-4">
                   {filteredProducts.length === 0 ? (
-                    <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-3">
+                    <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
                       <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center">
                         <Check size={20} className="text-emerald-400" />
                       </div>
@@ -6865,7 +6949,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     filteredProducts.map(({ product, isMissingFields, missingFields, isSuboptimalTitle, titleLength, isDuplicateSlug, hasIssues }) => {
                       const isFixing = fixingProductIds[product.id];
                       return (
-                        <div key={product.id} className="bg-[#0a0a0a] border border-white/5 rounded-xl overflow-hidden hover:border-white/10 transition-all duration-300">
+                        <div key={product.id} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-300">
                           <div className="p-5 flex flex-col lg:flex-row items-start gap-6 justify-between">
                             {/* Product Info & Issues */}
                             <div className="flex gap-4 items-start flex-1">
@@ -7056,7 +7140,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             </h3>
 
             {backInStockAlerts.length === 0 ? (
-              <div className="border border-white/5 bg-[#0a0a0a] p-12 rounded-lg text-center space-y-4 shadow-xl">
+              <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-12 rounded-2xl text-center space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                 <div className="w-12 h-12 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mx-auto text-white/20">
                   <Bell size={24} />
                 </div>
@@ -7066,7 +7150,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
               </div>
             ) : (
-              <div className="border border-white/5 bg-[#0a0a0a] rounded-lg overflow-hidden shadow-xl">
+              <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                 <div className="p-4 bg-[#111] border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">VIP Alert Registry ({backInStockAlerts.length})</span>
                   <button
@@ -7403,7 +7487,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
               {/* CONFIGURATION & TEST FORMS COLUMN */}
               <div className="lg:col-span-1 space-y-6">
                 {/* GATEWAY SETTINGS CARD */}
-                <div className="border border-purple-500/15 bg-[#0a0a0a] p-5 rounded-lg shadow-xl space-y-4">
+                <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] space-y-4">
                   <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-purple-400 border-b border-white/5 pb-2 flex items-center gap-1.5">
                     ⚙️ Gateway Setup (গেটওয়ে কনফিগারেশন)
                   </h3>
@@ -7488,7 +7572,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 </div>
 
                 {/* TEST FORM PANEL */}
-                <div className="border border-luxury-gold/15 bg-[#0a0a0a] p-5 rounded-lg shadow-xl">
+                <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
                   <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-luxury-gold mb-3 border-b border-white/5 pb-2">
                     Test-Send SMS (গ্রাহককে সরাসরি এসএমএস পাঠান)
                   </h3>
@@ -7643,7 +7727,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
             {/* Manual Entry Form */}
             {isAddingPhone && (
-              <form onSubmit={handleAddCustomerPhone} className="bg-[#0a0a0a] border border-white/5 rounded-lg p-5 space-y-4 animate-fade-in">
+              <form onSubmit={handleAddCustomerPhone} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 space-y-4 animate-fade-in">
                 <h3 className="text-sm font-semibold text-luxury-gold uppercase tracking-wider font-serif">Add Custom Phone Record</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-1.5">
@@ -7654,7 +7738,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       required
                       value={manualPhoneInput}
                       onChange={(e) => setManualPhoneInput(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white font-mono"
+                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white font-mono"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -7664,7 +7748,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       placeholder="Name"
                       value={manualNameInput}
                       onChange={(e) => setManualNameInput(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -7674,7 +7758,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                       placeholder="Email"
                       value={manualEmailInput}
                       onChange={(e) => setManualEmailInput(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -7682,7 +7766,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                     <select 
                       value={manualSourceInput}
                       onChange={(e) => setManualSourceInput(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
                     >
                       <option value="manual">✍️ Manual Ledger</option>
                       <option value="signup">🆕 Account Registration</option>
@@ -7711,26 +7795,26 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
             {/* Smart Stats Dashboard for Phone Sources */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
                 <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Total Stored</span>
                 <span className="text-2xl font-serif font-bold text-white mt-1">{customerPhones.length}</span>
                 <span className="text-[10px] font-sans text-white/30 mt-2">Verified Unique Mobile Contacts</span>
               </div>
-              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
                 <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Account Signups</span>
                 <span className="text-2xl font-serif font-bold text-teal-400 mt-1">
                   {customerPhones.filter(p => p.source === 'signup').length}
                 </span>
                 <span className="text-[10px] font-sans text-white/30 mt-2">Registered client accounts</span>
               </div>
-              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
                 <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Step 1 Recoveries</span>
                 <span className="text-2xl font-serif font-bold text-amber-400 mt-1">
                   {customerPhones.filter(p => p.source === 'checkout_step1').length}
                 </span>
                 <span className="text-[10px] font-sans text-white/30 mt-2">Abandoned cart checkout logs</span>
               </div>
-              <div className="bg-[#070707] border border-white/5 rounded-lg p-4 flex flex-col justify-between">
+              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
                 <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">SMS Opt-Ins</span>
                 <span className="text-2xl font-serif font-bold text-sky-400 mt-1">
                   {customerPhones.filter(p => p.source === 'sms_opt_in').length}
@@ -7740,14 +7824,14 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             </div>
 
             {/* Live Search & Segment Filters */}
-            <div className="bg-[#070707] border border-white/5 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative flex-1">
                 <input 
                   type="text"
                   placeholder="Search by name, phone or email..."
                   value={phoneSearchQuery}
                   onChange={(e) => setPhoneSearchQuery(e.target.value)}
-                  className="w-full bg-[#111] border border-white/10 rounded-md pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
+                  className="w-full bg-[#0B0B0F] border border-white/10 rounded-md pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
                 />
                 {phoneSearchQuery && (
                   <button 
@@ -7783,7 +7867,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             </div>
 
             {/* Main Phone Table */}
-            <div className="bg-[#070707] border border-white/5 rounded-lg overflow-hidden">
+            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden">
               {fetchingCustomerPhones ? (
                 <div className="py-20 text-center text-xs text-white/40">
                   <span className="inline-block animate-spin mr-2">🔄</span> Loading Phone Ledger...
@@ -7961,7 +8045,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* SYSTEM ROUTING CONTROLLER CARD */}
-              <form onSubmit={handleSaveSettings} className="border border-luxury-gold/20 hover:border-luxury-gold/45 bg-[#0a0a0a] p-6 rounded-lg space-y-4 shadow-xl relative overflow-hidden transition-all duration-300">
+              <form onSubmit={handleSaveSettings} className="border border-[rgba(255,255,255,0.08)] hover:border-luxury-gold/45 bg-[#15151D] p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden transition-all duration-300">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl"></div>
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded bg-green-500/10 border border-green-500/30 text-green-400">
@@ -8184,6 +8268,107 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         />
                         <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                       </label>
+                    </div>
+                  </div>
+
+                  {/* SOURCE CODE PROTECTION NOTICE SETTINGS */}
+                  <div className="border border-red-500/30 bg-red-950/10 p-4 sm:p-5 rounded-xl space-y-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-red-500/20 pb-3 gap-2">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="text-red-500 shrink-0" size={18} />
+                        <div>
+                          <h4 className="text-xs font-mono text-red-400 uppercase tracking-wider font-bold">
+                            Source Code Protection Notice (সোর্স কোড প্রোটেকশন নোটিশ)
+                          </h4>
+                          <p className="text-[10px] text-zinc-400 font-sans">
+                            কেউ সোর্স কোড দেখার চেষ্টা করলে (DevTools/Right Click Inspection) যে ওয়ার্নিং পপআপ দেখাবে, সেটি কাস্টমাইজ করুন।
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTestProtectionModal(true)}
+                        className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <Eye size={12} />
+                        <span>Test View</span>
+                      </button>
+                    </div>
+
+                    {/* NOTICE BANNER / IMAGE URL & UPLOAD */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
+                        <span>Notice Image / Banner URL (নোটিশ ছবি / ব্যানার URL):</span>
+                        <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">IMAGE</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={sourceProtectionImageUrlInput}
+                          onChange={(e) => setSourceProtectionImageUrlInput(e.target.value)}
+                          placeholder="e.g. https://domain.com/warning-banner.jpg"
+                          className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
+                        />
+                        <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-red-600 text-white rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none shrink-0">
+                          <Upload size={12} />
+                          <span>{sourceProtectionUploading ? "Uploading..." : "Upload File"}</span>
+                          <input 
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handlePaymentLogoUpload('source_protection', e)}
+                            disabled={sourceProtectionUploading}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                      {sourceProtectionUploadProgress && (
+                        <p className="text-[9px] text-red-400 font-mono tracking-wide mt-1 animate-pulse">
+                          🛡️ {sourceProtectionUploadProgress}
+                        </p>
+                      )}
+                      {sourceProtectionImageUrlInput && (
+                        <div className="mt-2 p-2 bg-[#050209] border border-red-500/20 rounded-lg flex items-center gap-3">
+                          <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Banner Preview:</span>
+                          <img 
+                            src={sourceProtectionImageUrlInput} 
+                            alt="Notice Banner Preview" 
+                            className="h-12 max-w-[160px] object-cover rounded border border-red-500/30"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      )}
+                      <p className="text-[9px] text-zinc-500 font-mono">
+                        নোটিশ পপআপে বড় করে প্রদর্শনের জন্য ছবি লিঙ্ক দিন বা আপনার ডিভাইস থেকে আপলোড করুন।
+                      </p>
+                    </div>
+
+                    {/* NOTICE HEADING / TITLE */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-mono text-red-400 uppercase tracking-widest font-semibold">
+                        Notice Title (নোটিশ শিরোনাম):
+                      </label>
+                      <input 
+                        type="text"
+                        value={sourceProtectionTitleInput}
+                        onChange={(e) => setSourceProtectionTitleInput(e.target.value)}
+                        placeholder="e.g. Nice Try! 🛑 or Warning: Access Restricted"
+                        className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all"
+                      />
+                    </div>
+
+                    {/* NOTICE DESCRIPTION / BORO LIKHA */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-mono text-red-400 uppercase tracking-widest font-semibold flex items-center justify-between">
+                        <span>Notice Long Warning Text / Boro Likha (বিস্তারিত বড় লেখা):</span>
+                        <span className="text-[8px] text-zinc-500 font-normal">Multi-line text</span>
+                      </label>
+                      <textarea 
+                        rows={4}
+                        value={sourceProtectionDescriptionInput}
+                        onChange={(e) => setSourceProtectionDescriptionInput(e.target.value)}
+                        placeholder="এখানে বড় করে আপনার সিকিউরিটি ওয়ার্নিং বা নোটিশ টেক্সট লিখুন..."
+                        className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs p-3 font-sans text-zinc-200 leading-relaxed transition-all resize-y"
+                      />
                     </div>
                   </div>
 
@@ -8922,7 +9107,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
             </div>
 
             {/* PLATFORM INFRASTRUCTURE LEDGER */}
-            <div className="border border-white/5 bg-[#080808] p-6 rounded-lg space-y-4 shadow-xl">
+            <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
               <h3 className="text-xs font-mono font-bold text-white uppercase tracking-widest">
                 ⚙️ SECURE MEMORY DATABASE & PERSISTENCE METRICS
               </h3>
@@ -8973,6 +9158,135 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
           </button>
         </div>
       )}
+
+      {/* 🧹 CLEAR DASHBOARD DATA MODAL */}
+      {showClearDashboardModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0e0e12] border-2 border-red-500/50 rounded-2xl p-6 max-w-lg w-full text-left shadow-[0_0_50px_rgba(239,68,68,0.25)] space-y-5 relative overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-display text-white tracking-wide">Clear Dashboard Data</h3>
+                  <p className="text-xs text-zinc-400 font-sans">ড্যাশবোর্ডের মেট্রিক্স ও ডাটা রিসেট/ক্লিয়ার করুন</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClearDashboardModal(false)}
+                className="p-1.5 text-zinc-400 hover:text-white bg-white/5 rounded-lg border border-white/10 transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-mono text-luxury-gold uppercase tracking-wider font-semibold">
+                Select Data Scope to Clear (ক্লিয়ার করার ক্যাটাগরি নির্বাচন করুন):
+              </label>
+
+              <div className="grid grid-cols-1 gap-2.5">
+                <label 
+                  onClick={() => setClearDashboardTarget('all')}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'all' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'all' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
+                      {clearDashboardTarget === 'all' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-mono uppercase text-white">Full Dashboard Reset (সমস্ত ড্যাশবোর্ড ক্লিয়ার)</p>
+                      <p className="text-[10px] text-zinc-400">ভিজিটর এনালিটিক্স, অল অর্ডার্স, নোটিফিকেশন ও সিস্টেম লগ একসাথ ক্লিয়ার হবে</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-red-500/20 text-red-300 rounded border border-red-500/30 font-bold uppercase">All Data</span>
+                </label>
+
+                <label 
+                  onClick={() => setClearDashboardTarget('traffic')}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'traffic' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'traffic' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
+                      {clearDashboardTarget === 'traffic' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-mono uppercase text-white">Traffic & Visitor Analytics Only</p>
+                      <p className="text-[10px] text-zinc-400">কেবলমাত্র ওয়েবসাইটের ভিজিটর কাউন্ট, পেজভিউ ও লাইভ ভিউ ক্লিয়ার হবে</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold uppercase">Traffic Only</span>
+                </label>
+
+                <label 
+                  onClick={() => setClearDashboardTarget('orders')}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'orders' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'orders' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
+                      {clearDashboardTarget === 'orders' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-mono uppercase text-white">Orders & Receipts List Only</p>
+                      <p className="text-[10px] text-zinc-400">কেবলমাত্র ডাটাবেজ থেকে সমস্ত অর্ডারের লিস্ট ক্লিয়ার হবে</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 font-bold uppercase">Orders Only</span>
+                </label>
+
+                <label 
+                  onClick={() => setClearDashboardTarget('logs')}
+                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'logs' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'logs' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
+                      {clearDashboardTarget === 'logs' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-mono uppercase text-white">System & Audit Logs Only</p>
+                      <p className="text-[10px] text-zinc-400">নোটিফিকেশন, SMS লগ ও সিস্টেম একটিভিটি হিস্টোরি ক্লিয়ার হবে</p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30 font-bold uppercase">Logs Only</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-[11px] text-red-300 font-sans leading-relaxed">
+              ⚠️ <strong>Warning:</strong> ক্লিয়ার করার সাথে সাথে তথ্যগুলো মেমোরি ও ডাটাবেজ থেকে স্থায়ীভাবে মুছে যাবে। এটি রিকভার করা সম্ভব নয়।
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearDashboardModal(false)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-zinc-300 rounded-xl text-xs font-mono font-bold uppercase transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClearDashboard}
+                disabled={isClearingDashboard}
+                className="px-5 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 cursor-pointer"
+              >
+                {isClearingDashboard ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                <span>{isClearingDashboard ? "Clearing..." : "Confirm & Clear Now"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SourceProtectionModal
+        isOpen={showTestProtectionModal}
+        onClose={() => setShowTestProtectionModal(false)}
+        title={sourceProtectionTitleInput}
+        description={sourceProtectionDescriptionInput}
+        imageUrl={sourceProtectionImageUrlInput}
+      />
     </div>
   );
 }

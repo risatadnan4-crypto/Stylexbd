@@ -63,6 +63,16 @@ export default function CustomerProfileModal({
     }
   }, [customer, isOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen || !customer) return null;
 
   // Filter orders matching logged in customer email or phone
@@ -141,14 +151,14 @@ export default function CustomerProfileModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overscroll-contain">
         {/* Backdrop glass */}
         <motion.div 
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-luxury-black/90 backdrop-blur-md cursor-pointer"
+          className="fixed inset-0 bg-luxury-black/90 backdrop-blur-md cursor-pointer"
         />
 
         {/* Modal Window Container */}
@@ -157,7 +167,7 @@ export default function CustomerProfileModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          className="relative w-full max-w-4xl h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[850px] bg-gradient-to-b from-[#0e061b] via-[#06030c] to-[#030106] border-0 sm:border border-luxury-gold/30 rounded-none sm:rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.18)] z-10 flex flex-col overflow-hidden text-white font-sans"
+          className="relative w-full max-w-4xl h-auto my-auto bg-gradient-to-b from-[#0e061b] via-[#06030c] to-[#030106] border-0 sm:border border-luxury-gold/30 rounded-xl sm:rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.18)] z-10 flex flex-col text-white font-sans overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/[0.06] p-4 sm:p-5 flex-shrink-0 bg-black/30">

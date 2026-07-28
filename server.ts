@@ -131,6 +131,9 @@ let db = {
     accentColor: "#D4AF37",
     siteTitle: "Style X",
     siteMetaDesc: "Elite Luxury Fashion Showcase",
+    sourceProtectionTitle: "Nice Try! 🛑",
+    sourceProtectionDescription: "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls.",
+    sourceProtectionImageUrl: "",
     lotteryPrizes: [
       { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
       { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -216,6 +219,9 @@ if (fs.existsSync(DB_FILE)) {
       accentColor: db.settings?.accentColor || "#D4AF37",
       siteTitle: db.settings?.siteTitle || "Style X",
       siteMetaDesc: db.settings?.siteMetaDesc || "Elite Luxury Fashion Showcase",
+      sourceProtectionTitle: db.settings?.sourceProtectionTitle || "Nice Try! 🛑",
+      sourceProtectionDescription: db.settings?.sourceProtectionDescription || "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls.",
+      sourceProtectionImageUrl: db.settings?.sourceProtectionImageUrl || "",
       lotteryPrizes: db.settings?.lotteryPrizes || [
         { text: "15% OFF (STYLEGOLD)", value: "STYLEGOLD", type: "coupon" },
         { text: "VIP Free Carriage", value: "FREE_SHIPPING", type: "shipping" },
@@ -662,6 +668,9 @@ async function syncSettingsToCloud() {
           xoroAvatarUrl: db.settings.xoroAvatarUrl,
           bkashLogoUrl: db.settings.bkashLogoUrl,
           nagadLogoUrl: db.settings.nagadLogoUrl,
+          sourceProtectionTitle: db.settings.sourceProtectionTitle,
+          sourceProtectionDescription: db.settings.sourceProtectionDescription,
+          sourceProtectionImageUrl: db.settings.sourceProtectionImageUrl,
           lotteryDiscountPercentage: db.settings.lotteryDiscountPercentage,
           lotteryCouponPrefix: db.settings.lotteryCouponPrefix,
           facebookUrl: db.settings.facebookUrl,
@@ -1140,7 +1149,7 @@ async function syncFromSupabase() {
           // Restore persistent count and counted sessions from single-row configRow
           if (configRow.visits_count !== undefined && configRow.visits_count !== null) {
             const parsedVisits = Number(configRow.visits_count);
-            if (!isNaN(parsedVisits) && parsedVisits > db.visits) {
+            if (!isNaN(parsedVisits)) {
               db.visits = parsedVisits;
             }
           }
@@ -1327,7 +1336,7 @@ app.get("/api/visitor-ping", (req, res) => {
         }
 
         // Monotonically increment unique visits safely
-        db.visits = Math.max((db.visits || 125) + 1, db.countedSessions.length);
+        db.visits = Math.max((typeof db.visits === 'number' ? db.visits : 0) + 1, db.countedSessions.length);
         saveDB();
         counted = true;
 
@@ -1359,7 +1368,7 @@ app.get("/api/visitor-ping", (req, res) => {
   } catch (err: any) {
     res.json({
       success: false,
-      visits: Number(db.visits || 125),
+      visits: Number(typeof db.visits === 'number' ? db.visits : 0),
       liveViews: Math.max(1, activeSessions.size)
     });
   }
@@ -1404,6 +1413,78 @@ app.get("/api/analytics", (req, res) => {
   }
 });
 
+// 🧹 Clear Dashboard Data Endpoint
+app.post("/api/admin/clear-dashboard", async (req, res) => {
+  try {
+    const { target = "all" } = req.body || {};
+    const clearedItems: string[] = [];
+
+    if (target === "all" || target === "traffic") {
+      db.visits = 0;
+      db.liveViews = 1;
+      db.countedSessions = [];
+      clearedItems.push("Traffic & Visitor Analytics");
+
+      if (isSettingsTableAvailable && supabase) {
+        try {
+          await supabase.from("settings").upsert({
+            id: 1,
+            visits_count: 0,
+            counted_sessions: JSON.stringify([])
+          }, { onConflict: "id" });
+        } catch (sErr: any) {
+          console.warn("⚠️ Failed clearing visits in Supabase:", sErr.message);
+        }
+      }
+    }
+
+    if (target === "all" || target === "orders") {
+      db.orders = [];
+      clearedItems.push("Orders List");
+
+      if (supabase) {
+        try {
+          await supabase.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        } catch (oErr: any) {
+          console.warn("⚠️ Failed clearing orders in Supabase:", oErr.message);
+        }
+      }
+    }
+
+    if (target === "all" || target === "logs") {
+      db.notifications = [];
+      db.failed_notifications = [];
+      db.xoroAdminLogs = [];
+      db.outboundSMSLogs = [];
+      db.aiApiAuditLogs = [];
+      clearedItems.push("Notifications & System Logs");
+    }
+
+    saveDB();
+
+    const ordersList = Array.isArray(db.orders) ? db.orders : [];
+    const productsList = Array.isArray(db.products) ? db.products : [];
+
+    res.json({
+      success: true,
+      message: `Dashboard data cleared successfully: ${clearedItems.join(", ")}`,
+      clearedTarget: target,
+      analytics: {
+        visits: Number(db.visits || 0),
+        liveViews: Number(db.liveViews || 1),
+        totalRevenue: ordersList.filter(o => o && o.status !== "CANCELLED").reduce((val, order) => val + Number(order.totalAmount || 0), 0),
+        totalOrders: ordersList.length,
+        pendingOrders: ordersList.filter(o => o && o.status === "PENDING").length,
+        lowStockStockCount: productsList.filter(p => p && Number(p.stock || 0) < 15).length,
+        recentOrdersMax: ordersList.slice(-5)
+      }
+    });
+  } catch (error: any) {
+    console.error("❌ Error clearing dashboard data:", error);
+    res.status(500).json({ error: "Failed to clear dashboard data.", message: error.message });
+  }
+});
+
 // App Settings (Dynamic WhatsApp etc.)
 app.get("/api/settings", async (req, res) => {
   try {
@@ -1420,6 +1501,9 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.xoroAvatarUrl !== undefined && configRow.xoroAvatarUrl !== null) db.settings.xoroAvatarUrl = configRow.xoroAvatarUrl;
           if (configRow.bkashLogoUrl !== undefined && configRow.bkashLogoUrl !== null) db.settings.bkashLogoUrl = configRow.bkashLogoUrl;
           if (configRow.nagadLogoUrl !== undefined && configRow.nagadLogoUrl !== null) db.settings.nagadLogoUrl = configRow.nagadLogoUrl;
+          if (configRow.sourceProtectionTitle !== undefined && configRow.sourceProtectionTitle !== null) db.settings.sourceProtectionTitle = configRow.sourceProtectionTitle;
+          if (configRow.sourceProtectionDescription !== undefined && configRow.sourceProtectionDescription !== null) db.settings.sourceProtectionDescription = configRow.sourceProtectionDescription;
+          if (configRow.sourceProtectionImageUrl !== undefined && configRow.sourceProtectionImageUrl !== null) db.settings.sourceProtectionImageUrl = configRow.sourceProtectionImageUrl;
           if (configRow.facebookUrl !== undefined && configRow.facebookUrl !== null) db.settings.facebookUrl = configRow.facebookUrl;
           if (configRow.instagramUrl !== undefined && configRow.instagramUrl !== null) db.settings.instagramUrl = configRow.instagramUrl;
           if (configRow.lotteryDiscountPercentage !== undefined && configRow.lotteryDiscountPercentage !== null) db.settings.lotteryDiscountPercentage = Number(configRow.lotteryDiscountPercentage);
@@ -1599,7 +1683,8 @@ app.post("/api/settings", async (req, res) => {
       isLotteryDeactivated, isNotifyMeDeactivated, bkashLogoUrl, nagadLogoUrl,
       globalTimerEndTime, globalTimerMessage, globalTimerActive, globalPaymentSystem, 
       globalPaymentMethod, globalDeliveryDays, accentColor, isXoroVoiceDisabled, isXoroVoiceAndAnswerDisabled, isXoroTextOnly,
-      smsProvider, twilioAccountSid, twilioAuthToken, twilioFromNumber, greenwebToken, siteTitle, siteMetaDesc
+      smsProvider, twilioAccountSid, twilioAuthToken, twilioFromNumber, greenwebToken, siteTitle, siteMetaDesc,
+      sourceProtectionTitle, sourceProtectionDescription, sourceProtectionImageUrl
     } = req.body;
     
     db.settings = {
@@ -1638,6 +1723,9 @@ app.post("/api/settings", async (req, res) => {
       accentColor: accentColor !== undefined ? accentColor.trim() : (db.settings?.accentColor || "#D4AF37"),
       siteTitle: siteTitle !== undefined ? siteTitle.trim() : (db.settings?.siteTitle || "Style X"),
       siteMetaDesc: siteMetaDesc !== undefined ? siteMetaDesc.trim() : (db.settings?.siteMetaDesc || "Elite Luxury Fashion Showcase"),
+      sourceProtectionTitle: sourceProtectionTitle !== undefined ? sourceProtectionTitle.trim() : (db.settings?.sourceProtectionTitle || "Nice Try! 🛑"),
+      sourceProtectionDescription: sourceProtectionDescription !== undefined ? sourceProtectionDescription.trim() : (db.settings?.sourceProtectionDescription || "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls."),
+      sourceProtectionImageUrl: sourceProtectionImageUrl !== undefined ? sourceProtectionImageUrl.trim() : (db.settings?.sourceProtectionImageUrl || ""),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
       productPayments: db.settings?.productPayments || {}
     };
@@ -6072,10 +6160,10 @@ app.put("/api/admin/ai-keys/:id", (req, res) => {
 // DELETE AI Key (Super Admin password confirmed)
 app.delete("/api/admin/ai-keys/:id", (req, res) => {
   const { id } = req.params;
-  const { password } = req.body;
+  const password = req.body.password || req.body.confirmPassword;
 
   const adminPassword = db.settings?.adminPassword || "risat123";
-  if (password !== adminPassword) {
+  if (!password || password !== adminPassword) {
     return res.status(401).json({ error: "Invalid Super Admin password confirmation." });
   }
 

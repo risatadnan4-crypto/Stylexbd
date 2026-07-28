@@ -107,71 +107,18 @@ export default function AcousticScrollManager() {
     };
   }, []);
 
-  // Intercept wheel events at boundaries for the tactile overscroll/rubber-band stretch
-  useEffect(() => {
-    const handleWheelBoundary = (e: WheelEvent) => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const currentScroll = window.scrollY;
-
-      // Detect top overscroll or bottom overscroll attempt
-      if (currentScroll === 0 && e.deltaY < 0) {
-        // Scrolling UP past top boundary: add with tactile resistance
-        const depthFactor = Math.max(0.08, 1 - Math.abs(overscrollYRef.current) / 280);
-        overscrollYRef.current += e.deltaY * depthFactor * 0.45;
-      } else if (currentScroll >= maxScroll - 1 && e.deltaY > 0) {
-        // Scrolling DOWN past bottom boundary: add with tactile resistance
-        const depthFactor = Math.max(0.08, 1 - Math.abs(overscrollYRef.current) / 280);
-        overscrollYRef.current += e.deltaY * depthFactor * 0.45;
-      }
-
-      // Limit max visual rubber-banding offset
-      const maxStretch = 180;
-      if (overscrollYRef.current < -maxStretch) {
-        overscrollYRef.current = -maxStretch;
-      } else if (overscrollYRef.current > maxStretch) {
-        overscrollYRef.current = maxStretch;
-      }
-    };
-
-    window.addEventListener('wheel', handleWheelBoundary, { passive: true });
-    return () => {
-      window.removeEventListener('wheel', handleWheelBoundary);
-    };
-  }, []);
-
-  // Continuous animation loop for physics decay and root visual translation
+  // Continuous animation loop for Lenis smooth scroll updates
   useEffect(() => {
     const updateFrame = (time: number) => {
-      // 1. Advance Lenis smooth scroll frame
+      // Advance Lenis smooth scroll frame
       if (lenisRef.current) {
-        lenisRef.current.raf(time);
-      }
-
-      // 2. Decay overscroll rubber-band back to 0 using buttery spring-decay physics
-      if (Math.abs(overscrollYRef.current) > 0.05) {
-        overscrollYRef.current += (0 - overscrollYRef.current) * 0.13;
-      } else {
-        overscrollYRef.current = 0;
-      }
-
-      // 3. Apply CSS hardware-accelerated 3D Transform to translate the viewport
-      const rootEl = document.getElementById('root');
-      if (rootEl) {
         const isModalActive = document.body.style.overflow === 'hidden';
         if (isModalActive) {
-          if (rootEl.style.transform !== '') {
-            rootEl.style.transform = '';
-          }
-        } else if (Math.abs(overscrollYRef.current) > 0.05) {
-          const visualStretch = overscrollYRef.current * 0.45;
-          rootEl.style.transform = `translate3d(0, ${-visualStretch}px, 0)`;
-          rootEl.style.transformOrigin = overscrollYRef.current < 0 ? 'top center' : 'bottom center';
-          rootEl.style.transition = 'none';
+          lenisRef.current.stop();
         } else {
-          if (rootEl.style.transform !== '') {
-            rootEl.style.transform = '';
-          }
+          lenisRef.current.start();
         }
+        lenisRef.current.raf(time);
       }
 
       animationFrameIdRef.current = requestAnimationFrame(updateFrame);

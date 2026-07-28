@@ -496,7 +496,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
         </div>
 
         {/* CHART B: Regional distribution of clientele */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg space-y-4">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-luxury-gold" />
@@ -564,7 +564,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
       {/* CHARTS CONTAINER GRID 2 - TOP PRODUCTS & TRAFFIC CONVERSION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* CHART C: Traffic Trends vs Conversion */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg space-y-4">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-luxury-gold" />
@@ -634,7 +634,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
         </div>
 
         {/* CHART D: Horizontal Top Performing Products */}
-        <div className="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg lg:col-span-2 space-y-4">
+        <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <div className="flex items-center gap-2">
               <Award size={16} className="text-luxury-gold" />
@@ -705,7 +705,7 @@ export default function PerformanceDashboard({ orders, products, analytics }: Pe
       </div>
 
       {/* COMPREHENSIVE PERFORMANCE DETAIL TABLE */}
-      <div className="bg-[#0a0a0a] border border-white/5 rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden">
         <div className="p-5 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded bg-luxury-gold/10 border border-luxury-gold/20 text-luxury-gold">
