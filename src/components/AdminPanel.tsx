@@ -4120,19 +4120,31 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
 
                         {/* Live Timer Status Preview */}
                         {(() => {
+                          if (!formTimerActive) {
+                            return <span className="text-[9px] text-zinc-500 block leading-normal">Timer is toggled OFF. Toggle it ON to display timer on product page.</span>;
+                          }
                           if (!formTimerEndTime) {
-                            return <span className="text-[9px] text-zinc-500 block leading-normal">Pick a date above or click a quick preset button.</span>;
+                            return (
+                              <div className="bg-amber-500/15 border border-amber-500/30 p-2 rounded text-[9.5px] text-amber-400 font-mono font-bold flex flex-col gap-1">
+                                <span className="flex items-center gap-1">⚠️ TIMER IS TURNED ON BUT EXPIRATION DATE IS MISSING!</span>
+                                <span className="text-zinc-400 font-normal">Please select an expiration date/time or click a quick preset button above.</span>
+                              </div>
+                            );
                           }
                           const endMs = new Date(formTimerEndTime.replace(' ', 'T')).getTime();
                           if (isNaN(endMs)) {
-                            return <span className="text-[9px] text-amber-400 font-mono block">⚠️ Invalid date format.</span>;
+                            return (
+                              <div className="bg-amber-500/15 border border-amber-500/30 p-2 rounded text-[9.5px] text-amber-400 font-mono font-bold">
+                                ⚠️ INVALID TIMER EXPIRATION DATE! Please re-select date/time above.
+                              </div>
+                            );
                           }
                           const diff = endMs - Date.now();
                           if (diff <= 0) {
                             return (
-                              <div className="bg-red-500/15 border border-red-500/30 p-1.5 rounded text-[9.5px] text-red-400 font-mono font-bold flex items-center gap-1">
-                                <span>⚠️ TIMER IS EXPIRED!</span>
-                                <span className="text-zinc-400 font-normal">(Pick a future time or use quick buttons above)</span>
+                              <div className="bg-red-500/15 border border-red-500/30 p-2 rounded text-[9.5px] text-red-400 font-mono font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <span>⚠️ TIMER IS EXPIRED! (Product card will show 'OFFER ENDED')</span>
+                                <span className="text-zinc-400 font-normal shrink-0">(Pick a future time or click preset above)</span>
                               </div>
                             );
                           }
@@ -4140,8 +4152,8 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                           const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                           return (
-                            <div className="bg-emerald-500/15 border border-emerald-500/30 p-1.5 rounded text-[9.5px] text-emerald-400 font-mono font-bold flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <div className="bg-emerald-500/15 border border-emerald-500/30 p-2 rounded text-[9.5px] text-emerald-400 font-mono font-bold flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                               <span>⚡ TIMER ACTIVE &amp; RUNNING: {d > 0 ? `${d}d ` : ''}{h}h {m}m left on product card!</span>
                             </div>
                           );

@@ -38,6 +38,7 @@ export default function ProductDetailModal({
   // Real-time flash sale countdown timer ticking logic in details modal
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
+  const [isPendingStart, setIsPendingStart] = useState(false);
 
   const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
 
@@ -217,9 +218,10 @@ export default function ProductDetailModal({
   };
 
   useEffect(() => {
-    if (!product.timerEndTime || product.timerActive === false) {
+    if (!product.timerEndTime || product.timerActive === false || String(product.timerActive) === 'false') {
       setTimeLeft(null);
       setTimerExpired(false);
+      setIsPendingStart(false);
       return;
     }
 
@@ -228,6 +230,7 @@ export default function ProductDetailModal({
       if (!rawStr) {
         setTimeLeft(null);
         setTimerExpired(true);
+        setIsPendingStart(false);
         return true;
       }
 
@@ -248,10 +251,36 @@ export default function ProductDetailModal({
       if (isNaN(end)) {
         setTimeLeft(null);
         setTimerExpired(true);
+        setIsPendingStart(false);
         return true;
       }
 
       const now = new Date().getTime();
+
+      // Check if start time is specified and in future
+      if (product.timerStartTime) {
+        const startRaw = String(product.timerStartTime).trim();
+        let startMs = NaN;
+        if (/^\d{12,}$/.test(startRaw)) {
+          startMs = Number(startRaw);
+        } else {
+          startMs = new Date(startRaw.replace(' ', 'T')).getTime();
+          if (isNaN(startMs)) startMs = new Date(startRaw).getTime();
+        }
+        if (!isNaN(startMs) && now < startMs) {
+          const diff = startMs - now;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft({ days, hours, minutes, seconds });
+          setTimerExpired(false);
+          setIsPendingStart(true);
+          return false;
+        }
+      }
+
+      setIsPendingStart(false);
       const difference = end - now;
 
       if (difference <= 0) {
@@ -269,8 +298,7 @@ export default function ProductDetailModal({
       }
     };
 
-    const isExpired = calculateTimeLeft();
-    if (isExpired) return;
+    calculateTimeLeft();
 
     const interval = setInterval(() => {
       const expired = calculateTimeLeft();
@@ -280,7 +308,7 @@ export default function ProductDetailModal({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime, product.timerActive, product.id]);
+  }, [product.timerEndTime, product.timerStartTime, product.timerActive, product.id]);
 
   const [copied, setCopied] = useState(false);
   const [copiedInstagram, setCopiedInstagram] = useState(false);
@@ -663,50 +691,56 @@ export default function ProductDetailModal({
                     </motion.div>
 
                     {/* Countdown banner inside modal */}
-                    {timeLeft && !timerExpired && product.timerActive !== false && (
+                    {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         
-                        {product.timerMessage && (
-                          <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
-                            <span>{product.timerMessage}</span>
-                          </div>
-                        )}
+                        <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${timerExpired ? "bg-red-500" : "bg-red-500 animate-ping"} inline-block`} />
+                          <span>{product.timerMessage || (timerExpired ? "SPECIAL OFFER STATUS" : (isPendingStart ? "UPCOMING OFFER" : "LIMITED TIME OFFER"))}</span>
+                        </div>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
                           <span className="text-white/60 text-[10px] sm:text-xs uppercase tracking-widest font-black flex items-center gap-1.5 shrink-0 justify-center sm:justify-start">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            TIME LEFT:
+                            <span className={`w-1.5 h-1.5 rounded-full ${timerExpired ? "bg-red-500" : "bg-red-500 animate-pulse"}`} />
+                            {timerExpired ? "STATUS:" : (isPendingStart ? "STARTS IN:" : "TIME LEFT:")}
                           </span>
                           
                           <div className="flex items-center gap-1.5 sm:gap-2.5 font-mono justify-center sm:justify-end w-full sm:w-auto">
-                            {timeLeft.days > 0 && (
+                            {!timerExpired && timeLeft ? (
                               <>
+                                {timeLeft.days > 0 && (
+                                  <>
+                                    <div className="flex flex-col items-center">
+                                      <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.days).padStart(2, '0')}</span>
+                                      <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">days</span>
+                                    </div>
+                                    <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                                  </>
+                                )}
+                                
                                 <div className="flex flex-col items-center">
-                                  <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.days).padStart(2, '0')}</span>
-                                  <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">days</span>
+                                  <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.hours).padStart(2, '0')}</span>
+                                  <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">hours</span>
                                 </div>
                                 <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                                
+                                <div className="flex flex-col items-center">
+                                  <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                                  <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">mins</span>
+                                </div>
+                                <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
+                                
+                                <div className="flex flex-col items-center">
+                                  <span className="bg-luxury-black/95 border border-red-500/50 px-2.5 py-1.5 rounded-lg text-red-400 font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_0_12px_rgba(239,68,68,0.25)]">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                                  <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
+                                </div>
                               </>
+                            ) : (
+                              <span className="px-3 py-1 bg-red-950/80 border border-red-500/40 rounded-lg text-red-400 font-bold text-xs uppercase tracking-widest font-mono">
+                                OFFER ENDED
+                              </span>
                             )}
-                            
-                            <div className="flex flex-col items-center">
-                              <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.hours).padStart(2, '0')}</span>
-                              <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">hours</span>
-                            </div>
-                            <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
-                            
-                            <div className="flex flex-col items-center">
-                              <span className="bg-luxury-black/95 border border-luxury-gold/35 px-2.5 py-1.5 rounded-lg text-luxury-gold font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                              <span className="text-[8px] sm:text-[9px] font-sans text-white/50 mt-1 uppercase tracking-wider font-extrabold">mins</span>
-                            </div>
-                            <span className="text-luxury-gold/50 animate-pulse font-bold pb-4 sm:pb-5 text-sm sm:text-base">:</span>
-                            
-                            <div className="flex flex-col items-center">
-                              <span className="bg-luxury-black/95 border border-red-500/50 px-2.5 py-1.5 rounded-lg text-red-400 font-black min-w-[38px] sm:min-w-[44px] text-center text-sm sm:text-base shadow-[0_0_12px_rgba(239,68,68,0.25)]">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                              <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
-                            </div>
                           </div>
                         </div>
                       </div>

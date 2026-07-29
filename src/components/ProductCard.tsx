@@ -59,6 +59,7 @@ export default function ProductCard({
   // Real-time flash sale countdown timer ticking logic
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
   const [timerExpired, setTimerExpired] = useState(false);
+  const [isPendingStart, setIsPendingStart] = useState(false);
 
   const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
 
@@ -92,9 +93,10 @@ export default function ProductCard({
   };
 
   useEffect(() => {
-    if (!product.timerEndTime || product.timerActive === false) {
+    if (!product.timerEndTime || product.timerActive === false || String(product.timerActive) === 'false') {
       setTimeLeft(null);
       setTimerExpired(false);
+      setIsPendingStart(false);
       return;
     }
 
@@ -103,6 +105,7 @@ export default function ProductCard({
       if (!rawStr) {
         setTimeLeft(null);
         setTimerExpired(true);
+        setIsPendingStart(false);
         return true;
       }
 
@@ -123,10 +126,36 @@ export default function ProductCard({
       if (isNaN(end)) {
         setTimeLeft(null);
         setTimerExpired(true);
+        setIsPendingStart(false);
         return true;
       }
 
       const now = new Date().getTime();
+
+      // Check if start time is specified and in future
+      if (product.timerStartTime) {
+        const startRaw = String(product.timerStartTime).trim();
+        let startMs = NaN;
+        if (/^\d{12,}$/.test(startRaw)) {
+          startMs = Number(startRaw);
+        } else {
+          startMs = new Date(startRaw.replace(' ', 'T')).getTime();
+          if (isNaN(startMs)) startMs = new Date(startRaw).getTime();
+        }
+        if (!isNaN(startMs) && now < startMs) {
+          const diff = startMs - now;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft({ days, hours, minutes, seconds });
+          setTimerExpired(false);
+          setIsPendingStart(true);
+          return false;
+        }
+      }
+
+      setIsPendingStart(false);
       const difference = end - now;
 
       if (difference <= 0) {
@@ -144,8 +173,7 @@ export default function ProductCard({
       }
     };
 
-    const isExpired = calculateTimeLeft();
-    if (isExpired) return;
+    calculateTimeLeft();
 
     const interval = setInterval(() => {
       const expired = calculateTimeLeft();
@@ -155,7 +183,7 @@ export default function ProductCard({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime, product.timerActive, product.id]);
+  }, [product.timerEndTime, product.timerStartTime, product.timerActive, product.id]);
 
   // Handle restock registration submit
   const handleNotifySubmit = async (e: React.FormEvent) => {
@@ -477,27 +505,36 @@ export default function ProductCard({
             )}
           </div>
 
-          {/* Large Countdown Timer Block - Perfect mobile-friendly full-width row */}
-          {product.timerEndTime && product.timerActive !== false && !timerExpired && (
-            <div className="bg-red-950/30 hover:bg-red-950/50 border border-red-500/20 hover:border-red-500/45 rounded-xl px-2 py-1 flex items-center justify-between gap-1 mt-1 transition-all duration-300">
-              <div className="flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 uppercase tracking-widest font-extrabold shrink-0">
-                <span>{product.timerMessage || "HURRY"}:</span>
+          {/* Large Countdown Timer Block - Bigger, high-visibility mobile-friendly full-width row */}
+          {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && (
+            <div className="bg-red-950/40 hover:bg-red-950/60 border border-red-500/30 hover:border-red-500/50 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between gap-1.5 mt-1.5 transition-all duration-300 shadow-[0_2px_12px_rgba(220,38,38,0.15)]">
+              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10.5px] text-red-400 uppercase tracking-wider font-black shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                <span>
+                  {timerExpired 
+                    ? "STATUS:" 
+                    : (isPendingStart ? "STARTS IN:" : (product.timerMessage || "HURRY:"))}
+                </span>
               </div>
-              <div className="flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[11px] text-red-400 font-bold shrink-0 select-none">
-                {timeLeft ? (
+              <div className="flex items-center gap-0.5 sm:gap-1 font-mono text-[11px] sm:text-[13px] text-red-400 font-extrabold shrink-0 select-none">
+                {!timerExpired && timeLeft ? (
                   <>
                     {timeLeft.days > 0 && (
                       <>
-                        <span className="text-white font-extrabold">{timeLeft.days}d</span>
-                        <span className="text-red-500/40 font-bold">:</span>
+                        <span className="bg-black/60 border border-red-500/30 px-1 py-0.5 rounded text-white font-black text-[11px] sm:text-[13px]">{timeLeft.days}d</span>
+                        <span className="text-red-500/60 font-bold">:</span>
                       </>
                     )}
-                    <span className="text-white font-extrabold">{String(timeLeft.hours).padStart(2, '0')}h</span>
-                    <span className="text-red-500/40 font-bold">:</span>
-                    <span className="text-white font-extrabold">{String(timeLeft.minutes).padStart(2, '0')}m</span>
-                    <span className="text-red-500/40 font-bold">:</span>
-                    <span className="text-red-400 font-black animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
+                    <span className="bg-black/60 border border-red-500/30 px-1 py-0.5 rounded text-white font-black text-[11px] sm:text-[13px]">{String(timeLeft.hours).padStart(2, '0')}h</span>
+                    <span className="text-red-500/60 font-bold">:</span>
+                    <span className="bg-black/60 border border-red-500/30 px-1 py-0.5 rounded text-white font-black text-[11px] sm:text-[13px]">{String(timeLeft.minutes).padStart(2, '0')}m</span>
+                    <span className="text-red-500/60 font-bold">:</span>
+                    <span className="bg-red-950/90 border border-red-500/50 px-1 py-0.5 rounded text-red-400 font-black text-[11px] sm:text-[13px] animate-pulse">{String(timeLeft.seconds).padStart(2, '0')}s</span>
                   </>
+                ) : timerExpired ? (
+                  <span className="text-red-500 font-black uppercase tracking-wider text-[10px] sm:text-[11px] bg-red-950/80 px-2 py-0.5 rounded border border-red-500/40">
+                    OFFER ENDED
+                  </span>
                 ) : (
                   <span className="text-zinc-500">00:00:00</span>
                 )}
