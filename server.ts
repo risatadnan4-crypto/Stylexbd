@@ -358,119 +358,121 @@ function initializeAiKeyPool() {
   db.aiKeys = db.aiKeys || [];
   db.aiApiAuditLogs = db.aiApiAuditLogs || [];
 
-  if (!db.aiKeysInitialized && (!Array.isArray(db.aiKeys) || db.aiKeys.length === 0)) {
-    const defaultEnvKey = process.env.GEMINI_API_KEY || "";
-    const now = new Date();
-    const nowIso = now.toISOString();
+  if (!db.aiKeysInitialized) {
+    if (!Array.isArray(db.aiKeys) || db.aiKeys.length === 0) {
+      const defaultEnvKey = process.env.GEMINI_API_KEY || "";
+      const now = new Date();
+      const nowIso = now.toISOString();
 
-    const generateInitialLatencyHistory = (baseMs: number, variance: number, errorRateChance: number = 0) => {
-      const history = [];
-      for (let i = 10; i >= 0; i--) {
-        const time = new Date(now.getTime() - i * 3 * 60 * 1000).toISOString();
-        const isError = Math.random() < errorRateChance;
-        const latencyMs = isError ? 0 : Math.round(baseMs + (Math.random() * variance * 2 - variance));
-        history.push({
-          timestamp: time,
-          latencyMs,
-          status: isError ? 'error' as const : 'success' as const
-        });
-      }
-      return history;
-    };
-    
-    const initialKeys = [
-      {
-        id: "key_gemini_primary",
-        name: "Primary Google AI Studio Key 1",
-        encryptedKey: defaultEnvKey ? encryptAiKey(defaultEnvKey) : encryptAiKey("AIzaSy_StyleX_Primary_Key_1"),
-        keyHint: defaultEnvKey ? getMaskedKeyHint(defaultEnvKey) : "••••3A12",
-        status: "active",
-        priority: 1,
-        totalRequests: 28,
-        successRequests: 28,
-        errorCount: 0,
-        lastLatencyMs: 195,
-        avgLatencyMs: 205,
-        latencyHistory: generateInitialLatencyHistory(200, 25, 0),
-        lastUsed: nowIso,
-        lastError: null,
-        createdTime: nowIso
-      },
-      {
-        id: "key_gemini_free_2",
-        name: "Style X Free Tier Key 2",
-        encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_2"),
-        keyHint: "••••89F1",
-        status: "active",
-        priority: 1,
-        totalRequests: 22,
-        successRequests: 21,
-        errorCount: 1,
-        lastLatencyMs: 240,
-        avgLatencyMs: 235,
-        latencyHistory: generateInitialLatencyHistory(230, 30, 0.05),
-        lastUsed: nowIso,
-        lastError: null,
-        createdTime: nowIso
-      },
-      {
-        id: "key_gemini_free_3",
-        name: "Style X Free Tier Key 3",
-        encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_3"),
-        keyHint: "••••41B0",
-        status: "active",
-        priority: 2,
-        totalRequests: 16,
-        successRequests: 16,
-        errorCount: 0,
-        lastLatencyMs: 310,
-        avgLatencyMs: 320,
-        latencyHistory: generateInitialLatencyHistory(315, 35, 0),
-        lastUsed: nowIso,
-        lastError: null,
-        createdTime: nowIso
-      },
-      {
-        id: "key_gemini_free_4",
-        name: "Style X Free Tier Key 4",
-        encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_4"),
-        keyHint: "••••902D",
-        status: "active",
-        priority: 2,
-        totalRequests: 15,
-        successRequests: 12,
-        errorCount: 3,
-        lastLatencyMs: 540,
-        avgLatencyMs: 580,
-        latencyHistory: generateInitialLatencyHistory(560, 80, 0.15),
-        lastUsed: nowIso,
-        lastError: null,
-        createdTime: nowIso
-      },
-      {
-        id: "key_gemini_free_5",
-        name: "Style X Backup Free Tier Key 5",
-        encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_5"),
-        keyHint: "••••11C4",
-        status: "active",
-        priority: 3,
-        totalRequests: 8,
-        successRequests: 8,
-        errorCount: 0,
-        lastLatencyMs: 265,
-        avgLatencyMs: 270,
-        latencyHistory: generateInitialLatencyHistory(270, 25, 0),
-        lastUsed: nowIso,
-        lastError: null,
-        createdTime: nowIso
-      }
-    ];
+      const generateInitialLatencyHistory = (baseMs: number, variance: number, errorRateChance: number = 0) => {
+        const history = [];
+        for (let i = 10; i >= 0; i--) {
+          const time = new Date(now.getTime() - i * 3 * 60 * 1000).toISOString();
+          const isError = Math.random() < errorRateChance;
+          const latencyMs = isError ? 0 : Math.round(baseMs + (Math.random() * variance * 2 - variance));
+          history.push({
+            timestamp: time,
+            latencyMs,
+            status: isError ? 'error' as const : 'success' as const
+          });
+        }
+        return history;
+      };
+      
+      const initialKeys = [
+        {
+          id: "key_gemini_primary",
+          name: "Primary Google AI Studio Key 1",
+          encryptedKey: defaultEnvKey ? encryptAiKey(defaultEnvKey) : encryptAiKey("AIzaSy_StyleX_Primary_Key_1"),
+          keyHint: defaultEnvKey ? getMaskedKeyHint(defaultEnvKey) : "••••3A12",
+          status: "active",
+          priority: 1,
+          totalRequests: 28,
+          successRequests: 28,
+          errorCount: 0,
+          lastLatencyMs: 195,
+          avgLatencyMs: 205,
+          latencyHistory: generateInitialLatencyHistory(200, 25, 0),
+          lastUsed: nowIso,
+          lastError: null,
+          createdTime: nowIso
+        },
+        {
+          id: "key_gemini_free_2",
+          name: "Style X Free Tier Key 2",
+          encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_2"),
+          keyHint: "••••89F1",
+          status: "active",
+          priority: 1,
+          totalRequests: 22,
+          successRequests: 21,
+          errorCount: 1,
+          lastLatencyMs: 240,
+          avgLatencyMs: 235,
+          latencyHistory: generateInitialLatencyHistory(230, 30, 0.05),
+          lastUsed: nowIso,
+          lastError: null,
+          createdTime: nowIso
+        },
+        {
+          id: "key_gemini_free_3",
+          name: "Style X Free Tier Key 3",
+          encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_3"),
+          keyHint: "••••41B0",
+          status: "active",
+          priority: 2,
+          totalRequests: 16,
+          successRequests: 16,
+          errorCount: 0,
+          lastLatencyMs: 310,
+          avgLatencyMs: 320,
+          latencyHistory: generateInitialLatencyHistory(315, 35, 0),
+          lastUsed: nowIso,
+          lastError: null,
+          createdTime: nowIso
+        },
+        {
+          id: "key_gemini_free_4",
+          name: "Style X Free Tier Key 4",
+          encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_4"),
+          keyHint: "••••902D",
+          status: "active",
+          priority: 2,
+          totalRequests: 15,
+          successRequests: 12,
+          errorCount: 3,
+          lastLatencyMs: 540,
+          avgLatencyMs: 580,
+          latencyHistory: generateInitialLatencyHistory(560, 80, 0.15),
+          lastUsed: nowIso,
+          lastError: null,
+          createdTime: nowIso
+        },
+        {
+          id: "key_gemini_free_5",
+          name: "Style X Backup Free Tier Key 5",
+          encryptedKey: encryptAiKey("AIzaSy_StyleX_FreeKey_5"),
+          keyHint: "••••11C4",
+          status: "active",
+          priority: 3,
+          totalRequests: 8,
+          successRequests: 8,
+          errorCount: 0,
+          lastLatencyMs: 265,
+          avgLatencyMs: 270,
+          latencyHistory: generateInitialLatencyHistory(270, 25, 0),
+          lastUsed: nowIso,
+          lastError: null,
+          createdTime: nowIso
+        }
+      ];
 
-    db.aiKeys = initialKeys;
+      db.aiKeys = initialKeys;
+      logAiApiAudit("SYSTEM_INIT", "Pool Initialized", "System", "Pre-seeded 5 Google AI Studio Free Tier Keys with Load Balancing & Auto-Rotation.");
+    }
     db.aiKeysInitialized = true;
-    logAiApiAudit("SYSTEM_INIT", "Pool Initialized", "System", "Pre-seeded 5 Google AI Studio Free Tier Keys with Load Balancing & Auto-Rotation.");
     saveDB();
-    syncSettingsToCloud();
+    syncSettingsToCloud().catch(() => {});
   }
 }
 
@@ -984,13 +986,13 @@ async function syncFromSupabase() {
               if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
-              if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
+              if (!db.aiKeysInitialized && fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
                 db.aiKeys = fallbackSettings.aiKeys;
+                if (fallbackSettings.aiKeysInitialized !== undefined) {
+                  db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
+                }
               }
-              if (fallbackSettings.aiKeysInitialized !== undefined) {
-                db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
-              }
-              if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs)) {
+              if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
                 db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
               }
 
@@ -1693,15 +1695,6 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
             if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
-            if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
-              db.aiKeys = fallbackSettings.aiKeys;
-            }
-            if (fallbackSettings.aiKeysInitialized !== undefined) {
-              db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
-            }
-            if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs)) {
-              db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
-            }
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
           }
@@ -6188,7 +6181,7 @@ app.get("/api/admin/ai-keys", (req, res) => {
 });
 
 // POST add new AI Key
-app.post("/api/admin/ai-keys", (req, res) => {
+app.post("/api/admin/ai-keys", async (req, res) => {
   const { name, apiKey, key, priority, useEnv } = req.body;
 
   let rawKey = (apiKey || key || "").trim();
@@ -6234,13 +6227,13 @@ app.post("/api/admin/ai-keys", (req, res) => {
   db.aiKeysInitialized = true;
   logAiApiAudit("CREATE_KEY", keyName, "Super Admin", `Added new API Key with Priority ${newKey.priority}.`, keyHint);
   saveDB();
-  syncSettingsToCloud().catch(() => {});
+  await syncSettingsToCloud();
 
   return res.json({ message: "API Key added successfully.", key: sanitizeAiKeyObject(newKey) });
 });
 
 // PUT update AI Key (Name / Priority)
-app.put("/api/admin/ai-keys/:id", (req, res) => {
+app.put("/api/admin/ai-keys/:id", async (req, res) => {
   const { id } = req.params;
   const { name, priority, apiKey, status } = req.body;
 
@@ -6263,7 +6256,7 @@ app.put("/api/admin/ai-keys/:id", (req, res) => {
   logAiApiAudit("UPDATE_KEY", keyObj.name, "Super Admin", `Updated settings (Priority: ${keyObj.priority}, Status: ${keyObj.status}).`, keyObj.keyHint);
   db.aiKeysInitialized = true;
   saveDB();
-  syncSettingsToCloud().catch(() => {});
+  await syncSettingsToCloud();
 
   return res.json({ message: "API Key updated successfully.", key: sanitizeAiKeyObject(keyObj) });
 });
@@ -6294,7 +6287,7 @@ app.delete("/api/admin/ai-keys/:id", async (req, res) => {
 });
 
 // POST toggle Enable/Disable
-app.post("/api/admin/ai-keys/:id/toggle", (req, res) => {
+app.post("/api/admin/ai-keys/:id/toggle", async (req, res) => {
   const { id } = req.params;
   const keyObj = db.aiKeys.find((k: any) => k.id === id);
   if (!keyObj) {
@@ -6310,9 +6303,9 @@ app.post("/api/admin/ai-keys/:id/toggle", (req, res) => {
     logAiApiAudit("ENABLE_KEY", keyObj.name, "Super Admin", "Re-enabled key manually from dashboard.", keyObj.keyHint);
   }
 
-  saveDB();
   db.aiKeysInitialized = true;
-  syncSettingsToCloud().catch(() => {});
+  saveDB();
+  await syncSettingsToCloud();
   return res.json({ message: `API Key status changed to ${keyObj.status}`, key: sanitizeAiKeyObject(keyObj) });
 });
 

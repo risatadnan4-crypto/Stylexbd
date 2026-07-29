@@ -2,79 +2,6 @@
   "xoroAdminLogs": [],
   "aiKeys": [
     {
-      "id": "key_gemini_primary",
-      "name": "Primary Google AI Studio Key 1",
-      "encryptedKey": "0b68d49931d72a51e85ef750b2279e56c69940861455504821e76a260607571a",
-      "keyHint": "••••3A12",
-      "status": "active",
-      "priority": 1,
-      "totalRequests": 28,
-      "successRequests": 28,
-      "errorCount": 0,
-      "lastLatencyMs": 195,
-      "avgLatencyMs": 205,
-      "latencyHistory": [
-        {
-          "timestamp": "2026-07-29T05:19:49.435Z",
-          "latencyMs": 222,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:22:49.435Z",
-          "latencyMs": 190,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:25:49.435Z",
-          "latencyMs": 219,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:28:49.435Z",
-          "latencyMs": 192,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:31:49.435Z",
-          "latencyMs": 184,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:34:49.435Z",
-          "latencyMs": 210,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:37:49.435Z",
-          "latencyMs": 218,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:40:49.435Z",
-          "latencyMs": 194,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:43:49.435Z",
-          "latencyMs": 204,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:46:49.435Z",
-          "latencyMs": 218,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:49:49.435Z",
-          "latencyMs": 212,
-          "status": "success"
-        }
-      ],
-      "lastUsed": "2026-07-29T05:49:49.435Z",
-      "lastError": null,
-      "createdTime": "2026-07-29T05:49:49.435Z"
-    },
-    {
       "id": "key_gemini_free_2",
       "name": "Style X Free Tier Key 2",
       "encryptedKey": "122e6d79668822e18d328543b7ed3922d76bcf058e1e70ed3f3f03383afb1415",
@@ -219,156 +146,38 @@
       "lastUsed": "2026-07-29T05:49:49.435Z",
       "lastError": null,
       "createdTime": "2026-07-29T05:49:49.435Z"
-    },
-    {
-      "id": "key_gemini_free_4",
-      "name": "Style X Free Tier Key 4",
-      "encryptedKey": "122e6d79668822e18d328543b7ed39228bbfb3edf2cfd0f63b3ee3753dbe35de",
-      "keyHint": "••••902D",
-      "status": "active",
-      "priority": 2,
-      "totalRequests": 15,
-      "successRequests": 12,
-      "errorCount": 3,
-      "lastLatencyMs": 540,
-      "avgLatencyMs": 580,
-      "latencyHistory": [
-        {
-          "timestamp": "2026-07-29T05:19:49.435Z",
-          "latencyMs": 542,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:22:49.435Z",
-          "latencyMs": 607,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:25:49.435Z",
-          "latencyMs": 612,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:28:49.435Z",
-          "latencyMs": 626,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:31:49.435Z",
-          "latencyMs": 0,
-          "status": "error"
-        },
-        {
-          "timestamp": "2026-07-29T05:34:49.435Z",
-          "latencyMs": 508,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:37:49.435Z",
-          "latencyMs": 550,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:40:49.435Z",
-          "latencyMs": 573,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:43:49.435Z",
-          "latencyMs": 491,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:46:49.435Z",
-          "latencyMs": 501,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:49:49.435Z",
-          "latencyMs": 511,
-          "status": "success"
-        }
-      ],
-      "lastUsed": "2026-07-29T05:49:49.435Z",
-      "lastError": null,
-      "createdTime": "2026-07-29T05:49:49.435Z"
-    },
-    {
-      "id": "key_gemini_free_5",
-      "name": "Style X Backup Free Tier Key 5",
-      "encryptedKey": "122e6d79668822e18d328543b7ed3922d69f91355fc275847b209845d980b049",
-      "keyHint": "••••11C4",
-      "status": "active",
-      "priority": 3,
-      "totalRequests": 8,
-      "successRequests": 8,
-      "errorCount": 0,
-      "lastLatencyMs": 265,
-      "avgLatencyMs": 270,
-      "latencyHistory": [
-        {
-          "timestamp": "2026-07-29T05:19:49.435Z",
-          "latencyMs": 273,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:22:49.435Z",
-          "latencyMs": 260,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:25:49.435Z",
-          "latencyMs": 283,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:28:49.435Z",
-          "latencyMs": 259,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:31:49.435Z",
-          "latencyMs": 288,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:34:49.435Z",
-          "latencyMs": 249,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:37:49.435Z",
-          "latencyMs": 263,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:40:49.435Z",
-          "latencyMs": 287,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:43:49.435Z",
-          "latencyMs": 287,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:46:49.435Z",
-          "latencyMs": 263,
-          "status": "success"
-        },
-        {
-          "timestamp": "2026-07-29T05:49:49.435Z",
-          "latencyMs": 258,
-          "status": "success"
-        }
-      ],
-      "lastUsed": "2026-07-29T05:49:49.435Z",
-      "lastError": null,
-      "createdTime": "2026-07-29T05:49:49.435Z"
     }
   ],
   "aiKeysInitialized": true,
-  "aiApiAuditLogs": [],
+  "aiApiAuditLogs": [
+    {
+      "id": "log-1785315023179-747",
+      "timestamp": "2026-07-29T08:50:23.179Z",
+      "action": "DELETE_KEY",
+      "keyName": "Style X Backup Free Tier Key 5",
+      "keyHint": "••••11C4",
+      "user": "Super Admin",
+      "details": "Permanently deleted API key from vault."
+    },
+    {
+      "id": "log-1785314672384-496",
+      "timestamp": "2026-07-29T08:44:32.384Z",
+      "action": "DELETE_KEY",
+      "keyName": "Primary Google AI Studio Key 1",
+      "keyHint": "••••3A12",
+      "user": "Super Admin",
+      "details": "Permanently deleted API key from vault."
+    },
+    {
+      "id": "log-1785314653728-634",
+      "timestamp": "2026-07-29T08:44:13.728Z",
+      "action": "DELETE_KEY",
+      "keyName": "Style X Free Tier Key 4",
+      "keyHint": "••••902D",
+      "user": "Super Admin",
+      "details": "Permanently deleted API key from vault."
+    }
+  ],
   "products": [
     {
       "id": "bqjaeckq",
@@ -936,7 +745,44 @@
   "reviews": [],
   "coupons": [],
   "campaigns": [],
-  "chats": [],
+  "chats": [
+    {
+      "id": "room-o90dkmfc",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-29T08:43:23.146Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-29T08:43:23.146Z",
+      "created_at": "2026-07-29T08:43:23.296974+00:00"
+    },
+    {
+      "id": "room-ckhlmffj",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-29T08:43:39.490Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-29T08:43:39.490Z",
+      "created_at": "2026-07-29T08:43:39.635811+00:00"
+    }
+  ],
   "carts": {
     "risatadnan1122@gmail.com": [],
     "risatadnan5@gmail.com": [
