@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Order, Product, Customer } from '../types';
 import { formatPrice, generateOrderQrUrl } from '../utils';
+import { getProductPriceDetails } from '../utils/totalHelper';
+import AnimatedAddToCartButton from './AnimatedAddToCartButton';
 import OrderHistory from './OrderHistory';
 
 interface CustomerProfileModalProps {
@@ -728,22 +730,27 @@ function WishlistItemCard({
       </div>
 
       {/* Price */}
-      <div className="flex items-center gap-1.5 justify-start text-left mb-2.5">
-        {product.offerPrice ? (
-          <>
-            <span className="text-luxury-gold font-mono font-black text-xs bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(212,175,85,0.4)]">
-              {formatPrice(product.offerPrice)}
-            </span>
-            <span className="text-[#FF2D55] line-through font-mono font-bold text-xs decoration-[#FF2D55]/70 decoration-[1.5px] opacity-85">
-              {formatPrice(product.price)}
-            </span>
-          </>
-        ) : (
-          <span className="text-luxury-gold font-mono font-bold text-xs">
-            {formatPrice(product.price)}
-          </span>
-        )}
-      </div>
+      {(() => {
+        const pd = getProductPriceDetails(product);
+        return (
+          <div className="flex items-center gap-1.5 justify-start text-left mb-2.5">
+            {pd.hasActiveOffer ? (
+              <>
+                <span className="text-luxury-gold font-mono font-black text-xs bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(212,175,85,0.4)]">
+                  {formatPrice(pd.currentPrice)}
+                </span>
+                <span className="text-[#FF2D55] line-through font-mono font-bold text-xs decoration-[#FF2D55]/70 decoration-[1.5px] opacity-85">
+                  {formatPrice(pd.originalPrice)}
+                </span>
+              </>
+            ) : (
+              <span className="text-luxury-gold font-mono font-bold text-xs">
+                {formatPrice(pd.currentPrice)}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Sizes selector inside card */}
       {product.sizes && product.sizes.length > 0 && (
@@ -768,14 +775,13 @@ function WishlistItemCard({
       )}
 
       {/* Move to Cart action button */}
-      <button
+      <AnimatedAddToCartButton
         onClick={handleMoveToCart}
         disabled={product.stock === 0}
-        className="w-full h-8 bg-gradient-to-r from-luxury-purple/50 to-[#9A4DFF]/40 hover:from-luxury-purple hover:to-[#9A4DFF] border border-luxury-purple-glowing/40 hover:border-luxury-purple-glowing text-white text-[10px] uppercase font-mono font-black tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shadow-md"
-      >
-        <ShoppingBag size={11} />
-        <span>Move to Cart</span>
-      </button>
+        label="Move to Cart"
+        addedLabel="Moved!"
+        size="sm"
+      />
 
     </div>
   );

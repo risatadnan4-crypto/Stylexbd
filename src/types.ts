@@ -34,10 +34,14 @@ export interface Product {
   couponCode?: string;
   couponDiscountPercent?: number;
   offerPrice?: number;
+  timerOfferPrice?: number;
   timerStartTime?: string;
+  timerStartDate?: string;
   timerEndTime?: string;
+  timerEndDate?: string;
   timerMessage?: string;
   timerActive?: boolean;
+  timerEnabled?: boolean;
   bkashNumber?: string;
   nagadNumber?: string;
   paymentType?: 'cod' | 'delivery_charge' | 'full_advance' | 'percentage';

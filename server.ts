@@ -1946,11 +1946,15 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, local.lotteryEligible, true),
     couponCode: getStr(p?.couponCode, p?.coupon_code, local.couponCode, ""),
     couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, local.couponDiscountPercent) ?? undefined,
-    offerPrice: getNum(p?.offerPrice, p?.offer_price, paymentMeta.offerPrice, local.offerPrice) ?? undefined,
-    timerStartTime: getStr(p?.timerStartTime, p?.timer_start_time, paymentMeta.timerStartTime, local.timerStartTime, ""),
-    timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, paymentMeta.timerEndTime, local.timerEndTime, ""),
+    offerPrice: getNum(p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, paymentMeta.offerPrice, paymentMeta.timerOfferPrice, local.offerPrice) ?? undefined,
+    timerOfferPrice: getNum(p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, paymentMeta.timerOfferPrice, paymentMeta.offerPrice, local.timerOfferPrice) ?? undefined,
+    timerStartTime: getStr(p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, paymentMeta.timerStartTime, local.timerStartTime, ""),
+    timerStartDate: getStr(p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, paymentMeta.timerStartDate, local.timerStartDate, ""),
+    timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, paymentMeta.timerEndTime, local.timerEndTime, ""),
+    timerEndDate: getStr(p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, paymentMeta.timerEndDate, local.timerEndDate, ""),
     timerMessage: getStr(p?.timerMessage, p?.timer_message, paymentMeta.timerMessage, local.timerMessage, ""),
-    timerActive: getBool(p?.timerActive, p?.timer_active, paymentMeta.timerActive, local.timerActive, true),
+    timerActive: getBool(p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, paymentMeta.timerActive, local.timerActive, true),
+    timerEnabled: getBool(p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, paymentMeta.timerEnabled, local.timerEnabled, true),
     bkashNumber: getStr(p?.bkashNumber, p?.bkash_number, paymentMeta.bkashNumber, local.bkashNumber, ""),
     nagadNumber: getStr(p?.nagadNumber, p?.nagad_number, paymentMeta.nagadNumber, local.nagadNumber, ""),
     paymentType: (getStr(p?.paymentType, p?.payment_type, paymentMeta.paymentType, local.paymentType, "cod") as any),
@@ -3493,11 +3497,44 @@ app.post("/api/orders", async (req, res) => {
     return "Outside";
   }
 
-  function getProductActivePriceBackend(product: Product): number {
-    if (product.offerPrice !== undefined && product.offerPrice !== null) {
-      return product.offerPrice;
+  function getProductActivePriceBackend(product: any): number {
+    if (!product) return 0;
+    const originalPrice = Number(product.price || 0);
+    const rawOfferPrice = product.offerPrice !== undefined && product.offerPrice !== null
+      ? Number(product.offerPrice)
+      : (product.timerOfferPrice !== undefined && product.timerOfferPrice !== null
+        ? Number(product.timerOfferPrice)
+        : null);
+
+    if (rawOfferPrice === null || isNaN(rawOfferPrice) || rawOfferPrice <= 0 || rawOfferPrice >= originalPrice) {
+      return originalPrice;
     }
-    return product.price;
+
+    const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false';
+    if (!isTimerActive) {
+      return originalPrice;
+    }
+
+    if (product.timerEndTime) {
+      const rawStr = String(product.timerEndTime).trim();
+      if (rawStr) {
+        let endMs = NaN;
+        if (/^\d{12,}$/.test(rawStr)) {
+          endMs = Number(rawStr);
+        } else if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(rawStr)) {
+          endMs = new Date(rawStr.replace(/\//g, '-') + 'T23:59:59').getTime();
+        } else {
+          endMs = new Date(rawStr.replace(' ', 'T')).getTime();
+          if (isNaN(endMs)) endMs = new Date(rawStr).getTime();
+        }
+
+        if (!isNaN(endMs) && Date.now() >= endMs) {
+          return originalPrice; // Timer expired!
+        }
+      }
+    }
+
+    return rawOfferPrice;
   }
 
   // --- COMPLETE 9-STEP PAYMENT TRACE & VALIDATION SYSTEM ---

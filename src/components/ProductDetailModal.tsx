@@ -3,7 +3,9 @@ import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Fac
 import { motion } from 'motion/react';
 import { Product, ProductColor } from '../types';
 import { formatPrice } from '../utils';
+import { getProductPriceDetails, getProductActivePrice } from '../utils/totalHelper';
 import LuxuryCheckoutButton from './LuxuryCheckoutButton';
+import AnimatedAddToCartButton from './AnimatedAddToCartButton';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -40,7 +42,14 @@ export default function ProductDetailModal({
   const [timerExpired, setTimerExpired] = useState(false);
   const [isPendingStart, setIsPendingStart] = useState(false);
 
-  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
+  const priceDetails = getProductPriceDetails(product);
+  const isTimerExpired = timerExpired || priceDetails.timerExpired;
+  const hasActiveOffer = priceDetails.hasActiveOffer && !isTimerExpired;
+  const sellingPrice = priceDetails.currentPrice;
+  const originalPrice = priceDetails.originalPrice;
+  const savings = originalPrice - sellingPrice;
+  const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
+  const hasDiscount = hasActiveOffer && savings > 0;
 
   const scrollBodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -108,7 +117,7 @@ export default function ProductDetailModal({
       script.type = "application/ld+json";
       script.id = "dynamic-product-jsonld";
 
-      const sellingPrice = product.offerPrice !== undefined && product.offerPrice !== null ? product.offerPrice : product.price;
+      const sellingPrice = getProductActivePrice(product);
 
       const productSchema = {
         "@context": "https://schema.org",
@@ -317,10 +326,7 @@ export default function ProductDetailModal({
   const shareUrl = `${window.location.origin}/?productCode=${product.code}`;
   
   const getSharePrice = () => {
-    if (hasActiveOffer) {
-      return product.offerPrice;
-    }
-    return product.price;
+    return sellingPrice;
   };
 
   const shareText = `👑 STYLE X EXCLUSIVE COLLECTION 👑\n\nCheckout this exquisite piece:\n\nProduct: ${product.title}\nCode: ${product.code}\nPrice: ৳${getSharePrice()}\n\nView details and secure order here:\n${shareUrl}`;
@@ -380,7 +386,7 @@ export default function ProductDetailModal({
   const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
 
   const handleWhatsAppDirect = () => {
-    const activePrice = hasActiveOffer ? product.offerPrice : product.price;
+    const activePrice = sellingPrice;
     const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I am looking to acquire:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}\n\nCould you guide me regarding active courier times?\nThank you!`;
     const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
     window.open(finalUrl, '_blank');
@@ -552,16 +558,17 @@ export default function ProductDetailModal({
               ) : (
                 <div className="space-y-2.5">
                   <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
-                    <button
+                    <AnimatedAddToCartButton
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
-                        onClose();
+                        setTimeout(() => {
+                          onClose();
+                        }, 500);
                       }}
-                      className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-                    >
-                      <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
-                      <span className="relative z-10">Add to Bag</span>
-                    </button>
+                      label="Add To Cart"
+                      addedLabel="Added!"
+                      size="lg"
+                    />
 
                     <div className="w-full">
                       <LuxuryCheckoutButton
@@ -623,75 +630,67 @@ export default function ProductDetailModal({
             </div>
 
             <div className="space-y-4">
-              {(() => {
-                const originalPrice = product.price;
-                const sellingPrice = hasActiveOffer ? product.offerPrice! : product.price;
-                const savings = originalPrice - sellingPrice;
-                const discountPercent = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
-                const hasDiscount = savings > 0;
+              <div className="space-y-4">
+                {/* Premium Luxury Price Display Section with smooth fade-in and slide transition on change */}
+                <motion.div
+                  key={product.id + '-' + sellingPrice}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                  className="space-y-2"
+                >
+                  {/* Top: Red rounded discount badge */}
+                  {hasDiscount && (
+                    <div className="flex items-center relative z-20">
+                      <span
+                        style={{
+                          backgroundColor: '#FF2D55',
+                          color: '#FFFFFF',
+                          borderRadius: '9999px',
+                          fontWeight: 700,
+                          boxShadow: '0 2px 10px rgba(255, 45, 85, 0.35)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 30,
+                          lineHeight: '1',
+                          textTransform: 'uppercase',
+                        }}
+                        className="text-[12px] md:text-[14px] py-[6px] px-[12px] md:py-[8px] md:px-[14px] font-sans tracking-wide"
+                      >
+                        {discountPercent}% OFF
+                      </span>
+                    </div>
+                  )}
 
-                return (
-                  <div className="space-y-4">
-                    {/* Premium Luxury Price Display Section with smooth fade-in and slide transition on change */}
-                    <motion.div
-                      key={product.id + '-' + sellingPrice}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-2"
-                    >
-                      {/* Top: Red rounded discount badge */}
-                      {hasDiscount && (
-                        <div className="flex items-center relative z-20">
-                          <span
-                            style={{
-                              backgroundColor: '#FF2D55',
-                              color: '#FFFFFF',
-                              borderRadius: '9999px',
-                              fontWeight: 700,
-                              boxShadow: '0 2px 10px rgba(255, 45, 85, 0.35)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 30,
-                              lineHeight: '1',
-                              textTransform: 'uppercase',
-                            }}
-                            className="text-[12px] md:text-[14px] py-[6px] px-[12px] md:py-[8px] md:px-[14px] font-sans tracking-wide"
-                          >
-                            {discountPercent}% OFF
-                          </span>
-                        </div>
-                      )}
+                  {/* Main & Original Price Row */}
+                  <div className="flex items-center flex-nowrap gap-3.5 select-all font-display">
+                    {/* Main Price */}
+                    <div className="text-3xl sm:text-4xl md:text-5xl font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-center shrink-0">
+                      <span className="text-[0.72em] font-serif font-bold mr-0.5 relative select-none">৳</span>
+                      <span className="font-sans font-black tracking-tight">{sellingPrice.toLocaleString('en-US')}</span>
+                    </div>
 
-                      {/* Main & Original Price Row */}
-                      <div className="flex items-center flex-nowrap gap-3.5 select-all font-display">
-                        {/* Main Price */}
-                        <div className="text-3xl sm:text-4xl md:text-5xl font-black text-luxury-gold tracking-tight leading-none drop-shadow-[0_2px_8px_rgba(212,175,55,0.12)] flex items-center shrink-0">
-                          <span className="text-[0.72em] font-serif font-bold mr-0.5 relative select-none">৳</span>
-                          <span className="font-sans font-black tracking-tight">{sellingPrice.toLocaleString('en-US')}</span>
-                        </div>
-
-                        {/* Original Price */}
-                        {hasDiscount && (
-                          <div className="text-sm md:text-base text-luxury-gold font-sans font-black tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] opacity-85 transition-all duration-300 hover:scale-105 shrink-0">
-                            <span>৳</span>
-                            <span>{originalPrice.toLocaleString('en-US')}</span>
-                          </div>
-                        )}
+                    {/* Original Price */}
+                    {hasDiscount && (
+                      <div className="text-sm md:text-base text-luxury-gold font-sans font-black tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] opacity-85 transition-all duration-300 hover:scale-105 shrink-0">
+                        <span>৳</span>
+                        <span>{originalPrice.toLocaleString('en-US')}</span>
                       </div>
+                    )}
+                  </div>
 
-                      {/* Savings section */}
-                      {hasDiscount && (
-                        <div className="text-[11px] md:text-xs font-mono font-bold tracking-wide text-emerald-400 flex items-center gap-1.5 bg-emerald-500/5 px-2.5 py-1 rounded-lg w-max border border-emerald-500/10 shadow-[0_2px_6px_rgba(16,185,129,0.03)]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>You Save ৳{savings.toLocaleString('en-US')}</span>
-                        </div>
-                      )}
-                    </motion.div>
+                  {/* Savings section */}
+                  {hasDiscount && (
+                    <div className="text-[11px] md:text-xs font-mono font-bold tracking-wide text-emerald-400 flex items-center gap-1.5 bg-emerald-500/5 px-2.5 py-1 rounded-lg w-max border border-emerald-500/10 shadow-[0_2px_6px_rgba(16,185,129,0.03)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>You Save ৳{savings.toLocaleString('en-US')}</span>
+                    </div>
+                  )}
+                </motion.div>
 
-                    {/* Countdown banner inside modal */}
-                    {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !timerExpired && (
+                {/* Countdown banner inside modal */}
+                {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !isTimerExpired && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         
@@ -742,8 +741,6 @@ export default function ProductDetailModal({
                       </div>
                     )}
                   </div>
-                );
-              })()}
 
               {/* Stock check progress visual */}
               <div className="border border-white/5 bg-[#090312]/60 p-4 rounded-xl shadow-inner backdrop-blur-sm">
@@ -1017,16 +1014,17 @@ export default function ProductDetailModal({
               ) : (
                 <div className="space-y-2.5">
                   <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
-                    <button
+                    <AnimatedAddToCartButton
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
-                        onClose();
+                        setTimeout(() => {
+                          onClose();
+                        }, 500);
                       }}
-                      className="w-full running-glow-button text-white text-[10px] min-[440px]:text-[11px] font-display font-black uppercase tracking-[0.12em] min-[440px]:tracking-[0.2em] py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-                    >
-                      <ShoppingBag size={13} className="text-[#9A4DFF] relative z-10" />
-                      <span className="relative z-10">Add to Bag</span>
-                    </button>
+                      label="Add To Cart"
+                      addedLabel="Added!"
+                      size="lg"
+                    />
 
                     <div className="w-full">
                       <LuxuryCheckoutButton

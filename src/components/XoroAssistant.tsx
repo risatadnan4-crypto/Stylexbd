@@ -6,6 +6,7 @@ import {
   Volume2, VolumeX
 } from 'lucide-react';
 import { Product, CartItem, Coupon } from '../types';
+import { getProductActivePrice } from '../utils/totalHelper';
 
 // @ts-ignore
 import defaultXoroAvatar from '../assets/images/xoro_mascot_3d_1782635214676.jpg';
@@ -2229,7 +2230,7 @@ function AssistantProductCard({
         </span>
       </div>
       <p className="text-[9px] font-bold text-white truncate mt-1 leading-tight">{product.title}</p>
-      <p className="text-[8px] text-luxury-gold font-mono font-black mt-0.5">৳{product.offerPrice || product.price}</p>
+      <p className="text-[8px] text-luxury-gold font-mono font-black mt-0.5">৳{getProductActivePrice(product)}</p>
     </div>
   );
 }

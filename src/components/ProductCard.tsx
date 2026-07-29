@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
+import { getProductPriceDetails } from '../utils/totalHelper';
+import AnimatedAddToCartButton from './AnimatedAddToCartButton';
 
 interface ProductCardProps {
   key?: any;
@@ -61,7 +63,12 @@ export default function ProductCard({
   const [timerExpired, setTimerExpired] = useState(false);
   const [isPendingStart, setIsPendingStart] = useState(false);
 
-  const hasActiveOffer = product.offerPrice !== undefined && product.offerPrice !== null;
+  const priceDetails = getProductPriceDetails(product);
+  const isTimerExpired = timerExpired || priceDetails.timerExpired;
+  const hasActiveOffer = priceDetails.hasActiveOffer && !isTimerExpired;
+  const currentPrice = priceDetails.currentPrice;
+  const originalPrice = priceDetails.originalPrice;
+  const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
 
   const [likesCount, setLikesCount] = useState(product.likes || 0);
   const [liked, setLiked] = useState(false);
@@ -435,21 +442,13 @@ export default function ProductCard({
       {/* Info Block */}
       <div className="space-y-1 sm:space-y-1.5 flex-1 flex flex-col justify-between">
         <div>
-          {(() => {
-            const originalPrice = product.price;
-            const sellingPrice = hasActiveOffer ? product.offerPrice! : product.price;
-            const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
-            if (discountPercent > 0) {
-              return (
-                <div className="absolute top-10 left-3.5 z-30 pointer-events-none">
-                  <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FF2D55] text-white flex flex-col items-center justify-center text-[9px] sm:text-[10px] font-extrabold shadow-[0_2px_8px_rgba(255,45,85,0.45)] leading-tight select-none font-sans tracking-tight shrink-0 border border-red-500/10 animate-balloon-pop">
-                    <span>-{discountPercent}%</span>
-                  </span>
-                </div>
-              );
-            }
-            return null;
-          })()}
+          {discountPercent > 0 && (
+            <div className="absolute top-10 left-3.5 z-30 pointer-events-none">
+              <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FF2D55] text-white flex flex-col items-center justify-center text-[9px] sm:text-[10px] font-extrabold shadow-[0_2px_8px_rgba(255,45,85,0.45)] leading-tight select-none font-sans tracking-tight shrink-0 border border-red-500/10 animate-balloon-pop">
+                <span>-{discountPercent}%</span>
+              </span>
+            </div>
+          )}
           <h3 
             onClick={() => onProductClick(product)}
             className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 cursor-pointer mb-0.5 text-left leading-tight"
@@ -466,7 +465,7 @@ export default function ProductCard({
                   ৳
                 </span>
                 <span className="text-luxury-gold font-sans font-black text-sm sm:text-base md:text-lg leading-none tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)]">
-                  {hasActiveOffer ? product.offerPrice : product.price}
+                  {currentPrice}
                 </span>
               </div>
 
@@ -474,21 +473,13 @@ export default function ProductCard({
               {hasActiveOffer && (
                 <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
                   <span className="text-luxury-gold font-sans font-black text-sm sm:text-base md:text-lg leading-none tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] select-all opacity-85 shrink-0">
-                    ৳{product.price}
+                    ৳{originalPrice}
                   </span>
-                  {(() => {
-                    const originalPrice = product.price;
-                    const sellingPrice = product.offerPrice!;
-                    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
-                    if (discountPercent > 0) {
-                      return (
-                        <span className="inline-flex items-center justify-center bg-gradient-to-r from-[#FF2D55] to-[#ff3b30] text-white text-[8.5px] sm:text-[9.5px] md:text-[10.5px] font-black px-1.5 py-0.5 rounded shadow-[0_2px_8px_rgba(255,45,85,0.5)] leading-none select-none tracking-wider uppercase shrink-0">
-                          {discountPercent}% OFF
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
+                  {discountPercent > 0 && (
+                    <span className="inline-flex items-center justify-center bg-gradient-to-r from-[#FF2D55] to-[#ff3b30] text-white text-[8.5px] sm:text-[9.5px] md:text-[10.5px] font-black px-1.5 py-0.5 rounded shadow-[0_2px_8px_rgba(255,45,85,0.5)] leading-none select-none tracking-wider uppercase shrink-0">
+                      {discountPercent}% OFF
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -506,7 +497,7 @@ export default function ProductCard({
           </div>
 
           {/* Large Countdown Timer Block - Bigger, high-visibility mobile-friendly full-width row */}
-          {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !timerExpired && (
+          {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !isTimerExpired && (
             <div className="bg-red-950/40 hover:bg-red-950/60 border border-red-500/30 hover:border-red-500/50 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between gap-1.5 mt-1.5 transition-all duration-300 shadow-[0_2px_12px_rgba(220,38,38,0.15)]">
               <div className="flex items-center gap-1.5 text-[9px] sm:text-[10.5px] text-red-400 uppercase tracking-wider font-black shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />
@@ -617,7 +608,7 @@ export default function ProductCard({
                   type="button"
                   onClick={() => {
                     if (isNotifyMeDeactivated) {
-                      const activePrice = hasActiveOffer ? product.offerPrice : product.price;
+                      const activePrice = currentPrice;
                       const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I'm interested in restock updates for:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}`;
                       const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
                       window.open(finalUrl, '_blank');
@@ -667,43 +658,16 @@ export default function ProductCard({
             <div className="flex flex-col gap-1.5 mt-auto">
               {/* Add to Cart and Order Now split row */}
               <div className="grid grid-cols-2 gap-1.5">
-                {/* Add To Cart button with single-line text layout */}
-                <button
-                  type="button"
+                {/* Add To Cart button with animated paper plane send animation */}
+                <AnimatedAddToCartButton
                   onClick={(e) => {
                     e.stopPropagation();
                     onAddToCart(product, selectedSize);
                   }}
-                  className="running-glow-button rounded-xl py-1 px-1.5 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-300 h-[38px] sm:h-[42px] cursor-pointer active:scale-95 group/btn relative overflow-hidden"
-                >
-                  {/* Premium Luxury Aura & Shimmering Stars Background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#1e0a35] via-[#0b0318] to-[#2b0e4a] opacity-95 transition-all duration-300 group-hover/btn:opacity-100 z-0" />
-                  
-                  {/* Slow-moving soft gradient light overlay */}
-                  <div className="absolute -inset-2 bg-gradient-to-r from-luxury-gold/5 via-violet-600/15 to-luxury-gold/5 blur-sm opacity-60 z-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                  
-                  {/* Elegant Golden Shimmer Sweep */}
-                  <div className="luxury-glow-shimmer" />
-
-                  {/* Sparkling premium celestial stars */}
-                  <svg className="absolute top-1 left-2 w-2 h-2 text-[#D4AF37] animate-premium-star z-10" style={{ animationDelay: '0.1s' }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-                  </svg>
-                  <svg className="absolute bottom-1 right-2.5 w-2.5 h-2.5 text-[#D4AF37] animate-premium-star z-10" style={{ animationDelay: '1.2s' }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-                  </svg>
-                  <svg className="absolute top-1.5 right-6 w-1.5 h-1.5 text-white animate-premium-star z-10" style={{ animationDelay: '0.5s' }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-                  </svg>
-                  <svg className="absolute bottom-1.5 left-6 w-1.5 h-1.5 text-white animate-premium-star z-10" style={{ animationDelay: '1.8s' }} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
-                  </svg>
-
-                  <Sparkles size={11} className="text-[#D4AF37] relative z-10 animate-pulse shrink-0 drop-shadow-[0_0_3px_rgba(212,175,55,0.7)]" />
-                  <span className="relative z-10 text-[8px] min-[350px]:text-[9px] sm:text-[11.5px] font-black tracking-normal min-[360px]:tracking-wide text-white uppercase leading-none drop-shadow-[0_0_4px_rgba(255,255,255,0.4)] whitespace-nowrap">
-                    ADD TO CART
-                  </span>
-                </button>
+                  label="Add To Cart"
+                  addedLabel="Added!"
+                  size="sm"
+                />
                 {/* Order Now gradient solid button with running glow */}
                 <button
                   type="button"
@@ -722,7 +686,7 @@ export default function ProductCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const activePrice = hasActiveOffer ? product.offerPrice : product.price;
+                  const activePrice = currentPrice;
                   const wsMessage = `👑 *STYLE X EXCLUSIVE COLLECTION* 👑\n\nHello Style X Team, I'm interested in ordering:\n\n*Product:* ${product.title}\n*Code:* ${product.code}\n*Price:* ৳${activePrice}\n*Size Choice:* ${selectedSize}`;
                   const finalUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(wsMessage)}`;
                   window.open(finalUrl, '_blank');
