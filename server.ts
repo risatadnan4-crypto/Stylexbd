@@ -609,8 +609,40 @@ async function executeWithAiKeyRotation<T>(
         continue;
       }
 
-      console.error(`❌ [AI API Manager] Error with '${keyObj.name}':`, err.message);
+      // Detect 503 / High Demand / Service Unavailable / High Load
+      if (
+        errMsg.includes("503") ||
+        errMsg.includes("unavailable") ||
+        errMsg.includes("high demand") ||
+        errMsg.includes("overloaded") ||
+        errMsg.includes("500") ||
+        errMsg.includes("502") ||
+        errMsg.includes("504")
+      ) {
+        keyObj.lastError = `Temporary 503 High Demand: ${err.message}`;
+        logAiApiAudit(
+          "AUTO_FAILOVER",
+          keyObj.name,
+          "System Auto-Rotator",
+          `Model 503 High Demand / Temporarily Unavailable. Auto-switched to next key in pool. Error: ${err.message}`,
+          keyObj.keyHint
+        );
+        saveDB();
+        console.warn(`⚠️ [AI API Manager] 503 High Demand on '${keyObj.name}'. Auto-switching to next key...`);
+        continue;
+      }
+
+      keyObj.lastError = `Execution Error: ${err.message}`;
+      logAiApiAudit(
+        "AUTO_FAILOVER",
+        keyObj.name,
+        "System Auto-Rotator",
+        `Execution failed on key: ${err.message}. Auto-switching to next key...`,
+        keyObj.keyHint
+      );
       saveDB();
+      console.warn(`⚠️ [AI API Manager] Error with '${keyObj.name}': ${err.message}. Auto-switching...`);
+      continue;
     }
   }
 
@@ -1880,6 +1912,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     couponCode: getStr(p?.couponCode, p?.coupon_code, local.couponCode, ""),
     couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, local.couponDiscountPercent) ?? undefined,
     offerPrice: getNum(p?.offerPrice, p?.offer_price, paymentMeta.offerPrice, local.offerPrice) ?? undefined,
+    timerStartTime: getStr(p?.timerStartTime, p?.timer_start_time, paymentMeta.timerStartTime, local.timerStartTime, ""),
     timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, paymentMeta.timerEndTime, local.timerEndTime, ""),
     timerMessage: getStr(p?.timerMessage, p?.timer_message, paymentMeta.timerMessage, local.timerMessage, ""),
     timerActive: getBool(p?.timerActive, p?.timer_active, paymentMeta.timerActive, local.timerActive, true),
@@ -2186,6 +2219,7 @@ app.post("/api/products", async (req, res) => {
     deliveryDays: newProduct.deliveryDays || "",
     isPinned: !!newProduct.isPinned,
     offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
+    timerStartTime: newProduct.timerStartTime || null,
     timerEndTime: newProduct.timerEndTime || null,
     timerMessage: newProduct.timerMessage || null,
     timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
@@ -2224,6 +2258,7 @@ app.post("/api/products", async (req, res) => {
       couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
       couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
       offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
+      timerStartTime: newProduct.timerStartTime || null,
       timerEndTime: newProduct.timerEndTime || null,
       timerMessage: newProduct.timerMessage || null,
       timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
@@ -2351,6 +2386,7 @@ app.post("/api/products", async (req, res) => {
       deliveryDays: target.deliveryDays || "",
       isPinned: !!target.isPinned,
       offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
+      timerStartTime: target.timerStartTime || null,
       timerEndTime: target.timerEndTime || null,
       timerMessage: target.timerMessage || null,
       timerActive: target.timerActive !== undefined ? !!target.timerActive : true,
@@ -2406,6 +2442,7 @@ app.post("/api/products", async (req, res) => {
         couponCode: target.couponCode ? target.couponCode.trim() : "",
         couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
         offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
+        timerStartTime: target.timerStartTime || null,
         timerEndTime: target.timerEndTime || null,
         timerMessage: target.timerMessage || null,
         timerActive: target.timerActive !== undefined ? !!target.timerActive : true,

@@ -34,6 +34,7 @@ export interface Product {
   couponCode?: string;
   couponDiscountPercent?: number;
   offerPrice?: number;
+  timerStartTime?: string;
   timerEndTime?: string;
   timerMessage?: string;
   timerActive?: boolean;

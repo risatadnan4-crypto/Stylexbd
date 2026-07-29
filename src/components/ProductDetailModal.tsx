@@ -225,16 +225,32 @@ export default function ProductDetailModal({
 
     const calculateTimeLeft = () => {
       const rawStr = String(product.timerEndTime!).trim();
-      const normalized = rawStr.replace(' ', 'T');
-      let end = new Date(normalized).getTime();
-      if (isNaN(end)) {
-        end = new Date(rawStr).getTime();
+      if (!rawStr) {
+        setTimeLeft(null);
+        setTimerExpired(true);
+        return true;
       }
+
+      let end: number;
+      if (/^\d{12,}$/.test(rawStr)) {
+        end = Number(rawStr);
+      } else if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(rawStr)) {
+        // Date-only string like YYYY-MM-DD: set to end of day local time
+        end = new Date(rawStr.replace(/\//g, '-') + 'T23:59:59').getTime();
+      } else {
+        const normalized = rawStr.replace(' ', 'T');
+        end = new Date(normalized).getTime();
+        if (isNaN(end)) {
+          end = new Date(rawStr).getTime();
+        }
+      }
+
       if (isNaN(end)) {
         setTimeLeft(null);
         setTimerExpired(true);
         return true;
       }
+
       const now = new Date().getTime();
       const difference = end - now;
 

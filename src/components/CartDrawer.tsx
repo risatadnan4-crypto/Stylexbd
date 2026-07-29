@@ -965,7 +965,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl max-h-[92vh] sm:max-h-[90vh] my-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
+                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl h-[96vh] sm:h-[95vh] max-h-[98vh] sm:max-h-[95vh] min-h-[85vh] sm:min-h-[90vh] my-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
                 : 'max-w-xl lg:max-w-2xl xl:max-w-3xl border-l border-white/5 h-full'
             }`}
           >
@@ -1141,42 +1141,42 @@ export default function CartDrawer({
                 {/* STEP 1: CUSTOMER INFORMATION FORM */}
                 {checkoutStep === 'step1' && (
                   <form onSubmit={handleContinueToCheckout} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 md:p-5 space-y-3.5 scrollbar-hidden bg-gradient-to-b from-[#160a33] via-[#100826] to-[#0d0620]">
                       <div className="w-full">
                         {renderMiniOrderSummary(false)}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-start">
                         
                         {/* LEFT COLUMN: RECIPIENT INFORMATION */}
-                        <div className="space-y-2 relative lg:col-span-8">
-                          <div className="flex items-center justify-between pb-1 border-b border-luxury-gold/20">
+                        <div className="space-y-3 relative lg:col-span-8">
+                          <div className="flex items-center justify-between pb-1.5 border-b border-luxury-gold/20">
                             <div className="flex items-center gap-1.5">
-                              <User size={13} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
-                              <span className="text-[10px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent">
+                              <User size={14} className="text-luxury-gold drop-shadow-[0_0_2px_rgba(212,175,55,0.4)]" />
+                              <span className="text-[10.5px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent">
                                 SECURE CHECKOUT FORM
                               </span>
                             </div>
                             {/* Static secure badge */}
-                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.5 rounded text-[8px] font-mono font-bold text-emerald-400 uppercase tracking-wider select-none">
+                            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold text-emerald-400 uppercase tracking-wider select-none">
                               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-0.5" />
                               SECURE SSL
                             </div>
                           </div>
 
                           {/* Elegant, glassmorphic card groups of inputs with premium styling */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 relative z-10">
                             {/* Glassmorphic Sub-card 1: Contact details */}
                             <motion.div 
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-3 sm:p-4 lg:p-4.5 space-y-3 lg:space-y-3.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
-                                <User size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
-                                <span className="text-[9px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
+                                <User size={13} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)]" />
+                                <span className="text-[9.5px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)]">1. CONTACT CREDENTIALS</span>
                               </div>
 
-                              <div className="grid grid-cols-1 gap-3 relative z-10">
+                              <div className="grid grid-cols-1 gap-3.5 relative z-10">
                                 {/* Name Field */}
                                 <div className="relative group/input">
                                   <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
@@ -1186,7 +1186,7 @@ export default function CartDrawer({
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <User className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                    <User className="w-4 h-4 md:w-5 md:h-5" />
                                   </div>
                                   <input 
                                     ref={nameInputRef}
@@ -1197,7 +1197,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(e, phoneInputRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 font-bold h-[44px] md:h-[48px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4 md:pt-4.5 pl-9 pr-9 md:pl-10 md:pr-10 text-[14px] md:text-[15.5px] text-white transition-all duration-300 font-bold h-[52px] md:h-[56px] shadow-sm focus:outline-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
@@ -1207,7 +1207,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_name" 
-                                    className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[15px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-[13px] md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-1.5 peer-focus:text-[8.5px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerName
                                         ? isNameValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1256,14 +1256,14 @@ export default function CartDrawer({
 
                                 {/* Mobile Number */}
                                 <div className="relative group/input">
-                                  <div className={`absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 transition-all duration-300 ${
+                                  <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
                                     customerPhone
                                       ? isPhoneValid
                                         ? 'text-emerald-400'
                                         : 'text-red-400/80'
                                       : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                   }`}>
-                                    <Phone className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                    <Phone className="w-4 h-4 md:w-5 md:h-5" />
                                   </div>
                                   <input 
                                     ref={phoneInputRef}
@@ -1274,7 +1274,7 @@ export default function CartDrawer({
                                     onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ''))}
                                     onKeyDown={(e) => handleKeyDown(e, addressTextRef)}
                                     placeholder=" "
-                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 font-mono font-bold h-[44px] md:h-[48px] shadow-sm focus:outline-none ${
+                                    className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4 md:pt-4.5 pl-9 pr-9 md:pl-10 md:pr-10 text-[14px] md:text-[15.5px] text-white transition-all duration-300 font-mono font-bold h-[52px] md:h-[56px] shadow-sm focus:outline-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
@@ -1284,7 +1284,7 @@ export default function CartDrawer({
                                   />
                                   <label 
                                     htmlFor="customer_phone" 
-                                    className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                    className={`absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[15px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-[13px] md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-1.5 peer-focus:text-[8.5px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                       customerPhone
                                         ? isPhoneValid
                                           ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'
@@ -1476,20 +1476,20 @@ export default function CartDrawer({
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
-                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-2.5 sm:p-3 lg:p-3.5 space-y-2 lg:space-y-2.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
+                              className="relative overflow-hidden bg-white/[0.01] backdrop-blur-xl border border-white/5 rounded-xl p-3 sm:p-4 lg:p-4.5 space-y-3 lg:space-y-3.5 shadow-lg group hover:border-luxury-gold/20 transition-all duration-300 h-full"
                             >
                               <div className="flex items-center gap-2 pb-1.5 border-b border-white/5">
-                                <MapPin size={12} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)] shrink-0" />
-                                <span className="text-[9px] sm:text-[9.5px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)] truncate">2. DELIVERY DESTINATION</span>
+                                <MapPin size={13} className="text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)] shrink-0" />
+                                <span className="text-[9.5px] sm:text-[10px] font-mono tracking-widest text-luxury-gold uppercase font-bold bg-gradient-to-r from-luxury-gold to-white bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(212,175,55,0.4)] truncate">2. DELIVERY DESTINATION</span>
                               </div>
 
-                              <div className="space-y-2.5 relative z-10">
+                              <div className="space-y-3 relative z-10">
                                 {/* Division/District Stacked Dropdowns */}
-                                <div className="grid grid-cols-1 gap-2.5">
+                                <div className="grid grid-cols-1 gap-3">
                                   {/* Division Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                                     </div>
                                     <select
                                       value={getDivisionForCity(customerCity)}
@@ -1500,7 +1500,7 @@ export default function CartDrawer({
                                           setCustomerCity(districtsInDiv[0]);
                                         }
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[13px] md:text-[14.5px] text-white font-bold h-[44px] md:h-[48px] pl-8 md:pl-9.5 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[14px] md:text-[15.5px] text-white font-bold h-[52px] md:h-[56px] pl-9 md:pl-10 pr-9 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {Object.keys(DIVISION_MAPS).map((div) => (
                                         <option key={div} value={div} className="bg-[#0c0617] text-white">
@@ -1508,25 +1508,25 @@ export default function CartDrawer({
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                    <label className="absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
                                       Division *
                                     </label>
-                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                      <ChevronDown size={14} />
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                      <ChevronDown size={16} />
                                     </div>
                                   </div>
 
                                   {/* District Select */}
                                   <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-2.5 md:left-3 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                      <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                                     </div>
                                     <select
                                       value={customerCity}
                                       onChange={(e) => {
                                         setCustomerCity(e.target.value);
                                       }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[13px] md:text-[14.5px] text-white font-bold h-[44px] md:h-[48px] pl-8 md:pl-9.5 pr-8 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
+                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[14px] md:text-[15.5px] text-white font-bold h-[52px] md:h-[56px] pl-9 md:pl-10 pr-9 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
                                     >
                                       {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
                                         <option key={district} value={district} className="bg-[#0c0617] text-white">
@@ -1534,11 +1534,11 @@ export default function CartDrawer({
                                         </option>
                                       ))}
                                     </select>
-                                    <label className="absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                    <label className="absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
                                       District/City *
                                     </label>
-                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                      <ChevronDown size={13} />
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                      <ChevronDown size={15} />
                                     </div>
                                   </div>
                                 </div>
@@ -1546,14 +1546,14 @@ export default function CartDrawer({
 
                                  {/* Complete Address */}
                                  <div className="relative group/input">
-                                   <div className={`absolute top-3 left-3 md:left-4 transition-all duration-300 ${
+                                   <div className={`absolute top-3.5 left-3 md:left-4 transition-all duration-300 ${
                                      customerAddress
                                        ? isAddressValid
                                          ? 'text-emerald-400'
                                          : 'text-red-400/80'
                                        : 'text-zinc-400 group-focus-within/input:text-luxury-gold'
                                    }`}>
-                                     <MapPin className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
+                                     <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                                    </div>
                                    <textarea 
                                      ref={addressTextRef}
@@ -1562,7 +1562,7 @@ export default function CartDrawer({
                                      value={customerAddress}
                                      onChange={(e) => setCustomerAddress(e.target.value)}
                                      placeholder=" "
-                                     className={`peer block w-full rounded-xl border backdrop-blur-md pb-0.5 pt-3.5 md:pt-4 pl-8 pr-8 md:pl-9.5 md:pr-9.5 text-[13px] md:text-[14.5px] text-white transition-all duration-300 h-[56px] md:h-[62px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
+                                     className={`peer block w-full rounded-xl border backdrop-blur-md pb-1 pt-4 md:pt-4.5 pl-9 pr-9 md:pl-10 md:pr-10 text-[14px] md:text-[15.5px] text-white transition-all duration-300 h-[88px] md:h-[96px] min-h-[80px] resize-none font-bold leading-normal scrollbar-hidden shadow-sm focus:outline-none ${
                                        customerAddress
                                          ? isAddressValid
                                            ? 'border-emerald-500/40 bg-emerald-500/[0.03] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
@@ -1572,7 +1572,7 @@ export default function CartDrawer({
                                    />
                                    <label 
                                      htmlFor="customer_address" 
-                                     className={`absolute left-8 md:left-9.5 top-0.5 md:top-1 text-[8px] md:text-[9px] font-bold transition-all peer-placeholder-shown:top-[12px] md:peer-placeholder-shown:top-[14px] peer-placeholder-shown:text-[12px] md:peer-placeholder-shown:text-[13.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-0.5 md:peer-focus:top-1 peer-focus:text-[8px] md:peer-focus:text-[9px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
+                                     className={`absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold transition-all peer-placeholder-shown:top-[15px] md:peer-placeholder-shown:top-[17px] peer-placeholder-shown:text-[13px] md:peer-placeholder-shown:text-[14.5px] peer-placeholder-shown:text-zinc-400 peer-placeholder-shown:font-semibold peer-focus:top-1 md:peer-focus:top-1.5 peer-focus:text-[8.5px] md:peer-focus:text-[9.5px] uppercase font-mono tracking-[0.15em] pointer-events-none ${
                                        customerAddress
                                          ? isAddressValid
                                            ? 'text-emerald-400/80 peer-focus:text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]'

@@ -1220,6 +1220,33 @@ export default function AdminPanel({
     setLotteryPrizesInput(updated);
   };
 
+  const formatForDateTimeInput = (val: any): string => {
+    if (!val) return '';
+    try {
+      const str = String(val).trim();
+      if (!str) return '';
+      let d: Date;
+      if (/^\d+$/.test(str)) {
+        d = new Date(Number(str));
+      } else {
+        d = new Date(str.replace(' ', 'T'));
+      }
+      if (isNaN(d.getTime())) {
+        d = new Date(str);
+      }
+      if (isNaN(d.getTime())) return '';
+      
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // Forms / Actions state
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSupabaseGuide, setShowSupabaseGuide] = useState(false);
@@ -1260,6 +1287,7 @@ export default function AdminPanel({
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
   const [formOfferDiscountPercent, setFormOfferDiscountPercent] = useState<number | ''>('');
   const [formOldPriceField, setFormOldPriceField] = useState<number | ''>('');
+  const [formTimerStartTime, setFormTimerStartTime] = useState<string>('');
   const [formTimerEndTime, setFormTimerEndTime] = useState<string>('');
   const [formTimerMessage, setFormTimerMessage] = useState<string>('');
   const [formTimerActive, setFormTimerActive] = useState<boolean>(true);
@@ -1973,6 +2001,7 @@ export default function AdminPanel({
       couponCode: formCouponCode,
       couponDiscountPercent: Number(formCouponDiscountPercent),
       offerPrice: finalOfferPrice,
+      timerStartTime: formTimerStartTime || null,
       timerEndTime: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
       timerActive: formTimerActive,
@@ -2086,7 +2115,8 @@ export default function AdminPanel({
     setFormFreeDelivery(prod.freeDelivery || false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
-    setFormTimerEndTime(prod.timerEndTime || '');
+    setFormTimerStartTime(formatForDateTimeInput(prod.timerStartTime));
+    setFormTimerEndTime(formatForDateTimeInput(prod.timerEndTime));
     setFormTimerMessage(prod.timerMessage || '');
     setFormTimerActive(prod.timerActive !== false);
     setFormBkashNumber(prod.bkashNumber || '');
@@ -3110,6 +3140,7 @@ export default function AdminPanel({
                   setFormOldPriceField('');
                   setFormIsPinned(false);
                   setFormFreeDelivery(false);
+                  setFormTimerStartTime('');
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
                   setFormSeoTitle('');
@@ -4010,9 +4041,75 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                         </span>
                       </div>
 
+                      {/* Timer Start Date & Time */}
+                      <div className={`space-y-1.5 ${formTimerActive ? "" : "opacity-40 pointer-events-none transition-opacity"}`}>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Timer Start Date &amp; Time (Optional)</label>
+                          {formTimerStartTime && (
+                            <button
+                              type="button"
+                              onClick={() => setFormTimerStartTime('')}
+                              className="text-[8.5px] font-mono text-zinc-400 hover:text-white underline"
+                            >
+                              Reset to Now
+                            </button>
+                          )}
+                        </div>
+                        <input 
+                          type="datetime-local" 
+                          value={formTimerStartTime} 
+                          onChange={(e) => setFormTimerStartTime(e.target.value)}
+                          disabled={!formTimerActive}
+                          className="w-full bg-[#120e21] text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                        <span className="text-[9px] text-zinc-500 block leading-normal">
+                          Leave empty to start timer immediately upon saving.
+                        </span>
+                      </div>
+
                       {/* Timer End Time */}
-                      <div className={formTimerActive ? "" : "opacity-40 pointer-events-none transition-opacity"}>
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Timer Expiration Date &amp; Time</label>
+                      <div className={`space-y-2 ${formTimerActive ? "" : "opacity-40 pointer-events-none transition-opacity"}`}>
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Timer Expiration Date &amp; Time</label>
+                          {formTimerEndTime && (
+                            <button
+                              type="button"
+                              onClick={() => setFormTimerEndTime('')}
+                              className="text-[8.5px] font-mono text-red-400 hover:text-red-300 underline"
+                            >
+                              CLEAR TIMER
+                            </button>
+                          )}
+                        </div>
+                        
+                        {/* Quick Preset Buttons */}
+                        <div className="space-y-1">
+                          <span className="text-[8.5px] text-luxury-gold uppercase font-mono tracking-wider block font-bold">⚡ Quick Presets:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {[
+                              { label: '+1h', hours: 1 },
+                              { label: '+6h', hours: 6 },
+                              { label: '+12h', hours: 12 },
+                              { label: '+24h (1 Day)', hours: 24 },
+                              { label: '+3 Days', hours: 72 },
+                              { label: '+7 Days', hours: 168 }
+                            ].map((preset) => (
+                              <button
+                                key={preset.label}
+                                type="button"
+                                onClick={() => {
+                                  const target = new Date(Date.now() + preset.hours * 60 * 60 * 1000);
+                                  setFormTimerEndTime(formatForDateTimeInput(target));
+                                  setFormTimerActive(true);
+                                }}
+                                className="bg-luxury-gold/15 hover:bg-luxury-gold/30 border border-luxury-gold/30 text-luxury-gold hover:text-white text-[8.5px] font-mono font-bold px-1.5 py-1 rounded transition-all cursor-pointer"
+                              >
+                                {preset.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         <input 
                           type="datetime-local" 
                           value={formTimerEndTime} 
@@ -4020,7 +4117,35 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           disabled={!formTimerActive}
                           className="w-full bg-[#120e21] text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                         />
-                        <span className="text-[9px] text-zinc-500 block leading-normal mt-1">Select countdown end time. If blank, no countdown banner will show.</span>
+
+                        {/* Live Timer Status Preview */}
+                        {(() => {
+                          if (!formTimerEndTime) {
+                            return <span className="text-[9px] text-zinc-500 block leading-normal">Pick a date above or click a quick preset button.</span>;
+                          }
+                          const endMs = new Date(formTimerEndTime.replace(' ', 'T')).getTime();
+                          if (isNaN(endMs)) {
+                            return <span className="text-[9px] text-amber-400 font-mono block">⚠️ Invalid date format.</span>;
+                          }
+                          const diff = endMs - Date.now();
+                          if (diff <= 0) {
+                            return (
+                              <div className="bg-red-500/15 border border-red-500/30 p-1.5 rounded text-[9.5px] text-red-400 font-mono font-bold flex items-center gap-1">
+                                <span>⚠️ TIMER IS EXPIRED!</span>
+                                <span className="text-zinc-400 font-normal">(Pick a future time or use quick buttons above)</span>
+                              </div>
+                            );
+                          }
+                          const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                          const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                          const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                          return (
+                            <div className="bg-emerald-500/15 border border-emerald-500/30 p-1.5 rounded text-[9.5px] text-emerald-400 font-mono font-bold flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>⚡ TIMER ACTIVE &amp; RUNNING: {d > 0 ? `${d}d ` : ''}{h}h {m}m left on product card!</span>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Timer Custom Message */}
