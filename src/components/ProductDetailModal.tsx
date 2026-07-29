@@ -691,23 +691,23 @@ export default function ProductDetailModal({
                     </motion.div>
 
                     {/* Countdown banner inside modal */}
-                    {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && (
+                    {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !timerExpired && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         
                         <div className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold flex items-center gap-2">
-                          <span className={`w-1.5 h-1.5 rounded-full ${timerExpired ? "bg-red-500" : "bg-red-500 animate-ping"} inline-block`} />
-                          <span>{product.timerMessage || (timerExpired ? "SPECIAL OFFER STATUS" : (isPendingStart ? "UPCOMING OFFER" : "LIMITED TIME OFFER"))}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping inline-block" />
+                          <span>{product.timerMessage || (isPendingStart ? "UPCOMING OFFER" : "LIMITED TIME OFFER")}</span>
                         </div>
                         
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
                           <span className="text-white/60 text-[10px] sm:text-xs uppercase tracking-widest font-black flex items-center gap-1.5 shrink-0 justify-center sm:justify-start">
-                            <span className={`w-1.5 h-1.5 rounded-full ${timerExpired ? "bg-red-500" : "bg-red-500 animate-pulse"}`} />
-                            {timerExpired ? "STATUS:" : (isPendingStart ? "STARTS IN:" : "TIME LEFT:")}
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            {isPendingStart ? "STARTS IN:" : "TIME LEFT:"}
                           </span>
                           
                           <div className="flex items-center gap-1.5 sm:gap-2.5 font-mono justify-center sm:justify-end w-full sm:w-auto">
-                            {!timerExpired && timeLeft ? (
+                            {timeLeft ? (
                               <>
                                 {timeLeft.days > 0 && (
                                   <>
@@ -736,11 +736,7 @@ export default function ProductDetailModal({
                                   <span className="text-[8px] sm:text-[9px] font-sans text-red-400/80 mt-1 uppercase tracking-wider font-extrabold animate-pulse">secs</span>
                                 </div>
                               </>
-                            ) : (
-                              <span className="px-3 py-1 bg-red-950/80 border border-red-500/40 rounded-lg text-red-400 font-bold text-xs uppercase tracking-widest font-mono">
-                                OFFER ENDED
-                              </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>

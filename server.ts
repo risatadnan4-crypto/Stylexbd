@@ -264,7 +264,6 @@ try {
 
 // Function to save database file
 function saveDB() {
-  lastSyncCompletedAt = 0; // Force immediate refetch on subsequent requests on this instance
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
   } catch (err: any) {
@@ -299,19 +298,34 @@ function encryptAiKey(rawKey: string): string {
 }
 
 function decryptAiKey(encryptedHex: string): string {
-  if (!encryptedHex) return "";
+  const envKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (!encryptedHex) return envKey;
+  let decrypted = "";
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32), Buffer.alloc(16, 0));
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    return decrypted;
   } catch (e) {
     try {
-      return Buffer.from(encryptedHex, 'base64').toString('utf8');
+      decrypted = Buffer.from(encryptedHex, 'base64').toString('utf8');
     } catch {
-      return encryptedHex;
+      decrypted = encryptedHex;
     }
   }
+
+  // If the decrypted key is a fake placeholder and we have a valid environment key, use envKey
+  const isPlaceholder = !decrypted ||
+    decrypted.includes("StyleX_") ||
+    decrypted.includes("FreeKey_") ||
+    decrypted.includes("Primary_Key_") ||
+    decrypted.includes("Env_Default_Key") ||
+    decrypted.length < 20;
+
+  if (isPlaceholder && envKey && !envKey.includes("StyleX_") && envKey.length >= 20) {
+    return envKey;
+  }
+
+  return decrypted || envKey;
 }
 
 function getMaskedKeyHint(key: string): string {
@@ -469,15 +483,19 @@ async function executeWithAiKeyRotation<T>(
   initializeAiKeyPool();
 
   const nowMs = Date.now();
-  // Auto-cooldown check for quota_exceeded keys (15 min cooldown)
+  // Auto-cooldown check for quota_exceeded or invalid keys
+  const hasEnvKey = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length >= 20 && !process.env.GEMINI_API_KEY.includes("StyleX_"));
   db.aiKeys.forEach((k: any) => {
     if (k.status === 'quota_exceeded' && k.lastUsed) {
       const elapsedMinutes = (nowMs - new Date(k.lastUsed).getTime()) / (1000 * 60);
-      if (elapsedMinutes >= 15) {
+      if (elapsedMinutes >= 15 || hasEnvKey) {
         k.status = 'active';
         k.lastError = null;
-        logAiApiAudit("AUTO_COOLDOWN_RESET", k.name, "System Auto-Recovery", `Key auto-recovered to Active status after 15-minute quota cooldown.`, k.keyHint);
+        logAiApiAudit("AUTO_COOLDOWN_RESET", k.name, "System Auto-Recovery", `Key auto-recovered to Active status.`, k.keyHint);
       }
+    } else if (k.status === 'invalid' && hasEnvKey) {
+      k.status = 'active';
+      k.lastError = null;
     }
   });
 
@@ -643,6 +661,22 @@ async function executeWithAiKeyRotation<T>(
       saveDB();
       console.warn(`⚠️ [AI API Manager] Error with '${keyObj.name}': ${err.message}. Auto-switching...`);
       continue;
+    }
+  }
+
+  // If candidate keys is empty or all failed, try process.env.GEMINI_API_KEY as emergency fallback
+  if (process.env.GEMINI_API_KEY) {
+    const envKeyRaw = process.env.GEMINI_API_KEY.trim();
+    if (envKeyRaw && !envKeyRaw.includes("StyleX_") && envKeyRaw.length >= 20) {
+      try {
+        const ai = new GoogleGenAI({
+          apiKey: envKeyRaw,
+          httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+        });
+        return await operationFn(ai, { id: 'env_fallback', name: 'Environment GEMINI_API_KEY', keyHint: getMaskedKeyHint(envKeyRaw), priority: 1 });
+      } catch (fallbackErr: any) {
+        console.error("Emergency fallback to process.env.GEMINI_API_KEY failed:", fallbackErr?.message || fallbackErr);
+      }
     }
   }
 
@@ -1088,12 +1122,8 @@ async function syncFromSupabase() {
           }));
           console.log(`✅ Synced ${db.orders.length} orders from Supabase.`);
         } else {
-          for (const o of db.orders) {
-            await supabase.from("orders").upsert({
-              ...o,
-              items: typeof o.items === "string" ? o.items : JSON.stringify(o.items)
-            });
-          }
+          db.orders = [];
+          saveDB();
         }
       }
     } catch (e: any) {}
@@ -1113,12 +1143,8 @@ async function syncFromSupabase() {
           }));
           console.log(`✅ Synced ${db.chats.length} chats from Supabase.`);
         } else {
-          for (const ch of db.chats) {
-            await supabase.from("chats").upsert({
-              ...ch,
-              messages: typeof ch.messages === "string" ? ch.messages : JSON.stringify(ch.messages)
-            });
-          }
+          db.chats = [];
+          saveDB();
         }
       }
     } catch (e: any) {}
@@ -1208,8 +1234,7 @@ async function syncFromSupabase() {
             try {
               const sessions = typeof configRow.counted_sessions === "string" ? JSON.parse(configRow.counted_sessions) : configRow.counted_sessions;
               if (Array.isArray(sessions)) {
-                const combined = Array.from(new Set([...(db.countedSessions || []), ...sessions]));
-                db.countedSessions = combined;
+                db.countedSessions = sessions;
                 db.visits = Math.max(db.visits, db.countedSessions.length);
               }
             } catch (jsonErr) {
@@ -1495,9 +1520,13 @@ app.post("/api/admin/clear-dashboard", async (req, res) => {
 
       if (supabase) {
         try {
-          await supabase.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabase.from("orders").delete().not("id", "is", null);
         } catch (oErr: any) {
-          console.warn("⚠️ Failed clearing orders in Supabase:", oErr.message);
+          try {
+            await supabase.from("orders").delete().neq("id", "_NON_EXISTENT_ID_");
+          } catch (oErr2: any) {
+            console.warn("⚠️ Failed clearing orders in Supabase:", oErr2.message);
+          }
         }
       }
     }
@@ -1508,10 +1537,23 @@ app.post("/api/admin/clear-dashboard", async (req, res) => {
       db.xoroAdminLogs = [];
       db.outboundSMSLogs = [];
       db.aiApiAuditLogs = [];
+      db.backInStockAlerts = [];
+      db.customerPhones = [];
       clearedItems.push("Notifications & System Logs");
     }
 
+    if (target === "all") {
+      db.chats = [];
+      if (supabase) {
+        try {
+          await supabase.from("chats").delete().not("id", "is", null);
+        } catch (cErr: any) {}
+      }
+    }
+
     saveDB();
+    await syncSettingsToCloud();
+    lastSyncCompletedAt = Date.now();
 
     const ordersList = Array.isArray(db.orders) ? db.orders : [];
     const productsList = Array.isArray(db.products) ? db.products : [];

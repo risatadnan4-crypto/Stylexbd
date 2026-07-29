@@ -204,6 +204,11 @@ export default function AdminPanel({
       const data = await res.json();
       if (res.ok && data.success) {
         if (data.analytics) setAnalytics(data.analytics);
+        if (clearDashboardTarget === 'all' || clearDashboardTarget === 'orders') {
+          setOrders([]);
+        }
+        await fetchOrders();
+        await fetchAnalytics();
         setAdminToast({ message: data.message || "ড্যাশবোর্ড ডাটা সফলভাবে ক্লিয়ার করা হয়েছে! (Dashboard data cleared successfully)", type: 'success' });
         setShowClearDashboardModal(false);
         if (onRefreshSettings) onRefreshSettings();
@@ -4143,7 +4148,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                           if (diff <= 0) {
                             return (
                               <div className="bg-red-500/15 border border-red-500/30 p-2 rounded text-[9.5px] text-red-400 font-mono font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <span>⚠️ TIMER IS EXPIRED! (Product card will show 'OFFER ENDED')</span>
+                                <span>⚠️ TIMER IS EXPIRED! (Timer banner hides automatically when expired)</span>
                                 <span className="text-zinc-400 font-normal shrink-0">(Pick a future time or click preset above)</span>
                               </div>
                             );
