@@ -44,7 +44,7 @@ export default function ProductDetailModal({
 
   const priceDetails = getProductPriceDetails(product);
   const isTimerExpired = timerExpired || priceDetails.timerExpired;
-  const hasActiveOffer = priceDetails.hasActiveOffer && !isTimerExpired;
+  const hasActiveOffer = priceDetails.hasActiveOffer;
   const sellingPrice = priceDetails.currentPrice;
   const originalPrice = priceDetails.originalPrice;
   const savings = originalPrice - sellingPrice;
@@ -227,7 +227,12 @@ export default function ProductDetailModal({
   };
 
   useEffect(() => {
-    if (!product.timerEndTime || product.timerActive === false || String(product.timerActive) === 'false') {
+    const endTimeVal = product.timerEndTime || product.timerEndDate;
+    const startTimeVal = product.timerStartTime || product.timerStartDate;
+    const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false' &&
+                          product.timerEnabled !== false && String(product.timerEnabled) !== 'false';
+
+    if (!endTimeVal || !isTimerActive) {
       setTimeLeft(null);
       setTimerExpired(false);
       setIsPendingStart(false);
@@ -235,7 +240,7 @@ export default function ProductDetailModal({
     }
 
     const calculateTimeLeft = () => {
-      const rawStr = String(product.timerEndTime!).trim();
+      const rawStr = String(endTimeVal).trim();
       if (!rawStr) {
         setTimeLeft(null);
         setTimerExpired(true);
@@ -267,8 +272,8 @@ export default function ProductDetailModal({
       const now = new Date().getTime();
 
       // Check if start time is specified and in future
-      if (product.timerStartTime) {
-        const startRaw = String(product.timerStartTime).trim();
+      if (startTimeVal) {
+        const startRaw = String(startTimeVal).trim();
         let startMs = NaN;
         if (/^\d{12,}$/.test(startRaw)) {
           startMs = Number(startRaw);
@@ -317,7 +322,7 @@ export default function ProductDetailModal({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime, product.timerStartTime, product.timerActive, product.id]);
+  }, [product.timerEndTime, product.timerEndDate, product.timerStartTime, product.timerStartDate, product.timerActive, product.timerEnabled, product.id]);
 
   const [copied, setCopied] = useState(false);
   const [copiedInstagram, setCopiedInstagram] = useState(false);
@@ -690,7 +695,10 @@ export default function ProductDetailModal({
                 </motion.div>
 
                 {/* Countdown banner inside modal */}
-                {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !isTimerExpired && (
+                {(product.timerEndTime || product.timerEndDate) &&
+                 product.timerActive !== false && String(product.timerActive) !== 'false' &&
+                 product.timerEnabled !== false && String(product.timerEnabled) !== 'false' &&
+                 !isTimerExpired && (
                       <div className="p-3 bg-[#110825]/90 border border-luxury-gold/30 rounded-xl flex flex-col gap-2 relative overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.15)] gold-glow-border">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-luxury-gold/10 to-transparent -translate-x-full animate-luxury-pulse pointer-events-none" />
                         

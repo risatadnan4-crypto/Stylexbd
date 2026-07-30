@@ -65,7 +65,7 @@ export default function ProductCard({
 
   const priceDetails = getProductPriceDetails(product);
   const isTimerExpired = timerExpired || priceDetails.timerExpired;
-  const hasActiveOffer = priceDetails.hasActiveOffer && !isTimerExpired;
+  const hasActiveOffer = priceDetails.hasActiveOffer;
   const currentPrice = priceDetails.currentPrice;
   const originalPrice = priceDetails.originalPrice;
   const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
@@ -100,7 +100,12 @@ export default function ProductCard({
   };
 
   useEffect(() => {
-    if (!product.timerEndTime || product.timerActive === false || String(product.timerActive) === 'false') {
+    const endTimeVal = product.timerEndTime || product.timerEndDate;
+    const startTimeVal = product.timerStartTime || product.timerStartDate;
+    const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false' &&
+                          product.timerEnabled !== false && String(product.timerEnabled) !== 'false';
+
+    if (!endTimeVal || !isTimerActive) {
       setTimeLeft(null);
       setTimerExpired(false);
       setIsPendingStart(false);
@@ -108,7 +113,7 @@ export default function ProductCard({
     }
 
     const calculateTimeLeft = () => {
-      const rawStr = String(product.timerEndTime!).trim();
+      const rawStr = String(endTimeVal).trim();
       if (!rawStr) {
         setTimeLeft(null);
         setTimerExpired(true);
@@ -140,8 +145,8 @@ export default function ProductCard({
       const now = new Date().getTime();
 
       // Check if start time is specified and in future
-      if (product.timerStartTime) {
-        const startRaw = String(product.timerStartTime).trim();
+      if (startTimeVal) {
+        const startRaw = String(startTimeVal).trim();
         let startMs = NaN;
         if (/^\d{12,}$/.test(startRaw)) {
           startMs = Number(startRaw);
@@ -190,7 +195,7 @@ export default function ProductCard({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [product.timerEndTime, product.timerStartTime, product.timerActive, product.id]);
+  }, [product.timerEndTime, product.timerEndDate, product.timerStartTime, product.timerStartDate, product.timerActive, product.timerEnabled, product.id]);
 
   // Handle restock registration submit
   const handleNotifySubmit = async (e: React.FormEvent) => {
@@ -484,7 +489,7 @@ export default function ProductCard({
               )}
             </div>
             
-            {(!hasActiveOffer && !product.timerEndTime) ? (
+            {(!hasActiveOffer && !(product.timerEndTime || product.timerEndDate)) ? (
               <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0 self-center">
                 ⚜️ EXCLUSIVE
               </div>
@@ -497,7 +502,10 @@ export default function ProductCard({
           </div>
 
           {/* Large Countdown Timer Block - Bigger, high-visibility mobile-friendly full-width row */}
-          {product.timerEndTime && product.timerActive !== false && String(product.timerActive) !== 'false' && !isTimerExpired && (
+          {(product.timerEndTime || product.timerEndDate) &&
+           product.timerActive !== false && String(product.timerActive) !== 'false' &&
+           product.timerEnabled !== false && String(product.timerEnabled) !== 'false' &&
+           !isTimerExpired && (
             <div className="bg-red-950/40 hover:bg-red-950/60 border border-red-500/30 hover:border-red-500/50 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between gap-1.5 mt-1.5 transition-all duration-300 shadow-[0_2px_12px_rgba(220,38,38,0.15)]">
               <div className="flex items-center gap-1.5 text-[9px] sm:text-[10.5px] text-red-400 uppercase tracking-wider font-black shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping shrink-0" />

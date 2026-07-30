@@ -1,5 +1,13 @@
 import { CartItem, Product } from '../types';
 
+function cleanNumber(val: any): number {
+  if (val === undefined || val === null) return 0;
+  if (typeof val === 'number') return val;
+  const cleaned = String(val).replace(/[৳,$\s]/g, '');
+  const num = Number(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 export function getProductPriceDetails(product?: Product | null) {
   if (!product) {
     return {
@@ -12,7 +20,7 @@ export function getProductPriceDetails(product?: Product | null) {
     };
   }
 
-  const originalPrice = Number(product.price || 0);
+  const originalPrice = cleanNumber(product.price);
   
   // Support both timerOfferPrice and offerPrice
   const timerOfferVal = product.timerOfferPrice !== undefined && product.timerOfferPrice !== null && String(product.timerOfferPrice).trim() !== ''
@@ -21,8 +29,8 @@ export function getProductPriceDetails(product?: Product | null) {
       ? product.offerPrice
       : null);
 
-  const rawOfferPrice = timerOfferVal !== null ? Number(timerOfferVal) : null;
-  const hasValidOfferPrice = rawOfferPrice !== null && !isNaN(rawOfferPrice) && rawOfferPrice > 0 && rawOfferPrice < originalPrice;
+  const rawOfferPrice = timerOfferVal !== null ? cleanNumber(timerOfferVal) : null;
+  const hasValidOfferPrice = rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice;
 
   // Support both timerActive and timerEnabled
   const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false' &&
@@ -52,15 +60,20 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer is active ONLY if valid offer price exists, timer is active, and timer is NOT expired!
-  const hasActiveOffer = hasValidOfferPrice && isTimerActive && !timerExpired;
+  // Offer is active if a valid offer price is defined.
+  // We keep it active always if a valid offer price exists to prevent stale timer dates from breaking the discount.
+  let hasActiveOffer = false;
+  if (hasValidOfferPrice) {
+    hasActiveOffer = true;
+  }
+
   const currentPrice = hasActiveOffer ? rawOfferPrice! : originalPrice;
   const discountPercent = hasActiveOffer && originalPrice > 0
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;
 
   return {
-    currentPrice,
+    currentPrice: currentPrice > 0 ? currentPrice : originalPrice,
     originalPrice,
     hasActiveOffer,
     discountPercent,

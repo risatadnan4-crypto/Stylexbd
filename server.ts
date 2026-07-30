@@ -1845,10 +1845,12 @@ function tryJsonParse(val: any) {
 
 function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
   const local = localProduct || {};
+  const id = String(p?.id || local.id || Math.random().toString(36).substring(2, 10));
+  const nestedLocal = (id && local && (local as any)[id]) || local || {};
   const paymentMeta = pm && Object.keys(pm).length > 0 
     ? pm 
-    : (((db.settings as any)?.productPayments && p?.id && (db.settings as any).productPayments[p.id]) || {});
-  const seoMeta = ((db.settings as any)?.productSeo && p?.id && (db.settings as any).productSeo[p.id]) || {};
+    : (((db.settings as any)?.productPayments && id && (db.settings as any).productPayments[id]) || {});
+  const seoMeta = ((db.settings as any)?.productSeo && id && (db.settings as any).productSeo[id]) || {};
 
   // Sizes
   let parsedSizes: string[] = [];
@@ -1915,8 +1917,6 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return null;
   };
 
-  const id = String(p?.id || local.id || Math.random().toString(36).substring(2, 10));
-
   return {
     id,
     code: getStr(p?.code, p?.product_code, paymentMeta.code, local.code, `XP-${Math.floor(100 + Math.random() * 900)}`),
@@ -1933,36 +1933,36 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     whyBuy: getStr(p?.whyBuy, p?.why_buy, local.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
     trending: getBool(p?.trending, local.trending, true),
     featured: getBool(p?.featured, local.featured, true),
-    isPinned: getBool(p?.isPinned, p?.is_pinned, paymentMeta.isPinned, local.isPinned, false),
-    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, paymentMeta.deliveryPrice, local.deliveryPrice, 100) ?? 100,
-    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
-    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
-    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
-    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
-    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
-    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
-    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
-    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
-    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, local.lotteryEligible, true),
-    couponCode: getStr(p?.couponCode, p?.coupon_code, local.couponCode, ""),
-    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, local.couponDiscountPercent) ?? undefined,
-    offerPrice: getNum(p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, paymentMeta.offerPrice, paymentMeta.timerOfferPrice, local.offerPrice) ?? undefined,
-    timerOfferPrice: getNum(p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, paymentMeta.timerOfferPrice, paymentMeta.offerPrice, local.timerOfferPrice) ?? undefined,
-    timerStartTime: getStr(p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, paymentMeta.timerStartTime, local.timerStartTime, ""),
-    timerStartDate: getStr(p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, paymentMeta.timerStartDate, local.timerStartDate, ""),
-    timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, paymentMeta.timerEndTime, local.timerEndTime, ""),
-    timerEndDate: getStr(p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, paymentMeta.timerEndDate, local.timerEndDate, ""),
-    timerMessage: getStr(p?.timerMessage, p?.timer_message, paymentMeta.timerMessage, local.timerMessage, ""),
-    timerActive: getBool(p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, paymentMeta.timerActive, local.timerActive, true),
-    timerEnabled: getBool(p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, paymentMeta.timerEnabled, local.timerEnabled, true),
-    bkashNumber: getStr(p?.bkashNumber, p?.bkash_number, paymentMeta.bkashNumber, local.bkashNumber, ""),
-    nagadNumber: getStr(p?.nagadNumber, p?.nagad_number, paymentMeta.nagadNumber, local.nagadNumber, ""),
-    paymentType: (getStr(p?.paymentType, p?.payment_type, paymentMeta.paymentType, local.paymentType, "cod") as any),
-    paymentPercentage: getNum(p?.paymentPercentage, p?.payment_percentage, paymentMeta.paymentPercentage, local.paymentPercentage, 10) ?? 10,
-    deliveryCharge: getNum(p?.deliveryCharge, p?.delivery_charge, paymentMeta.deliveryCharge, local.deliveryCharge, 100) ?? 100,
-    deliveryDays: getStr(p?.deliveryDays, p?.delivery_days, paymentMeta.deliveryDays, local.deliveryDays, "3-5"),
-    freeDelivery: getBool(p?.freeDelivery, p?.free_delivery, paymentMeta.freeDelivery, local.freeDelivery, false),
-    likes: getNum(p?.likes, paymentMeta.likes, local.likes, 0) ?? 0,
+    isPinned: getBool(p?.isPinned, p?.is_pinned, paymentMeta.isPinned, nestedLocal.isPinned, local.isPinned, false),
+    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, paymentMeta.deliveryPrice, nestedLocal.deliveryPrice, local.deliveryPrice, 100) ?? 100,
+    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, nestedLocal.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
+    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, nestedLocal.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
+    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, nestedLocal.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
+    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, nestedLocal.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
+    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, nestedLocal.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
+    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, nestedLocal.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
+    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, nestedLocal.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
+    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, nestedLocal.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
+    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, nestedLocal.lotteryEligible, local.lotteryEligible, true),
+    couponCode: getStr(p?.couponCode, p?.coupon_code, nestedLocal.couponCode, local.couponCode, ""),
+    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, nestedLocal.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
+    offerPrice: getNum(paymentMeta.offerPrice, paymentMeta.timerOfferPrice, nestedLocal.offerPrice, nestedLocal.timerOfferPrice, p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, local.offerPrice) ?? undefined,
+    timerOfferPrice: getNum(paymentMeta.timerOfferPrice, paymentMeta.offerPrice, nestedLocal.timerOfferPrice, nestedLocal.offerPrice, p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, local.timerOfferPrice) ?? undefined,
+    timerStartTime: getStr(paymentMeta.timerStartTime, paymentMeta.timerStartDate, nestedLocal.timerStartTime, nestedLocal.timerStartDate, p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, local.timerStartTime, ""),
+    timerStartDate: getStr(paymentMeta.timerStartDate, paymentMeta.timerStartTime, nestedLocal.timerStartDate, nestedLocal.timerStartTime, p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, local.timerStartDate, ""),
+    timerEndTime: getStr(paymentMeta.timerEndTime, paymentMeta.timerEndDate, nestedLocal.timerEndTime, nestedLocal.timerEndDate, p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, local.timerEndTime, ""),
+    timerEndDate: getStr(paymentMeta.timerEndDate, paymentMeta.timerEndTime, nestedLocal.timerEndDate, nestedLocal.timerEndTime, p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, local.timerEndDate, ""),
+    timerMessage: getStr(paymentMeta.timerMessage, nestedLocal.timerMessage, p?.timerMessage, p?.timer_message, local.timerMessage, ""),
+    timerActive: getBool(paymentMeta.timerActive, paymentMeta.timerEnabled, nestedLocal.timerActive, nestedLocal.timerEnabled, p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, local.timerActive, true),
+    timerEnabled: getBool(paymentMeta.timerEnabled, paymentMeta.timerActive, nestedLocal.timerEnabled, nestedLocal.timerActive, p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, local.timerEnabled, true),
+    bkashNumber: getStr(paymentMeta.bkashNumber, nestedLocal.bkashNumber, p?.bkashNumber, p?.bkash_number, local.bkashNumber, ""),
+    nagadNumber: getStr(paymentMeta.nagadNumber, nestedLocal.nagadNumber, p?.nagadNumber, p?.nagad_number, local.nagadNumber, ""),
+    paymentType: (getStr(paymentMeta.paymentType, nestedLocal.paymentType, p?.paymentType, p?.payment_type, local.paymentType, "cod") as any),
+    paymentPercentage: getNum(paymentMeta.paymentPercentage, nestedLocal.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, local.paymentPercentage, 10) ?? 10,
+    deliveryCharge: getNum(paymentMeta.deliveryCharge, nestedLocal.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, local.deliveryCharge, 100) ?? 100,
+    deliveryDays: getStr(paymentMeta.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
+    freeDelivery: getBool(paymentMeta.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
+    likes: getNum(paymentMeta.likes, nestedLocal.likes, p?.likes, local.likes, 0) ?? 0,
     seoTitle: getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, ""),
     seoDescription: getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, ""),
     seoKeywords: getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, ""),
@@ -1999,7 +1999,11 @@ app.get("/api/products", async (req, res) => {
   } catch (err: any) {
     console.warn("⚠️ Direct products fetch fallback to memory cache:", err.message);
   }
-  res.json(db.products || []);
+  const fallbackProducts = (db.products || []).map((lp: any) => {
+    const pm = (db.settings.productPayments && db.settings.productPayments[lp.id]) || {};
+    return buildProductObject({}, lp, pm);
+  });
+  res.json(fallbackProducts);
 });
 
 app.get("/api/products/:id", async (req, res) => {
@@ -2192,6 +2196,31 @@ app.post("/api/seo/generate", async (req, res) => {
   }
 });
 
+const getNumVal = (...vals: any[]): number | null => {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && v !== "" && !isNaN(Number(v))) {
+      return Number(v);
+    }
+  }
+  return null;
+};
+const getStrVal = (...vals: any[]): string | null => {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && String(v).trim() !== "") {
+      return String(v);
+    }
+  }
+  return null;
+};
+const getBoolVal = (...vals: any[]): boolean => {
+  for (const v of vals) {
+    if (v !== undefined && v !== null) {
+      return !!v;
+    }
+  }
+  return false;
+};
+
 app.post("/api/products", async (req, res) => {
   const newProduct: Product = req.body;
   if (!newProduct.id) {
@@ -2249,6 +2278,12 @@ app.post("/api/products", async (req, res) => {
   if (!db.settings.productPayments) {
     db.settings.productPayments = {};
   }
+
+  const resolvedOfferPrice = getNumVal(newProduct.offerPrice, newProduct.timerOfferPrice);
+  const resolvedTimerStartTime = getStrVal(newProduct.timerStartTime, newProduct.timerStartDate);
+  const resolvedTimerEndTime = getStrVal(newProduct.timerEndTime, newProduct.timerEndDate);
+  const resolvedTimerActive = getBoolVal(newProduct.timerActive, newProduct.timerEnabled);
+
   db.settings.productPayments[newProduct.id] = {
     bkashNumber: newProduct.bkashNumber || "",
     nagadNumber: newProduct.nagadNumber || "",
@@ -2257,11 +2292,15 @@ app.post("/api/products", async (req, res) => {
     deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
     deliveryDays: newProduct.deliveryDays || "",
     isPinned: !!newProduct.isPinned,
-    offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
-    timerStartTime: newProduct.timerStartTime || null,
-    timerEndTime: newProduct.timerEndTime || null,
+    offerPrice: resolvedOfferPrice,
+    timerOfferPrice: resolvedOfferPrice,
+    timerStartTime: resolvedTimerStartTime,
+    timerStartDate: resolvedTimerStartTime,
+    timerEndTime: resolvedTimerEndTime,
+    timerEndDate: resolvedTimerEndTime,
     timerMessage: newProduct.timerMessage || null,
-    timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
+    timerActive: resolvedTimerActive,
+    timerEnabled: resolvedTimerActive,
     freeDelivery: !!newProduct.freeDelivery,
     likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0
   };
@@ -2416,6 +2455,12 @@ app.post("/api/products", async (req, res) => {
     if (!db.settings.productPayments) {
       db.settings.productPayments = {};
     }
+
+    const resolvedOfferPriceUpdate = getNumVal(target.offerPrice, target.timerOfferPrice);
+    const resolvedTimerStartTimeUpdate = getStrVal(target.timerStartTime, target.timerStartDate);
+    const resolvedTimerEndTimeUpdate = getStrVal(target.timerEndTime, target.timerEndDate);
+    const resolvedTimerActiveUpdate = getBoolVal(target.timerActive, target.timerEnabled);
+
     db.settings.productPayments[target.id] = {
       bkashNumber: target.bkashNumber || "",
       nagadNumber: target.nagadNumber || "",
@@ -2424,11 +2469,15 @@ app.post("/api/products", async (req, res) => {
       deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
       deliveryDays: target.deliveryDays || "",
       isPinned: !!target.isPinned,
-      offerPrice: target.offerPrice !== undefined && target.offerPrice !== null ? Number(target.offerPrice) : null,
-      timerStartTime: target.timerStartTime || null,
-      timerEndTime: target.timerEndTime || null,
+      offerPrice: resolvedOfferPriceUpdate,
+      timerOfferPrice: resolvedOfferPriceUpdate,
+      timerStartTime: resolvedTimerStartTimeUpdate,
+      timerStartDate: resolvedTimerStartTimeUpdate,
+      timerEndTime: resolvedTimerEndTimeUpdate,
+      timerEndDate: resolvedTimerEndTimeUpdate,
       timerMessage: target.timerMessage || null,
-      timerActive: target.timerActive !== undefined ? !!target.timerActive : true,
+      timerActive: resolvedTimerActiveUpdate,
+      timerEnabled: resolvedTimerActiveUpdate,
       freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
       likes: target.likes !== undefined ? Number(target.likes) : 0
     };
@@ -3508,30 +3557,6 @@ app.post("/api/orders", async (req, res) => {
 
     if (rawOfferPrice === null || isNaN(rawOfferPrice) || rawOfferPrice <= 0 || rawOfferPrice >= originalPrice) {
       return originalPrice;
-    }
-
-    const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false';
-    if (!isTimerActive) {
-      return originalPrice;
-    }
-
-    if (product.timerEndTime) {
-      const rawStr = String(product.timerEndTime).trim();
-      if (rawStr) {
-        let endMs = NaN;
-        if (/^\d{12,}$/.test(rawStr)) {
-          endMs = Number(rawStr);
-        } else if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(rawStr)) {
-          endMs = new Date(rawStr.replace(/\//g, '-') + 'T23:59:59').getTime();
-        } else {
-          endMs = new Date(rawStr.replace(' ', 'T')).getTime();
-          if (isNaN(endMs)) endMs = new Date(rawStr).getTime();
-        }
-
-        if (!isNaN(endMs) && Date.now() >= endMs) {
-          return originalPrice; // Timer expired!
-        }
-      }
     }
 
     return rawOfferPrice;
