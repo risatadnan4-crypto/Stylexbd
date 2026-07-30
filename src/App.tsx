@@ -1334,7 +1334,12 @@ export default function App() {
 
     setCart(freshCart);
     setInitialShowCheckout(false);
-    setIsCartOpen(true);
+    
+    // Delay opening the cart drawer by 2.2 seconds to allow the add-to-cart button's
+    // paper plane takeoff and "Added!" checkmark animations to complete fully.
+    setTimeout(() => {
+      setIsCartOpen(true);
+    }, 2200);
   };
 
   const handleOrderNow = (product: Product, size: string, color?: string, colorImage?: string) => {
