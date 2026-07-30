@@ -6910,11 +6910,11 @@ async function startServer() {
     console.log("Serving static distribution files from", distPath);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`STYLE X Premium Server running fully authorized on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`STYLE X Premium Server running fully authorized on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-if (!process.env.VERCEL) {
-  startServer();
-}
+startServer();
