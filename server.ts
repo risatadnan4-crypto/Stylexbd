@@ -6666,13 +6666,25 @@ async function startServer() {
         const fs = await import("fs/promises");
         let html = await fs.readFile(indexPath, "utf-8");
 
+        const replaceMetaTag = (htmlText: string, nameAttr: "name" | "property", attrValue: string, newValue: string): string => {
+          const regex = new RegExp(`<meta\\s+[^>]*?${nameAttr}=["']${attrValue}["'][^>]*?>`, "gi");
+          if (regex.test(htmlText)) {
+            return htmlText.replace(regex, `<meta ${nameAttr}="${attrValue}" content="${newValue}" />`);
+          } else {
+            return htmlText.replace("</head>", `<meta ${nameAttr}="${attrValue}" content="${newValue}" />\n</head>`);
+          }
+        };
+
         // Extract route parameters from the pathname (clean SEO friendly URLs)
         const pathSegments = req.path.split("/").filter(Boolean);
-        let customTitle = "STYLE X | Premium Luxury Clothing & Authentic Apparel";
-        let desc = "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
-        let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
+        let customTitle = "STYLE X | #1 Premium Luxury Clothing & Authentic Apparel Bangladesh";
+        let desc = "Discover STYLE X, Bangladesh's leading destination for luxury fashion, streetwear, and authentic apparel. Shop premium suits, hoodies, panjabis, dresses, and lifestyle gear with fast nationwide COD.";
+        let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x store, style x online shop, style x apparel, style x fashion, luxury clothing bangladesh, premium streetwear bd, luxury fashion dhaka, royal apparel, buy clothes online bd, style x dhaka, authentic apparel bangladesh, style x official";
         let image = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
-        let canonicalUrl = `https://stylexbd.vercel.app${req.path}`;
+        
+        const protocol = req.headers["x-forwarded-proto"] || "https";
+        const host = req.headers["x-forwarded-host"] || req.headers.host || "stylexbd.vercel.app";
+        let canonicalUrl = `${protocol}://${host}${req.path}`;
         let productSchemaJson = "";
 
         let foundMatch = false;
@@ -6693,8 +6705,43 @@ async function startServer() {
               image = foundProduct.imageUrl || image;
               foundMatch = true;
 
+              // Retrieve approved reviews for this product to feed into Rich Snippets
+              const productReviews = db.reviews ? db.reviews.filter((r: any) => 
+                String(r.productId) === String(foundProduct.id) && r.isApproved
+              ) : [];
+
+              let aggregateRatingObj: any = undefined;
+              let reviewsListObj: any[] = [];
+
+              if (productReviews.length > 0) {
+                const totalRating = productReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0);
+                const avgRating = Math.round((totalRating / productReviews.length) * 10) / 10;
+                aggregateRatingObj = {
+                  "@type": "AggregateRating",
+                  "ratingValue": avgRating,
+                  "reviewCount": productReviews.length,
+                  "bestRating": "5",
+                  "worstRating": "1"
+                };
+                reviewsListObj = productReviews.map((r: any) => ({
+                  "@type": "Review",
+                  "author": {
+                    "@type": "Person",
+                    "name": r.customerName || "Verified Buyer"
+                  },
+                  "datePublished": r.date ? r.date.split("T")[0] : "2026-01-01",
+                  "reviewBody": r.comment || "",
+                  "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": Number(r.rating || 5),
+                    "bestRating": "5",
+                    "worstRating": "1"
+                  }
+                }));
+              }
+
               // Product JSON-LD Schema
-              const schemaObj = {
+              const schemaObj: any = {
                 "@context": "https://schema.org",
                 "@type": "Product",
                 "name": foundProduct.title,
@@ -6720,6 +6767,14 @@ async function startServer() {
                   }
                 }
               };
+
+              if (aggregateRatingObj) {
+                schemaObj.aggregateRating = aggregateRatingObj;
+              }
+              if (reviewsListObj.length > 0) {
+                schemaObj.review = reviewsListObj;
+              }
+
               productSchemaJson = `<script id="json-ld-product-schema" type="application/ld+json">${JSON.stringify(schemaObj)}</script>`;
             }
           }
@@ -6807,32 +6862,43 @@ async function startServer() {
           }
         }
 
-        // Apply dynamic titles and meta tags to html
+        // Apply dynamic titles and meta tags to html robustly
         html = html.replace(/<title>.*?<\/title>/gi, `<title>${customTitle}</title>`);
-        html = html.replace(/<meta name="title" content=".*?" \/>/gi, `<meta name="title" content="${customTitle}" />`);
-        html = html.replace(/<meta name="description" content=".*?" \/>/gi, `<meta name="description" content="${desc}" />`);
-        html = html.replace(/<meta name="keywords" content=".*?" \/>/gi, `<meta name="keywords" content="${keywords}" />`);
+        
+        html = replaceMetaTag(html, "name", "title", customTitle);
+        html = replaceMetaTag(html, "name", "description", desc);
+        html = replaceMetaTag(html, "name", "keywords", keywords);
 
-        // Replace OpenGraph meta tags
-        html = html.replace(/<meta property="og:title" content=".*?" \/>/gi, `<meta property="og:title" content="${customTitle}" />`);
-        html = html.replace(/<meta property="og:description" content=".*?" \/>/gi, `<meta property="og:description" content="${desc}" />`);
-        html = html.replace(/<meta property="og:image" content=".*?" \/>/gi, `<meta property="og:image" content="${image}" />`);
-        html = html.replace(/<meta property="og:url" content=".*?" \/>/gi, `<meta property="og:url" content="${canonicalUrl}" />`);
+        // Replace OpenGraph meta tags robustly
+        html = replaceMetaTag(html, "property", "og:title", customTitle);
+        html = replaceMetaTag(html, "property", "og:description", desc);
+        html = replaceMetaTag(html, "property", "og:image", image);
+        html = replaceMetaTag(html, "property", "og:url", canonicalUrl);
+        html = replaceMetaTag(html, "property", "og:site_name", "Style X");
 
-        // Replace Twitter meta tags
-        html = html.replace(/<meta name="twitter:title" content=".*?" \/>/gi, `<meta name="twitter:title" content="${customTitle}" />`);
-        html = html.replace(/<meta name="twitter:description" content=".*?" \/>/gi, `<meta name="twitter:description" content="${desc}" />`);
-        html = html.replace(/<meta name="twitter:image" content=".*?" \/>/gi, `<meta name="twitter:image" content="${image}" />`);
-        html = html.replace(/<meta name="twitter:url" content=".*?" \/>/gi, `<meta name="twitter:url" content="${canonicalUrl}" />`);
-        html = html.replace(/<meta property="twitter:title" content=".*?" \/>/gi, `<meta property="twitter:title" content="${customTitle}" />`);
-        html = html.replace(/<meta property="twitter:description" content=".*?" \/>/gi, `<meta property="twitter:description" content="${desc}" />`);
-        html = html.replace(/<meta property="twitter:image" content=".*?" \/>/gi, `<meta property="twitter:image" content="${image}" />`);
+        // Replace Twitter Card meta tags robustly
+        html = replaceMetaTag(html, "name", "twitter:title", customTitle);
+        html = replaceMetaTag(html, "name", "twitter:description", desc);
+        html = replaceMetaTag(html, "name", "twitter:image", image);
+        html = replaceMetaTag(html, "name", "twitter:url", canonicalUrl);
+        html = replaceMetaTag(html, "name", "twitter:card", "summary_large_image");
+
+        html = replaceMetaTag(html, "property", "twitter:title", customTitle);
+        html = replaceMetaTag(html, "property", "twitter:description", desc);
+        html = replaceMetaTag(html, "property", "twitter:image", image);
+        html = replaceMetaTag(html, "property", "twitter:url", canonicalUrl);
 
         // Replace Canonical link
-        html = html.replace(/<link rel="canonical" href=".*?" \/>/gi, `<link rel="canonical" href="${canonicalUrl}" />`);
+        const canonicalRegex = /<link\s+rel=["']canonical["']\s+href=["'].*?["']\s*\/?>/gi;
+        if (canonicalRegex.test(html)) {
+          html = html.replace(canonicalRegex, `<link rel="canonical" href="${canonicalUrl}" />`);
+        } else {
+          html = html.replace("</head>", `<link rel="canonical" href="${canonicalUrl}" />\n</head>`);
+        }
 
         // Inject Product Schema if present
         if (productSchemaJson) {
+          html = html.replace(/<script id="json-ld-product-schema" type="application\/ld\+json">.*?<\/script>/gi, "");
           html = html.replace("</head>", `${productSchemaJson}\n</head>`);
         }
 

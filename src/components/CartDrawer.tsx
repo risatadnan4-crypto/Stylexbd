@@ -934,6 +934,20 @@ export default function CartDrawer({
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      .premium-cart-drawer {
+        position: fixed !important;
+        top: 0 !important;
+        right: 0 !important;
+        height: 100vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      @media (min-width: 640px) {
+        .premium-cart-drawer {
+          width: min(92vw, 460px) !important;
+          max-width: 460px !important;
+        }
+      }
     `}</style>
   );
 
@@ -952,7 +966,7 @@ export default function CartDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
           />
 
           {/* Premium Drawer/Modal Panel */}
@@ -963,10 +977,10 @@ export default function CartDrawer({
             animate={checkoutStep !== 'cart' ? { opacity: 1, scale: 1, y: 0 } : { x: 0 }}
             exit={checkoutStep !== 'cart' ? { opacity: 0, scale: 0.96, y: 10 } : { x: '100%' }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className={`relative w-full bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
+            className={`relative bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
                 ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl h-[96vh] sm:h-[95vh] max-h-[98vh] sm:max-h-[95vh] min-h-[85vh] sm:min-h-[90vh] my-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
-                : 'max-w-xl lg:max-w-2xl xl:max-w-3xl border-l border-white/5 h-full'
+                : 'premium-cart-drawer border-l border-white/5'
             }`}
           >
             {/* Header */}

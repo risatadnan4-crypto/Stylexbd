@@ -2431,17 +2431,21 @@ export default function App() {
               {/* Responsive pills sliders */}
               <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-purple-500/10 scrollbar-track-transparent py-1.5 -mx-4 px-4 md:mx-0 md:px-0 flex gap-2 sm:gap-3 snap-x snap-mandatory">
                 {[
-                  { id: 'ALL', label: '⚜️ All archives' },
-                  { id: 'MEN', label: '🕶️ Gentlemen' },
-                  { id: 'WOMEN', label: '💃 Haute Couture' },
-                  { id: 'UNISEX', label: '💎 Co-Ed Line' },
-                  { id: 'ACCESSORIES', label: '👑 Ensemble' }
+                  { id: 'ALL', label: '⚜️ All archives', path: '/' },
+                  { id: 'MEN', label: '🕶️ Gentlemen', path: '/category/men' },
+                  { id: 'WOMEN', label: '💃 Haute Couture', path: '/category/women' },
+                  { id: 'UNISEX', label: '💎 Co-Ed Line', path: '/category/unisex' },
+                  { id: 'ACCESSORIES', label: '👑 Ensemble', path: '/category/accessories' }
                 ].map((cat) => {
                   const isActive = activeCategory === cat.id;
                   return (
-                    <motion.button
+                    <motion.a
                       key={cat.id}
-                      onClick={() => setActiveCategory(cat.id)}
+                      href={cat.path}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setActiveCategory(cat.id);
+                      }}
                       whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
                       className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer flex items-center justify-center shrink-0 relative overflow-hidden ${
@@ -2455,7 +2459,7 @@ export default function App() {
                         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-luxury-pulse pointer-events-none" />
                       )}
                       <span className="relative z-10">{cat.label}</span>
-                    </motion.button>
+                    </motion.a>
                   );
                 })}
               </div>
@@ -2894,7 +2898,7 @@ export default function App() {
       </main>
                   {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-3 sm:bottom-6 right-2 sm:right-6 max-w-[calc(100vw-16px)] z-40 p-1 sm:p-1.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(212,175,55,0.15),0_0_50px_rgba(154,77,255,0.1)] border border-white/10 hover:border-luxury-gold/40 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.015] bg-[#030107]/60 backdrop-blur-2xl">
+        <div className="fixed bottom-3 sm:bottom-4 right-1.5 sm:right-4 max-w-[calc(100vw-12px)] z-40 p-0.5 sm:p-1 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.95),0_0_20px_rgba(212,175,55,0.1),0_0_30px_rgba(154,77,255,0.06)] border border-white/10 hover:border-luxury-gold/30 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.01] bg-[#030107]/75 backdrop-blur-2xl">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
@@ -2906,19 +2910,19 @@ export default function App() {
           </div>
 
           {/* Inner scrollable wrapper for buttons */}
-          <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-2 sm:gap-2.5 py-0.5 px-1.5 justify-end touch-pan-x overscroll-contain">
+          <div className="relative z-10 w-full overflow-x-auto scrollbar-none flex flex-nowrap items-center gap-1.5 sm:gap-2 py-0.5 px-1 justify-end touch-pan-x overscroll-contain">
             
             {/* Premium Interactive Brand Crest/Badge */}
-            <div className="hidden xs:flex items-center gap-2 pl-3.5 pr-2.5 py-1 border-r border-white/10 mr-1 select-none">
-              <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-[#0a0518] via-[#1d1403] to-[#0a0518] border border-luxury-gold/50 flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.25)] overflow-hidden">
+            <div className="hidden xs:flex items-center gap-1.5 pl-2 pr-1.5 py-0.5 border-r border-white/10 mr-0.5 select-none">
+              <div className="relative w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-[#0a0518] via-[#1d1403] to-[#0a0518] border border-luxury-gold/40 flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.2)] overflow-hidden">
                 <div className="absolute inset-0 bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#9A4DFF)] animate-spin opacity-30" style={{ animationDuration: '8s' }} />
-                <Sparkles size={12} className="text-luxury-gold relative z-10 animate-pulse drop-shadow-[0_0_4px_rgba(212,175,55,0.8)]" />
+                <Sparkles size={10} className="text-luxury-gold relative z-10 animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
               </div>
               <div className="flex flex-col text-left min-w-0">
-                <span className="text-[7.5px] font-black uppercase font-mono tracking-[0.25em] bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent leading-none">
+                <span className="text-[7px] font-black uppercase font-mono tracking-[0.2em] bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent leading-none">
                   STYLE X
                 </span>
-                <span className="text-[6.5px] font-bold text-white/45 uppercase font-mono tracking-widest mt-1 whitespace-nowrap">
+                <span className="text-[6px] font-bold text-white/40 uppercase font-mono tracking-widest mt-0.5 whitespace-nowrap">
                   CONCIERGE
                 </span>
               </div>
@@ -2932,7 +2936,7 @@ export default function App() {
                   setLastReadTimestamp(now);
                   localStorage.setItem('stylex_notif_last_read_ts', String(now));
               }}
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
               title="VIP Dispatch & Product Alerts Hub"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2944,16 +2948,16 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Bell className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <Bell className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3 z-20 pointer-events-none">
+                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-20 pointer-events-none">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[7.5px] text-white font-extrabold items-center justify-center leading-none">
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 text-[7px] text-white font-extrabold items-center justify-center leading-none">
                     {unreadNotificationsCount}
                   </span>
                 </span>
               )}
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 NOTICES
               </span>
             </button>
@@ -2961,7 +2965,7 @@ export default function App() {
             {/* Claim Discount Option */}
             <button 
               onClick={() => { setIsDiscountOpen(true); setDiscountStatus('idle'); }}
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Request Campaign Discount Coupon"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -2973,8 +2977,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Percent className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <Percent className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 GET DISCOUNT
               </span>
             </button>
@@ -2983,7 +2987,7 @@ export default function App() {
             {!settings?.isLotteryDeactivated && (
               <button 
                 onClick={() => setIsLotteryOpen(true)}
-                className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
+                className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
                 title="Imperial Fortune Game"
               >
                 {/* Animated multi-layered running glow border around the button */}
@@ -2995,12 +2999,12 @@ export default function App() {
                   <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
                 </div>
                 
-                <Gift className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3 z-20 pointer-events-none">
+                <Gift className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.8] text-luxury-gold group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2 sm:h-2.5 sm:w-2.5 z-20 pointer-events-none">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
                 </span>
-                <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+                <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                   VOUCHER WHEEL
                 </span>
               </button>
@@ -3009,7 +3013,7 @@ export default function App() {
             {/* Track Existing Receipts */}
             <button 
               onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }}
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Track Existing Receipts"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -3021,8 +3025,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Ticket className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <Ticket className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 TRACK RECEIPT
               </span>
             </button>
@@ -3030,7 +3034,7 @@ export default function App() {
             {/* View Current Bag */}
             <button 
               onClick={() => { setInitialShowCheckout(false); setIsCartOpen(true); }}
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-1 luxury-interactive-menu-btn touch-manipulation select-none"
               title="View Current Luxury Bag"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -3055,14 +3059,14 @@ export default function App() {
                 }}
                 className="pointer-events-none"
               >
-                <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.8] text-white group-hover:text-luxury-gold transition-colors animate-micro-icon" />
               </motion.div>
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-luxury-gold text-luxury-black font-mono font-black text-[8.5px] sm:text-[10px] w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce pointer-events-none">
+                <span className="absolute -top-0.5 -right-0.5 bg-luxury-gold text-luxury-black font-mono font-black text-[7.5px] sm:text-[8.5px] w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center border border-black shadow z-20 animate-bounce pointer-events-none">
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 LUXURY BAG
               </span>
             </button>
@@ -3072,7 +3076,7 @@ export default function App() {
               href={`https://wa.me/${settings?.whatsappNumber || "8801755104443"}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-2 luxury-interactive-menu-btn touch-manipulation select-none"
               title="WhatsApp Live Concierge"
             >
               {/* Animated multi-layered running glow border around the button */}
@@ -3086,8 +3090,8 @@ export default function App() {
               
               {/* Pulsing visual halo rings */}
               <span className="absolute inset-0 rounded-full border border-emerald-500/40 opacity-30 scale-125 animate-ping pointer-events-none z-0"></span>
-              <MessageCircle className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <MessageCircle className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#25D366] group-hover:text-white transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-[#25D366] border border-emerald-500/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 WHATSAPP
               </span>
             </a>
@@ -3097,7 +3101,7 @@ export default function App() {
               href={settings?.facebookUrl || "https://www.facebook.com/stylex24/"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-3 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Facebook Official Collection"
             >
               {/* Animated border */}
@@ -3107,8 +3111,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#040812]" />
               </div>
               
-              <Facebook className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <Facebook className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 FACEBOOK
               </span>
             </a>
@@ -3118,7 +3122,7 @@ export default function App() {
               href={settings?.instagramUrl || "https://www.instagram.com/style_x25/?hl=en"}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-11 h-11 sm:w-13 sm:h-13 rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
+              className="w-8.5 h-8.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.8)] active:scale-95 outline-none cursor-pointer relative group shrink-0 animate-subtle-bob-4 luxury-interactive-menu-btn touch-manipulation select-none"
               title="Instagram Gallery Reel"
             >
               {/* Animated border */}
@@ -3128,8 +3132,8 @@ export default function App() {
                 <div className="absolute inset-[1.5px] rounded-full bg-[#0a0412]" />
               </div>
               
-              <Instagram className="relative z-10 w-4.5 h-4.5 sm:w-5 sm:h-5 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
-              <span className="absolute -top-11 luxury-floating-tooltip font-mono text-[9px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-1 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
+              <Instagram className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4 text-white group-hover:text-luxury-gold transition-colors animate-micro-icon pointer-events-none" />
+              <span className="absolute -top-9.5 luxury-floating-tooltip font-mono text-[8.5px] bg-black text-luxury-gold border border-luxury-gold/30 rounded px-2 py-0.5 whitespace-nowrap hidden sm:block z-20 pointer-events-none">
                 INSTAGRAM
               </span>
             </a>
@@ -3145,10 +3149,10 @@ export default function App() {
           <div className="space-y-4">
             <h5 className="font-serif text-sm font-semibold text-white tracking-widest uppercase">The Collection</h5>
             <ul className="space-y-2 font-light">
-              <li><button onClick={() => { setIsTrackMode(false); setActiveCategory('MEN'); }} className="hover:text-luxury-gold">Men&apos;s Garments</button></li>
-              <li><button onClick={() => { setIsTrackMode(false); setActiveCategory('WOMEN'); }} className="hover:text-luxury-gold">Women&apos;s Line</button></li>
-              <li><button onClick={() => { setIsTrackMode(false); setActiveCategory('ACCESSORIES'); }} className="hover:text-luxury-gold">Accessories Series</button></li>
-              <li><button onClick={() => { setIsTrackMode(false); setActiveCategory('ALL'); }} className="hover:text-luxury-gold">All exclusive archives</button></li>
+              <li><a href="/category/men" onClick={(e) => { e.preventDefault(); setIsTrackMode(false); setActiveCategory('MEN'); }} className="hover:text-luxury-gold">Men&apos;s Garments</a></li>
+              <li><a href="/category/women" onClick={(e) => { e.preventDefault(); setIsTrackMode(false); setActiveCategory('WOMEN'); }} className="hover:text-luxury-gold">Women&apos;s Line</a></li>
+              <li><a href="/category/accessories" onClick={(e) => { e.preventDefault(); setIsTrackMode(false); setActiveCategory('ACCESSORIES'); }} className="hover:text-luxury-gold">Accessories Series</a></li>
+              <li><a href="/" onClick={(e) => { e.preventDefault(); setIsTrackMode(false); setActiveCategory('ALL'); }} className="hover:text-luxury-gold">All exclusive archives</a></li>
             </ul>
           </div>
 
@@ -3156,7 +3160,7 @@ export default function App() {
           <div className="space-y-4">
             <h5 className="font-serif text-sm font-semibold text-white tracking-widest uppercase">Concierge Services</h5>
             <ul className="space-y-2 font-light">
-              <li><button onClick={() => { setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }} className="hover:text-luxury-gold">Track existing receipt</button></li>
+              <li><a href="/track" onClick={(e) => { e.preventDefault(); setIsTrackMode(true); window.scrollTo({ top: 350, behavior: 'smooth' }); }} className="hover:text-luxury-gold">Track existing receipt</a></li>
               {!settings?.isLotteryDeactivated && (
                 <li><button onClick={() => setIsLotteryOpen(true)} className="hover:text-luxury-gold">Imperial Fortune Wheel</button></li>
               )}

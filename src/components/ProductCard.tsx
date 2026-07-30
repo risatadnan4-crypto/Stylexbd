@@ -324,7 +324,14 @@ export default function ProductCard({
       <div 
         className="relative w-full aspect-square overflow-hidden rounded-xl bg-black/90 border border-luxury-gold/50 group-hover:border-luxury-gold flex items-center justify-center group cursor-pointer mb-2 shadow-inner p-1 sm:p-1.5"
       >
-        <div className="absolute inset-0 z-0" onClick={() => onProductClick(product)} />
+        <a 
+          href={`/products/${encodeURIComponent(product.code || product.id)}`}
+          onClick={(e) => {
+            e.preventDefault();
+            onProductClick(product);
+          }}
+          className="absolute inset-0 z-0" 
+        />
         
         {/* Premium Floating Free Delivery Badge */}
         {product.freeDelivery && (
@@ -454,11 +461,17 @@ export default function ProductCard({
               </span>
             </div>
           )}
-          <h3 
-            onClick={() => onProductClick(product)}
-            className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 cursor-pointer mb-0.5 text-left leading-tight"
-          >
-            {product.title}
+          <h3 className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 mb-0.5 text-left leading-tight">
+            <a 
+              href={`/products/${encodeURIComponent(product.code || product.id)}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onProductClick(product);
+              }}
+              className="hover:text-luxury-gold text-white"
+            >
+              {product.title}
+            </a>
           </h3>
 
           {/* Pricing & Exclusive tag / Flash Sale Badge */}

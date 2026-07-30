@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "dist/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -14,8 +19,12 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg|robots.txt).*)$",
-      "destination": "/index.html"
+      "source": "/robots.txt",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
+      "destination": "/api/index.ts"
     }
   ]
 }
