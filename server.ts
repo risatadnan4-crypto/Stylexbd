@@ -476,8 +476,7 @@ function initializeAiKeyPool() {
   }
 }
 
-// Auto-run key pool initialization on boot
-initializeAiKeyPool();
+// Auto-run key pool initialization is deferred until after initial sync from Supabase completes in startServer()
 
 async function executeWithAiKeyRotation<T>(
   operationFn: (ai: GoogleGenAI, activeKeyInfo: { id: string; name: string; keyHint: string; priority: number }) => Promise<T>
@@ -1893,6 +1892,37 @@ app.post("/api/settings", async (req, res) => {
     };
 
     await syncSettingsToCloud();
+
+    // Background download and sync to public/stylex_logo.jpg if logoUrl is changed/external
+    if (db.settings.logoUrl && db.settings.logoUrl.startsWith("http")) {
+      (async () => {
+        try {
+          console.log(`[LOGO_SYNC] Downloading updated logo to local static fallback: ${db.settings.logoUrl}`);
+          const logoRes = await fetch(db.settings.logoUrl);
+          if (logoRes.ok) {
+            const arrayBuffer = await logoRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            
+            const localPaths = [
+              path.join(process.cwd(), "public", "stylex_logo.jpg"),
+              path.join(process.cwd(), "dist", "stylex_logo.jpg")
+            ];
+            
+            for (const p of localPaths) {
+              try {
+                fs.writeFileSync(p, buffer);
+                console.log(`[LOGO_SYNC] Saved logo to local path: ${p}`);
+              } catch (fsErr: any) {
+                // Silently skip if read-only or doesn't exist
+              }
+            }
+          }
+        } catch (fetchErr: any) {
+          console.warn("[LOGO_SYNC] Error syncing logo in background:", fetchErr.message);
+        }
+      })();
+    }
+
     return res.json(db.settings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -6707,7 +6737,8 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 async function startServer() {
   // Trigger initial background sync
   try {
-    syncFromSupabase();
+    await syncFromSupabase();
+    initializeAiKeyPool();
     // Schedule periodic polling sync from Supabase
     setInterval(syncFromSupabase, 45000);
   } catch (err: any) {

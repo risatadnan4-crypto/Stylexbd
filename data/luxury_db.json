@@ -180,69 +180,6 @@
   ],
   "products": [
     {
-      "id": "r9qm3w5m",
-      "code": "XP-916",
-      "title": "ACID WASH DROP SHOULDER",
-      "description": "✨ Trendy Acid Wash Finish (Unique vintage vibe)\n✨ Drop Shoulder – Relaxed Oversized Fit\n✨ Heavyweight 240+ GSM Fabric\n✨ Soft, Durable & Premium Feel\n✨ Classic Crew Neck",
-      "price": 650,
-      "category": "MEN",
-      "stock": 9,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283354003_Gemini_Generated_Image_eql3beeql3beeql3.png",
-      "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283486049_Gemini_Generated_Image_tq04jstq04jstq04.png"
-      ],
-      "colors": [],
-      "sizes": [
-        "M",
-        "L",
-        "XL"
-      ],
-      "dimensions": "Bespoke Fit",
-      "whyBuy": "✨ Perfect for Streetwear & Casual Fits\n✨ Soft, Durable & Premium Feel",
-      "trending": true,
-      "featured": true,
-      "isPinned": false,
-      "deliveryPrice": 100,
-      "deliveryPriceDhaka": 140,
-      "deliveryPriceChattogram": 140,
-      "deliveryPriceRajshahi": 140,
-      "deliveryPriceKhulna": 140,
-      "deliveryPriceBarishal": 140,
-      "deliveryPriceSylhet": 140,
-      "deliveryPriceRangpur": 140,
-      "deliveryPriceMymensingh": 140,
-      "lotteryEligible": false,
-      "couponCode": "",
-      "couponDiscountPercent": 15,
-      "offerPrice": 549,
-      "timerOfferPrice": 549,
-      "timerStartTime": "",
-      "timerStartDate": "",
-      "timerEndTime": "2026-07-31T17:01",
-      "timerEndDate": "2026-07-31T17:01",
-      "timerMessage": " Limited",
-      "timerActive": true,
-      "timerEnabled": true,
-      "bkashNumber": "01816027852",
-      "nagadNumber": "01816027852",
-      "paymentType": "delivery_charge",
-      "paymentPercentage": 10,
-      "deliveryCharge": 100,
-      "deliveryDays": "3-4",
-      "freeDelivery": false,
-      "likes": 284,
-      "seoTitle": "",
-      "seoDescription": "",
-      "seoKeywords": "",
-      "metaKeywords": "",
-      "seoSlug": "",
-      "canonicalUrl": "",
-      "ogTitle": "",
-      "ogDescription": "",
-      "ogImage": "",
-      "robots": "index, follow"
-    },
-    {
       "id": "bqjaeckq",
       "code": "XP-444",
       "title": "Stylish Drop Shoulder T-Shirt",
@@ -277,13 +214,13 @@
       "lotteryEligible": false,
       "couponCode": "",
       "couponDiscountPercent": 15,
-      "offerPrice": 500,
-      "timerOfferPrice": 500,
+      "offerPrice": 527,
+      "timerOfferPrice": 527,
       "timerStartTime": "",
       "timerStartDate": "",
-      "timerEndTime": "2026-07-30T20:33",
-      "timerEndDate": "2026-07-30T20:33",
-      "timerMessage": "Limitted Stock",
+      "timerEndTime": "2026-07-21T12:22",
+      "timerEndDate": "2026-07-21T12:22",
+      "timerMessage": "Limitted",
       "timerActive": true,
       "timerEnabled": true,
       "bkashNumber": "01816027852",
@@ -291,9 +228,9 @@
       "paymentType": "delivery_charge",
       "paymentPercentage": 10,
       "deliveryCharge": 100,
-      "deliveryDays": "2-3",
+      "deliveryDays": "3-5",
       "freeDelivery": false,
-      "likes": 369,
+      "likes": 323,
       "seoTitle": "",
       "seoDescription": "",
       "seoKeywords": "",
@@ -323,7 +260,7 @@
       "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
       "trending": true,
       "featured": true,
-      "isPinned": true,
+      "isPinned": false,
       "deliveryPrice": 100,
       "deliveryPriceDhaka": 140,
       "deliveryPriceChattogram": 70,
@@ -336,23 +273,86 @@
       "lotteryEligible": true,
       "couponCode": "RRR5",
       "couponDiscountPercent": 5,
-      "offerPrice": 3600,
-      "timerOfferPrice": 3600,
+      "offerPrice": 3499,
+      "timerOfferPrice": 3499,
       "timerStartTime": "2026-08-02T14:22",
       "timerStartDate": "2026-08-02T14:22",
-      "timerEndTime": "2026-07-21T19:21",
-      "timerEndDate": "2026-07-21T19:21",
-      "timerMessage": "Limitted Stock",
+      "timerEndTime": "2026-08-01T15:47",
+      "timerEndDate": "2026-08-01T15:47",
+      "timerMessage": "Limitted ",
       "timerActive": true,
       "timerEnabled": true,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
       "paymentType": "percentage",
-      "paymentPercentage": 25,
-      "deliveryCharge": 140,
+      "paymentPercentage": 50,
+      "deliveryCharge": 100,
       "deliveryDays": "3-5",
       "freeDelivery": false,
-      "likes": 658,
+      "likes": 343,
+      "seoTitle": "",
+      "seoDescription": "",
+      "seoKeywords": "",
+      "metaKeywords": "",
+      "seoSlug": "",
+      "canonicalUrl": "",
+      "ogTitle": "",
+      "ogDescription": "",
+      "ogImage": "",
+      "robots": "index, follow"
+    },
+    {
+      "id": "r9qm3w5m",
+      "code": "XP-916",
+      "title": "ACID WASH DROP SHOULDER",
+      "description": "✨ Trendy Acid Wash Finish (Unique vintage vibe)\n✨ Drop Shoulder – Relaxed Oversized Fit\n✨ Heavyweight 240+ GSM Fabric\n✨ Soft, Durable & Premium Feel\n✨ Classic Crew Neck",
+      "price": 650,
+      "category": "MEN",
+      "stock": 9,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283354003_Gemini_Generated_Image_eql3beeql3beeql3.png",
+      "images": [
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283486049_Gemini_Generated_Image_tq04jstq04jstq04.png"
+      ],
+      "colors": [],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "dimensions": "Bespoke Fit",
+      "whyBuy": "✨ Perfect for Streetwear & Casual Fits\n✨ Soft, Durable & Premium Feel",
+      "trending": true,
+      "featured": true,
+      "isPinned": false,
+      "deliveryPrice": 100,
+      "deliveryPriceDhaka": 140,
+      "deliveryPriceChattogram": 140,
+      "deliveryPriceRajshahi": 140,
+      "deliveryPriceKhulna": 140,
+      "deliveryPriceBarishal": 140,
+      "deliveryPriceSylhet": 140,
+      "deliveryPriceRangpur": 140,
+      "deliveryPriceMymensingh": 140,
+      "lotteryEligible": false,
+      "couponCode": "",
+      "couponDiscountPercent": 15,
+      "offerPrice": 511,
+      "timerOfferPrice": 511,
+      "timerStartTime": "",
+      "timerStartDate": "",
+      "timerEndTime": "2026-08-01T15:38",
+      "timerEndDate": "2026-08-01T15:38",
+      "timerMessage": " Limited",
+      "timerActive": true,
+      "timerEnabled": true,
+      "bkashNumber": "01816027852",
+      "nagadNumber": "01816027852",
+      "paymentType": "cod",
+      "paymentPercentage": 10,
+      "deliveryCharge": 100,
+      "deliveryDays": "3-5",
+      "freeDelivery": false,
+      "likes": 0,
       "seoTitle": "",
       "seoDescription": "",
       "seoKeywords": "",
@@ -416,68 +416,6 @@
       "deliveryDays": "3-4",
       "freeDelivery": false,
       "likes": 423,
-      "seoTitle": "",
-      "seoDescription": "",
-      "seoKeywords": "",
-      "metaKeywords": "",
-      "seoSlug": "",
-      "canonicalUrl": "",
-      "ogTitle": "",
-      "ogDescription": "",
-      "ogImage": "",
-      "robots": "index, follow"
-    },
-    {
-      "id": "r8vfkyzg",
-      "code": "XP-268",
-      "title": "Automatic Rebound Ab Roller",
-      "description": "📌 Material: ABS + Metal + Sponge\n\n\n📌 Durable & Wear Resistant\n\n\n📌 Long-lasting Performance\n\n\n🎯 কোন কোন মাসল কাজ করবে?",
-      "price": 2500,
-      "category": "ACCESSORIES",
-      "stock": 29,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783183460455_file_0000000014a471fab44fbe3f7e6ac69c.png",
-      "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783182707673_29680.jpg",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783183470059_1776618101_L_1.jpg"
-      ],
-      "colors": [],
-      "sizes": [
-        "STANDARD"
-      ],
-      "dimensions": "Standard Fitting",
-      "whyBuy": "👉 জিম ছাড়াই ঘরে বসে ফিটনেস\n\n\n👉 Auto Rebound – সহজ ও কার্যকর\n\n\n👉 Elbow Support – নিরাপদ ট্রেনিং\n\n\n👉 নতুন ও অভিজ্ঞ—সবাই ব্যবহার করতে পারবে",
-      "trending": true,
-      "featured": true,
-      "isPinned": false,
-      "deliveryPrice": 100,
-      "deliveryPriceDhaka": 140,
-      "deliveryPriceChattogram": 70,
-      "deliveryPriceRajshahi": 140,
-      "deliveryPriceKhulna": 140,
-      "deliveryPriceBarishal": 140,
-      "deliveryPriceSylhet": 140,
-      "deliveryPriceRangpur": 140,
-      "deliveryPriceMymensingh": 140,
-      "lotteryEligible": true,
-      "couponCode": "",
-      "couponDiscountPercent": 15,
-      "offerPrice": 2000,
-      "timerOfferPrice": 2000,
-      "timerStartTime": "",
-      "timerStartDate": "",
-      "timerEndTime": "2026-07-10T22:32",
-      "timerEndDate": "2026-07-10T22:32",
-      "timerMessage": "",
-      "timerActive": true,
-      "timerEnabled": true,
-      "bkashNumber": "01816027852",
-      "nagadNumber": "01816027852",
-      "paymentType": "delivery_charge",
-      "paymentPercentage": 10,
-      "deliveryCharge": 140,
-      "deliveryDays": "3-5",
-      "freeDelivery": false,
-      "likes": 142,
       "seoTitle": "",
       "seoDescription": "",
       "seoKeywords": "",
@@ -610,73 +548,13 @@
       "robots": "index, follow"
     },
     {
-      "id": "dmyy2t08",
-      "code": "XP-239",
-      "title": "Microfiber Coral Fleece Quick Dry Hair Towel",
-      "description": "এই Microfiber Coral Fleece Hair Drying Turban Towel হলো একটি\nহাই কোয়ালিটি সফট ও অ্যাবজরবেন্ট তোয়ালে, যা চুল দ্রুত শুকিয়ে দেয়।\n\nএর টারবান ডিজাইন ও বোতাম থাকার কারণে\nসহজে মাথায় সেট করা যায় এবং খুলে যায় না।\nহালকা ও ত্বক-বান্ধব ফাইবার দিয়ে তৈরি\nহওয়ায় এটি চুলের জন্য সম্পূর্ণ নিরাপদ।\n\nচুলে হিট ড্রায়ার ব্যবহার না করে সহজে\nশুকানোর জন্য এটি একটি পারফেক্ট সমাধান।",
-      "price": 300,
-      "category": "WOMEN",
-      "stock": 28,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783184578292_file_00000000209872069472c80bf9465c33.png",
-      "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783184592931_file_00000000c7a072069e073a18a635336e.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783184603980_1783184217481.png"
-      ],
-      "colors": [],
-      "sizes": [],
-      "dimensions": "Bespoke Fit",
-      "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
-      "trending": true,
-      "featured": true,
-      "isPinned": false,
-      "deliveryPrice": 100,
-      "deliveryPriceDhaka": 140,
-      "deliveryPriceChattogram": 70,
-      "deliveryPriceRajshahi": 140,
-      "deliveryPriceKhulna": 150,
-      "deliveryPriceBarishal": 150,
-      "deliveryPriceSylhet": 150,
-      "deliveryPriceRangpur": 150,
-      "deliveryPriceMymensingh": 150,
-      "lotteryEligible": true,
-      "couponCode": "",
-      "couponDiscountPercent": 15,
-      "offerPrice": 270,
-      "timerOfferPrice": 270,
-      "timerStartTime": "",
-      "timerStartDate": "",
-      "timerEndTime": "",
-      "timerEndDate": "",
-      "timerMessage": "",
-      "timerActive": true,
-      "timerEnabled": true,
-      "bkashNumber": "01816027852",
-      "nagadNumber": "01816027852",
-      "paymentType": "delivery_charge",
-      "paymentPercentage": 10,
-      "deliveryCharge": 130,
-      "deliveryDays": "3-5",
-      "freeDelivery": false,
-      "likes": 0,
-      "seoTitle": "",
-      "seoDescription": "",
-      "seoKeywords": "",
-      "metaKeywords": "",
-      "seoSlug": "",
-      "canonicalUrl": "",
-      "ogTitle": "",
-      "ogDescription": "",
-      "ogImage": "",
-      "robots": "index, follow"
-    },
-    {
       "id": "dyxngd1g",
       "code": "XP-440",
       "title": "Premium Gararah  |  Style X",
       "description": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট।\nভারি এমব্রয়ডারি কাজ করা।\nফুল বডিতে রিপিট বসানো।\nকামিজ এন্ড প্যান্ট এর ইনসাইডে ইনার আছে।\nকামিজ লং ৩৬-৩৮ ইঞ্চি।\nপ্যান্টের লং ৪০ ইঞ্চি।\n৩৬-৪৬ বডি সাইজ পর্যন্ত পড়া যাবে।",
       "price": 2999,
       "category": "WOMEN",
-      "stock": 14,
+      "stock": 13,
       "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
       "images": [
         "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
@@ -692,7 +570,7 @@
       "whyBuy": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট",
       "trending": true,
       "featured": true,
-      "isPinned": true,
+      "isPinned": false,
       "deliveryPrice": 100,
       "deliveryPriceDhaka": 130,
       "deliveryPriceChattogram": 70,
@@ -705,23 +583,23 @@
       "lotteryEligible": false,
       "couponCode": "",
       "couponDiscountPercent": 15,
-      "offerPrice": 2499,
-      "timerOfferPrice": 2499,
+      "offerPrice": 2399,
+      "timerOfferPrice": 2399,
       "timerStartTime": "2026-08-03T12:12",
       "timerStartDate": "2026-08-03T12:12",
-      "timerEndTime": "2026-08-02T17:02",
-      "timerEndDate": "2026-08-02T17:02",
+      "timerEndTime": "2026-08-01T15:44",
+      "timerEndDate": "2026-08-01T15:44",
       "timerMessage": "Limited Stock",
       "timerActive": true,
       "timerEnabled": true,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
       "paymentType": "percentage",
-      "paymentPercentage": 10,
+      "paymentPercentage": 50,
       "deliveryCharge": 100,
       "deliveryDays": "3-5",
       "freeDelivery": false,
-      "likes": 753,
+      "likes": 324,
       "seoTitle": "sfs  fs",
       "seoDescription": "",
       "seoKeywords": "sfsfsf",
@@ -734,7 +612,31 @@
       "robots": "index, follow"
     }
   ],
-  "orders": [],
+  "orders": [
+    {
+      "id": "STX-252863",
+      "customerName": "Risat Boss",
+      "customerPhone": "01816027852",
+      "customerAddress": "Chittagong",
+      "customerCity": "Chattogram",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dyxngd1g",
+          "title": "Premium Gararah  |  Style X",
+          "price": 2399,
+          "selectedSize": "L",
+          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2469,
+      "status": "CONFIRMED",
+      "date": "2026-07-31T09:44:13.367Z",
+      "created_at": "2026-07-31T09:44:13.776953+00:00",
+      "userId": null
+    }
+  ],
   "backInStockAlerts": [],
   "smsSubscriptions": [
     {
@@ -996,6 +898,528 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-07-30T10:56:35.167Z",
       "created_at": "2026-07-30T10:56:35.161603+00:00"
+    },
+    {
+      "id": "room-kyzb08oz",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:25:38.127Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:25:38.127Z",
+      "created_at": "2026-07-30T11:25:38.761331+00:00"
+    },
+    {
+      "id": "room-w24kt4a1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:36:49.045Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:36:49.045Z",
+      "created_at": "2026-07-30T11:36:49.166194+00:00"
+    },
+    {
+      "id": "room-aw3yyksm",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:37:33.306Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:37:33.306Z",
+      "created_at": "2026-07-30T11:37:33.941044+00:00"
+    },
+    {
+      "id": "room-xvqy12dr",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:39:24.374Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:39:24.374Z",
+      "created_at": "2026-07-30T11:39:24.476333+00:00"
+    },
+    {
+      "id": "room-45fh93tn",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:49:15.235Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:49:15.235Z",
+      "created_at": "2026-07-30T11:49:15.876561+00:00"
+    },
+    {
+      "id": "room-qmbkutil",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T11:51:18.338Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T11:51:18.338Z",
+      "created_at": "2026-07-30T11:51:18.445539+00:00"
+    },
+    {
+      "id": "room-haaau4gy",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T12:15:55.064Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T12:15:55.064Z",
+      "created_at": "2026-07-30T12:15:55.215947+00:00"
+    },
+    {
+      "id": "room-8p4hcv5i",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-30T12:17:16.234Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-30T12:17:16.234Z",
+      "created_at": "2026-07-30T12:17:16.945749+00:00"
+    },
+    {
+      "id": "room-i4n9v9p1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T07:58:14.397Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T07:58:14.397Z",
+      "created_at": "2026-07-31T07:58:14.393952+00:00"
+    },
+    {
+      "id": "room-5lsmzxqv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:06:30.160Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:06:30.160Z",
+      "created_at": "2026-07-31T09:06:30.199612+00:00"
+    },
+    {
+      "id": "room-4ikyza77",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:11:55.562Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:11:55.562Z",
+      "created_at": "2026-07-31T09:11:55.712391+00:00"
+    },
+    {
+      "id": "room-aofyidiy",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:13:06.235Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:13:06.235Z",
+      "created_at": "2026-07-31T09:13:06.37632+00:00"
+    },
+    {
+      "id": "room-hazy5hbv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:23:07.104Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:23:07.104Z",
+      "created_at": "2026-07-31T09:23:07.777081+00:00"
+    },
+    {
+      "id": "room-ve4wc059",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:24:24.016Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:24:24.016Z",
+      "created_at": "2026-07-31T09:24:24.168093+00:00"
+    },
+    {
+      "id": "room-t9qakqbk",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:25:42.952Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:25:42.952Z",
+      "created_at": "2026-07-31T09:25:43.561768+00:00"
+    },
+    {
+      "id": "room-i5d68mxg",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:26:03.026Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:26:03.026Z",
+      "created_at": "2026-07-31T09:26:03.192006+00:00"
+    },
+    {
+      "id": "room-dx6u45lr",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:34:55.021Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:34:55.021Z",
+      "created_at": "2026-07-31T09:34:55.154416+00:00"
+    },
+    {
+      "id": "room-z2zl1nuf",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:36:00.203Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:36:00.203Z",
+      "created_at": "2026-07-31T09:36:00.322572+00:00"
+    },
+    {
+      "id": "room-h131dp98",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:42:59.902Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:42:59.902Z",
+      "created_at": "2026-07-31T09:43:00.018617+00:00"
+    },
+    {
+      "id": "room-g3rpmzbj",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:43:24.009Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:43:24.009Z",
+      "created_at": "2026-07-31T09:43:24.111197+00:00"
+    },
+    {
+      "id": "room-0qptynuk",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:49:49.378Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:49:49.378Z",
+      "created_at": "2026-07-31T09:49:49.480911+00:00"
+    },
+    {
+      "id": "room-d0jyrc76",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T09:50:28.272Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T09:50:28.272Z",
+      "created_at": "2026-07-31T09:50:28.393199+00:00"
+    },
+    {
+      "id": "room-2l1dvp2g",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T14:19:58.218Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T14:19:58.218Z",
+      "created_at": "2026-07-31T14:19:58.243418+00:00"
+    },
+    {
+      "id": "room-o2uwulz5",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:05:10.658Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:05:10.658Z",
+      "created_at": "2026-07-31T16:05:11.324543+00:00"
+    },
+    {
+      "id": "room-te25l4yw",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:07:37.300Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:07:37.300Z",
+      "created_at": "2026-07-31T16:07:37.375491+00:00"
+    },
+    {
+      "id": "room-otesa7qc",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:07:44.286Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:07:44.286Z",
+      "created_at": "2026-07-31T16:07:44.928642+00:00"
+    },
+    {
+      "id": "room-s41qumx2",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:08:03.393Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:08:03.393Z",
+      "created_at": "2026-07-31T16:08:03.541186+00:00"
+    },
+    {
+      "id": "room-8xefikna",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:08:42.718Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:08:42.718Z",
+      "created_at": "2026-07-31T16:08:42.918904+00:00"
+    },
+    {
+      "id": "room-p00tiego",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-07-31T16:08:51.032Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-07-31T16:08:51.032Z",
+      "created_at": "2026-07-31T16:08:51.190627+00:00"
     }
   ],
   "carts": {
@@ -1146,17 +1570,16 @@
     "risatadnan27@gmail.com": [
       {
         "product": {
-          "id": "dyxngd1g",
-          "code": "XP-440",
-          "title": "Premium Gararah  |  Style X",
-          "description": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট।\nভারি এমব্রয়ডারি কাজ করা।\nফুল বডিতে রিপিট বসানো।\nকামিজ এন্ড প্যান্ট এর ইনসাইডে ইনার আছে।\nকামিজ লং ৩৬-৩৮ ইঞ্চি।\nপ্যান্টের লং ৪০ ইঞ্চি।\n৩৬-৪৬ বডি সাইজ পর্যন্ত পড়া যাবে।",
-          "price": 2999,
-          "category": "WOMEN",
-          "stock": 14,
-          "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
+          "id": "r9qm3w5m",
+          "code": "XP-916",
+          "title": "ACID WASH DROP SHOULDER",
+          "description": "✨ Trendy Acid Wash Finish (Unique vintage vibe)\n✨ Drop Shoulder – Relaxed Oversized Fit\n✨ Heavyweight 240+ GSM Fabric\n✨ Soft, Durable & Premium Feel\n✨ Classic Crew Neck",
+          "price": 650,
+          "category": "MEN",
+          "stock": 9,
+          "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283354003_Gemini_Generated_Image_eql3beeql3beeql3.png",
           "images": [
-            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
-            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png"
+            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283486049_Gemini_Generated_Image_tq04jstq04jstq04.png"
           ],
           "colors": [],
           "sizes": [
@@ -1165,34 +1588,39 @@
             "XL"
           ],
           "dimensions": "Bespoke Fit",
-          "whyBuy": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট",
+          "whyBuy": "✨ Perfect for Streetwear & Casual Fits\n✨ Soft, Durable & Premium Feel",
           "trending": true,
           "featured": true,
-          "isPinned": true,
+          "isPinned": false,
           "deliveryPrice": 100,
-          "deliveryPriceDhaka": 130,
-          "deliveryPriceChattogram": 70,
-          "deliveryPriceRajshahi": 130,
-          "deliveryPriceKhulna": 130,
-          "deliveryPriceBarishal": 130,
-          "deliveryPriceSylhet": 130,
-          "deliveryPriceRangpur": 130,
-          "deliveryPriceMymensingh": 130,
+          "deliveryPriceDhaka": 140,
+          "deliveryPriceChattogram": 140,
+          "deliveryPriceRajshahi": 140,
+          "deliveryPriceKhulna": 140,
+          "deliveryPriceBarishal": 140,
+          "deliveryPriceSylhet": 140,
+          "deliveryPriceRangpur": 140,
+          "deliveryPriceMymensingh": 140,
           "lotteryEligible": false,
           "couponCode": "",
           "couponDiscountPercent": 15,
-          "offerPrice": 2489,
-          "timerEndTime": "2026-07-21T13:33",
-          "timerMessage": "Limited",
+          "offerPrice": 549,
+          "timerOfferPrice": 549,
+          "timerStartTime": "",
+          "timerStartDate": "",
+          "timerEndTime": "2026-07-31T17:01",
+          "timerEndDate": "2026-07-31T17:01",
+          "timerMessage": " Limited",
           "timerActive": true,
+          "timerEnabled": true,
           "bkashNumber": "01816027852",
           "nagadNumber": "01816027852",
-          "paymentType": "percentage",
+          "paymentType": "delivery_charge",
           "paymentPercentage": 10,
           "deliveryCharge": 100,
-          "deliveryDays": "3-5",
+          "deliveryDays": "3-4",
           "freeDelivery": false,
-          "likes": 753,
+          "likes": 284,
           "seoTitle": "",
           "seoDescription": "",
           "seoKeywords": "",
@@ -1205,69 +1633,6 @@
           "robots": "index, follow"
         },
         "selectedSize": "M",
-        "quantity": 3
-      },
-      {
-        "product": {
-          "id": "4qoi3wk4",
-          "code": "XP-526",
-          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
-          "description": "",
-          "price": 6000,
-          "category": "MEN",
-          "stock": 7,
-          "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1782469214791_ChatGPT_Image_Jun_10,_2026,_10_54_15_AM.png",
-          "images": [
-            "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784632474670_7bbd9ce7988f109ef8042ee4de3f8ced.jpg"
-          ],
-          "colors": [],
-          "sizes": [],
-          "dimensions": "Bespoke Fit",
-          "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
-          "trending": true,
-          "featured": true,
-          "isPinned": true,
-          "deliveryPrice": 100,
-          "deliveryPriceDhaka": 140,
-          "deliveryPriceChattogram": 70,
-          "deliveryPriceRajshahi": 140,
-          "deliveryPriceKhulna": 140,
-          "deliveryPriceBarishal": 140,
-          "deliveryPriceSylhet": 140,
-          "deliveryPriceRangpur": 140,
-          "deliveryPriceMymensingh": 140,
-          "lotteryEligible": true,
-          "couponCode": "RRR5",
-          "couponDiscountPercent": 5,
-          "offerPrice": 3600,
-          "timerOfferPrice": 3600,
-          "timerStartTime": "2026-08-02T14:22",
-          "timerStartDate": "2026-08-02T14:22",
-          "timerEndTime": "2026-07-21T19:21",
-          "timerEndDate": "2026-07-21T19:21",
-          "timerMessage": "Limitted Stock",
-          "timerActive": true,
-          "timerEnabled": true,
-          "bkashNumber": "01816027852",
-          "nagadNumber": "01816027852",
-          "paymentType": "percentage",
-          "paymentPercentage": 25,
-          "deliveryCharge": 140,
-          "deliveryDays": "3-5",
-          "freeDelivery": false,
-          "likes": 658,
-          "seoTitle": "",
-          "seoDescription": "",
-          "seoKeywords": "",
-          "metaKeywords": "",
-          "seoSlug": "",
-          "canonicalUrl": "",
-          "ogTitle": "",
-          "ogDescription": "",
-          "ogImage": "",
-          "robots": "index, follow"
-        },
-        "selectedSize": "Standard",
         "quantity": 1
       }
     ]
@@ -1311,7 +1676,7 @@
     "isLotteryDeactivated": true,
     "isNotifyMeDeactivated": false,
     "isXoroVoiceDisabled": true,
-    "isXoroVoiceAndAnswerDisabled": false,
+    "isXoroVoiceAndAnswerDisabled": true,
     "isXoroTextOnly": false,
     "smsProvider": "mock",
     "twilioAccountSid": "",
@@ -1363,25 +1728,25 @@
       }
     ],
     "productPayments": {
-      "dyxngd1g": {
-        "bkashNumber": "01816027852",
-        "nagadNumber": "01816027852",
-        "paymentType": "percentage",
+      "r9qm3w5m": {
+        "bkashNumber": "",
+        "nagadNumber": "",
+        "paymentType": "cod",
         "paymentPercentage": 10,
         "deliveryCharge": 100,
         "deliveryDays": "3-5",
-        "isPinned": true,
-        "offerPrice": 2499,
-        "timerOfferPrice": 2499,
-        "timerStartTime": "2026-08-03T12:12",
-        "timerStartDate": "2026-08-03T12:12",
-        "timerEndTime": "2026-08-02T17:02",
-        "timerEndDate": "2026-08-02T17:02",
-        "timerMessage": "Limited Stock",
+        "isPinned": false,
+        "offerPrice": 511,
+        "timerOfferPrice": 511,
+        "timerStartTime": null,
+        "timerStartDate": null,
+        "timerEndTime": "2026-08-01T15:38",
+        "timerEndDate": "2026-08-01T15:38",
+        "timerMessage": " Limited",
         "timerActive": true,
         "timerEnabled": true,
         "freeDelivery": false,
-        "likes": 753
+        "likes": 0
       },
       "bqjaeckq": {
         "bkashNumber": "01816027852",
@@ -1389,65 +1754,45 @@
         "paymentType": "delivery_charge",
         "paymentPercentage": 10,
         "deliveryCharge": 100,
-        "deliveryDays": "2-3",
+        "deliveryDays": "3-5",
         "isPinned": false,
-        "offerPrice": 500,
-        "timerOfferPrice": 500,
+        "offerPrice": 527,
+        "timerOfferPrice": 527,
         "timerStartTime": null,
         "timerStartDate": null,
-        "timerEndTime": "2026-07-30T20:33",
-        "timerEndDate": "2026-07-30T20:33",
-        "timerMessage": "Limitted Stock",
+        "timerEndTime": "2026-07-21T12:22",
+        "timerEndDate": "2026-07-21T12:22",
+        "timerMessage": "Limitted",
         "timerActive": true,
         "timerEnabled": true,
         "freeDelivery": false,
-        "likes": 369
+        "likes": 323
+      },
+      "dyxngd1g": {
+        "bkashNumber": "01816027852",
+        "nagadNumber": "01816027852",
+        "paymentType": "percentage",
+        "paymentPercentage": 50,
+        "deliveryCharge": 100,
+        "deliveryDays": "3-5",
+        "isPinned": false,
+        "offerPrice": 2399,
+        "timerOfferPrice": 2399,
+        "timerStartTime": null,
+        "timerStartDate": null,
+        "timerEndTime": "2026-08-01T15:44",
+        "timerEndDate": "2026-08-01T15:44",
+        "timerMessage": "Limited Stock",
+        "timerActive": true,
+        "timerEnabled": true,
+        "freeDelivery": false,
+        "likes": 324
       },
       "4qoi3wk4": {
         "bkashNumber": "01816027852",
         "nagadNumber": "01816027852",
         "paymentType": "percentage",
-        "paymentPercentage": 25,
-        "deliveryCharge": 140,
-        "deliveryDays": "3-5",
-        "isPinned": true,
-        "offerPrice": 3600,
-        "timerOfferPrice": 3600,
-        "timerStartTime": "2026-08-02T14:22",
-        "timerStartDate": "2026-08-02T14:22",
-        "timerEndTime": "2026-07-21T19:21",
-        "timerEndDate": "2026-07-21T19:21",
-        "timerMessage": "Limitted Stock",
-        "timerActive": true,
-        "timerEnabled": true,
-        "freeDelivery": false,
-        "likes": 658
-      },
-      "r9qm3w5m": {
-        "bkashNumber": "01816027852",
-        "nagadNumber": "01816027852",
-        "paymentType": "delivery_charge",
-        "paymentPercentage": 10,
-        "deliveryCharge": 100,
-        "deliveryDays": "3-4",
-        "isPinned": false,
-        "offerPrice": 549,
-        "timerOfferPrice": 549,
-        "timerStartTime": null,
-        "timerStartDate": null,
-        "timerEndTime": "2026-07-31T17:01",
-        "timerEndDate": "2026-07-31T17:01",
-        "timerMessage": " Limited",
-        "timerActive": true,
-        "timerEnabled": true,
-        "freeDelivery": false,
-        "likes": 284
-      },
-      "80qm30vk": {
-        "bkashNumber": "01816027852",
-        "nagadNumber": "01816027852",
-        "paymentType": "full_advance",
-        "paymentPercentage": 10,
+        "paymentPercentage": 50,
         "deliveryCharge": 100,
         "deliveryDays": "3-5",
         "isPinned": false,
@@ -1455,27 +1800,13 @@
         "timerOfferPrice": 3499,
         "timerStartTime": null,
         "timerStartDate": null,
-        "timerEndTime": "2026-07-08T13:04",
-        "timerEndDate": "2026-07-08T13:04",
-        "timerMessage": "Welcome Offer",
-        "timerActive": false,
-        "timerEnabled": false,
+        "timerEndTime": "2026-08-01T15:47",
+        "timerEndDate": "2026-08-01T15:47",
+        "timerMessage": "Limitted ",
+        "timerActive": true,
+        "timerEnabled": true,
         "freeDelivery": false,
-        "likes": 0
-      }
-    },
-    "productSeo": {
-      "80qm30vk": {
-        "seoTitle": "",
-        "seoDescription": "",
-        "seoKeywords": "",
-        "metaKeywords": "",
-        "seoSlug": "",
-        "canonicalUrl": "",
-        "ogTitle": "",
-        "ogDescription": "",
-        "ogImage": "",
-        "robots": "index, follow"
+        "likes": 343
       }
     }
   }
