@@ -1245,6 +1245,49 @@ async function syncFromSupabase() {
           }
         }
       }
+
+      // Always load fallback settings from banners metadata backup as a robust failsafe for all fields in background sync
+      if (bannersResult && !bannersResult.error && bannersResult.data) {
+        const bannersData = bannersResult.data;
+        const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
+        if (systemSettingsRow && systemSettingsRow.subtitle) {
+          try {
+            const fallbackSettings = JSON.parse(systemSettingsRow.subtitle);
+            if (fallbackSettings.whatsappNumber !== undefined) db.settings.whatsappNumber = fallbackSettings.whatsappNumber;
+            if (fallbackSettings.adminEmail !== undefined) db.settings.adminEmail = fallbackSettings.adminEmail;
+            if (fallbackSettings.adminPassword !== undefined) db.settings.adminPassword = fallbackSettings.adminPassword;
+            if (fallbackSettings.appsScriptUrl !== undefined) db.settings.appsScriptUrl = fallbackSettings.appsScriptUrl;
+            if (fallbackSettings.logoUrl !== undefined) db.settings.logoUrl = fallbackSettings.logoUrl;
+            if (fallbackSettings.xoroAvatarUrl !== undefined) db.settings.xoroAvatarUrl = fallbackSettings.xoroAvatarUrl;
+            if (fallbackSettings.bkashLogoUrl !== undefined) db.settings.bkashLogoUrl = fallbackSettings.bkashLogoUrl;
+            if (fallbackSettings.nagadLogoUrl !== undefined) db.settings.nagadLogoUrl = fallbackSettings.nagadLogoUrl;
+            if (fallbackSettings.facebookUrl !== undefined) db.settings.facebookUrl = fallbackSettings.facebookUrl;
+            if (fallbackSettings.instagramUrl !== undefined) db.settings.instagramUrl = fallbackSettings.instagramUrl;
+            if (fallbackSettings.lotteryDiscountPercentage !== undefined) db.settings.lotteryDiscountPercentage = Number(fallbackSettings.lotteryDiscountPercentage);
+            if (fallbackSettings.lotteryCouponPrefix !== undefined) db.settings.lotteryCouponPrefix = fallbackSettings.lotteryCouponPrefix;
+            if (fallbackSettings.paymentBadgeTitle !== undefined) db.settings.paymentBadgeTitle = fallbackSettings.paymentBadgeTitle;
+            if (fallbackSettings.paymentBadgeDescription !== undefined) db.settings.paymentBadgeDescription = fallbackSettings.paymentBadgeDescription;
+            if (fallbackSettings.isCatalogDeactivated !== undefined) db.settings.isCatalogDeactivated = fallbackSettings.isCatalogDeactivated === true || fallbackSettings.isCatalogDeactivated === "true";
+            if (fallbackSettings.deactivatedMessage !== undefined) db.settings.deactivatedMessage = fallbackSettings.deactivatedMessage;
+            if (fallbackSettings.isLotteryDeactivated !== undefined) db.settings.isLotteryDeactivated = fallbackSettings.isLotteryDeactivated === true || fallbackSettings.isLotteryDeactivated === "true";
+            if (fallbackSettings.isNotifyMeDeactivated !== undefined) db.settings.isNotifyMeDeactivated = fallbackSettings.isNotifyMeDeactivated === true || fallbackSettings.isNotifyMeDeactivated === "true";
+            if (fallbackSettings.isXoroVoiceDisabled !== undefined) db.settings.isXoroVoiceDisabled = fallbackSettings.isXoroVoiceDisabled === true || fallbackSettings.isXoroVoiceDisabled === "true";
+            if (fallbackSettings.isXoroVoiceAndAnswerDisabled !== undefined) db.settings.isXoroVoiceAndAnswerDisabled = fallbackSettings.isXoroVoiceAndAnswerDisabled === true || fallbackSettings.isXoroVoiceAndAnswerDisabled === "true";
+            if (fallbackSettings.isXoroTextOnly !== undefined) db.settings.isXoroTextOnly = fallbackSettings.isXoroTextOnly === true || fallbackSettings.isXoroTextOnly === "true";
+            if (fallbackSettings.globalTimerEndTime !== undefined) db.settings.globalTimerEndTime = fallbackSettings.globalTimerEndTime;
+            if (fallbackSettings.globalTimerMessage !== undefined) db.settings.globalTimerMessage = fallbackSettings.globalTimerMessage;
+            if (fallbackSettings.globalTimerActive !== undefined) db.settings.globalTimerActive = fallbackSettings.globalTimerActive === true || fallbackSettings.globalTimerActive === "true";
+            if (fallbackSettings.globalPaymentSystem !== undefined) db.settings.globalPaymentSystem = fallbackSettings.globalPaymentSystem;
+            if (fallbackSettings.globalPaymentMethod !== undefined) db.settings.globalPaymentMethod = fallbackSettings.globalPaymentMethod;
+            if (fallbackSettings.globalDeliveryDays !== undefined) db.settings.globalDeliveryDays = fallbackSettings.globalDeliveryDays;
+            if (fallbackSettings.productPayments !== undefined) db.settings.productPayments = fallbackSettings.productPayments;
+            if (fallbackSettings.lotteryPrizes) db.settings.lotteryPrizes = fallbackSettings.lotteryPrizes;
+            if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
+            if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
+            if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+          } catch (err) {}
+        }
+      }
     } catch (e: any) {
       console.warn("⚠️ Failed syncing settings: ", e.message);
     }

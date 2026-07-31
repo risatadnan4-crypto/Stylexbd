@@ -431,8 +431,8 @@ export default function App() {
       }
     };
 
-    const baseTitle = settings?.siteTitle || "STYLE X | Premium Luxury Clothing & Authentic Apparel";
-    const baseDesc = settings?.siteMetaDesc || "Discover STYLE X, the ultimate destination for premium clothing and luxury fashion. Enjoy modern apparel, custom rewards, and personal styling support.";
+    const baseTitle = settings?.siteTitle || "STYLE X (StyleX) | #1 Premium Luxury Clothing Brand Bangladesh";
+    const baseDesc = settings?.siteMetaDesc || "Discover STYLE X (StyleX), Bangladesh's leading premium luxury fashion brand for clothing, royal streetwear, and authentic apparel. Shop modern outfits online with fast nationwide COD.";
     const baseKeywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
 
     let title = baseTitle;

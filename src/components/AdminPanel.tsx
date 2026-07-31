@@ -1379,8 +1379,8 @@ export default function AdminPanel({
   const [newCampaignCoupon, setNewCampaignCoupon] = useState('');
 
   // SEO Form
-  const [siteTitle, setSiteTitle] = useState('Style X | Premium Luxury Fashion Collective');
-  const [siteMetaDesc, setSiteMetaDesc] = useState('A world-class premium luxury eCommerce experience. Minimalist designs, high-end watches, and customized garments crafted by Risat Adnan.');
+  const [siteTitle, setSiteTitle] = useState('Style X (StyleX) | Premium Luxury Clothing & Authentic Apparel');
+  const [siteMetaDesc, setSiteMetaDesc] = useState('Discover Style X (StyleX), Bangladesh\'s leading premium luxury fashion brand. Shop street apparel, elegant garments, custom watches, and designer wear online with fast cash on delivery.');
   const [showSeoCode, setShowSeoCode] = useState(false);
 
   // Fetch Admin Metrics and collections on Mount
