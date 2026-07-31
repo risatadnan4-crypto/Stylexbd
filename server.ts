@@ -6647,7 +6647,7 @@ async function startServer() {
     console.error("⚠️ Background sync runner scheduling failed:", err.message);
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const viteKey = ["v", "i", "t", "e"].join("");
     const { createServer: createViteServer } = await import(viteKey);
     const vite = await createViteServer({
@@ -6657,15 +6657,40 @@ async function startServer() {
     app.use(vite.middlewares);
     console.log("Joined Vite development server middleware.");
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    const baseDistPath = path.join(process.cwd(), "dist");
+    app.use(express.static(baseDistPath));
     // Support wildcard matching with Dynamic SEO Meta SSR injection
     app.get("*", async (req, res) => {
-      const indexPath = path.join(distPath, "index.html");
+      let indexPath = path.join(process.cwd(), "dist", "index.html");
+      const fs = await import("fs/promises");
+      let html = "";
+      
+      // Attempt to resolve and read index.html dynamically to handle different Vercel directory structures
       try {
-        const fs = await import("fs/promises");
-        let html = await fs.readFile(indexPath, "utf-8");
+        html = await fs.readFile(indexPath, "utf-8");
+      } catch (e) {
+        try {
+          const altPath = path.resolve(__dirname, "dist", "index.html");
+          html = await fs.readFile(altPath, "utf-8");
+          indexPath = altPath;
+        } catch (e2) {
+          try {
+            const altPath2 = path.resolve(__dirname, "..", "dist", "index.html");
+            html = await fs.readFile(altPath2, "utf-8");
+            indexPath = altPath2;
+          } catch (e3) {
+            try {
+              const altPath3 = path.resolve(process.cwd(), "api", "dist", "index.html");
+              html = await fs.readFile(altPath3, "utf-8");
+              indexPath = altPath3;
+            } catch (e4) {
+              console.error("🚨 All index.html resolution paths failed:", e4);
+            }
+          }
+        }
+      }
 
+      try {
         const replaceMetaTag = (htmlText: string, nameAttr: "name" | "property", attrValue: string, newValue: string): string => {
           const regex = new RegExp(`<meta\\s+[^>]*?${nameAttr}=["']${attrValue}["'][^>]*?>`, "gi");
           if (regex.test(htmlText)) {
@@ -6675,8 +6700,24 @@ async function startServer() {
           }
         };
 
+        // Robustly get the requested URL path under Vercel / serverless rewrites
+        let requestUrlPath = req.path;
+        if (req.headers["x-matched-path"]) {
+          const matchedPath = String(req.headers["x-matched-path"]);
+          if (!matchedPath.includes("/api/index") && !matchedPath.includes("/api/index.ts")) {
+            requestUrlPath = matchedPath.split("?")[0];
+          }
+        }
+        
+        if ((!requestUrlPath || requestUrlPath === "/api/index.ts" || requestUrlPath === "/api") && req.originalUrl) {
+          const orig = req.originalUrl.split("?")[0];
+          if (orig !== "/api/index.ts" && orig !== "/api") {
+            requestUrlPath = orig;
+          }
+        }
+
         // Extract route parameters from the pathname (clean SEO friendly URLs)
-        const pathSegments = req.path.split("/").filter(Boolean);
+        const pathSegments = requestUrlPath.split("/").filter(Boolean);
         let customTitle = "STYLE X | #1 Premium Luxury Clothing & Authentic Apparel Bangladesh";
         let desc = "Discover STYLE X, Bangladesh's leading destination for luxury fashion, streetwear, and authentic apparel. Shop premium suits, hoodies, panjabis, dresses, and lifestyle gear with fast nationwide COD.";
         let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x store, style x online shop, style x apparel, style x fashion, luxury clothing bangladesh, premium streetwear bd, luxury fashion dhaka, royal apparel, buy clothes online bd, style x dhaka, authentic apparel bangladesh, style x official";
@@ -6684,7 +6725,7 @@ async function startServer() {
         
         const protocol = req.headers["x-forwarded-proto"] || "https";
         const host = req.headers["x-forwarded-host"] || req.headers.host || "stylexbd.vercel.app";
-        let canonicalUrl = `${protocol}://${host}${req.path}`;
+        let canonicalUrl = `${protocol}://${host}${requestUrlPath}`;
         let productSchemaJson = "";
 
         let foundMatch = false;
@@ -6907,7 +6948,7 @@ async function startServer() {
         res.sendFile(indexPath);
       }
     });
-    console.log("Serving static distribution files from", distPath);
+    console.log("Serving static distribution files from", baseDistPath);
   }
 
   if (!process.env.VERCEL) {
