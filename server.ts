@@ -1318,6 +1318,30 @@ export async function ensureDbSynced() {
 
 
 // Set up express middlewears
+app.use((req, res, next) => {
+  let originalPath = req.url;
+
+  if (req.headers["x-matched-path"]) {
+    const matchedPath = String(req.headers["x-matched-path"]);
+    if (!matchedPath.includes("/api/index") && !matchedPath.includes("/api/index.ts")) {
+      originalPath = matchedPath.split("?")[0];
+    }
+  }
+
+  if ((!originalPath || originalPath === "/api/index.ts" || originalPath === "/api") && req.originalUrl) {
+    const orig = req.originalUrl.split("?")[0];
+    if (orig !== "/api/index.ts" && orig !== "/api") {
+      originalPath = orig;
+    }
+  }
+
+  if (originalPath && originalPath !== req.url) {
+    console.log(`[Vercel URL Restoration] Rewriting req.url from ${req.url} to ${originalPath}`);
+    req.url = originalPath;
+  }
+  next();
+});
+
 app.use("/api", (req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
   res.setHeader("Pragma", "no-cache");
