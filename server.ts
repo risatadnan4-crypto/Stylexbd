@@ -6831,11 +6831,28 @@ async function startServer() {
         if (pathSegments[0] === "products" || pathSegments[0] === "product") {
           const productCode = decodeURIComponent(pathSegments[1] || "").toLowerCase();
           if (productCode && db.products) {
-            const foundProduct = db.products.find((p: any) => 
-              (p.code && p.code.toLowerCase() === productCode) || 
-              String(p.id).toLowerCase() === productCode || 
-              (p.seoSlug && p.seoSlug.toLowerCase() === productCode)
-            );
+            const foundProduct = db.products.find((p: any) => {
+              const pCode = (p.code || "").toLowerCase();
+              const pId = String(p.id).toLowerCase();
+              const pTitleSlug = (p.title || "")
+                .toString()
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^\w\-]+/g, '')
+                .replace(/\-\-+/g, '-')
+                .replace(/^-+/, '')
+                .replace(/-+$/, '');
+
+              return (
+                pCode === productCode ||
+                pId === productCode ||
+                (p.seoSlug && p.seoSlug.toLowerCase() === productCode) ||
+                (pCode && productCode.startsWith(pCode + "-")) ||
+                (pId && productCode.startsWith(pId + "-")) ||
+                productCode === pTitleSlug
+              );
+            });
 
             if (foundProduct) {
               customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;

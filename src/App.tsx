@@ -264,12 +264,30 @@ export default function App() {
 
     if (pathname.startsWith('/products/') || pathname.startsWith('/product/')) {
       const segments = pathname.split('/');
-      const code = decodeURIComponent(segments[segments.length - 1] || '');
-      if (code && productList.length > 0) {
-        const found = productList.find(p => 
-          (p.code && p.code.toLowerCase() === code.toLowerCase()) || 
-          String(p.id) === code
-        );
+      const codeSegment = decodeURIComponent(segments[segments.length - 1] || '').toLowerCase();
+      if (codeSegment && productList.length > 0) {
+        const found = productList.find(p => {
+          const pCode = (p.code || '').toLowerCase();
+          const pId = String(p.id).toLowerCase();
+          const pTitleSlug = (p.title || '')
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+
+          return (
+            pCode === codeSegment ||
+            pId === codeSegment ||
+            (p.seoSlug && p.seoSlug.toLowerCase() === codeSegment) ||
+            (pCode && codeSegment.startsWith(pCode + '-')) ||
+            (pId && codeSegment.startsWith(pId + '-')) ||
+            codeSegment === pTitleSlug
+          );
+        });
         if (found) {
           setSelectedProduct(found);
           setIsAdminView(false);
@@ -397,6 +415,15 @@ export default function App() {
         element.remove();
       }
       if (product) {
+        const pSlug = (product.title || '')
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
         const schema = {
           "@context": "https://schema.org",
           "@type": "Product",
@@ -411,7 +438,7 @@ export default function App() {
           },
           "offers": {
             "@type": "Offer",
-            "url": `https://stylexbd.vercel.app/products/${encodeURIComponent(product.code || product.id)}`,
+            "url": `https://stylexbd.vercel.app/products/${encodeURIComponent(product.code || product.id)}-${pSlug}`,
             "priceCurrency": "BDT",
             "price": product.price,
             "priceValidUntil": "2027-12-31",
@@ -446,7 +473,16 @@ export default function App() {
       title = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
       desc = selectedProduct.seoDescription || selectedProduct.description || `Purchase ${selectedProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${selectedProduct.price} BDT.`;
       keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, style x bd, premium clothing, luxury apparel, streetwear bangladesh`;
-      canonical = `https://stylexbd.vercel.app/products/${encodeURIComponent(code)}`;
+      const pSlug = (selectedProduct.title || '')
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+      canonical = `https://stylexbd.vercel.app/products/${encodeURIComponent(code)}-${pSlug}`;
       if (selectedProduct.imageUrl) {
         imageUrl = selectedProduct.imageUrl;
       }
@@ -529,7 +565,16 @@ export default function App() {
       } else if (isTrackMode) {
         expectedPath = '/track';
       } else if (selectedProduct) {
-        expectedPath = `/products/${encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
+        const pSlug = (selectedProduct.title || '')
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        expectedPath = `/products/${encodeURIComponent(selectedProduct.code || selectedProduct.id)}-${pSlug}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
         expectedPath = `/category/${activeCategory.toLowerCase()}`;
       } else if (searchQuery) {
