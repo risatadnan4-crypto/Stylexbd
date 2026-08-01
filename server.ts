@@ -6772,6 +6772,22 @@ async function startServer() {
     });
     app.use(vite.middlewares);
     console.log("Joined Vite development server middleware.");
+
+    // Support SPA wildcard fallback in development so refreshes on subpaths (like /product/123) work
+    app.get("*", async (req, res, next) => {
+      // Avoid intercepting API paths or files with extensions
+      if (req.path.startsWith("/api/") || req.path.includes(".")) {
+        return next();
+      }
+      try {
+        const fs = await import("fs/promises");
+        const rawHtml = await fs.readFile(path.join(process.cwd(), "index.html"), "utf-8");
+        const html = await vite.transformIndexHtml(req.url, rawHtml);
+        res.status(200).set({ "Content-Type": "text/html" }).send(html);
+      } catch (err) {
+        next(err);
+      }
+    });
   } else {
     const baseDistPath = path.join(process.cwd(), "dist");
     app.use(express.static(baseDistPath));
