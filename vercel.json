@@ -19,8 +19,8 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
+      "destination": "/api/index.ts"
     }
   ]
 }
