@@ -2,7 +2,10 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**"
+      "includeFiles": [
+        "dist/**",
+        "../dist/**"
+      ]
     }
   },
   "rewrites": [
@@ -20,6 +23,30 @@
     },
     {
       "source": "/robots.txt",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/products/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/product/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/category/:path*",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/wishlist",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/track",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/admin",
       "destination": "/api/index.ts"
     },
     {
