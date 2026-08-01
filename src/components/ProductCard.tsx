@@ -70,6 +70,14 @@ export default function ProductCard({
   const originalPrice = priceDetails.originalPrice;
   const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
 
+  const pSlug = (product.title || '')
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\-]+/g, '')
+    .replace(/[^\w]+/g, '');
+  const productPathUrl = `/products/${pSlug || encodeURIComponent(product.code || product.id)}`;
+
   const [likesCount, setLikesCount] = useState(product.likes || 0);
   const [liked, setLiked] = useState(false);
 
@@ -325,7 +333,7 @@ export default function ProductCard({
         className="relative w-full aspect-square overflow-hidden rounded-xl bg-black/90 border border-luxury-gold/50 group-hover:border-luxury-gold flex items-center justify-center group cursor-pointer mb-2 shadow-inner p-1 sm:p-1.5"
       >
         <a 
-          href={`/products/${encodeURIComponent(product.code || product.id)}`}
+          href={productPathUrl}
           onClick={(e) => {
             e.preventDefault();
             onProductClick(product);
@@ -463,7 +471,7 @@ export default function ProductCard({
           )}
           <h3 className="font-serif text-sm sm:text-base font-bold text-white hover:text-luxury-gold transition-colors duration-300 line-clamp-1 mb-0.5 text-left leading-tight">
             <a 
-              href={`/products/${encodeURIComponent(product.code || product.id)}`}
+              href={productPathUrl}
               onClick={(e) => {
                 e.preventDefault();
                 onProductClick(product);

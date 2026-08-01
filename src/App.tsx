@@ -279,13 +279,25 @@ export default function App() {
             .replace(/^-+/, '')
             .replace(/-+$/, '');
 
+          const pTitleSlugNoHyphens = (p.title || '')
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/[\s\-]+/g, '')
+            .replace(/[^\w]+/g, '');
+
+          const codeSegmentNoHyphens = codeSegment.replace(/[\s\-]+/g, '');
+
           return (
             pCode === codeSegment ||
             pId === codeSegment ||
             (p.seoSlug && p.seoSlug.toLowerCase() === codeSegment) ||
+            (p.seoSlug && p.seoSlug.toLowerCase().replace(/[\s\-]+/g, '') === codeSegmentNoHyphens) ||
             (pCode && codeSegment.startsWith(pCode + '-')) ||
             (pId && codeSegment.startsWith(pId + '-')) ||
-            codeSegment === pTitleSlug
+            codeSegment === pTitleSlug ||
+            codeSegment === pTitleSlugNoHyphens ||
+            codeSegmentNoHyphens === pTitleSlugNoHyphens
           );
         });
         if (found) {
@@ -419,11 +431,8 @@ export default function App() {
           .toString()
           .toLowerCase()
           .trim()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
-          .replace(/^-+/, '')
-          .replace(/-+$/, '');
+          .replace(/[\s\-]+/g, '')
+          .replace(/[^\w]+/g, '');
         const schema = {
           "@context": "https://schema.org",
           "@type": "Product",
@@ -477,11 +486,8 @@ export default function App() {
         .toString()
         .toLowerCase()
         .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
+        .replace(/[\s\-]+/g, '')
+        .replace(/[^\w]+/g, '');
       canonical = `https://stylexbd.vercel.app/products/${pSlug || encodeURIComponent(code)}`;
       if (selectedProduct.imageUrl) {
         imageUrl = selectedProduct.imageUrl;
@@ -569,11 +575,8 @@ export default function App() {
           .toString()
           .toLowerCase()
           .trim()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
-          .replace(/^-+/, '')
-          .replace(/-+$/, '');
+          .replace(/[\s\-]+/g, '')
+          .replace(/[^\w]+/g, '');
         expectedPath = `/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
         expectedPath = `/category/${activeCategory.toLowerCase()}`;
