@@ -148,6 +148,7 @@ let db = {
 };
 
 let lastSyncCompletedAt = 0;
+let localAiKeysLastUpdated = 0;
 let activeSyncPromise: Promise<void> | null = null;
 let isSettingsTableAvailable = true;
 
@@ -986,8 +987,11 @@ async function syncFromSupabase() {
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
               if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
-                db.aiKeys = fallbackSettings.aiKeys;
-                db.aiKeysInitialized = true;
+                const wasRecentlyUpdatedLocally = (Date.now() - localAiKeysLastUpdated) < 60000;
+                if (!wasRecentlyUpdatedLocally || !db.aiKeys || db.aiKeys.length === 0) {
+                  db.aiKeys = fallbackSettings.aiKeys;
+                  db.aiKeysInitialized = true;
+                }
               }
               if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
                 db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
@@ -1284,8 +1288,11 @@ async function syncFromSupabase() {
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
 
             if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
-              db.aiKeys = fallbackSettings.aiKeys;
-              db.aiKeysInitialized = true;
+              const wasRecentlyUpdatedLocally = (Date.now() - localAiKeysLastUpdated) < 60000;
+              if (!wasRecentlyUpdatedLocally || !db.aiKeys || db.aiKeys.length === 0) {
+                db.aiKeys = fallbackSettings.aiKeys;
+                db.aiKeysInitialized = true;
+              }
             }
             if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
               db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
@@ -6390,6 +6397,7 @@ app.post("/api/admin/ai-keys", async (req, res) => {
 
   db.aiKeys.push(newKey);
   db.aiKeysInitialized = true;
+  localAiKeysLastUpdated = Date.now();
   logAiApiAudit("CREATE_KEY", keyName, "Super Admin", `Added new API Key with Priority ${newKey.priority}.`, keyHint);
   saveDB();
   await syncSettingsToCloud();
@@ -6420,6 +6428,7 @@ app.put("/api/admin/ai-keys/:id", async (req, res) => {
 
   logAiApiAudit("UPDATE_KEY", keyObj.name, "Super Admin", `Updated settings (Priority: ${keyObj.priority}, Status: ${keyObj.status}).`, keyObj.keyHint);
   db.aiKeysInitialized = true;
+  localAiKeysLastUpdated = Date.now();
   saveDB();
   await syncSettingsToCloud();
 
@@ -6444,6 +6453,7 @@ app.delete("/api/admin/ai-keys/:id", async (req, res) => {
 
   const deleted = db.aiKeys.splice(index, 1)[0];
   db.aiKeysInitialized = true;
+  localAiKeysLastUpdated = Date.now();
   logAiApiAudit("DELETE_KEY", deleted.name, "Super Admin", "Permanently deleted API key from vault.", deleted.keyHint);
   saveDB();
   await syncSettingsToCloud();
@@ -6469,6 +6479,7 @@ app.post("/api/admin/ai-keys/:id/toggle", async (req, res) => {
   }
 
   db.aiKeysInitialized = true;
+  localAiKeysLastUpdated = Date.now();
   saveDB();
   await syncSettingsToCloud();
   return res.json({ message: `API Key status changed to ${keyObj.status}`, key: sanitizeAiKeyObject(keyObj) });
