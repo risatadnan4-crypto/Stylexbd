@@ -1374,19 +1374,45 @@ export async function ensureDbSynced() {
 
 // Set up express middlewears
 app.use((req, res, next) => {
+  // We want to reconstruct the actual user-facing URL path on Vercel deployments.
+  // When Vercel rewrites a path like /products/xxx to the /api/index.ts serverless function,
+  // the requested URL inside Express is set to /api/index.ts.
+  // We check multiple headers that Vercel uses to forward the original URL.
   let originalPath = req.url;
 
+  const candidates: string[] = [];
+
+  if (req.headers["x-vercel-forwarded-path"]) {
+    candidates.push(String(req.headers["x-vercel-forwarded-path"]));
+  }
   if (req.headers["x-matched-path"]) {
-    const matchedPath = String(req.headers["x-matched-path"]);
-    if (!matchedPath.includes("/api/index") && !matchedPath.includes("/api/index.ts")) {
-      originalPath = matchedPath.split("?")[0];
-    }
+    candidates.push(String(req.headers["x-matched-path"]));
+  }
+  if (req.headers["x-original-url"]) {
+    candidates.push(String(req.headers["x-original-url"]));
+  }
+  if (req.headers["x-forwarded-uri"]) {
+    candidates.push(String(req.headers["x-forwarded-uri"]));
+  }
+  if (req.originalUrl) {
+    candidates.push(req.originalUrl);
+  }
+  if (req.url) {
+    candidates.push(req.url);
   }
 
-  if ((!originalPath || originalPath === "/api/index.ts" || originalPath === "/api") && req.originalUrl) {
-    const orig = req.originalUrl.split("?")[0];
-    if (orig !== "/api/index.ts" && orig !== "/api") {
-      originalPath = orig;
+  // Find the first candidate that represents a client-side route (not an API, not index.ts, not index)
+  for (const candidate of candidates) {
+    const cleanPath = candidate.split("?")[0];
+    if (
+      cleanPath &&
+      cleanPath !== "/api" &&
+      !cleanPath.startsWith("/api/") &&
+      !cleanPath.includes("/api/index") &&
+      !cleanPath.includes("index.ts")
+    ) {
+      originalPath = candidate; // Keep the query params as well
+      break;
     }
   }
 
@@ -6834,17 +6860,25 @@ async function startServer() {
 
         // Robustly get the requested URL path under Vercel / serverless rewrites
         let requestUrlPath = req.path;
-        if (req.headers["x-matched-path"]) {
-          const matchedPath = String(req.headers["x-matched-path"]);
-          if (!matchedPath.includes("/api/index") && !matchedPath.includes("/api/index.ts")) {
-            requestUrlPath = matchedPath.split("?")[0];
-          }
-        }
-        
-        if ((!requestUrlPath || requestUrlPath === "/api/index.ts" || requestUrlPath === "/api") && req.originalUrl) {
-          const orig = req.originalUrl.split("?")[0];
-          if (orig !== "/api/index.ts" && orig !== "/api") {
-            requestUrlPath = orig;
+        const catchAllCandidates: string[] = [];
+        if (req.headers["x-vercel-forwarded-path"]) catchAllCandidates.push(String(req.headers["x-vercel-forwarded-path"]));
+        if (req.headers["x-matched-path"]) catchAllCandidates.push(String(req.headers["x-matched-path"]));
+        if (req.headers["x-original-url"]) catchAllCandidates.push(String(req.headers["x-original-url"]));
+        if (req.headers["x-forwarded-uri"]) catchAllCandidates.push(String(req.headers["x-forwarded-uri"]));
+        if (req.originalUrl) catchAllCandidates.push(req.originalUrl);
+        if (req.url) catchAllCandidates.push(req.url);
+
+        for (const candidate of catchAllCandidates) {
+          const cleanPath = candidate.split("?")[0];
+          if (
+            cleanPath &&
+            cleanPath !== "/api" &&
+            !cleanPath.startsWith("/api/") &&
+            !cleanPath.includes("/api/index") &&
+            !cleanPath.includes("index.ts")
+          ) {
+            requestUrlPath = cleanPath;
+            break;
           }
         }
 
