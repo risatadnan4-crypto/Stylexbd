@@ -233,37 +233,10 @@ export default function App() {
     prevCartCountRef.current = totalCartItemsCount;
   }, [totalCartItemsCount]);
 
-  // Clean URL parsing router function supporting Hash-Based Routing
+  // Clean URL parsing router function
   const parseCurrentUrl = (productList = products) => {
-    let pathname = window.location.pathname;
-    let searchString = window.location.search;
-
-    const hash = window.location.hash || '';
-    if (hash.startsWith('#/')) {
-      const hashContent = hash.substring(1);
-      const [hashPath, hashQuery] = hashContent.split('?');
-      pathname = hashPath;
-      if (hashQuery) {
-        searchString = '?' + hashQuery;
-      }
-    } else if (hash.startsWith('#')) {
-      const hashContent = '/' + hash.substring(1);
-      const [hashPath, hashQuery] = hashContent.split('?');
-      pathname = hashPath;
-      if (hashQuery) {
-        searchString = '?' + hashQuery;
-      }
-    } else {
-      // Support legacy/clean URLs by auto-converting them to hashes on first load
-      if (pathname !== '/' && pathname !== '/index.html') {
-        const cleanPath = pathname;
-        const cleanSearch = searchString;
-        const newHash = '#' + cleanPath + cleanSearch;
-        window.history.replaceState({}, '', '/' + newHash);
-      }
-    }
-
-    const urlParams = new URLSearchParams(searchString);
+    const pathname = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
 
     if (pathname === '/admin') {
       setIsAdminView(true);
@@ -585,18 +558,18 @@ export default function App() {
 
   }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, settings]);
 
-  // Hash-based URL State Synchronizer for 404-free page refreshes & SEO deep-linking
+  // Clean URL State Synchronizer for SEO deep-linking
   React.useEffect(() => {
     if (products && products.length > 0) {
-      let expectedHash = '#/';
+      let expectedPath = '/';
       let expectedSearch = '';
 
       if (isAdminView) {
-        expectedHash = '#/admin';
+        expectedPath = '/admin';
       } else if (isWishlistPage) {
-        expectedHash = '#/wishlist';
+        expectedPath = '/wishlist';
       } else if (isTrackMode) {
-        expectedHash = '#/track';
+        expectedPath = '/track';
       } else if (selectedProduct) {
         const pSlug = (selectedProduct.title || '')
           .toString()
@@ -604,22 +577,20 @@ export default function App() {
           .trim()
           .replace(/[\s\-]+/g, '')
           .replace(/[^\w]+/g, '');
-        expectedHash = `#/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
+        expectedPath = `/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
-        expectedHash = `#/category/${activeCategory.toLowerCase()}`;
+        expectedPath = `/category/${activeCategory.toLowerCase()}`;
       } else if (searchQuery) {
-        expectedHash = `#/search`;
+        expectedPath = `/search`;
         expectedSearch = `?q=${encodeURIComponent(searchQuery)}`;
       }
 
       const currentPath = window.location.pathname;
-      const currentHash = window.location.hash;
       const currentSearch = window.location.search;
 
-      const expectedFullHash = expectedHash + expectedSearch;
-      if (currentHash !== expectedFullHash || currentPath !== '/') {
-        // We push the hash-based path to guarantee zero 404 errors on refresh!
-        window.history.pushState({}, '', '/' + expectedFullHash);
+      if (currentPath !== expectedPath || currentSearch !== expectedSearch) {
+        const newUrl = `${expectedPath}${expectedSearch}`;
+        window.history.pushState({}, '', newUrl);
       }
     }
   }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, products]);
@@ -1156,15 +1127,10 @@ export default function App() {
       setIsAuthAdmin(true);
     }
 
-    // Check query params or hash for admin panel auto-access/redirect
-    let searchStr = window.location.search;
-    if (window.location.hash && window.location.hash.includes('?')) {
-      searchStr = '?' + window.location.hash.split('?')[1];
-    }
-    const urlParams = new URLSearchParams(searchStr);
+    // Check query params for admin panel auto-access/redirect
+    const urlParams = new URLSearchParams(window.location.search);
     const hasAdminQuery = urlParams.get('admin') === 'true';
-    const hasAdminHash = window.location.hash === '#admin';
-    if (hasAdminQuery || hasAdminHash) {
+    if (hasAdminQuery) {
       if (sessionAuth === 'true') {
         setIsAdminView(true);
       } else {
@@ -1230,11 +1196,7 @@ export default function App() {
   // Automatically open product if deep-linked via QR Code on load
   useEffect(() => {
     if (products && products.length > 0) {
-      let searchStr = window.location.search;
-      if (window.location.hash && window.location.hash.includes('?')) {
-        searchStr = '?' + window.location.hash.split('?')[1];
-      }
-      const urlParams = new URLSearchParams(searchStr);
+      const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('product') || urlParams.get('productCode');
       if (code) {
         const found = products.find(p => 

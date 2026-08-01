@@ -26,32 +26,8 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/products/:path*",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/product/:path*",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/category/:path*",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/wishlist",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/track",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/admin",
-      "destination": "/api/index.ts"
-    },
-    {
       "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
-      "destination": "/api/index.ts"
+      "destination": "/index.html"
     }
   ]
 }

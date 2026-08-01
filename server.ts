@@ -7205,7 +7205,15 @@ async function startServer() {
 
         res.send(html);
       } catch (err) {
-        res.sendFile(indexPath);
+        try {
+          res.sendFile(indexPath);
+        } catch (err2) {
+          try {
+            res.sendFile(path.join(process.cwd(), "index.html"));
+          } catch (err3) {
+            res.status(200).send("<!DOCTYPE html><html><head><script>window.location.href='/'</script></head><body>Redirecting...</body></html>");
+          }
+        }
       }
     });
     console.log("Serving static distribution files from", baseDistPath);
