@@ -6689,11 +6689,22 @@ app.get("/sitemap.xml", (req, res) => {
   ];
 
   // Include dynamic products from active luxury database using clean path structure
-  const productPages = (db.products || []).map((prod: any) => ({
-    loc: `${baseUrl}/products/${encodeURIComponent(prod.code || prod.id)}`,
-    priority: "0.9",
-    changefreq: "weekly"
-  }));
+  const productPages = (db.products || []).map((prod: any) => {
+    const slug = (prod.title || '')
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+    return {
+      loc: `${baseUrl}/products/${slug || encodeURIComponent(prod.code || prod.id)}`,
+      priority: "0.9",
+      changefreq: "weekly"
+    };
+  });
 
   const allPages = [...pages, ...productPages];
 
@@ -6984,7 +6995,16 @@ async function startServer() {
             );
 
             if (foundProduct) {
-              canonicalUrl = `${protocol}://${host}/products/${encodeURIComponent(foundProduct.code || foundProduct.id)}`;
+              const pSlug = (foundProduct.title || '')
+                .toString()
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^\w\-]+/g, '')
+                .replace(/\-\-+/g, '-')
+                .replace(/^-+/, '')
+                .replace(/-+$/, '');
+              canonicalUrl = `${protocol}://${host}/products/${pSlug || encodeURIComponent(foundProduct.code || foundProduct.id)}`;
               customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
               desc = foundProduct.seoDescription || foundProduct.description || `Purchase ${foundProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${foundProduct.price} BDT.`;
               keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, stylex, premium clothing`;

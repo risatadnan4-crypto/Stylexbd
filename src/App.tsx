@@ -438,7 +438,7 @@ export default function App() {
           },
           "offers": {
             "@type": "Offer",
-            "url": `https://stylexbd.vercel.app/products/${encodeURIComponent(product.code || product.id)}-${pSlug}`,
+            "url": `https://stylexbd.vercel.app/products/${pSlug || encodeURIComponent(product.code || product.id)}`,
             "priceCurrency": "BDT",
             "price": product.price,
             "priceValidUntil": "2027-12-31",
@@ -482,7 +482,7 @@ export default function App() {
         .replace(/\-\-+/g, '-')
         .replace(/^-+/, '')
         .replace(/-+$/, '');
-      canonical = `https://stylexbd.vercel.app/products/${encodeURIComponent(code)}-${pSlug}`;
+      canonical = `https://stylexbd.vercel.app/products/${pSlug || encodeURIComponent(code)}`;
       if (selectedProduct.imageUrl) {
         imageUrl = selectedProduct.imageUrl;
       }
@@ -574,7 +574,7 @@ export default function App() {
           .replace(/\-\-+/g, '-')
           .replace(/^-+/, '')
           .replace(/-+$/, '');
-        expectedPath = `/products/${encodeURIComponent(selectedProduct.code || selectedProduct.id)}-${pSlug}`;
+        expectedPath = `/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
         expectedPath = `/category/${activeCategory.toLowerCase()}`;
       } else if (searchQuery) {
