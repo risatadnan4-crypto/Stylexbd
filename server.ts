@@ -6956,6 +6956,8 @@ async function startServer() {
         // Fallback to query param parsing if no clean route matched
         if (!foundMatch) {
           const productParam = req.query.product || req.query.productCode || req.query.slug;
+          const categoryParam = req.query.category;
+
           if (productParam && db.products) {
             const productCode = String(productParam).toLowerCase();
             const foundProduct = db.products.find((p: any) => 
@@ -6965,6 +6967,7 @@ async function startServer() {
             );
 
             if (foundProduct) {
+              canonicalUrl = `${protocol}://${host}/products/${encodeURIComponent(foundProduct.code || foundProduct.id)}`;
               customTitle = foundProduct.seoTitle || `${foundProduct.title} | Premium Style X BD`;
               desc = foundProduct.seoDescription || foundProduct.description || `Purchase ${foundProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${foundProduct.price} BDT.`;
               keywords = foundProduct.seoKeywords || `${foundProduct.title}, style x, stylex, premium clothing`;
@@ -6997,6 +7000,28 @@ async function startServer() {
                 }
               };
               productSchemaJson = `<script id="json-ld-product-schema" type="application/ld+json">${JSON.stringify(schemaObj)}</script>`;
+            }
+          } else if (categoryParam) {
+            const cat = String(categoryParam).toUpperCase().trim();
+            if (['ALL', 'MEN', 'WOMEN', 'UNISEX', 'ACCESSORIES'].includes(cat)) {
+              canonicalUrl = `${protocol}://${host}/category/${cat.toLowerCase()}`;
+              if (cat === "MEN") {
+                customTitle = "Gentlemen's Luxury Fashion & Curated Streetwear | STYLE X";
+                desc = "Shop curated Gentlemen's premium clothing at STYLE X. Explore luxury jackets, designer graphic t-shirts, hoodies, and cargo pants tailored for elegance.";
+                keywords = "gentlemen streetwear, men fashion bangladesh, luxury menswear, style x gentlemen, premium jackets, custom hoodies, style x men";
+              } else if (cat === "WOMEN") {
+                customTitle = "Haute Couture & Women's Designer Collection | STYLE X";
+                desc = "Unrivaled luxury and modern tailoring. Explore the signature Women's Haute Couture fashion line by STYLE X, featuring elegant styling and streetwear essentials.";
+                keywords = "haute couture, women premium fashion, designer apparel women, style x women, elegant dresses, premium women streetwear";
+              } else if (cat === "UNISEX") {
+                customTitle = "Co-Ed Line - Premium Unisex Clothing & Streetwear | STYLE X";
+                desc = "Discover gender-neutral designer wear and unisex clothing accessories at STYLE X. Gender-free signature fits engineered for premium luxury aesthetics.";
+                keywords = "unisex streetwear, co-ed line, gender neutral clothing, gender free fashion, style x unisex, luxury hoodies unisex";
+              } else if (cat === "ACCESSORIES") {
+                customTitle = "Ensemble Accessories & Premium Lifestyle Goods | STYLE X";
+                desc = "Refine your wardrobe and daily style with premium designer accessories and luxury lifestyle essentials by STYLE X. Perfect additions for every outfit.";
+                keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
+              }
             }
           }
         }

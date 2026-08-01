@@ -19,6 +19,10 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/robots.txt",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
       "destination": "/api/index.ts"
     }
