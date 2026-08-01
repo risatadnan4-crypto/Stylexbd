@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /products/
+Allow: /category/
+
+Sitemap: https://stylexbd.vercel.app/sitemap.xml
