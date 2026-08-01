@@ -198,7 +198,11 @@ export default function OrderTracker({
       setSearchId(activeTrackId);
       handleTrackQuery(activeTrackId);
     } else {
-      const params = new URLSearchParams(window.location.search);
+      let searchString = window.location.search;
+      if (window.location.hash && window.location.hash.includes('?')) {
+        searchString = '?' + window.location.hash.split('?')[1];
+      }
+      const params = new URLSearchParams(searchString);
       const trackParam = params.get('track');
       if (trackParam) {
         setSearchId(trackParam);
