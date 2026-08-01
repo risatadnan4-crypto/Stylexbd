@@ -985,11 +985,9 @@ async function syncFromSupabase() {
               if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
-              if (!db.aiKeysInitialized && fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
+              if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
                 db.aiKeys = fallbackSettings.aiKeys;
-                if (fallbackSettings.aiKeysInitialized !== undefined) {
-                  db.aiKeysInitialized = !!fallbackSettings.aiKeysInitialized;
-                }
+                db.aiKeysInitialized = true;
               }
               if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
                 db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
@@ -1284,6 +1282,14 @@ async function syncFromSupabase() {
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
             if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+
+            if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
+              db.aiKeys = fallbackSettings.aiKeys;
+              db.aiKeysInitialized = true;
+            }
+            if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
+              db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
+            }
           } catch (err) {}
         }
       }
@@ -6746,16 +6752,6 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 
 // Vite & Production Setup Middleware
 async function startServer() {
-  // Trigger initial background sync
-  try {
-    await syncFromSupabase();
-    initializeAiKeyPool();
-    // Schedule periodic polling sync from Supabase
-    setInterval(syncFromSupabase, 45000);
-  } catch (err: any) {
-    console.error("⚠️ Background sync runner scheduling failed:", err.message);
-  }
-
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const viteKey = ["v", "i", "t", "e"].join("");
     const { createServer: createViteServer } = await import(viteKey);
@@ -7110,6 +7106,17 @@ async function startServer() {
     });
     console.log("Serving static distribution files from", baseDistPath);
   }
+
+  // Trigger initial database sync and AI key initialization in background
+  syncFromSupabase()
+    .then(() => {
+      initializeAiKeyPool();
+      // Schedule periodic polling sync from Supabase
+      setInterval(syncFromSupabase, 45000);
+    })
+    .catch((err: any) => {
+      console.error("⚠️ Background sync runner scheduling failed:", err.message);
+    });
 
   if (!process.env.VERCEL) {
     app.listen(PORT, "0.0.0.0", () => {
