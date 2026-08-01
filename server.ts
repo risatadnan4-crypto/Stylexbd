@@ -772,17 +772,35 @@ async function syncSettingsToCloud() {
           upsertPayload.productPayments = JSON.stringify(db.settings.productPayments || {});
         } catch (e) {}
 
-        const { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
-        if (upsertError && upsertError.message.includes("column")) {
-          // Retry without columns if they don't exist
-          delete upsertPayload.productPayments;
-          delete upsertPayload.accentColor;
-          delete upsertPayload.siteTitle;
-          delete upsertPayload.siteMetaDesc;
-          delete upsertPayload.isXoroVoiceDisabled;
-          delete upsertPayload.isXoroVoiceAndAnswerDisabled;
-          delete upsertPayload.isXoroTextOnly;
-          await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
+        let { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
+        if (upsertError) {
+          console.warn("⚠️ Initial settings upsert failed:", upsertError.message);
+          let retries = 0;
+          let currentPayload = { ...upsertPayload };
+          while (upsertError && (upsertError.message.includes("column") || upsertError.message.includes("does not exist") || upsertError.code === "42703") && retries < 15) {
+            retries++;
+            const match = upsertError.message.match(/column "([^"]+)"/);
+            if (match && match[1]) {
+              const colName = match[1];
+              console.log(`[SETTINGS_SYNC] Pruning missing column from settings table payload: "${colName}"`);
+              delete currentPayload[colName];
+            } else {
+              console.log("[SETTINGS_SYNC] Unable to parse column name. Pruning all non-core columns.");
+              const coreKeys = ["id", "whatsappNumber", "adminEmail", "adminPassword"];
+              for (const key of Object.keys(currentPayload)) {
+                if (!coreKeys.includes(key)) {
+                  delete currentPayload[key];
+                }
+              }
+            }
+            const retryRes = await supabase.from("settings").upsert(currentPayload, { onConflict: "id" });
+            upsertError = retryRes.error;
+          }
+          if (upsertError) {
+            console.error("❌ All retries failed for settings table upsert:", upsertError.message);
+          } else {
+            console.log("✅ Settings upsert succeeded after dynamic column pruning.");
+          }
         }
       }
     } catch (dbErr: any) {
@@ -790,7 +808,7 @@ async function syncSettingsToCloud() {
     }
   }
 
-  // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup
+  // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup (including vital arrays)
   try {
     await supabase.from("banners").upsert({
       id: "system_settings_metadata",
@@ -799,13 +817,18 @@ async function syncSettingsToCloud() {
         ...db.settings,
         aiKeys: db.aiKeys || [],
         aiKeysInitialized: db.aiKeysInitialized ?? true,
-        aiApiAuditLogs: db.aiApiAuditLogs || []
+        aiApiAuditLogs: db.aiApiAuditLogs || [],
+        backInStockAlerts: db.backInStockAlerts || [],
+        smsSubscriptions: db.smsSubscriptions || [],
+        customerPhones: db.customerPhones || [],
+        pushSubscriptions: db.pushSubscriptions || [],
+        carts: db.carts || {}
       }),
       imageUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
       active: false,
       isVideo: false
     }, { onConflict: "id" });
-    console.log("✅ Backup of settings mirrored to Supabase 'banners' metadata table successfully.");
+    console.log("✅ Backup of settings and custom collections mirrored to Supabase 'banners' metadata table successfully.");
   } catch (bannerErr: any) {
     console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
   }
@@ -995,6 +1018,23 @@ async function syncFromSupabase() {
               }
               if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
                 db.aiApiAuditLogs = fallbackSettings.aiApiAuditLogs;
+              }
+
+              // Restore custom collections from cloud backup
+              if (fallbackSettings.backInStockAlerts !== undefined && Array.isArray(fallbackSettings.backInStockAlerts)) {
+                db.backInStockAlerts = fallbackSettings.backInStockAlerts;
+              }
+              if (fallbackSettings.smsSubscriptions !== undefined && Array.isArray(fallbackSettings.smsSubscriptions)) {
+                db.smsSubscriptions = fallbackSettings.smsSubscriptions;
+              }
+              if (fallbackSettings.customerPhones !== undefined && Array.isArray(fallbackSettings.customerPhones)) {
+                db.customerPhones = fallbackSettings.customerPhones;
+              }
+              if (fallbackSettings.pushSubscriptions !== undefined && Array.isArray(fallbackSettings.pushSubscriptions)) {
+                db.pushSubscriptions = fallbackSettings.pushSubscriptions;
+              }
+              if (fallbackSettings.carts !== undefined && typeof fallbackSettings.carts === "object") {
+                db.carts = fallbackSettings.carts;
               }
 
               saveDB();
@@ -2176,8 +2216,8 @@ async function upsertProductToSupabase(productPayload: any) {
   delete basePayload.isPinned;
   delete basePayload.freeDelivery;
 
-  // Try Option 1: Clean payload with snake_case SEO & OpenGraph columns
-  const payloadSnake = {
+  // Try dynamic payload with snake_case SEO & OpenGraph columns, pruning any unsupported columns dynamically in a loop
+  const payloadSnake: any = {
     ...basePayload,
     seo_title: basePayload.seoTitle || null,
     seo_description: basePayload.seoDescription || null,
@@ -2200,75 +2240,29 @@ async function upsertProductToSupabase(productPayload: any) {
   delete payloadSnake.ogDescription;
   delete payloadSnake.ogImage;
 
-  let result = await supabase.from("products").upsert(payloadSnake);
-  if (!result.error) {
-    return result;
+  let currentPayload = { ...payloadSnake };
+  let result = await supabase.from("products").upsert(currentPayload);
+  
+  let retries = 0;
+  while (result.error && (result.error.message.includes("column") || result.error.message.includes("does not exist") || result.error.code === "42703" || result.error.code === "PGRST102") && retries < 25) {
+    retries++;
+    const match = result.error.message.match(/column "([^"]+)"/);
+    if (match && match[1]) {
+      const colName = match[1];
+      console.log(`[PRODUCTS_SYNC] Pruning missing column from products table payload: "${colName}"`);
+      delete currentPayload[colName];
+    } else {
+      console.log("[PRODUCTS_SYNC] Unable to parse column name. Pruning all non-core columns.");
+      const coreKeys = ["id", "code", "title", "price", "stock", "imageUrl"];
+      for (const key of Object.keys(currentPayload)) {
+        if (!coreKeys.includes(key)) {
+          delete currentPayload[key];
+        }
+      }
+    }
+    result = await supabase.from("products").upsert(currentPayload);
   }
-
-  // Try Option 2: Clean payload with camelCase SEO columns
-  const payloadCamel = { ...basePayload };
-  delete payloadCamel.seo_title;
-  delete payloadCamel.seo_description;
-  delete payloadCamel.seo_keywords;
-  delete payloadCamel.meta_keywords;
-  delete payloadCamel.seo_slug;
-  delete payloadCamel.canonical_url;
-  delete payloadCamel.og_title;
-  delete payloadCamel.og_description;
-  delete payloadCamel.og_image;
-
-  result = await supabase.from("products").upsert(payloadCamel);
-  if (!result.error) {
-    return result;
-  }
-
-  // Try Option 3: Base payload without any SEO columns
-  const payloadNoSeo = { ...basePayload };
-  delete payloadNoSeo.seoTitle;
-  delete payloadNoSeo.seoDescription;
-  delete payloadNoSeo.seoKeywords;
-  delete payloadNoSeo.metaKeywords;
-  delete payloadNoSeo.seoSlug;
-  delete payloadNoSeo.canonicalUrl;
-  delete payloadNoSeo.ogTitle;
-  delete payloadNoSeo.ogDescription;
-  delete payloadNoSeo.ogImage;
-  delete payloadNoSeo.robots;
-  delete payloadNoSeo.seo_title;
-  delete payloadNoSeo.seo_description;
-  delete payloadNoSeo.seo_keywords;
-  delete payloadNoSeo.meta_keywords;
-  delete payloadNoSeo.seo_slug;
-  delete payloadNoSeo.canonical_url;
-  delete payloadNoSeo.og_title;
-  delete payloadNoSeo.og_description;
-  delete payloadNoSeo.og_image;
-
-  result = await supabase.from("products").upsert(payloadNoSeo);
-  if (!result.error) {
-    return result;
-  }
-
-  // Try Option 4: Core product fields only
-  const payloadCore = {
-    id: productPayload.id,
-    code: productPayload.code,
-    title: productPayload.title,
-    description: productPayload.description,
-    price: productPayload.price,
-    category: productPayload.category,
-    stock: productPayload.stock,
-    imageUrl: productPayload.imageUrl,
-    images: productPayload.images,
-    sizes: productPayload.sizes,
-    dimensions: productPayload.dimensions,
-    whyBuy: productPayload.whyBuy,
-    trending: productPayload.trending,
-    featured: productPayload.featured,
-    deliveryPrice: productPayload.deliveryPrice
-  };
-
-  result = await supabase.from("products").upsert(payloadCore);
+  
   return result;
 }
 
@@ -2440,7 +2434,7 @@ app.post("/api/products", async (req, res) => {
     freeDelivery: !!newProduct.freeDelivery,
     likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0
   };
-  syncSettingsToCloud();
+  await syncSettingsToCloud();
 
   try {
     const payload: any = {
@@ -2510,7 +2504,7 @@ app.post("/api/products", async (req, res) => {
       ogImage: newProduct.ogImage || "",
       robots: newProduct.robots || "index, follow"
     };
-    syncSettingsToCloud();
+    await syncSettingsToCloud();
     
     let { error: upsertError } = await upsertProductToSupabase(payload);
 
@@ -2633,7 +2627,7 @@ app.post("/api/products", async (req, res) => {
       ogImage: target.ogImage || "",
       robots: target.robots || "index, follow"
     };
-    syncSettingsToCloud();
+    await syncSettingsToCloud();
 
     try {
       const payload: any = {
@@ -2728,7 +2722,7 @@ app.post("/api/products/:id/like", async (req, res) => {
     db.products[idx].likes = newLikes;
     
     saveDB();
-    syncSettingsToCloud();
+    await syncSettingsToCloud();
     return res.json({ success: true, likes: newLikes });
   }
   return res.status(404).json({ error: "Product not found" });
@@ -2760,7 +2754,7 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 
   saveDB();
-  syncSettingsToCloud();
+  await syncSettingsToCloud();
 
   // Delete from Supabase cloud database
   try {
@@ -4114,18 +4108,31 @@ app.post("/api/orders", async (req, res) => {
 
     let { error: upsertErr } = await supabase.from("orders").upsert(payload);
     
-    // Bulletproof fallback: If orders table doesn't support the new custom checkout columns, retry without them
-    if (upsertErr && (upsertErr.message.includes("column") || upsertErr.code === "P0002" || upsertErr.message.includes("does not exist") || upsertErr.message.includes("not found"))) {
-      console.warn("⚠️ Custom checkout columns do not exist in Supabase orders table. Bypassing and retrying...");
-      delete payload.district;
-      delete payload.area;
-      delete payload.paymentType;
-      delete payload.paymentMethod;
-      delete payload.paidAmount;
-      delete payload.transactionId;
-      delete payload.paymentScreenshot;
-      delete payload.userId;
-      await supabase.from("orders").upsert(payload);
+    // Resilient fallback: If orders table doesn't support any of the columns, prune them dynamically in a loop and retry
+    let retries = 0;
+    while (upsertErr && (upsertErr.message.includes("column") || upsertErr.message.includes("does not exist") || upsertErr.code === "42703" || upsertErr.code === "PGRST102") && retries < 15) {
+      retries++;
+      const match = upsertErr.message.match(/column "([^"]+)"/);
+      if (match && match[1]) {
+        const colName = match[1];
+        console.log(`[ORDERS_SYNC] Pruning missing column from orders table payload: "${colName}"`);
+        delete payload[colName];
+      } else {
+        console.log("[ORDERS_SYNC] Unable to parse column name. Pruning all non-core columns.");
+        const coreKeys = ["id", "customerName", "customerPhone", "customerAddress", "totalAmount", "status", "date", "items"];
+        for (const key of Object.keys(payload)) {
+          if (!coreKeys.includes(key)) {
+            delete payload[key];
+          }
+        }
+      }
+      const retryRes = await supabase.from("orders").upsert(payload);
+      upsertErr = retryRes.error;
+    }
+    if (upsertErr) {
+      console.error("❌ Failed to upsert order to Supabase:", upsertErr.message);
+    } else {
+      console.log("✅ Order successfully saved to Supabase.");
     }
   } catch (err: any) {
     console.error("⚠️ Failed to mirror order creation to Supabase: ", err.message);
