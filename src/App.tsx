@@ -233,10 +233,38 @@ export default function App() {
     prevCartCountRef.current = totalCartItemsCount;
   }, [totalCartItemsCount]);
 
-  // Clean URL parsing router function
+  // Clean URL parsing router function supporting Hash-Based Routing
   const parseCurrentUrl = (productList = products) => {
-    const pathname = window.location.pathname;
-    const urlParams = new URLSearchParams(window.location.search);
+    let pathname = window.location.pathname;
+    let searchString = window.location.search;
+
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#/')) {
+      const hashContent = hash.substring(1);
+      const [hashPath, hashQuery] = hashContent.split('?');
+      pathname = hashPath;
+      if (hashQuery) {
+        searchString = '?' + hashQuery;
+      }
+    } else if (hash.startsWith('#')) {
+      const hashContent = '/' + hash.substring(1);
+      const [hashPath, hashQuery] = hashContent.split('?');
+      pathname = hashPath;
+      if (hashQuery) {
+        searchString = '?' + hashQuery;
+      }
+    } else {
+      // Support clean URLs on first load by auto-converting them to hashes
+      if (pathname !== '/' && pathname !== '/index.html') {
+        const cleanPath = pathname;
+        const cleanSearch = searchString;
+        const newHash = '#' + cleanPath + cleanSearch;
+        window.history.replaceState({}, '', '/' + newHash);
+        pathname = cleanPath;
+      }
+    }
+
+    const urlParams = new URLSearchParams(searchString);
 
     if (pathname === '/admin') {
       setIsAdminView(true);
@@ -558,18 +586,18 @@ export default function App() {
 
   }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, settings]);
 
-  // Clean URL State Synchronizer for SEO deep-linking
+  // Hash-based URL State Synchronizer for 404-free page refreshes & SEO deep-linking
   React.useEffect(() => {
     if (products && products.length > 0) {
-      let expectedPath = '/';
+      let expectedHash = '#/';
       let expectedSearch = '';
 
       if (isAdminView) {
-        expectedPath = '/admin';
+        expectedHash = '#/admin';
       } else if (isWishlistPage) {
-        expectedPath = '/wishlist';
+        expectedHash = '#/wishlist';
       } else if (isTrackMode) {
-        expectedPath = '/track';
+        expectedHash = '#/track';
       } else if (selectedProduct) {
         const pSlug = (selectedProduct.title || '')
           .toString()
@@ -577,20 +605,20 @@ export default function App() {
           .trim()
           .replace(/[\s\-]+/g, '')
           .replace(/[^\w]+/g, '');
-        expectedPath = `/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
+        expectedHash = `#/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
-        expectedPath = `/category/${activeCategory.toLowerCase()}`;
+        expectedHash = `#/category/${activeCategory.toLowerCase()}`;
       } else if (searchQuery) {
-        expectedPath = `/search`;
+        expectedHash = `#/search`;
         expectedSearch = `?q=${encodeURIComponent(searchQuery)}`;
       }
 
-      const currentPath = window.location.pathname;
-      const currentSearch = window.location.search;
+      const currentHash = window.location.hash;
+      const expectedFullHash = expectedHash + expectedSearch;
 
-      if (currentPath !== expectedPath || currentSearch !== expectedSearch) {
-        const newUrl = `${expectedPath}${expectedSearch}`;
-        window.history.pushState({}, '', newUrl);
+      if (currentHash !== expectedFullHash || window.location.pathname !== '/') {
+        // We push the hash-based path to guarantee zero 404 errors on refresh!
+        window.history.pushState({}, '', '/' + expectedFullHash);
       }
     }
   }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, products]);
@@ -1127,10 +1155,15 @@ export default function App() {
       setIsAuthAdmin(true);
     }
 
-    // Check query params for admin panel auto-access/redirect
-    const urlParams = new URLSearchParams(window.location.search);
+    // Check query params or hash for admin panel auto-access/redirect
+    let searchStr = window.location.search;
+    if (window.location.hash && window.location.hash.includes('?')) {
+      searchStr = '?' + window.location.hash.split('?')[1];
+    }
+    const urlParams = new URLSearchParams(searchStr);
     const hasAdminQuery = urlParams.get('admin') === 'true';
-    if (hasAdminQuery) {
+    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin';
+    if (hasAdminQuery || hasAdminHash) {
       if (sessionAuth === 'true') {
         setIsAdminView(true);
       } else {
@@ -1196,7 +1229,11 @@ export default function App() {
   // Automatically open product if deep-linked via QR Code on load
   useEffect(() => {
     if (products && products.length > 0) {
-      const urlParams = new URLSearchParams(window.location.search);
+      let searchStr = window.location.search;
+      if (window.location.hash && window.location.hash.includes('?')) {
+        searchStr = '?' + window.location.hash.split('?')[1];
+      }
+      const urlParams = new URLSearchParams(searchStr);
       const code = urlParams.get('product') || urlParams.get('productCode');
       if (code) {
         const found = products.find(p => 
@@ -4073,8 +4110,8 @@ export default function App() {
               <button 
                 onClick={() => {
                   setIsTrackMode(true);
-                  const newUrl = `${window.location.pathname}?track=${lastOrderToast.id}`;
-                  window.history.pushState({}, '', newUrl);
+                  const newUrl = `#/track?track=${lastOrderToast.id}`;
+                  window.history.pushState({}, '', '/' + newUrl);
                   setViewToast(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
@@ -4122,8 +4159,8 @@ export default function App() {
               <button 
                 onClick={() => {
                   setIsTrackMode(true);
-                  const newUrl = `${window.location.pathname}?track=${personalNotifToast.orderId}`;
-                  window.history.pushState({}, '', newUrl);
+                  const newUrl = `#/track?track=${personalNotifToast.orderId}`;
+                  window.history.pushState({}, '', '/' + newUrl);
                   setShowPersonalToast(false);
                   window.scrollTo({ top: 350, behavior: 'smooth' }); // Smooth scrolls to OrderTracker!
                 }}
@@ -4206,8 +4243,8 @@ export default function App() {
         onSelectProduct={(p) => setSelectedProduct(p)}
         onTrackOrder={(orderId) => {
           setIsTrackMode(true);
-          const newUrl = `${window.location.pathname}?track=${orderId}`;
-          window.history.pushState({}, '', newUrl);
+          const newUrl = `#/track?track=${orderId}`;
+          window.history.pushState({}, '', '/' + newUrl);
           window.scrollTo({ top: 350, behavior: 'smooth' });
         }}
         onToggleCart={(isOpen) => setIsCartOpen(isOpen)}
