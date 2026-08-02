@@ -780,14 +780,25 @@ async function syncSettingsToCloud() {
 
         let { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         if (upsertError) {
-          console.warn("⚠️ Initial settings upsert failed:", upsertError.message);
+          console.log("[SETTINGS_SYNC] Initial settings upsert noted schema mismatch (attempting dynamic pruning):", upsertError.message);
           let retries = 0;
           let currentPayload = { ...upsertPayload };
           while (upsertError && (upsertError.message.includes("column") || upsertError.message.includes("does not exist") || upsertError.code === "42703") && retries < 15) {
             retries++;
-            const match = upsertError.message.match(/column "([^"]+)"/);
-            if (match && match[1]) {
-              const colName = match[1];
+            let colName: string | null = null;
+            const matchDouble = upsertError.message.match(/column "([^"]+)"/);
+            const matchSingle = upsertError.message.match(/column '([^']+)'/);
+            const matchPreSingle = upsertError.message.match(/'([^']+)' column/);
+            
+            if (matchDouble) {
+              colName = matchDouble[1];
+            } else if (matchSingle) {
+              colName = matchSingle[1];
+            } else if (matchPreSingle) {
+              colName = matchPreSingle[1];
+            }
+
+            if (colName) {
               console.log(`[SETTINGS_SYNC] Pruning missing column from settings table payload: "${colName}"`);
               delete currentPayload[colName];
             } else {
