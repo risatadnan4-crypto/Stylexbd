@@ -6795,8 +6795,9 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 });
 
 // Vite & Production Setup Middleware
-async function startServer() {
-  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  // Support Vite development server asynchronously
+  const initDevServer = async () => {
     const viteKey = ["v", "i", "t", "e"].join("");
     const { createServer: createViteServer } = await import(viteKey);
     const vite = await createViteServer({
@@ -6821,33 +6822,35 @@ async function startServer() {
         next(err);
       }
     });
-  } else {
-    const baseDistPath = path.join(process.cwd(), "dist");
-    app.use(express.static(baseDistPath));
-    // Support wildcard matching with Dynamic SEO Meta SSR injection
-    app.get("*", async (req, res) => {
-      let indexPath = path.join(process.cwd(), "dist", "index.html");
-      const fs = await import("fs/promises");
-      let html = "";
-      
-      // Attempt to resolve and read index.html dynamically to handle different Vercel directory structures
+  };
+  initDevServer().catch(err => console.error("🚨 Failed to initialize dev server:", err));
+} else {
+  const baseDistPath = path.join(process.cwd(), "dist");
+  app.use(express.static(baseDistPath));
+  // Support wildcard matching with Dynamic SEO Meta SSR injection
+  app.get("*", async (req, res) => {
+    let indexPath = path.join(process.cwd(), "dist", "index.html");
+    const fs = await import("fs/promises");
+    let html = "";
+    
+    // Attempt to resolve and read index.html dynamically to handle different Vercel directory structures
+    try {
+      html = await fs.readFile(indexPath, "utf-8");
+    } catch (e) {
       try {
-        html = await fs.readFile(indexPath, "utf-8");
-      } catch (e) {
+        const altPath = path.resolve(__dirname, "dist", "index.html");
+        html = await fs.readFile(altPath, "utf-8");
+        indexPath = altPath;
+      } catch (e2) {
         try {
-          const altPath = path.resolve(__dirname, "dist", "index.html");
-          html = await fs.readFile(altPath, "utf-8");
-          indexPath = altPath;
-        } catch (e2) {
+          const altPath2 = path.resolve(__dirname, "..", "dist", "index.html");
+          html = await fs.readFile(altPath2, "utf-8");
+          indexPath = altPath2;
+        } catch (e3) {
           try {
-            const altPath2 = path.resolve(__dirname, "..", "dist", "index.html");
-            html = await fs.readFile(altPath2, "utf-8");
-            indexPath = altPath2;
-          } catch (e3) {
-            try {
-              const altPath3 = path.resolve(process.cwd(), "api", "dist", "index.html");
-              html = await fs.readFile(altPath3, "utf-8");
-              indexPath = altPath3;
+            const altPath3 = path.resolve(process.cwd(), "api", "dist", "index.html");
+            html = await fs.readFile(altPath3, "utf-8");
+            indexPath = altPath3;
             } catch (e4) {
               console.error("🚨 All index.html resolution paths failed:", e4);
             }
@@ -7215,26 +7218,23 @@ async function startServer() {
           }
         }
       }
-    });
-    console.log("Serving static distribution files from", baseDistPath);
-  }
-
-  // Trigger initial database sync and AI key initialization in background
-  syncFromSupabase()
-    .then(() => {
-      initializeAiKeyPool();
-      // Schedule periodic polling sync from Supabase
-      setInterval(syncFromSupabase, 45000);
-    })
-    .catch((err: any) => {
-      console.error("⚠️ Background sync runner scheduling failed:", err.message);
-    });
-
-  if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`STYLE X Premium Server running fully authorized on http://0.0.0.0:${PORT}`);
-    });
-  }
+  });
+  console.log("Serving static distribution files from", baseDistPath);
 }
 
-startServer();
+// Trigger initial database sync and AI key initialization in background
+syncFromSupabase()
+  .then(() => {
+    initializeAiKeyPool();
+    // Schedule periodic polling sync from Supabase
+    setInterval(syncFromSupabase, 45000);
+  })
+  .catch((err: any) => {
+    console.error("⚠️ Background sync runner scheduling failed:", err.message);
+  });
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`STYLE X Premium Server running fully authorized on http://0.0.0.0:${PORT}`);
+  });
+}
