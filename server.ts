@@ -6562,7 +6562,9 @@ app.post("/api/admin/ai-keys/:id/test", async (req, res) => {
       if (keyObj.latencyHistory.length > 50) keyObj.latencyHistory = keyObj.latencyHistory.slice(-50);
 
       logAiApiAudit("TEST_SUCCESS", keyObj.name, "Super Admin", `Test connection passed in ${duration}ms.`, keyObj.keyHint);
+      localAiKeysLastUpdated = Date.now();
       saveDB();
+      await syncSettingsToCloud();
       return res.json({ success: true, message: `Key tested successfully in ${duration}ms. Status confirmed Active!`, latencyMs: duration, key: sanitizeAiKeyObject(keyObj) });
     } else {
       throw new Error("Empty response from model test.");
@@ -6589,7 +6591,9 @@ app.post("/api/admin/ai-keys/:id/test", async (req, res) => {
     }
     
     logAiApiAudit("TEST_FAILED", keyObj.name, "Super Admin", `Test connection failed in ${duration}ms: ${errMsg}`, keyObj.keyHint);
+    localAiKeysLastUpdated = Date.now();
     saveDB();
+    await syncSettingsToCloud();
 
     return res.json({ success: false, message: `Test failed: ${errMsg}`, latencyMs: duration, status: keyObj.status, key: sanitizeAiKeyObject(keyObj) });
   }
@@ -6670,7 +6674,9 @@ app.post("/api/admin/ai-keys/benchmark", async (req, res) => {
   }
 
   logAiApiAudit("BENCHMARK_RUN", "All Keys", "Super Admin", `Executed real-time latency benchmark across ${activeKeys.length} keys.`);
+  localAiKeysLastUpdated = Date.now();
   saveDB();
+  await syncSettingsToCloud();
 
   const keys = (db.aiKeys || []).map(sanitizeAiKeyObject);
   return res.json({
