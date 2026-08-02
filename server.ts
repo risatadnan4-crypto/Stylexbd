@@ -16,7 +16,13 @@ export const app = express();
 const PORT = 3000;
 
 // Setup directories for data and uploads
-const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+const isProduction = 
+  process.env.NODE_ENV === "production" || 
+  process.env.VERCEL === "1" || 
+  (typeof __filename !== "undefined" && (__filename.endsWith(".cjs") || __filename.endsWith(".js"))) ||
+  !fs.existsSync(path.join(process.cwd(), "server.ts"));
+
+const isServerless = isProduction;
 const DATA_DIR = (isServerless && fs.existsSync("/tmp")) ? "/tmp" : path.join(process.cwd(), "data");
 const UPLOADS_DIR = (isServerless && fs.existsSync("/tmp")) ? path.join("/tmp", "uploads") : path.join(process.cwd(), "public", "uploads");
 
@@ -6801,35 +6807,53 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 });
 
 // Vite & Production Setup Middleware
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+let viteInstance: any = null;
+
+if (!isProduction) {
+  // Register Vite middleware synchronously via lazy proxy
+  app.use((req, res, next) => {
+    if (viteInstance) {
+      return viteInstance.middlewares(req, res, next);
+    }
+    next();
+  });
+  console.log("Registered lazy Vite middleware proxy synchronously.");
+
   // Support Vite development server asynchronously
   const initDevServer = async () => {
-    const viteKey = ["v", "i", "t", "e"].join("");
-    const { createServer: createViteServer } = await import(viteKey);
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa"
-    });
-    app.use(vite.middlewares);
-    console.log("Joined Vite development server middleware.");
-
-    // Support SPA wildcard fallback in development so refreshes on subpaths (like /product/123) work
-    app.get("*", async (req, res, next) => {
-      // Avoid intercepting API paths or files with extensions
-      if (req.path.startsWith("/api/") || req.path.includes(".")) {
-        return next();
-      }
-      try {
-        const fs = await import("fs/promises");
-        const rawHtml = await fs.readFile(path.join(process.cwd(), "index.html"), "utf-8");
-        const html = await vite.transformIndexHtml(req.url, rawHtml);
-        res.status(200).set({ "Content-Type": "text/html" }).send(html);
-      } catch (err) {
-        next(err);
-      }
-    });
+    try {
+      const viteKey = ["v", "i", "t", "e"].join("");
+      const { createServer: createViteServer } = await import(viteKey);
+      viteInstance = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa"
+      });
+      console.log("Vite dev server created and mounted to proxy.");
+    } catch (err) {
+      console.error("🚨 Failed to initialize Vite dev server:", err);
+    }
   };
-  initDevServer().catch(err => console.error("🚨 Failed to initialize dev server:", err));
+  initDevServer();
+
+  // Support SPA wildcard fallback synchronously in development so refreshes on subpaths work instantly
+  app.get("*", async (req, res, next) => {
+    // Avoid intercepting API paths or files with extensions
+    if (req.path.startsWith("/api") || req.path.includes(".")) {
+      return next();
+    }
+    try {
+      const fs = await import("fs/promises");
+      const rawHtml = await fs.readFile(path.join(process.cwd(), "index.html"), "utf-8");
+      if (viteInstance) {
+        const html = await viteInstance.transformIndexHtml(req.url, rawHtml);
+        res.status(200).set({ "Content-Type": "text/html" }).send(html);
+      } else {
+        res.status(200).set({ "Content-Type": "text/html" }).send(rawHtml);
+      }
+    } catch (err) {
+      next(err);
+    }
+  });
 } else {
   const baseDistPath = path.join(process.cwd(), "dist");
   app.use(express.static(baseDistPath));
