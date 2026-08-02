@@ -822,6 +822,7 @@ async function syncSettingsToCloud() {
       subtitle: JSON.stringify({
         ...db.settings,
         aiKeys: db.aiKeys || [],
+        aiKeysLastUpdated: localAiKeysLastUpdated,
         aiKeysInitialized: db.aiKeysInitialized ?? true,
         aiApiAuditLogs: db.aiApiAuditLogs || [],
         backInStockAlerts: db.backInStockAlerts || [],
@@ -1016,10 +1017,11 @@ async function syncFromSupabase() {
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
               
               if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
-                const wasRecentlyUpdatedLocally = (Date.now() - localAiKeysLastUpdated) < 60000;
-                if (!wasRecentlyUpdatedLocally || !db.aiKeys || db.aiKeys.length === 0) {
+                const cloudLastUpdated = Number(fallbackSettings.aiKeysLastUpdated || 0);
+                if (cloudLastUpdated > localAiKeysLastUpdated || !db.aiKeys || db.aiKeys.length === 0) {
                   db.aiKeys = fallbackSettings.aiKeys;
                   db.aiKeysInitialized = true;
+                  localAiKeysLastUpdated = Math.max(localAiKeysLastUpdated, cloudLastUpdated);
                 }
               }
               if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
@@ -1334,10 +1336,11 @@ async function syncFromSupabase() {
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
 
             if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
-              const wasRecentlyUpdatedLocally = (Date.now() - localAiKeysLastUpdated) < 60000;
-              if (!wasRecentlyUpdatedLocally || !db.aiKeys || db.aiKeys.length === 0) {
+              const cloudLastUpdated = Number(fallbackSettings.aiKeysLastUpdated || 0);
+              if (cloudLastUpdated > localAiKeysLastUpdated || !db.aiKeys || db.aiKeys.length === 0) {
                 db.aiKeys = fallbackSettings.aiKeys;
                 db.aiKeysInitialized = true;
+                localAiKeysLastUpdated = Math.max(localAiKeysLastUpdated, cloudLastUpdated);
               }
             }
             if (fallbackSettings.aiApiAuditLogs !== undefined && Array.isArray(fallbackSettings.aiApiAuditLogs) && db.aiApiAuditLogs.length === 0) {
