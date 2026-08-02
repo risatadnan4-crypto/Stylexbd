@@ -6938,8 +6938,8 @@ if (!isProduction) {
 
         // Extract route parameters from the pathname (clean SEO friendly URLs)
         const pathSegments = requestUrlPath.split("/").filter(Boolean);
-        let customTitle = "STYLE X | #1 Premium Luxury Clothing & Authentic Apparel Bangladesh";
-        let desc = "Discover STYLE X, Bangladesh's leading destination for luxury fashion, streetwear, and authentic apparel. Shop premium suits, hoodies, panjabis, dresses, and lifestyle gear with fast nationwide COD.";
+        let customTitle = db.settings?.siteTitle || "STYLE X | #1 Premium Luxury Clothing & Authentic Apparel Bangladesh";
+        let desc = db.settings?.siteMetaDesc || "Discover STYLE X, Bangladesh's leading destination for luxury fashion, streetwear, and authentic apparel. Shop premium suits, hoodies, panjabis, dresses, and lifestyle gear with fast nationwide COD.";
         let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x store, style x online shop, style x apparel, style x fashion, luxury clothing bangladesh, premium streetwear bd, luxury fashion dhaka, royal apparel, buy clothes online bd, style x dhaka, authentic apparel bangladesh, style x official";
         let image = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
         

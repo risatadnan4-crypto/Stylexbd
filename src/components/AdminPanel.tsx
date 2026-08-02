@@ -2702,16 +2702,6 @@ export default function AdminPanel({
             </button>
 
             <button 
-              onClick={() => { setActiveTab('xoro_ai'); setIsDrawerOpen(false); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'xoro_ai' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Bot size={13} className={activeTab === 'xoro_ai' ? 'text-luxury-black' : 'text-luxury-gold'} />
-              🤖 Xoro AI
-            </button>
-
-            <button 
               onClick={() => { setActiveTab('ai_api_manager'); setIsDrawerOpen(false); }}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all cursor-pointer ${
                 activeTab === 'ai_api_manager' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
