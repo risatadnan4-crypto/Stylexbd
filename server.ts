@@ -6880,7 +6880,10 @@ if (!isProduction) {
       const viteKey = ["v", "i", "t", "e"].join("");
       const { createServer: createViteServer } = await import(viteKey);
       viteInstance = await createViteServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: false
+        },
         appType: "spa"
       });
       console.log("Vite dev server created and mounted to proxy.");
