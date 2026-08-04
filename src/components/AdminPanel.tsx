@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
@@ -599,124 +599,210 @@ export default function AdminPanel({
     }
   };
 
+  const lastLoadedSettingsRef = useRef<any>(null);
+
   useEffect(() => {
-    if (settings?.whatsappNumber) {
-      setWhatsappNumberInput(settings.whatsappNumber);
+    if (!settings) return;
+
+    const prev = lastLoadedSettingsRef.current || {};
+
+    if (settings.whatsappNumber) {
+      if (!lastLoadedSettingsRef.current || whatsappNumberInput === prev.whatsappNumber) {
+        setWhatsappNumberInput(settings.whatsappNumber);
+      }
     }
-    if (settings?.adminEmail) {
-      setAdminEmailInput(settings.adminEmail);
+    if (settings.adminEmail) {
+      if (!lastLoadedSettingsRef.current || adminEmailInput === prev.adminEmail) {
+        setAdminEmailInput(settings.adminEmail);
+      }
     }
-    if (settings?.adminPassword) {
-      setAdminPasswordInput(settings.adminPassword);
+    if (settings.adminPassword) {
+      if (!lastLoadedSettingsRef.current || adminPasswordInput === prev.adminPassword) {
+        setAdminPasswordInput(settings.adminPassword);
+      }
     }
-    if (settings?.appsScriptUrl) {
-      setAppsScriptUrlInput(settings.appsScriptUrl);
+    if (settings.appsScriptUrl) {
+      if (!lastLoadedSettingsRef.current || appsScriptUrlInput === prev.appsScriptUrl) {
+        setAppsScriptUrlInput(settings.appsScriptUrl);
+      }
     }
-    if (settings?.logoUrl !== undefined) {
-      setLogoUrlInput(settings.logoUrl);
+    if (settings.logoUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || logoUrlInput === prev.logoUrl) {
+        setLogoUrlInput(settings.logoUrl);
+      }
     }
-    if (settings?.xoroAvatarUrl !== undefined) {
-      setXoroAvatarUrlInput(settings.xoroAvatarUrl);
+    if (settings.xoroAvatarUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || xoroAvatarUrlInput === prev.xoroAvatarUrl) {
+        setXoroAvatarUrlInput(settings.xoroAvatarUrl);
+      }
     }
-    if (settings?.bkashLogoUrl !== undefined) {
-      setBkashLogoUrlInput(settings.bkashLogoUrl);
+    if (settings.bkashLogoUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || bkashLogoUrlInput === prev.bkashLogoUrl) {
+        setBkashLogoUrlInput(settings.bkashLogoUrl);
+      }
     }
-    if (settings?.nagadLogoUrl !== undefined) {
-      setNagadLogoUrlInput(settings.nagadLogoUrl);
+    if (settings.nagadLogoUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || nagadLogoUrlInput === prev.nagadLogoUrl) {
+        setNagadLogoUrlInput(settings.nagadLogoUrl);
+      }
     }
-    if (settings?.lotteryPrizes) {
-      setLotteryPrizesInput(settings.lotteryPrizes);
+    if (settings.lotteryPrizes) {
+      if (!lastLoadedSettingsRef.current || JSON.stringify(lotteryPrizesInput) === JSON.stringify(prev.lotteryPrizes)) {
+        setLotteryPrizesInput(settings.lotteryPrizes);
+      }
     }
-    if (settings?.lotteryDiscountPercentage !== undefined) {
-      setLotteryDiscountPercentageInput(settings.lotteryDiscountPercentage);
+    if (settings.lotteryDiscountPercentage !== undefined) {
+      if (!lastLoadedSettingsRef.current || lotteryDiscountPercentageInput === prev.lotteryDiscountPercentage) {
+        setLotteryDiscountPercentageInput(settings.lotteryDiscountPercentage);
+      }
     }
-    if (settings?.lotteryCouponPrefix !== undefined) {
-      setLotteryCouponPrefixInput(settings.lotteryCouponPrefix);
+    if (settings.lotteryCouponPrefix !== undefined) {
+      if (!lastLoadedSettingsRef.current || lotteryCouponPrefixInput === prev.lotteryCouponPrefix) {
+        setLotteryCouponPrefixInput(settings.lotteryCouponPrefix);
+      }
     }
-    if (settings?.facebookUrl !== undefined) {
-      setFacebookUrlInput(settings.facebookUrl);
+    if (settings.facebookUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || facebookUrlInput === prev.facebookUrl) {
+        setFacebookUrlInput(settings.facebookUrl);
+      }
     }
-    if (settings?.instagramUrl !== undefined) {
-      setInstagramUrlInput(settings.instagramUrl);
+    if (settings.instagramUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || instagramUrlInput === prev.instagramUrl) {
+        setInstagramUrlInput(settings.instagramUrl);
+      }
     }
-    if (settings?.paymentBadgeTitle !== undefined) {
-      setPaymentBadgeTitleInput(settings.paymentBadgeTitle);
+    if (settings.paymentBadgeTitle !== undefined) {
+      if (!lastLoadedSettingsRef.current || paymentBadgeTitleInput === prev.paymentBadgeTitle) {
+        setPaymentBadgeTitleInput(settings.paymentBadgeTitle);
+      }
     }
-    if (settings?.paymentBadgeDescription !== undefined) {
-      setPaymentBadgeDescriptionInput(settings.paymentBadgeDescription);
+    if (settings.paymentBadgeDescription !== undefined) {
+      if (!lastLoadedSettingsRef.current || paymentBadgeDescriptionInput === prev.paymentBadgeDescription) {
+        setPaymentBadgeDescriptionInput(settings.paymentBadgeDescription);
+      }
     }
-    if (settings?.isCatalogDeactivated !== undefined) {
-      setIsCatalogDeactivatedInput(settings.isCatalogDeactivated);
+    if (settings.isCatalogDeactivated !== undefined) {
+      if (!lastLoadedSettingsRef.current || isCatalogDeactivatedInput === prev.isCatalogDeactivated) {
+        setIsCatalogDeactivatedInput(settings.isCatalogDeactivated);
+      }
     }
-    if (settings?.isXoroVoiceDisabled !== undefined) {
-      setIsXoroVoiceDisabledInput(settings.isXoroVoiceDisabled);
+    if (settings.isXoroVoiceDisabled !== undefined) {
+      if (!lastLoadedSettingsRef.current || isXoroVoiceDisabledInput === prev.isXoroVoiceDisabled) {
+        setIsXoroVoiceDisabledInput(settings.isXoroVoiceDisabled);
+      }
     }
-    if (settings?.isXoroVoiceAndAnswerDisabled !== undefined) {
-      setIsXoroVoiceAndAnswerDisabledInput(settings.isXoroVoiceAndAnswerDisabled);
+    if (settings.isXoroVoiceAndAnswerDisabled !== undefined) {
+      if (!lastLoadedSettingsRef.current || isXoroVoiceAndAnswerDisabledInput === prev.isXoroVoiceAndAnswerDisabled) {
+        setIsXoroVoiceAndAnswerDisabledInput(settings.isXoroVoiceAndAnswerDisabled);
+      }
     }
-    if (settings?.isXoroTextOnly !== undefined) {
-      setIsXoroTextOnlyInput(settings.isXoroTextOnly);
+    if (settings.isXoroTextOnly !== undefined) {
+      if (!lastLoadedSettingsRef.current || isXoroTextOnlyInput === prev.isXoroTextOnly) {
+        setIsXoroTextOnlyInput(settings.isXoroTextOnly);
+      }
     }
-    if (settings?.sourceProtectionTitle !== undefined) {
-      setSourceProtectionTitleInput(settings.sourceProtectionTitle);
+    if (settings.sourceProtectionTitle !== undefined) {
+      if (!lastLoadedSettingsRef.current || sourceProtectionTitleInput === prev.sourceProtectionTitle) {
+        setSourceProtectionTitleInput(settings.sourceProtectionTitle);
+      }
     }
-    if (settings?.sourceProtectionDescription !== undefined) {
-      setSourceProtectionDescriptionInput(settings.sourceProtectionDescription);
+    if (settings.sourceProtectionDescription !== undefined) {
+      if (!lastLoadedSettingsRef.current || sourceProtectionDescriptionInput === prev.sourceProtectionDescription) {
+        setSourceProtectionDescriptionInput(settings.sourceProtectionDescription);
+      }
     }
-    if (settings?.sourceProtectionImageUrl !== undefined) {
-      setSourceProtectionImageUrlInput(settings.sourceProtectionImageUrl);
+    if (settings.sourceProtectionImageUrl !== undefined) {
+      if (!lastLoadedSettingsRef.current || sourceProtectionImageUrlInput === prev.sourceProtectionImageUrl) {
+        setSourceProtectionImageUrlInput(settings.sourceProtectionImageUrl);
+      }
     }
-    if (settings?.smsProvider !== undefined) {
-      setSmsProviderInput(settings.smsProvider);
+    if (settings.smsProvider !== undefined) {
+      if (!lastLoadedSettingsRef.current || smsProviderInput === prev.smsProvider) {
+        setSmsProviderInput(settings.smsProvider);
+      }
     }
-    if (settings?.twilioAccountSid !== undefined) {
-      setTwilioAccountSidInput(settings.twilioAccountSid);
+    if (settings.twilioAccountSid !== undefined) {
+      if (!lastLoadedSettingsRef.current || twilioAccountSidInput === prev.twilioAccountSid) {
+        setTwilioAccountSidInput(settings.twilioAccountSid);
+      }
     }
-    if (settings?.twilioAuthToken !== undefined) {
-      setTwilioAuthTokenInput(settings.twilioAuthToken);
+    if (settings.twilioAuthToken !== undefined) {
+      if (!lastLoadedSettingsRef.current || twilioAuthTokenInput === prev.twilioAuthToken) {
+        setTwilioAuthTokenInput(settings.twilioAuthToken);
+      }
     }
-    if (settings?.twilioFromNumber !== undefined) {
-      setTwilioFromNumberInput(settings.twilioFromNumber);
+    if (settings.twilioFromNumber !== undefined) {
+      if (!lastLoadedSettingsRef.current || twilioFromNumberInput === prev.twilioFromNumber) {
+        setTwilioFromNumberInput(settings.twilioFromNumber);
+      }
     }
-    if (settings?.greenwebToken !== undefined) {
-      setGreenwebTokenInput(settings.greenwebToken);
+    if (settings.greenwebToken !== undefined) {
+      if (!lastLoadedSettingsRef.current || greenwebTokenInput === prev.greenwebToken) {
+        setGreenwebTokenInput(settings.greenwebToken);
+      }
     }
-    if (settings?.deactivatedMessage !== undefined) {
-      setDeactivatedMessageInput(settings.deactivatedMessage);
+    if (settings.deactivatedMessage !== undefined) {
+      if (!lastLoadedSettingsRef.current || deactivatedMessageInput === prev.deactivatedMessage) {
+        setDeactivatedMessageInput(settings.deactivatedMessage);
+      }
     }
-    if (settings?.isLotteryDeactivated !== undefined) {
-      setIsLotteryDeactivatedInput(settings.isLotteryDeactivated);
+    if (settings.isLotteryDeactivated !== undefined) {
+      if (!lastLoadedSettingsRef.current || isLotteryDeactivatedInput === prev.isLotteryDeactivated) {
+        setIsLotteryDeactivatedInput(settings.isLotteryDeactivated);
+      }
     }
-    if (settings?.isNotifyMeDeactivated !== undefined) {
-      setIsNotifyMeDeactivatedInput(settings.isNotifyMeDeactivated);
+    if (settings.isNotifyMeDeactivated !== undefined) {
+      if (!lastLoadedSettingsRef.current || isNotifyMeDeactivatedInput === prev.isNotifyMeDeactivated) {
+        setIsNotifyMeDeactivatedInput(settings.isNotifyMeDeactivated);
+      }
     }
-    if (settings?.globalTimerEndTime !== undefined) {
-      setGlobalTimerEndTimeInput(settings.globalTimerEndTime);
+    if (settings.globalTimerEndTime !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalTimerEndTimeInput === prev.globalTimerEndTime) {
+        setGlobalTimerEndTimeInput(settings.globalTimerEndTime);
+      }
     }
-    if (settings?.globalTimerMessage !== undefined) {
-      setGlobalTimerMessageInput(settings.globalTimerMessage);
+    if (settings.globalTimerMessage !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalTimerMessageInput === prev.globalTimerMessage) {
+        setGlobalTimerMessageInput(settings.globalTimerMessage);
+      }
     }
-    if (settings?.globalTimerActive !== undefined) {
-      setGlobalTimerActiveInput(settings.globalTimerActive);
+    if (settings.globalTimerActive !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalTimerActiveInput === prev.globalTimerActive) {
+        setGlobalTimerActiveInput(settings.globalTimerActive);
+      }
     }
-    if (settings?.globalPaymentSystem !== undefined) {
-      setGlobalPaymentSystemInput(settings.globalPaymentSystem);
+    if (settings.globalPaymentSystem !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalPaymentSystemInput === prev.globalPaymentSystem) {
+        setGlobalPaymentSystemInput(settings.globalPaymentSystem);
+      }
     }
-    if (settings?.globalPaymentMethod !== undefined) {
-      setGlobalPaymentMethodInput(settings.globalPaymentMethod);
+    if (settings.globalPaymentMethod !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalPaymentMethodInput === prev.globalPaymentMethod) {
+        setGlobalPaymentMethodInput(settings.globalPaymentMethod);
+      }
     }
-    if (settings?.globalDeliveryDays !== undefined) {
-      setGlobalDeliveryDaysInput(settings.globalDeliveryDays);
+    if (settings.globalDeliveryDays !== undefined) {
+      if (!lastLoadedSettingsRef.current || globalDeliveryDaysInput === prev.globalDeliveryDays) {
+        setGlobalDeliveryDaysInput(settings.globalDeliveryDays);
+      }
     }
-    if (settings?.accentColor !== undefined) {
-      setAccentColorInput(settings.accentColor);
+    if (settings.accentColor !== undefined) {
+      if (!lastLoadedSettingsRef.current || accentColorInput === prev.accentColor) {
+        setAccentColorInput(settings.accentColor);
+      }
     }
-    if (settings?.siteTitle !== undefined) {
-      setSiteTitle(settings.siteTitle);
+    if (settings.siteTitle !== undefined) {
+      if (!lastLoadedSettingsRef.current || siteTitle === prev.siteTitle) {
+        setSiteTitle(settings.siteTitle);
+      }
     }
-    if (settings?.siteMetaDesc !== undefined) {
-      setSiteMetaDesc(settings.siteMetaDesc);
+    if (settings.siteMetaDesc !== undefined) {
+      if (!lastLoadedSettingsRef.current || siteMetaDesc === prev.siteMetaDesc) {
+        setSiteMetaDesc(settings.siteMetaDesc);
+      }
     }
+
+    lastLoadedSettingsRef.current = settings;
   }, [settings]);
 
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -2590,54 +2676,54 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('dashboard'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'dashboard' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'dashboard' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <BarChart3 size={13} className={activeTab === 'dashboard' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <BarChart3 size={13} className={activeTab === 'dashboard' ? 'text-white' : 'text-purple-400'} />
               Dashboard
             </button>
 
             <button 
               onClick={() => { setActiveTab('performance_dashboard'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'performance_dashboard' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'performance_dashboard' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Activity size={13} className={activeTab === 'performance_dashboard' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Activity size={13} className={activeTab === 'performance_dashboard' ? 'text-white' : 'text-purple-400'} />
               Performance Dashboard
             </button>
 
             <button 
               onClick={() => { setActiveTab('profit_calculator'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'profit_calculator' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'profit_calculator' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Calculator size={13} className={activeTab === 'profit_calculator' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Calculator size={13} className={activeTab === 'profit_calculator' ? 'text-white' : 'text-purple-400'} />
               Profit Calculator
             </button>
 
             <button 
               onClick={() => { setActiveTab('inventory'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'inventory' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'inventory' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <LayoutGrid size={13} className={activeTab === 'inventory' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <LayoutGrid size={13} className={activeTab === 'inventory' ? 'text-white' : 'text-purple-400'} />
               Inventory
             </button>
 
             <button 
               onClick={() => { setActiveTab('orders'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'orders' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'orders' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <ClipboardList size={13} className={activeTab === 'orders' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <ClipboardList size={13} className={activeTab === 'orders' ? 'text-white' : 'text-purple-400'} />
               Order Tracking
               {orders.filter(o => o.status === 'PENDING').length > 0 && (
                 <span className={`ml-auto w-5 h-5 rounded-full text-[9px] flex items-center justify-center font-bold leading-none ${
-                  activeTab === 'orders' ? 'bg-luxury-black text-luxury-gold' : 'bg-red-500 text-white'
+                  activeTab === 'orders' ? 'bg-purple-950 text-purple-300 border border-purple-500/30' : 'bg-red-500 text-white'
                 }`}>
                   {orders.filter(o => o.status === 'PENDING').length}
                 </span>
@@ -2647,24 +2733,24 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('banners'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'banners' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'banners' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <ImageIcon size={13} className={activeTab === 'banners' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <ImageIcon size={13} className={activeTab === 'banners' ? 'text-white' : 'text-purple-400'} />
               Banners
             </button>
 
             <button 
               onClick={() => { setActiveTab('reviews'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'reviews' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'reviews' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Star size={13} className={activeTab === 'reviews' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Star size={13} className={activeTab === 'reviews' ? 'text-white' : 'text-purple-400'} />
               Reviews
               {reviews.filter(r => !r.isApproved).length > 0 && (
                 <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold ${
-                  activeTab === 'reviews' ? 'bg-luxury-black text-luxury-gold border-luxury-gold/40' : 'bg-luxury-gold/20 text-luxury-gold border-luxury-gold/30'
+                  activeTab === 'reviews' ? 'bg-purple-950 text-purple-300 border border-purple-500/35' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                 }`}>
                   {reviews.filter(r => !r.isApproved).length}
                 </span>
@@ -2674,41 +2760,41 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('coupons'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'coupons' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'coupons' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Tag size={13} className={activeTab === 'coupons' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Tag size={13} className={activeTab === 'coupons' ? 'text-white' : 'text-purple-400'} />
               Coupons
             </button>
 
             <button 
               onClick={() => { setActiveTab('campaigns'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'campaigns' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'campaigns' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles size={13} className={activeTab === 'campaigns' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Sparkles size={13} className={activeTab === 'campaigns' ? 'text-white' : 'text-purple-400'} />
               Campaigns
             </button>
 
             <button 
               onClick={() => { setActiveTab('chat'); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'chat' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'chat' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <MessageSquare size={13} className={activeTab === 'chat' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <MessageSquare size={13} className={activeTab === 'chat' ? 'text-white' : 'text-purple-400'} />
               Chat Support
             </button>
 
             <button 
               onClick={() => { setActiveTab('ai_api_manager'); setIsDrawerOpen(false); }}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all cursor-pointer ${
-                activeTab === 'ai_api_manager' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'ai_api_manager' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Key size={13} className={activeTab === 'ai_api_manager' ? 'text-luxury-black' : 'text-cyan-400'} />
+                <Key size={13} className={activeTab === 'ai_api_manager' ? 'text-white' : 'text-cyan-400'} />
                 <span>AI API Manager</span>
               </div>
               {xoroRole !== 'super_admin' && (
@@ -2719,34 +2805,34 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('seo'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'seo' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'seo' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Globe size={13} className={activeTab === 'seo' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Globe size={13} className={activeTab === 'seo' ? 'text-white' : 'text-purple-400'} />
               SEO Master
             </button>
 
             <button 
               onClick={() => { setActiveTab('seo_health'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'seo_health' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'seo_health' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Activity size={13} className={activeTab === 'seo_health' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Activity size={13} className={activeTab === 'seo_health' ? 'text-white' : 'text-purple-400'} />
               SEO Health
             </button>
 
             <button 
               onClick={() => { setActiveTab('alerts'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'alerts' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'alerts' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Bell size={13} className={activeTab === 'alerts' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Bell size={13} className={activeTab === 'alerts' ? 'text-white' : 'text-purple-400'} />
               Restock Alerts
               {backInStockAlerts.length > 0 && (
                 <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold ${
-                  activeTab === 'alerts' ? 'bg-luxury-black text-luxury-gold border-luxury-gold/45' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  activeTab === 'alerts' ? 'bg-purple-950 text-purple-300 border border-purple-500/45' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                 }`}>
                   {backInStockAlerts.length}
                 </span>
@@ -2756,10 +2842,10 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('sms'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'sms' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'sms' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Mail size={13} className={activeTab === 'sms' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Mail size={13} className={activeTab === 'sms' ? 'text-white' : 'text-purple-400'} />
               SMS Gateway logs
               {smsLogs.length > 0 && (
                 <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold bg-[#14b8a6]/20 text-[#2dd4bf] border-[#14b8a6]/30`}>
@@ -2771,13 +2857,13 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('customer_phones'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'customer_phones' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'customer_phones' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Smartphone size={13} className={activeTab === 'customer_phones' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Smartphone size={13} className={activeTab === 'customer_phones' ? 'text-white' : 'text-purple-400'} />
               Customer Phones
               {customerPhones.length > 0 && (
-                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold bg-[#d4af37]/20 text-[#d4af37] border-[#d4af37]/30`}>
+                <span className={`ml-auto border px-1.5 py-0.2 rounded text-[8.5px] font-mono leading-none font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30`}>
                   {customerPhones.length}
                 </span>
               )}
@@ -2786,10 +2872,10 @@ export default function AdminPanel({
             <button 
               onClick={() => { setActiveTab('settings'); setSelectedChat(null); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
-                activeTab === 'settings' ? 'bg-luxury-gold text-luxury-black font-extrabold shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/5'
+                activeTab === 'settings' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Settings size={13} className={activeTab === 'settings' ? 'text-luxury-black' : 'text-luxury-gold'} />
+              <Settings size={13} className={activeTab === 'settings' ? 'text-white' : 'text-purple-400'} />
               System Settings
             </button>
           </nav>
@@ -2797,7 +2883,7 @@ export default function AdminPanel({
           {/* Quick Social Setup */}
           <div className="bg-[#0e0e0e] border border-white/5 p-3 rounded-lg space-y-2.5">
             <div className="flex items-center gap-1.5 pb-1 border-b border-white/5">
-              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-luxury-gold flex items-center gap-1">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1">
                 🔗 Quick Social Links
               </span>
             </div>
@@ -2829,7 +2915,7 @@ export default function AdminPanel({
             <button
               onClick={() => handleSaveSettings()}
               disabled={savingSettings}
-              className="w-full text-center bg-luxury-gold hover:bg-white text-luxury-black font-extrabold uppercase py-1 px-2 text-[8px] tracking-widest rounded transition-all duration-200 cursor-pointer flex items-center justify-center gap-1"
+              className="w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-extrabold uppercase py-1 px-2 text-[8px] tracking-widest rounded transition-all duration-200 cursor-pointer flex items-center justify-center gap-1"
             >
               {savingSettings ? "Saving..." : "✓ Save Links"}
             </button>

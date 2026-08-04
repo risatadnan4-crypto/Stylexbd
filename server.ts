@@ -158,6 +158,20 @@ let localAiKeysLastUpdated = 0;
 let activeSyncPromise: Promise<void> | null = null;
 let isSettingsTableAvailable = true;
 
+let lastLocalSettingsWrite = 0;
+let lastLocalProductsWrite = 0;
+let lastLocalCouponsWrite = 0;
+let lastLocalBannersWrite = 0;
+let lastLocalCampaignsWrite = 0;
+let lastLocalReviewsWrite = 0;
+
+let isSettingsSyncPending = false;
+let isProductsSyncPending = false;
+let isCouponsSyncPending = false;
+let isBannersSyncPending = false;
+let isCampaignsSyncPending = false;
+let isReviewsSyncPending = false;
+
 // Load database if exists
 if (fs.existsSync(DB_FILE)) {
   try {
@@ -725,6 +739,7 @@ function registerCustomerPhone(phone: string, name?: string, email?: string, sou
 async function syncSettingsToCloud() {
   saveDB();
   
+  let settingsTableSuccess = !isSettingsTableAvailable;
   if (isSettingsTableAvailable) {
     try {
       const { data: testResult, error: testError } = await supabase.from("settings").select("*").limit(1);
@@ -735,6 +750,7 @@ async function syncSettingsToCloud() {
           await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
         };
         await saveSetting("productPayments", JSON.stringify(db.settings.productPayments || {}));
+        settingsTableSuccess = true;
       } else {
         const upsertPayload: any = {
           id: 1,
@@ -817,7 +833,10 @@ async function syncSettingsToCloud() {
             console.error("❌ All retries failed for settings table upsert:", upsertError.message);
           } else {
             console.log("✅ Settings upsert succeeded after dynamic column pruning.");
+            settingsTableSuccess = true;
           }
+        } else {
+          settingsTableSuccess = true;
         }
       }
     } catch (dbErr: any) {
@@ -825,9 +844,10 @@ async function syncSettingsToCloud() {
     }
   }
 
+  let bannersSuccess = false;
   // Always mirror to Supabase 'banners' metadata row as a failsafe cloud backup (including vital arrays)
   try {
-    await supabase.from("banners").upsert({
+    const { error: bannerErr } = await supabase.from("banners").upsert({
       id: "system_settings_metadata",
       title: "SYSTEM_SETTINGS_METADATA",
       subtitle: JSON.stringify({
@@ -846,9 +866,21 @@ async function syncSettingsToCloud() {
       active: false,
       isVideo: false
     }, { onConflict: "id" });
-    console.log("✅ Backup of settings and custom collections mirrored to Supabase 'banners' metadata table successfully.");
+    
+    if (bannerErr) {
+      console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
+    } else {
+      console.log("✅ Backup of settings and custom collections mirrored to Supabase 'banners' metadata table successfully.");
+      bannersSuccess = true;
+    }
   } catch (bannerErr: any) {
     console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
+  }
+
+  if (settingsTableSuccess && bannersSuccess) {
+    isSettingsSyncPending = false;
+  } else {
+    isSettingsSyncPending = true;
   }
 }
 
@@ -1213,6 +1245,12 @@ async function syncFromSupabase() {
 
     // 8. Sync Settings & Persistent Views
     try {
+      const skipSettingsPull = (Date.now() - lastLocalSettingsWrite < 60000) || isSettingsSyncPending;
+      if (isSettingsSyncPending) {
+        console.log("🔄 Settings sync is pending. Retrying background settings cloud sync...");
+        syncSettingsToCloud().catch(err => console.error("⚠️ Failed retrying settings cloud sync:", err));
+      }
+
       if (settingsResult.error) {
         const errMsg = settingsResult.error.message || "";
         if (errMsg.includes("Could not find the table") || errMsg.includes("does not exist") || settingsResult.error.code === "PGRST116" || settingsResult.error.code === "42P01") {
@@ -1225,7 +1263,7 @@ async function syncFromSupabase() {
         isSettingsTableAvailable = true;
       }
 
-      if (isSettingsTableAvailable && settingsResult.data) {
+      if (!skipSettingsPull && isSettingsTableAvailable && settingsResult.data) {
         const settingsData = settingsResult.data;
         const configRow = settingsData.find((r: any) => r.id === 1 || r.id === "1") || settingsData[0];
         if (configRow) {
@@ -1307,7 +1345,7 @@ async function syncFromSupabase() {
       }
 
       // Always load fallback settings from banners metadata backup as a robust failsafe for all fields in background sync
-      if (bannersResult && !bannersResult.error && bannersResult.data) {
+      if (!skipSettingsPull && bannersResult && !bannersResult.error && bannersResult.data) {
         const bannersData = bannersResult.data;
         const systemSettingsRow = bannersData.find((b: any) => b.id === "system_settings_metadata");
         if (systemSettingsRow && systemSettingsRow.subtitle) {
@@ -1989,6 +2027,9 @@ app.post("/api/settings", async (req, res) => {
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
       productPayments: db.settings?.productPayments || {}
     };
+
+    lastLocalSettingsWrite = Date.now();
+    isSettingsSyncPending = true;
 
     await syncSettingsToCloud();
 
