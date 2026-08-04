@@ -303,7 +303,7 @@ export default function ProductCard({
             }`}
             title="Wishlist piece"
           >
-            <Heart size={13} fill={isWishlisted ? '#D4AF37' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
+            <Heart size={13} fill={isWishlisted ? 'var(--color-luxury-gold)' : 'none'} className={isWishlisted ? 'animate-pulse' : ''} />
           </button>
           
           <button 
@@ -399,7 +399,7 @@ export default function ProductCard({
 
         {/* TRENDING Badge on the bottom-left of the image */}
         <div className="absolute bottom-2 left-2 bg-black/85 border border-luxury-gold/30 rounded-full px-2 py-0.5 flex items-center gap-1 text-[8px] sm:text-[9px] font-mono tracking-widest text-white shadow-md z-20">
-          <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse shadow-[0_0_6px_#D4AF37]"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse shadow-[0_0_6px_var(--color-luxury-gold)]"></span>
           <span>TRENDING</span>
         </div>
 

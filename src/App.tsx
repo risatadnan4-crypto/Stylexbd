@@ -2525,7 +2525,7 @@ export default function App() {
                   { id: 'WOMEN', label: '💃 Haute Couture', path: '/category/women' },
                   { id: 'UNISEX', label: '💎 Co-Ed Line', path: '/category/unisex' },
                   { id: 'ACCESSORIES', label: '👑 Ensemble', path: '/category/accessories' }
-                ].map((cat) => {
+                ].map((cat, index) => {
                   const isActive = activeCategory === cat.id;
                   return (
                     <motion.a
@@ -2535,9 +2535,23 @@ export default function App() {
                         e.preventDefault();
                         setActiveCategory(cat.id);
                       }}
-                      whileHover={{ scale: 1.05, y: -2 }}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20,
+                        delay: index * 0.05
+                      }}
+                      whileHover={{ 
+                        scale: 1.05, 
+                        y: -3,
+                        boxShadow: isActive 
+                          ? "0 0 25px rgba(154,77,255,0.75)" 
+                          : "0 0 15px rgba(154,77,255,0.2)"
+                      }}
                       whileTap={{ scale: 0.95 }}
-                      className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer flex items-center justify-center shrink-0 relative overflow-hidden ${
+                      className={`snap-start h-11 px-5 text-[10.5px] sm:text-[11px] uppercase font-sans font-black tracking-widest border rounded-xl transition-all duration-300 whitespace-nowrap cursor-pointer flex items-center justify-center shrink-0 relative overflow-hidden luxury-reflection ${
                         isActive
                           ? 'bg-gradient-to-r from-luxury-purple via-purple-600 to-luxury-purple-glowing text-white border-transparent shadow-[0_0_20px_rgba(154,77,255,0.65)]'
                           : 'bg-[#10031f]/35 text-purple-200/70 border-purple-900/20 hover:border-luxury-purple-glowing/40 hover:text-white hover:bg-[#180530]/65 shadow-inner'
@@ -2892,8 +2906,8 @@ export default function App() {
                   
                   {/* Select product */}
                   <div>
-                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Curated Piece Choice</label>
-                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold mb-1.5">Curated Piece Choice</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,var(--color-luxury-gold),var(--color-luxury-purple-glowing))] transition-all duration-300">
                       <select
                         required
                         value={newReviewProdId}
@@ -2910,8 +2924,8 @@ export default function App() {
 
                   {/* Name */}
                   <div>
-                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Your Name / Title</label>
-                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold mb-1.5">Your Name / Title</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,var(--color-luxury-gold),var(--color-luxury-purple-glowing))] transition-all duration-300">
                       <input 
                         type="text" 
                         required 
@@ -2925,7 +2939,7 @@ export default function App() {
 
                   {/* Rating */}
                   <div>
-                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Rating Weight</label>
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold mb-1.5">Rating Weight</label>
                     <div className="flex gap-2.5 bg-black/40 border border-white/5 py-2 px-3 rounded-lg w-fit">
                       {[1, 2, 3, 4, 5].map((val) => (
                         <button
@@ -2933,13 +2947,13 @@ export default function App() {
                           type="button"
                           onClick={() => setNewReviewRating(val)}
                           className={`p-1.5 hover:scale-125 transition-all outline-none ${
-                            newReviewRating >= val ? 'text-[#ffd700]' : 'text-white/20'
+                            newReviewRating >= val ? 'text-luxury-gold' : 'text-white/20'
                           }`}
                         >
                           <Star 
                             size={20} 
-                            fill={newReviewRating >= val ? '#ffd700' : 'none'} 
-                            className={`${newReviewRating >= val ? 'drop-shadow-[0_0_10px_rgba(255,215,0,0.4)] animate-pulse' : ''} transition-all duration-300`} 
+                            fill={newReviewRating >= val ? 'var(--color-luxury-gold)' : 'none'} 
+                            className={`${newReviewRating >= val ? 'drop-shadow-[0_0_10px_var(--color-luxury-gold-dark)] animate-pulse' : ''} transition-all duration-300`} 
                           />
                         </button>
                       ))}
@@ -2948,8 +2962,8 @@ export default function App() {
 
                   {/* Comment */}
                   <div>
-                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-[#d4af37] font-extrabold mb-1.5">Exquisite Feedback Comments</label>
-                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,#D4AF37,#9A4DFF)] transition-all duration-300">
+                    <label className="block text-[9.5px] uppercase font-mono tracking-widest text-luxury-gold font-extrabold mb-1.5">Exquisite Feedback Comments</label>
+                    <div className="relative rounded-lg p-[1px] bg-white/[0.08] focus-within:bg-[linear-gradient(to_right,var(--color-luxury-gold),var(--color-luxury-purple-glowing))] transition-all duration-300">
                       <textarea 
                         required 
                         rows={2} 
@@ -2969,10 +2983,10 @@ export default function App() {
 
                   {/* Submit Button with running effect */}
                   <div className="relative rounded-xl p-[1.5px] overflow-hidden group/btn">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#aa7c11] opacity-60 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-luxury-gold)] via-[#ffd700] to-[var(--color-luxury-gold-dark)] opacity-60 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                     <button
                       type="submit"
-                      className="relative w-full bg-gradient-to-r from-black via-[#0d041a] to-black hover:text-white text-[#d4af37] font-display font-black text-[11px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
+                      className="relative w-full bg-gradient-to-r from-black via-[#0d041a] to-black hover:text-white text-luxury-gold font-display font-black text-[11px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 cursor-pointer shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
                     >
                       <span>⚜️</span> Catalog Experience
                     </button>
@@ -2987,14 +3001,14 @@ export default function App() {
       </main>
                   {/* Floating Luxury Circular Menu Bar - Positioned dynamically beside StyleX Assistant on both Mobile and Desktop */}
       {!isAdminView && (
-        <div className="fixed bottom-3 sm:bottom-4 right-1.5 sm:right-4 max-w-[calc(100vw-12px)] z-40 p-0.5 sm:p-1 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.95),0_0_20px_rgba(212,175,55,0.1),0_0_30px_rgba(154,77,255,0.06)] border border-white/10 hover:border-luxury-gold/30 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.01] bg-[#030107]/75 backdrop-blur-2xl">
+        <div className="fixed bottom-3 sm:bottom-4 right-1.5 sm:right-4 max-w-[calc(100vw-12px)] z-40 p-0.5 sm:p-1 rounded-full shadow-[0_12px_35px_rgba(0,0,0,0.95),0_0_20px_rgba(154,77,255,0.1),0_0_30px_rgba(154,77,255,0.06)] border border-white/10 hover:border-luxury-gold/30 transition-all duration-500 flex items-center justify-end overflow-hidden hover:scale-[1.01] bg-[#030107]/75 backdrop-blur-2xl">
           
           {/* Outer Container Wide Panoramic Running Laser Glow */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
             {/* Volumetric soft splash backdrop rotating glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220%] h-[220%] bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#22c55e,#3b82f6,#9A4DFF)] animate-luxury-glow-spin blur-[8px] opacity-40" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220%] h-[220%] bg-[conic-gradient(from_0deg,var(--color-luxury-purple-glowing),var(--color-luxury-gold),#22c55e,#3b82f6,var(--color-luxury-purple-glowing))] animate-luxury-glow-spin blur-[8px] opacity-40" />
             {/* Sharp running border outline */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240%] h-[240%] bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#22c55e,#3b82f6,#9A4DFF)] animate-luxury-glow-spin blur-[1.5px] opacity-75" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240%] h-[240%] bg-[conic-gradient(from_0deg,var(--color-luxury-purple-glowing),var(--color-luxury-gold),#22c55e,#3b82f6,var(--color-luxury-purple-glowing))] animate-luxury-glow-spin blur-[1.5px] opacity-75" />
             <div className="absolute inset-[1.5px] rounded-full bg-[#05010ca6]/95 backdrop-blur-2xl" />
           </div>
 
@@ -3003,9 +3017,9 @@ export default function App() {
             
             {/* Premium Interactive Brand Crest/Badge */}
             <div className="hidden xs:flex items-center gap-1.5 pl-2 pr-1.5 py-0.5 border-r border-white/10 mr-0.5 select-none">
-              <div className="relative w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-[#0a0518] via-[#1d1403] to-[#0a0518] border border-luxury-gold/40 flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.2)] overflow-hidden">
-                <div className="absolute inset-0 bg-[conic-gradient(from_0deg,#9A4DFF,#D4AF37,#9A4DFF)] animate-spin opacity-30" style={{ animationDuration: '8s' }} />
-                <Sparkles size={10} className="text-luxury-gold relative z-10 animate-pulse drop-shadow-[0_0_3px_rgba(212,175,55,0.8)]" />
+              <div className="relative w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-[#0a0518] via-[#1d1403] to-[#0a0518] border border-luxury-gold/40 flex items-center justify-center shadow-[0_0_10px_rgba(154,77,255,0.2)] overflow-hidden">
+                <div className="absolute inset-0 bg-[conic-gradient(from_0deg,var(--color-luxury-purple-glowing),var(--color-luxury-gold),var(--color-luxury-purple-glowing))] animate-spin opacity-30" style={{ animationDuration: '8s' }} />
+                <Sparkles size={10} className="text-luxury-gold relative z-10 animate-pulse drop-shadow-[0_0_3px_var(--color-luxury-gold)]" />
               </div>
               <div className="flex flex-col text-left min-w-0">
                 <span className="text-[7px] font-black uppercase font-mono tracking-[0.2em] bg-gradient-to-r from-luxury-gold via-white to-luxury-gold bg-clip-text text-transparent leading-none">

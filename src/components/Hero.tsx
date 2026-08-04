@@ -207,8 +207,8 @@ export default function Hero({
                 left: `${left}%`,
                 animationDelay: `${delay}s`,
                 top: "100%",
-                background: isPurple ? "#9A4DFF" : "#D4AF37",
-                boxShadow: isPurple ? "0 0 10px rgba(154,77,255,0.8)" : "0 0 8px rgba(212,175,55,0.8)"
+                background: isPurple ? "var(--color-luxury-purple-glowing)" : "var(--color-luxury-gold)",
+                boxShadow: isPurple ? "0 0 10px rgba(154,77,255,0.8)" : "0 0 8px var(--color-luxury-gold)"
               }}
             ></div>
           );

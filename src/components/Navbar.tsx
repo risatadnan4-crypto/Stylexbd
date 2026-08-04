@@ -269,7 +269,7 @@ export default function Navbar({
               className={`w-full text-white font-sans text-xs border rounded-full py-2.5 pl-4 pr-10 focus:outline-none transition-all duration-300 uppercase tracking-wider ${
                 isCatalogDeactivated 
                   ? 'bg-zinc-900 border-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 placeholder-zinc-600'
-                  : 'bg-luxury-charcoal/80 border-luxury-gold/50 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/70 focus:shadow-[0_0_20px_rgba(212,175,55,0.45)] placeholder-white/30'
+                  : 'bg-[#120524]/80 border-luxury-purple/50 hover:border-luxury-purple-glowing/40 focus:border-luxury-purple-glowing focus:ring-2 focus:ring-luxury-purple-glowing/70 focus:shadow-[0_0_20px_rgba(154,77,255,0.45)] placeholder-purple-300/30'
               }`}
             />
             

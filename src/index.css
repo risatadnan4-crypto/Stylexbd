@@ -87,8 +87,8 @@ html, body {
 }
 
 .admin-input-style:focus {
-  border-color: #D4AF37 !important;
-  box-shadow: 0 0 0 1px #D4AF37 !important;
+  border-color: var(--color-luxury-gold) !important;
+  box-shadow: 0 0 0 1px var(--color-luxury-gold) !important;
   outline: none !important;
 }
 
@@ -656,8 +656,8 @@ html, body {
     animation: none !important;
     filter: none !important;
     background: transparent !important;
-    -webkit-text-fill-color: #D4AF37 !important;
-    color: #D4AF37 !important;
+    -webkit-text-fill-color: var(--color-luxury-gold) !important;
+    color: var(--color-luxury-gold) !important;
   }
 
   .luxury-animated-price-purple {
