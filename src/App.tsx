@@ -1250,9 +1250,12 @@ export default function App() {
 
   const loadStoreCollections = async (retries = 4): Promise<void> => {
     try {
+      console.log("[loadStoreCollections] Initiating fetch for /api/products...");
       const res = await fetch('/api/products');
+      console.log(`[loadStoreCollections] Received response status: ${res.status} (${res.statusText})`);
       if (res.ok) {
         const prodList = await res.json();
+        console.log("[loadStoreCollections] Successfully loaded products:", prodList);
         setProducts(prodList);
         setFetchError(null);
         if (Array.isArray(prodList)) {
@@ -1272,14 +1275,18 @@ export default function App() {
           });
         }
       } else {
+        console.error(`[loadStoreCollections] Failed response with status: ${res.status}`);
         if (retries > 0) {
+          console.warn(`[loadStoreCollections] Retrying fetch in 1.5s... (${retries} retries left)`);
           setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
         } else {
           setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections.`);
         }
       }
     } catch (err: any) {
+      console.error("[loadStoreCollections] Exception occurred during fetch:", err);
       if (retries > 0) {
+        console.warn(`[loadStoreCollections] Retrying fetch in 1.5s... (${retries} retries left)`);
         setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
       } else {
         setFetchError(`Connection error: ${err.message || err}. Please verify connection.`);
