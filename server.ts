@@ -173,11 +173,34 @@ let isCampaignsSyncPending = false;
 let isReviewsSyncPending = false;
 
 // Load database if exists
-if (fs.existsSync(DB_FILE)) {
-  try {
-    const rawData = fs.readFileSync(DB_FILE, "utf-8");
-    const parsedData = JSON.parse(rawData);
-    db = { ...db, ...parsedData };
+try {
+  let dbLoaded = false;
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const rawData = fs.readFileSync(DB_FILE, "utf-8");
+      const parsedData = JSON.parse(rawData);
+      db = { ...db, ...parsedData };
+      dbLoaded = true;
+    } catch (err) {
+      console.error("⚠️ Failed reading DB_FILE:", err);
+    }
+  }
+
+  const TEMPLATE_DB_FILE = path.join(process.cwd(), "data", "luxury_db.json");
+  if (!dbLoaded && fs.existsSync(TEMPLATE_DB_FILE)) {
+    try {
+      const rawData = fs.readFileSync(TEMPLATE_DB_FILE, "utf-8");
+      const parsedData = JSON.parse(rawData);
+      db = { ...db, ...parsedData };
+      dbLoaded = true;
+      console.log("🌱 Successfully loaded database from read-only packaged template.");
+    } catch (err) {
+      console.error("⚠️ Failed reading TEMPLATE_DB_FILE:", err);
+    }
+  }
+
+  if (dbLoaded) {
+    const parsedData = db;
     db.xoroAdminLogs = parsedData.xoroAdminLogs || [];
     db.aiKeys = parsedData.aiKeys || [];
     db.aiKeysInitialized = parsedData.aiKeysInitialized !== undefined ? !!parsedData.aiKeysInitialized : false;
@@ -194,7 +217,7 @@ if (fs.existsSync(DB_FILE)) {
     db.seededBanners = parsedData.seededBanners !== undefined ? !!parsedData.seededBanners : false;
     db.seededProducts = parsedData.seededProducts !== undefined ? !!parsedData.seededProducts : false;
     db.seededReviews = parsedData.seededReviews !== undefined ? !!parsedData.seededReviews : false;
-    
+      
     // Always migrate old default script URLs to the newly provided script URL
     const oldDefaultUrls = [
       "https://script.google.com/macros/s/AKfycbwlkTgUkW1XTScs7dIIym1mNpa6MVgY9JO9c0lACN7Jaj8zi6TWYs1LgNDp4V6NoDPa/exec",
@@ -256,9 +279,9 @@ if (fs.existsSync(DB_FILE)) {
       productPayments: db.settings?.productPayments || {}
     };
     saveDB();
-  } catch (err) {
-    console.error("Error parsing DB file, using default structure", err);
   }
+} catch (err) {
+  console.error("Error parsing DB file, using default structure", err);
 }
 
 // Initialize VAPID Keys for Web Push Notifications
