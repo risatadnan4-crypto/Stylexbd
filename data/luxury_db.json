@@ -2505,6 +2505,114 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-04T11:44:05.303Z",
       "created_at": "2026-08-04T11:44:05.815809+00:00"
+    },
+    {
+      "id": "room-c7wodmml",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-04T11:49:44.080Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-04T11:49:44.080Z",
+      "created_at": "2026-08-04T11:49:44.290984+00:00"
+    },
+    {
+      "id": "room-ula8gq4n",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-04T11:51:30.930Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-04T11:51:30.930Z",
+      "created_at": "2026-08-04T11:51:31.132649+00:00"
+    },
+    {
+      "id": "room-hvsyu0zw",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-04T11:54:13.719Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-04T11:54:13.719Z",
+      "created_at": "2026-08-04T11:54:13.900644+00:00"
+    },
+    {
+      "id": "room-lgu1qvya",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-04T11:57:41.209Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-04T11:57:41.209Z",
+      "created_at": "2026-08-04T11:57:41.414143+00:00"
+    },
+    {
+      "id": "room-c51cdkw4",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-05T08:00:15.011Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-05T08:00:15.011Z",
+      "created_at": "2026-08-05T08:00:15.129286+00:00"
+    },
+    {
+      "id": "room-oe7xqhjf",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-05T08:30:06.214Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-05T08:30:06.214Z",
+      "created_at": "2026-08-05T08:30:06.299264+00:00"
     }
   ],
   "carts": {
@@ -2781,7 +2889,7 @@
     "globalPaymentSystem": "product_defined",
     "globalPaymentMethod": "both",
     "globalDeliveryDays": "",
-    "accentColor": "#8B5CF6",
+    "accentColor": "#D4AF37",
     "siteTitle": "Style X",
     "siteMetaDesc": "Elite Luxury Fashion Showcase",
     "sourceProtectionTitle": "Nice Try! 🛑 Fuck Yourself",

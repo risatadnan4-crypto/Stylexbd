@@ -199,6 +199,51 @@ try {
     }
   }
 
+  if (dbLoaded && fs.existsSync(TEMPLATE_DB_FILE)) {
+    try {
+      const rawTemplate = fs.readFileSync(TEMPLATE_DB_FILE, "utf-8");
+      const templateDb = JSON.parse(rawTemplate);
+      let restoredAny = false;
+      
+      if ((!db.products || db.products.length === 0) && templateDb.products && templateDb.products.length > 0) {
+        db.products = templateDb.products;
+        db.seededProducts = false;
+        restoredAny = true;
+        console.log("🌱 Restored products from local template backup.");
+      }
+      if ((!db.banners || db.banners.length === 0) && templateDb.banners && templateDb.banners.length > 0) {
+        db.banners = templateDb.banners;
+        db.seededBanners = false;
+        restoredAny = true;
+        console.log("🌱 Restored banners from local template backup.");
+      }
+      if ((!db.coupons || db.coupons.length === 0) && templateDb.coupons && templateDb.coupons.length > 0) {
+        db.coupons = templateDb.coupons;
+        db.seededCoupons = false;
+        restoredAny = true;
+        console.log("🌱 Restored coupons from local template backup.");
+      }
+      if ((!db.campaigns || db.campaigns.length === 0) && templateDb.campaigns && templateDb.campaigns.length > 0) {
+        db.campaigns = templateDb.campaigns;
+        db.seededCampaigns = false;
+        restoredAny = true;
+        console.log("🌱 Restored campaigns from local template backup.");
+      }
+      if ((!db.reviews || db.reviews.length === 0) && templateDb.reviews && templateDb.reviews.length > 0) {
+        db.reviews = templateDb.reviews;
+        db.seededReviews = false;
+        restoredAny = true;
+        console.log("🌱 Restored reviews from local template backup.");
+      }
+      
+      if (restoredAny) {
+        saveDB();
+      }
+    } catch (e) {
+      console.error("⚠️ Error restoring data from template:", e);
+    }
+  }
+
   if (dbLoaded) {
     const parsedData = db;
     db.xoroAdminLogs = parsedData.xoroAdminLogs || [];
@@ -997,7 +1042,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if ((!db.seededProducts || !isDbInitialized) && db.products && db.products.length > 0) {
+          if (db.products && db.products.length > 0) {
             console.log("🌱 Initial seeding Supabase 'products' table from local backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
@@ -1017,9 +1062,6 @@ async function syncFromSupabase() {
               });
             }
             db.seededProducts = true;
-            saveDB();
-          } else {
-            db.products = [];
             saveDB();
           }
         }
@@ -1117,15 +1159,12 @@ async function syncFromSupabase() {
             }
           }
         } else {
-          if (!isDbInitialized && db.banners && db.banners.length > 0) {
+          if (db.banners && db.banners.length > 0) {
             console.log("🌱 Supabase 'banners' table is empty. Seeding from local database backup...");
             for (const b of db.banners) {
               await supabase.from("banners").upsert(b);
             }
             db.seededBanners = true;
-            saveDB();
-          } else {
-            db.banners = [];
             saveDB();
           }
         }
@@ -1155,15 +1194,12 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.coupons.length} coupons from Supabase.`);
         } else {
-          if ((!db.seededCoupons || !isDbInitialized) && db.coupons && db.coupons.length > 0) {
+          if (db.coupons && db.coupons.length > 0) {
             console.log("🌱 Supabase 'coupons' table is empty. Seeding from local database backup...");
             for (const c of db.coupons) {
               await supabase.from("coupons").upsert(c);
             }
             db.seededCoupons = true;
-            saveDB();
-          } else {
-            db.coupons = [];
             saveDB();
           }
         }
@@ -1183,15 +1219,12 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.campaigns.length} campaigns from Supabase.`);
         } else {
-          if (!isDbInitialized && db.campaigns && db.campaigns.length > 0) {
+          if (db.campaigns && db.campaigns.length > 0) {
             console.log("🌱 Supabase 'campaigns' table is empty. Seeding from local database backup...");
             for (const c of db.campaigns) {
               await supabase.from("campaigns").upsert(c);
             }
             db.seededCampaigns = true;
-            saveDB();
-          } else {
-            db.campaigns = [];
             saveDB();
           }
         }
@@ -1212,15 +1245,12 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.reviews.length} reviews from Supabase.`);
         } else {
-          if (!isDbInitialized && db.reviews && db.reviews.length > 0) {
+          if (db.reviews && db.reviews.length > 0) {
             console.log("🌱 Supabase 'reviews' table is empty. Seeding from local database backup...");
             for (const r of db.reviews) {
               await supabase.from("reviews").upsert(r);
             }
             db.seededReviews = true;
-            saveDB();
-          } else {
-            db.reviews = [];
             saveDB();
           }
         }
@@ -1239,8 +1269,10 @@ async function syncFromSupabase() {
           }));
           console.log(`✅ Synced ${db.orders.length} orders from Supabase.`);
         } else {
-          db.orders = [];
-          saveDB();
+          if (!db.orders) {
+            db.orders = [];
+            saveDB();
+          }
         }
       }
     } catch (e: any) {}

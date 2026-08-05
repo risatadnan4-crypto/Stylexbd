@@ -46,6 +46,7 @@ export default function App() {
 
   // Store data list states
   const [products, setProducts] = useState<Product[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
@@ -1247,12 +1248,13 @@ export default function App() {
     }
   }, [products]);
 
-  const loadStoreCollections = async () => {
+  const loadStoreCollections = async (retries = 4): Promise<void> => {
     try {
       const res = await fetch('/api/products');
       if (res.ok) {
         const prodList = await res.json();
         setProducts(prodList);
+        setFetchError(null);
         if (Array.isArray(prodList)) {
           prodList.forEach((prod: Product) => {
             if (prod.imageUrl) {
@@ -1269,9 +1271,19 @@ export default function App() {
             }
           });
         }
+      } else {
+        if (retries > 0) {
+          setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
+        } else {
+          setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections.`);
+        }
       }
-    } catch (err) {
-      // Gracefully handle database/connection error during load
+    } catch (err: any) {
+      if (retries > 0) {
+        setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
+      } else {
+        setFetchError(`Connection error: ${err.message || err}. Please verify connection.`);
+      }
     }
   };
 
@@ -2785,16 +2797,33 @@ export default function App() {
             {/* Empty results notifications */}
             {filteredProducts.length === 0 ? (
               <div className="text-center py-20 bg-luxury-charcoal/20 border border-white/5 rounded">
-                <p className="font-serif text-base text-white/50 uppercase tracking-widest">No matching archives found</p>
-                <p className="text-[11px] text-white/30 max-w-sm mx-auto mt-2 italic font-mono uppercase">
-                  Verify query parameters or browse ALL collections
-                </p>
-                <button 
-                  onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }}
-                  className="mt-6 border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black font-display text-[10px] uppercase tracking-widest px-6 py-2 rounded transition-all"
-                >
-                  Reset all filters
-                </button>
+                {fetchError ? (
+                  <>
+                    <p className="font-serif text-base text-red-400 uppercase tracking-widest">Catalog Connection Suspended</p>
+                    <p className="text-[11px] text-white/50 max-w-md mx-auto mt-2 italic font-mono uppercase">
+                      {fetchError}
+                    </p>
+                    <button 
+                      onClick={() => { setFetchError(null); loadStoreCollections(); }}
+                      className="mt-6 border border-red-500 text-red-400 hover:bg-red-500 hover:text-white font-display text-[10px] uppercase tracking-widest px-6 py-2 rounded transition-all cursor-pointer"
+                    >
+                      Attempt Reconnection
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-serif text-base text-white/50 uppercase tracking-widest">No matching archives found</p>
+                    <p className="text-[11px] text-white/30 max-w-sm mx-auto mt-2 italic font-mono uppercase">
+                      Verify query parameters or browse ALL collections
+                    </p>
+                    <button 
+                      onClick={() => { setSearchQuery(''); setActiveCategory('ALL'); }}
+                      className="mt-6 border border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black font-display text-[10px] uppercase tracking-widest px-6 py-2 rounded transition-all"
+                    >
+                      Reset all filters
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               /* Core Grid */
