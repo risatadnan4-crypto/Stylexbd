@@ -25,7 +25,7 @@ const supabaseAnonKey =
   (typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) ||
   (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) ||
   (typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined) ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2d2ZpYnhmdXRvdWx2eW1tbGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0OTY3MDksImV4cCI6MjA5NzA3MjcwOX0.Iy9yhl7o5STj0cNp_wXWwEisH9FCHT7y8qg3GNVQN7I';
+  'sb_publishable_H9VO46sxlCErey2huyYgSw_ltLEvlx2';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Supabase credentials are missing or could not be loaded in supabaseClient!');
