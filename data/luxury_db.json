@@ -2669,6 +2669,24 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-05T08:30:06.214Z",
       "created_at": "2026-08-05T08:30:06.299264+00:00"
+    },
+    {
+      "id": "room-awifdnyf",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-05T09:18:44.461Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-05T09:18:44.461Z",
+      "created_at": "2026-08-05T09:18:44.501008+00:00"
     }
   ],
   "carts": {

@@ -2276,7 +2276,7 @@ app.get("/api/products", async (req, res) => {
       const fetchedIds = new Set(productsData.map((p: any) => String(p.id)));
       const supabaseProducts = productsData.map((p: any) => {
         const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
-        const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
+        const pm = (db.settings?.productPayments && db.settings.productPayments[p.id]) || {};
         return buildProductObject(p, localProduct, pm);
       });
 
@@ -2292,7 +2292,7 @@ app.get("/api/products", async (req, res) => {
     console.warn("⚠️ Direct products fetch fallback to memory cache:", err.message);
   }
   const fallbackProducts = (db.products || []).map((lp: any) => {
-    const pm = (db.settings.productPayments && db.settings.productPayments[lp.id]) || {};
+    const pm = (db.settings?.productPayments && db.settings.productPayments[lp.id]) || {};
     return buildProductObject({}, lp, pm);
   });
   res.json(fallbackProducts);
@@ -2301,7 +2301,7 @@ app.get("/api/products", async (req, res) => {
 app.get("/api/products/:id", async (req, res) => {
   const prodId = req.params.id;
   const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(prodId)) : null;
-  const pm = (db.settings.productPayments && db.settings.productPayments[prodId]) || {};
+  const pm = (db.settings?.productPayments && db.settings.productPayments[prodId]) || {};
 
   try {
     const { data, error } = await supabase.from("products").select("*").eq("id", prodId).single();
