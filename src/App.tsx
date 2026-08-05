@@ -1086,19 +1086,69 @@ export default function App() {
     }
   }, [viewToast]);
 
-  // Real-time settings synchronization via Supabase Realtime Postgres Changes
+  // Real-time synchronization via Supabase Realtime Postgres Changes
   useEffect(() => {
     const channel = supabase
-      .channel('public:settings')
+      .channel('supabase-realtime-sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'settings' },
         () => {
-          // Instantly reload settings from API whenever any rows change in Supabase
+          console.log('[REALTIME] Settings changed in Supabase, reloading...');
           loadSettings();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          console.log('[REALTIME] Products changed in Supabase, reloading...');
+          loadStoreCollections();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          console.log('[REALTIME] Orders changed in Supabase, reloading...');
+          loadOrders();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'banners' },
+        () => {
+          console.log('[REALTIME] Banners changed in Supabase, reloading...');
+          loadBanners();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'coupons' },
+        () => {
+          console.log('[REALTIME] Coupons changed in Supabase, reloading...');
+          loadCoupons();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campaigns' },
+        () => {
+          console.log('[REALTIME] Campaigns changed in Supabase, reloading...');
+          loadCampaigns();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reviews' },
+        () => {
+          console.log('[REALTIME] Reviews changed in Supabase, reloading...');
+          loadReviews();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[REALTIME] Subscription status: ${status}`);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -1249,16 +1299,46 @@ export default function App() {
   }, [products]);
 
   const loadStoreCollections = async (retries = 4): Promise<void> => {
+    const startTimestamp = Date.now();
+    const timeoutMs = 8000; // 8-second network timeout threshold
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn(`[loadStoreCollections] [TIMEOUT] Fetch exceeded ${timeoutMs}ms threshold. Triggering abort...`);
+      controller.abort();
+    }, timeoutMs);
+
     try {
-      console.log("[loadStoreCollections] Initiating fetch for /api/products...");
-      const res = await fetch('/api/products');
-      console.log(`[loadStoreCollections] Received response status: ${res.status} (${res.statusText})`);
+      console.log(`[loadStoreCollections] [DIAGNOSTIC] Initiating fetch for /api/products... [Retries remaining: ${retries}]`);
+      const res = await fetch('/api/products', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      const duration = Date.now() - startTimestamp;
+      console.log(`[loadStoreCollections] [RESPONSE_STATUS] Received response status: ${res.status} (${res.statusText}) in ${duration}ms`);
+      
       if (res.ok) {
-        const prodList = await res.json();
-        console.log("[loadStoreCollections] Successfully loaded products:", prodList);
-        setProducts(prodList);
-        setFetchError(null);
-        if (Array.isArray(prodList)) {
+        let prodList;
+        try {
+          prodList = await res.json();
+        } catch (jsonErr: any) {
+          console.error(`[loadStoreCollections] [DATA_INTEGRITY] Failed to parse JSON response:`, jsonErr);
+          throw new Error(`JSON parsing failure: ${jsonErr.message}`);
+        }
+
+        console.log(`[loadStoreCollections] [DATA_INTEGRITY] Successfully loaded products. Count: ${Array.isArray(prodList) ? prodList.length : 'Not an Array'}`);
+        
+        if (!prodList) {
+          console.warn("[loadStoreCollections] [DATA_INTEGRITY] Warning: Received null/undefined product list from API.");
+          setFetchError("API returned a null or undefined dataset.");
+        } else if (Array.isArray(prodList)) {
+          if (prodList.length === 0) {
+            console.warn("[loadStoreCollections] [DATA_INTEGRITY] WARNING: The product dataset is completely EMPTY.");
+          } else {
+            console.log("[loadStoreCollections] [DATA_INTEGRITY] Sample product loaded:", prodList[0]);
+          }
+          setProducts(prodList);
+          setFetchError(null);
+
+          // Preload product images for buttery-smooth slider navigation
           prodList.forEach((prod: Product) => {
             if (prod.imageUrl) {
               const img = new Image();
@@ -1273,23 +1353,58 @@ export default function App() {
               });
             }
           });
+        } else {
+          console.error("[loadStoreCollections] [DATA_INTEGRITY] ERROR: Returned products data is not an array:", prodList);
+          setFetchError("Data format error: Returned products catalog is not in list format.");
         }
       } else {
-        console.error(`[loadStoreCollections] Failed response with status: ${res.status}`);
+        // Read response body to extract any DB or Supabase connection errors
+        let errorDetails = "";
+        try {
+          errorDetails = await res.text();
+        } catch (textErr) {
+          errorDetails = "Unable to read error response body.";
+        }
+        
+        console.error(`[loadStoreCollections] [SERVER_ERROR] Failed response with status ${res.status}. Response Body:`, errorDetails);
+        
+        // Analyze if body contains Supabase / database issues
+        if (errorDetails.toLowerCase().includes("supabase") || errorDetails.toLowerCase().includes("database") || errorDetails.toLowerCase().includes("connection")) {
+          console.error("[loadStoreCollections] [SUPABASE_REFUSAL_CHECK] DETECTED DATABASE/SUPABASE CONNECTIVITY ERROR. Backend is likely refusing connections or is offline.");
+        }
+
         if (retries > 0) {
-          console.warn(`[loadStoreCollections] Retrying fetch in 1.5s... (${retries} retries left)`);
+          console.warn(`[loadStoreCollections] [RETRY] Retrying fetch in 1.5s... (${retries} retries left)`);
           setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
         } else {
-          setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections.`);
+          setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections. Details: ${errorDetails.substring(0, 100)}`);
         }
       }
     } catch (err: any) {
-      console.error("[loadStoreCollections] Exception occurred during fetch:", err);
+      clearTimeout(timeoutId);
+      const duration = Date.now() - startTimestamp;
+      
+      console.group("[loadStoreCollections] [EXCEPTION_ANALYSIS]");
+      console.error(`Error occurred after ${duration}ms:`, err);
+      
+      let customizedErrorMsg = "";
+      if (err.name === 'AbortError') {
+        console.error(`[DIAGNOSTIC] Category: NETWORK_TIMEOUT. The connection timed out after ${timeoutMs}ms.`);
+        customizedErrorMsg = `Network Timeout: Connection to server timed out after ${timeoutMs / 1000}s.`;
+      } else if (err instanceof TypeError) {
+        console.error(`[DIAGNOSTIC] Category: CONNECTION_REFUSED_OR_DNS_FAIL. Check if dev server is running, or if request was blocked (CORS/SSL/offline).`);
+        customizedErrorMsg = "Connection Refused: Failed to establish handshake with backend.";
+      } else {
+        console.error(`[DIAGNOSTIC] Category: GENERIC_FETCH_EXCEPTION. Message: ${err.message}`);
+        customizedErrorMsg = `Fetch failure: ${err.message || err}`;
+      }
+      console.groupEnd();
+
       if (retries > 0) {
-        console.warn(`[loadStoreCollections] Retrying fetch in 1.5s... (${retries} retries left)`);
+        console.warn(`[loadStoreCollections] [RETRY] Retrying fetch in 1.5s... (${retries} retries left)`);
         setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
       } else {
-        setFetchError(`Connection error: ${err.message || err}. Please verify connection.`);
+        setFetchError(`${customizedErrorMsg}. Check console logs for deep diagnostics.`);
       }
     }
   };
