@@ -974,7 +974,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if (!db.seededProducts && db.products && db.products.length > 0) {
+          if ((!db.seededProducts || !isDbInitialized) && db.products && db.products.length > 0) {
             console.log("🌱 Initial seeding Supabase 'products' table from local backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
@@ -1132,7 +1132,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.coupons.length} coupons from Supabase.`);
         } else {
-          if (!db.seededCoupons && !isDbInitialized && db.coupons && db.coupons.length > 0) {
+          if ((!db.seededCoupons || !isDbInitialized) && db.coupons && db.coupons.length > 0) {
             console.log("🌱 Supabase 'coupons' table is empty. Seeding from local database backup...");
             for (const c of db.coupons) {
               await supabase.from("coupons").upsert(c);
