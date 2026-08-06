@@ -1033,7 +1033,7 @@ async function syncFromSupabase() {
         if (productsData.length > 0) {
           const supabaseProducts = productsData.map((p: any) => {
             const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
-            const pm = (db.settings.productPayments && db.settings.productPayments[p.id]) || {};
+            const pm = (db.settings?.productPayments && db.settings.productPayments[p.id]) || {};
             return buildProductObject(p, localProduct, pm);
           });
 
