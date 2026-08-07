@@ -25,6 +25,7 @@ import SourceProtectionModal from './components/SourceProtectionModal';
 import { GlobalCountdown } from './components/GlobalCountdown';
 import { supabase } from './lib/supabaseClient';
 import AcousticScrollManager from './components/AcousticScrollManager';
+import FaqSection from './components/FaqSection';
 
 export default function App() {
   // Premium entry loading screen states
@@ -3394,6 +3395,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* CONCIERGE FAQ SECTION */}
+      {!isAdminView && <FaqSection />}
 
       {/* LUXURY BRAND STORIES FOOTER */}
       <footer className="bg-[#030303] border-t border-white/5 py-16 text-xs text-white/50">

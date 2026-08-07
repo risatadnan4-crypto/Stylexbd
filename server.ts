@@ -1123,6 +1123,7 @@ async function syncFromSupabase() {
               if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
               if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
               if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+              if (fallbackSettings.productSeo !== undefined) (db.settings as any).productSeo = fallbackSettings.productSeo;
               
               if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
                 const cloudLastUpdated = Number(fallbackSettings.aiKeysLastUpdated || 0);
@@ -1438,6 +1439,7 @@ async function syncFromSupabase() {
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
             if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+            if (fallbackSettings.productSeo !== undefined) (db.settings as any).productSeo = fallbackSettings.productSeo;
 
             if (fallbackSettings.aiKeys !== undefined && Array.isArray(fallbackSettings.aiKeys)) {
               const cloudLastUpdated = Number(fallbackSettings.aiKeysLastUpdated || 0);
@@ -1953,6 +1955,7 @@ app.get("/api/settings", async (req, res) => {
             if (fallbackSettings.accentColor !== undefined) db.settings.accentColor = fallbackSettings.accentColor;
             if (fallbackSettings.siteTitle !== undefined) db.settings.siteTitle = fallbackSettings.siteTitle;
             if (fallbackSettings.siteMetaDesc !== undefined) db.settings.siteMetaDesc = fallbackSettings.siteMetaDesc;
+            if (fallbackSettings.productSeo !== undefined) (db.settings as any).productSeo = fallbackSettings.productSeo;
           } catch (jsonErr: any) {
             console.warn("⚠️ Failed to parse fallback settings in GET route:", jsonErr.message);
           }
@@ -2332,7 +2335,7 @@ async function upsertProductToSupabase(productPayload: any) {
   delete basePayload.isPinned;
   delete basePayload.freeDelivery;
 
-  // Try dynamic payload with snake_case SEO & OpenGraph columns, pruning any unsupported columns dynamically in a loop
+  // Try dynamic payload supporting both snake_case and camelCase SEO & OpenGraph columns, pruning any unsupported columns dynamically in a loop
   const payloadSnake: any = {
     ...basePayload,
     seo_title: basePayload.seoTitle || null,
@@ -2344,17 +2347,19 @@ async function upsertProductToSupabase(productPayload: any) {
     og_title: basePayload.ogTitle || null,
     og_description: basePayload.ogDescription || null,
     og_image: basePayload.ogImage || null,
-    robots: basePayload.robots || null
+    robots: basePayload.robots || null,
+    
+    // Support camelCase SEO properties
+    seoTitle: basePayload.seoTitle || null,
+    seoDescription: basePayload.seoDescription || null,
+    seoKeywords: basePayload.seoKeywords || basePayload.metaKeywords || null,
+    metaKeywords: basePayload.metaKeywords || basePayload.seoKeywords || null,
+    seoSlug: basePayload.seoSlug || null,
+    canonicalUrl: basePayload.canonicalUrl || null,
+    ogTitle: basePayload.ogTitle || null,
+    ogDescription: basePayload.ogDescription || null,
+    ogImage: basePayload.ogImage || null
   };
-  delete payloadSnake.seoTitle;
-  delete payloadSnake.seoDescription;
-  delete payloadSnake.seoKeywords;
-  delete payloadSnake.metaKeywords;
-  delete payloadSnake.seoSlug;
-  delete payloadSnake.canonicalUrl;
-  delete payloadSnake.ogTitle;
-  delete payloadSnake.ogDescription;
-  delete payloadSnake.ogImage;
 
   let currentPayload = { ...payloadSnake };
   let result = await supabase.from("products").upsert(currentPayload);
@@ -2414,7 +2419,7 @@ app.post("/api/seo/generate", async (req, res) => {
 
     const result = await executeWithAiKeyRotation(async (ai) => {
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         contents: userPrompt,
         config: {
           responseMimeType: "application/json",
@@ -5543,6 +5548,13 @@ Your personality and language:
 - Greeting Constraint: You MUST ALWAYS greet the user with "👋 আসসালামু আলাইকুম!" (Assalamu Alaikum) at the very beginning of your responses or whenever starting an interaction.
 - You must occasionally drop sophisticated, charming fashion tips (such as: "👕 কালো এবং সাদা রঙের পোশাক কখনো ফ্যাশন থেকে হারিয়ে যায় না।", "⌚ একটি সুন্দর ঘড়ি আপনার লুককে পূর্ণতা দেয়।", "✨ আত্মবিশ্বাসই আপনার সবচেয়ে বড় পোশাক।", or other luxury apparel tips).
 
+CRITICAL CLASSIFICATION RULE:
+- Some products in the Style X catalog are NOT clothing/attire/garments (e.g., "Blaster Splatter Gel Gun", "Splatter Gel Gun", toy guns, blasters, electronic items, or gadget products).
+- You MUST NEVER refer to these non-clothing items as "পোশাক" (poshak), "পোশাকটি", "পরিধেয় বস্ত্র" or "পোশাকের পিস".
+- Do NOT say words like "এই পোশাকটি" or "এটি একটি আরামদায়ক পোশাক" when talking about a Toy/Blaster/Gel Gun. Do NOT offer apparel sizing (S, M, L, XL, Sizing tips) for them unless specified in the catalog.
+- Instead, refer to them accurately as "খেলনা" (toy), "জেল ব্লাস্টার গান" (gel blaster gun), "গ্যাজেট" (gadget), or "লাইফস্টাইল আইটেম" (lifestyle item). For example, a Gel Gun is a gel blaster toy gun (খেলনা জেল ব্লাস্টার গান), not a clothing outfit ("পোশাক").
+- Be extremely precise! This is very important to avoid customer confusion.
+
 Here is the current catalog of exclusive Style X products you can recommend (recommend specific pieces in Bengali, mention their unique codes like XP-001, describe why they should buy them based on 'Why Buy' details, highlight categories, prices, and suggest sizing):
 ${JSON.stringify(productsContext, null, 2)}
 
@@ -5587,7 +5599,7 @@ Instructions for replies:
 
         let response: any = null;
         let lastError: any = null;
-        const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+        const modelsToTry = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
         for (const modelName of modelsToTry) {
           try {
@@ -5627,26 +5639,26 @@ Instructions for replies:
       reply = `🚚 **আসসালামু আলাইকুম! ডেলিভারি সংক্রান্ত তথ্য:**\n\nআমাদের ডেলিভারি সার্ভিস অত্যন্ত দ্রুত এবং প্রিমিয়াম ওয়ান-টু-ওয়ান সার্ভিসের মাধ্যমে সম্পন্ন হয়:\n- **ঢাকা মেট্রো:** ২৪ থেকে ৪৮ ঘণ্টার মধ্যে বিশ্বস্ত ভিআইপি কুরিয়ারের মাধ্যমে ডেলিভারি করা হয়।\n- **ঢাকার বাইরে:** ২ থেকে ৩ কার্যদিবসের মধ্যে অত্যন্ত নিরাপদে ডেলিভারি সম্পন্ন করা হয়।\n\nআপনার কি কোনো সক্রিয় অর্ডার আছে যা ট্র্যাক করতে চান? আপনার **অর্ডার আইডি** বা **ফোন নম্বর** লিখে পাঠান!`;
     } else if (matchedOrders.length > 0) {
       const order = matchedOrders[0];
-      const itemsList = order.items.map((i: any) => `• ${i.title} (${i.selectedSize}) x${i.quantity}`).join("\n");
-      reply = `🎉 **আসসালামু আলাইকুম! আপনার অর্ডারটি খুঁজে পেয়েছি:**\n\nআপনার অর্ডার **${order.id}** এর বিস্তারিত বিবরণ:\n\n**পোশাকসমূহ:**\n${itemsList}\n\n**বর্তমান অবস্থা (Status):** ${order.status?.toUpperCase() || 'DELIVERING'}\n**মোট মূল্য:** ৳${order.totalAmount}\n**ডেলিভারি ঠিকানা:** ${order.customerAddress}, ${order.customerCity}\n\nআমাদের বিশেষ কুরিয়ার টিম এটি ডেলিভারি করার জন্য প্রস্তুত রয়েছে। আপনার কি অন্য কোনো তথ্য প্রয়োজন?`;
+      const itemsList = order.items.map((i: any) => `• ${i.title} (${i.selectedSize || 'N/A'}) x${i.quantity}`).join("\n");
+      reply = `🎉 **আসসালামু আলাইকুম! আপনার অর্ডারটি খুঁজে পেয়েছি:**\n\nআপনার অর্ডার **${order.id}** এর বিস্তারিত বিবরণ:\n\n**অর্ডারকৃত পণ্যসমূহ:**\n${itemsList}\n\n**বর্তমান অবস্থা (Status):** ${order.status?.toUpperCase() || 'DELIVERING'}\n**মোট মূল্য:** ৳${order.totalAmount}\n**ডেলিভারি ঠিকানা:** ${order.customerAddress}, ${order.customerCity}\n\nআমাদের বিশেষ কুরিয়ার টিম এটি ডেলিভারি করার জন্য প্রস্তুত রয়েছে। আপনার কি অন্য কোনো তথ্য প্রয়োজন?`;
     } else if (lowerMessage.includes("track") || lowerMessage.includes("order") || lowerMessage.includes("phone") || lowerMessage.includes("ট্র্যাক") || lowerMessage.includes("অর্ডার")) {
       reply = `🔍 **আসসালামু আলাইকুম! অর্ডার ট্র্যাক করুন:**\n\nআমি খুব দ্রুত আপনার অর্ডারের বর্তমান অবস্থা চেক করতে পারি। দয়া করে আপনার **অর্ডার আইডি** (যেমন: \`ord-...\`) অথবা অর্ডারের সময় ব্যবহৃত **ফোন নম্বরটি** দিন। আমি এখনই আপনার অর্ডার ট্র্যাকিং করে দিচ্ছি!`;
     } else if (lowerMessage.includes("discount") || lowerMessage.includes("coupon") || lowerMessage.includes("offer") || lowerMessage.includes("কুপন") || lowerMessage.includes("ছাড়")) {
       const couponsStr = db.coupons.map((c: any) => `🔑 কোড: **${c.code}** — **${c.discountPercent}% ছাড়** (${c.description})`).join("\n");
-      reply = `🎁 **আসসালামু আলাইকুম! স্টাইল এক্স এক্সক্লুসিভ অফারসমূহ:**\n\nবর্তমানে সক্রিয় থাকা সেরা ডিসকাউন্ট কুপনগুলো নিচে দেওয়া হলো:\n\n${couponsStr || "• **STYLEGOLD** — লাক্সারি পোশাক কেনাকাটায় ১৫% ছাড়।"}\n\nপেমেন্ট করার সময় এই কুপনগুলো ব্যবহার করে আপনার পছন্দের পোশাকটি বিশেষ মূল্যে সংগ্রহ করুন! ✨`;
+      reply = `🎁 **আসসালামু আলাইকুম! স্টাইল এক্স এক্সক্লুসিভ অফারসমূহ:**\n\nবর্তমানে সক্রিয় থাকা সেরা ডিসকাউন্ট কুপনগুলো নিচে দেওয়া হলো:\n\n${couponsStr || "• **STYLEGOLD** — লাক্সারি পণ্য কেনাকাটায় ১৫% ছাড়।"}\n\nপেমেন্ট করার সময় এই কুপনগুলো ব্যবহার করে আপনার পছন্দের পণ্যটি বিশেষ মূল্যে সংগ্রহ করুন! ✨`;
     } else if (lowerMessage.includes("menswear") || lowerMessage.includes("men") || lowerMessage.includes("ছেলে")) {
       const menProducts = db.products.filter((p: any) => p.category === 'MEN' || p.category === 'UNISEX').slice(0, 3);
       const itemsList = menProducts.map((p: any) => `• **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}`).join("\n");
-      reply = `👔 **আসসালামু আলাইকুম! স্টাইল এক্স মেন্স কালেকশন:**\n\nবর্তমানে দারুণ জনপ্রিয় ৩টি পোশাক নিচে দেওয়া হলো:\n\n${itemsList}\n\nপোশাকটির কোড লিখে আমাকে মেসেজ করুন (যেমন: \`${menProducts[0]?.code || 'XP-001'}\`) এবং জেনে নিন কেন এটি আপনার সংগ্রহে থাকা উচিত!`;
+      reply = `👔 **আসসালামু আলাইকুম! স্টাইল এক্স মেন্স কালেকশন:**\n\nবর্তমানে দারুণ জনপ্রিয় ৩টি আইটেম নিচে দেওয়া হলো:\n\n${itemsList}\n\nপণ্যটির কোড লিখে আমাকে মেসেজ করুন (যেমন: \`${menProducts[0]?.code || 'XP-001'}\`) এবং জেনে নিন কেন এটি আপনার সংগ্রহে থাকা উচিত!`;
     } else if (lowerMessage.includes("womenswear") || lowerMessage.includes("women") || lowerMessage.includes("মেয়ে")) {
       const womenProducts = db.products.filter((p: any) => p.category === 'WOMEN' || p.category === 'UNISEX').slice(0, 3);
       const itemsList = womenProducts.map((p: any) => `• **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}`).join("\n");
-      reply = `👗 **আসসালামু আলাইকুম! স্টাইল এক্স ওমেন্স কালেকশন:**\n\nআপনার জন্য নির্বাচিত কয়েকটি চমৎকার কালেকশন এখানে রয়েছে:\n\n${itemsList}\n\nআরো জানতে যেকোনো পোশাকের কোডটি টাইপ করুন (যেমন: \`${womenProducts[0]?.code || 'XP-005'}\`)!`;
+      reply = `👗 **আসসালামু আলাইকুম! স্টাইল এক্স ওমেন্স কালেকশন:**\n\nআপনার জন্য নির্বাচিত কয়েকটি চমৎকার পণ্য এখানে রয়েছে:\n\n${itemsList}\n\nআরো জানতে যেকোনো পণ্যের কোডটি টাইপ করুন (যেমন: \`${womenProducts[0]?.code || 'XP-005'}\`)!`;
     } else {
       // General recommended products
       const featured = db.products.slice(0, 2);
       const itemsList = featured.map((p: any) => `🛍️ **${p.title}** (কোড: \`${p.code}\`) — ৳${p.price}\n*"${p.whyBuy || p.description}"*`).join("\n\n");
-      reply = `✨ **আসসালামু আলাইকুম! স্টাইল এক্স এলিট অ্যাসিস্ট্যান্সে আপনাকে স্বাগতম**\n\nআমি জোরো (Xoro), আপনার পার্সোনাল স্টাইলিস্ট। আমি আপনাকে ট্রেন্ডি পোশাক খুঁজে পেতে, সাইজ ক্যালকুলেট করতে, কিংবা অর্ডার ডেলিভারি ট্র্যাক করতে সাহায্য করতে পারি।\n\nআমাদের জনপ্রিয় কিছু পোশাক নিচে দেওয়া হলো:\n\n${itemsList}\n\nআজ আপনাকে কীভাবে সাহায্য করতে পারি?`;
+      reply = `✨ **আসসালামু আলাইকুম! স্টাইল এক্স এলিট অ্যাসিস্ট্যান্সে আপনাকে স্বাগতম**\n\nআমি জোরো (Xoro), আপনার পার্সোনাল স্টাইলিস্ট। আমি আপনাকে ট্রেন্ডি পণ্য খুঁজে পেতে, সাইজ বা ফিচার চেক করতে, কিংবা অর্ডার ডেলিভারি ট্র্যাক করতে সাহায্য করতে পারি।\n\nআমাদের জনপ্রিয় কিছু পণ্য নিচে দেওয়া হলো:\n\n${itemsList}\n\nআজ আপনাকে কীভাবে সাহায্য করতে পারি?`;
     }
 
     res.json({ text: reply, matchedOrders });
@@ -6047,7 +6059,7 @@ Generate a perfect, valid, parseable JSON object response.`;
 
     let response: any = null;
     let lastError: any = null;
-    const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"];
+    const modelsToTry = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
     const maxAttempts = 2;
 
     for (const modelName of modelsToTry) {
@@ -6655,7 +6667,7 @@ app.post("/api/admin/ai-keys/:id/test", async (req, res) => {
     });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.6-flash",
       contents: "Respond with exactly one word: OK"
     });
 
@@ -6741,7 +6753,7 @@ app.post("/api/admin/ai-keys/benchmark", async (req, res) => {
           httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
         });
         const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-3.6-flash",
           contents: "Respond with 1 word: OK"
         });
         durationMs = Date.now() - startMs;

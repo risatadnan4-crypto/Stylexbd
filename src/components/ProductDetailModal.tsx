@@ -385,6 +385,22 @@ export default function ProductDetailModal({
     setSelectedColor(product.colors?.[0] || null);
   }
 
+  const getDisplayDimensions = (dim: string) => {
+    if (!dim) return 'Dynamic Custom Fit';
+    const trimmed = dim.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          return parsed.dimensions || parsed.shortDescription || 'Dynamic Custom Fit';
+        }
+      } catch (e) {
+        // parsing failed
+      }
+    }
+    return dim;
+  };
+
   if (!isOpen) return null;
 
   const displayImage = activeImgUrl || product.imageUrl;
@@ -851,7 +867,7 @@ export default function ProductDetailModal({
                 <p className="font-serif italic font-light text-zinc-300 text-sm tracking-wide leading-relaxed">{product.description}</p>
                 <div className="text-[10px] text-white/30 font-mono mt-1.5 tracking-wider uppercase flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold/50"></span>
-                  <span>DIMENSIONS SPECIFIER: {product.dimensions || 'Dynamic Custom Fit'}</span>
+                  <span>DIMENSIONS SPECIFIER: {getDisplayDimensions(product.dimensions)}</span>
                 </div>
               </div>
             </div>
