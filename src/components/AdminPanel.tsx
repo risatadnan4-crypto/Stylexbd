@@ -26,7 +26,7 @@ import {
   Cell
 } from 'recharts';
 import { supabase } from '../lib/supabaseClient';
-import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage, ProductColor } from '../types';
+import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, ChatMessage, ProductColor, FormGenerator, FormField, FormSubmission } from '../types';
 import { formatPrice, generateQrUrl, validateUrl, isValidUrl } from '../utils';
 import { LotteryPrize } from './LotteryModal';
 import PerformanceDashboard from './PerformanceDashboard';
@@ -1515,6 +1515,12 @@ export default function AdminPanel({
   }, []);
 
   useEffect(() => {
+    if (activeTab === 'forms') {
+      fetchForms();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
     if (formPrice > 0 && formOfferDiscountPercent !== '') {
       const calculatedPrice = Math.round(formPrice * (1 - Number(formOfferDiscountPercent) / 100));
       setFormOfferPrice(calculatedPrice);
@@ -1565,6 +1571,97 @@ export default function AdminPanel({
       const res = await fetch('/api/campaigns');
       if (res.ok) setCampaigns(await res.json());
     } catch (e) {}
+  };
+
+  const fetchForms = async () => {
+    setFetchingForms(true);
+    try {
+      const res = await fetch('/api/forms');
+      if (res.ok) {
+        const data = await res.json();
+        setFormList(data);
+      }
+    } catch (e) {
+      console.error("Error fetching forms:", e);
+    } finally {
+      setFetchingForms(false);
+    }
+  };
+
+  const fetchSubmissions = async (formId: string) => {
+    setFetchingSubmissions(true);
+    try {
+      const res = await fetch(`/api/forms/${formId}/submissions`);
+      if (res.ok) {
+        const data = await res.json();
+        setFormSubmissions(data);
+      }
+    } catch (e) {
+      console.error("Error fetching submissions:", e);
+    } finally {
+      setFetchingSubmissions(false);
+    }
+  };
+
+  const handleSaveForm = async () => {
+    if (!newFormTitle.trim()) {
+      alert("Please enter a form title.");
+      return;
+    }
+    setIsSavingForm(true);
+    try {
+      const res = await fetch('/api/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedFormId || undefined,
+          title: newFormTitle,
+          description: newFormDesc,
+          fields: newFormFields
+        })
+      });
+      if (res.ok) {
+        setNewFormTitle('');
+        setNewFormDesc('');
+        setNewFormFields([]);
+        setSelectedFormId(null);
+        fetchForms();
+        alert("Form saved successfully!");
+      }
+    } catch (e) {
+      console.error("Error saving form:", e);
+    } finally {
+      setIsSavingForm(false);
+    }
+  };
+
+  const handleDeleteForm = async (formId: string) => {
+    if (!confirm("Are you sure you want to delete this form and all its submissions?")) return;
+    try {
+      const res = await fetch(`/api/forms/${formId}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (selectedFormId === formId) {
+          setSelectedFormId(null);
+          setFormSubmissions([]);
+        }
+        fetchForms();
+      }
+    } catch (e) {
+      console.error("Error deleting form:", e);
+    }
+  };
+
+  const handleDeleteSubmission = async (formId: string, subId: string) => {
+    if (!confirm("Are you sure you want to delete this submission?")) return;
+    try {
+      const res = await fetch(`/api/forms/${formId}/submissions/${subId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchSubmissions(formId);
+        fetchForms();
+      }
+    } catch (e) {
+      console.error("Error deleting submission:", e);
+    }
   };
 
   const fetchChats = async () => {
@@ -2800,6 +2897,16 @@ export default function AdminPanel({
             </button>
 
             <button 
+              onClick={() => { setActiveTab('forms'); setSelectedChat(null); setIsDrawerOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
+                activeTab === 'forms' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <ClipboardList size={13} className={activeTab === 'forms' ? 'text-white' : 'text-purple-400'} />
+              Forms & Surveys
+            </button>
+
+            <button 
               onClick={() => { setActiveTab('chat'); setIsDrawerOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs tracking-wider uppercase font-display transition-all justify-start cursor-pointer ${
                 activeTab === 'chat' ? 'bg-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/20' : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -2991,6 +3098,7 @@ export default function AdminPanel({
               {activeTab === 'reviews' && "Reviews Moderation"}
               {activeTab === 'coupons' && "VIP Coupons Engine"}
               {activeTab === 'campaigns' && "Launch Campaigns"}
+              {activeTab === 'forms' && "Custom Form Generator"}
               {activeTab === 'chat' && "Presence Concierge Help"}
               {activeTab === 'xoro_ai' && "Xoro AI Assistant"}
               {activeTab === 'ai_api_manager' && "AI API Key Manager"}
@@ -5419,6 +5527,361 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FORMS & SURVEYS GENERATOR */}
+        {activeTab === 'forms' && (
+          <div className="space-y-6 animate-fade-in text-xs">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* LEFT COLUMN: CREATE/EDIT FORM */}
+              <div className="lg:col-span-5 bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <h3 className="font-serif text-sm uppercase tracking-widest text-white font-bold">
+                    {selectedFormId ? "Edit Form Structure" : "Create New Form"}
+                  </h3>
+                  {selectedFormId && (
+                    <button
+                      onClick={() => {
+                        setSelectedFormId(null);
+                        setNewFormTitle('');
+                        setNewFormDesc('');
+                        setNewFormFields([]);
+                      }}
+                      className="text-[10px] text-purple-400 hover:underline"
+                    >
+                      Reset to New
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Form Title</label>
+                    <input 
+                      type="text" 
+                      value={newFormTitle} 
+                      onChange={(e) => setNewFormTitle(e.target.value)}
+                      placeholder="e.g. CUSTOMER SATISFACTION SURVEY"
+                      className="w-full bg-luxury-charcoal text-white border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Description (Optional)</label>
+                    <textarea 
+                      value={newFormDesc} 
+                      onChange={(e) => setNewFormDesc(e.target.value)}
+                      placeholder="Give details about what this form is tracking..."
+                      rows={2}
+                      className="w-full bg-luxury-charcoal text-white border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* ADD FIELD TO FORM */}
+                <div className="bg-white/5 p-3 rounded-xl space-y-3 border border-white/5">
+                  <h4 className="text-[10px] uppercase font-mono font-bold text-luxury-gold">Add Custom Field</h4>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono text-white/40 mb-0.5">Field Label</label>
+                      <input 
+                        type="text" 
+                        value={newFieldLabel} 
+                        onChange={(e) => setNewFieldLabel(e.target.value)}
+                        placeholder="e.g. Your Phone Number"
+                        className="w-full bg-[#1A1A24] text-white border border-white/5 rounded py-1.5 px-2.5 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono text-white/40 mb-0.5">Field Type</label>
+                      <select 
+                        value={newFieldType} 
+                        onChange={(e) => setNewFieldType(e.target.value as any)}
+                        className="w-full bg-[#1A1A24] text-white border border-white/5 rounded py-1.5 px-2.5 focus:outline-none"
+                      >
+                        <option value="text">Text Input</option>
+                        <option value="textarea">Paragraph Area</option>
+                        <option value="number">Numeric Input</option>
+                        <option value="email">Email Address</option>
+                        <option value="phone">Phone Number</option>
+                        <option value="select">Dropdown Select</option>
+                        <option value="radio">Radio Buttons</option>
+                        <option value="checkbox">Single Checkbox</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(newFieldType === 'select' || newFieldType === 'radio') && (
+                    <div>
+                      <label className="block text-[9px] uppercase font-mono text-white/40 mb-0.5">Options (comma-separated)</label>
+                      <input 
+                        type="text" 
+                        value={newFieldOptions} 
+                        onChange={(e) => setNewFieldOptions(e.target.value)}
+                        placeholder="e.g. Excellent, Good, Fair, Poor"
+                        className="w-full bg-[#1A1A24] text-white border border-white/5 rounded py-1.5 px-2.5 focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-white/60 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={newFieldRequired} 
+                        onChange={(e) => setNewFieldRequired(e.target.checked)}
+                        className="rounded border-white/10 text-purple-600 bg-luxury-charcoal"
+                      />
+                      <span>Mark as Required field</span>
+                    </label>
+
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (!newFieldLabel.trim()) {
+                          alert("Please enter a field label.");
+                          return;
+                        }
+                        const opts = newFieldOptions.split(',').map(o => o.trim()).filter(Boolean);
+                        const field: FormField = {
+                          id: 'fld_' + Math.random().toString(36).substring(2, 9),
+                          label: newFieldLabel.trim(),
+                          type: newFieldType,
+                          required: newFieldRequired,
+                          placeholder: newFieldType === 'text' || newFieldType === 'textarea' ? "Enter response..." : undefined,
+                          options: opts.length > 0 ? opts : undefined
+                        };
+                        setNewFormFields([...newFormFields, field]);
+                        setNewFieldLabel('');
+                        setNewFieldRequired(false);
+                        setNewFieldOptions('');
+                      }}
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer transition-all"
+                    >
+                      <Plus size={11} /> Add Field
+                    </button>
+                  </div>
+                </div>
+
+                {/* FORM FIELDS PREVIEW/LIST */}
+                {newFormFields.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Form Fields Layout</label>
+                    <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
+                      {newFormFields.map((f, i) => (
+                        <div key={f.id} className="flex items-center justify-between bg-white/5 p-2 rounded border border-white/5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white/40 font-mono">#{i+1}</span>
+                            <div>
+                              <span className="text-white font-medium">{f.label}</span>
+                              <span className="text-[9px] text-purple-400 ml-2 font-mono uppercase">[{f.type}]</span>
+                              {f.required && <span className="text-red-400 ml-1 font-bold">*</span>}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setNewFormFields(newFormFields.filter(x => x.id !== f.id))}
+                            className="text-white/40 hover:text-red-400 p-1"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  type="button"
+                  onClick={handleSaveForm}
+                  disabled={isSavingForm}
+                  className="w-full bg-luxury-gold hover:bg-yellow-500 text-black font-extrabold py-2.5 tracking-widest uppercase font-mono rounded transition-all cursor-pointer shadow-md shadow-yellow-500/10 disabled:opacity-50"
+                >
+                  {isSavingForm ? "Saving structure..." : (selectedFormId ? "Update Form Structure 💾" : "Publish Form Structure 🚀")}
+                </button>
+              </div>
+
+              {/* RIGHT COLUMN: LIST OF CREATED FORMS */}
+              <div className="lg:col-span-7 space-y-4">
+                
+                {/* LIST SECTION */}
+                <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl">
+                  <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2 font-bold mb-4">
+                    Active Web Forms Matrix
+                  </h3>
+
+                  {fetchingForms ? (
+                    <div className="py-8 text-center text-white/40">Loading forms catalog...</div>
+                  ) : formList.length === 0 ? (
+                    <div className="py-8 text-center text-white/30">No custom forms found. Create one using the form on the left!</div>
+                  ) : (
+                    <div className="space-y-3.5">
+                      {formList.map(form => {
+                        const hasSubmissions = selectedFormId === form.id;
+                        const publicLink = window.location.origin + "/#form/" + form.id;
+                        const conversionRate = form.viewsCount > 0 ? Math.round((form.submissionsCount / form.viewsCount) * 100) : 0;
+
+                        return (
+                          <div key={form.id} className="bg-[#0B0B0F] border border-white/5 rounded-xl p-3.5 space-y-3 hover:border-white/10 transition-all">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                              <div>
+                                <h4 className="text-sm font-serif font-bold text-white uppercase tracking-wide">{form.title}</h4>
+                                <p className="text-[10px] text-white/50">{form.description || "No description provided."}</p>
+                              </div>
+                              <span className="text-[9px] font-mono text-white/30">{new Date(form.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-2 bg-[#15151D] p-2 rounded-lg border border-white/5 text-center">
+                              <div>
+                                <p className="text-[9px] text-white/40 font-mono uppercase">Views</p>
+                                <p className="text-xs font-bold text-white mt-0.5">{form.viewsCount}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-white/40 font-mono uppercase">Submissions</p>
+                                <p className="text-xs font-bold text-luxury-gold mt-0.5">{form.submissionsCount}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-white/40 font-mono uppercase">Conversion</p>
+                                <p className="text-xs font-bold text-purple-400 mt-0.5">{conversionRate}%</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] text-white/40 font-mono uppercase">Fields</p>
+                                <p className="text-xs font-bold text-cyan-400 mt-0.5">{form.fields.length} items</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(publicLink);
+                                    alert("Form link copied successfully:\n" + publicLink);
+                                  }}
+                                  className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-mono text-[10px] py-1.5 px-3 rounded flex items-center gap-1.5 cursor-pointer transition-all"
+                                >
+                                  <ExternalLink size={10} className="text-cyan-400" /> Link
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedFormId(form.id);
+                                    setNewFormTitle(form.title);
+                                    setNewFormDesc(form.description);
+                                    setNewFormFields(form.fields);
+                                  }}
+                                  className="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] py-1.5 px-3 rounded flex items-center gap-1 cursor-pointer transition-all"
+                                >
+                                  <Edit size={10} className="text-purple-400" /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteForm(form.id)}
+                                  className="bg-red-950/25 border border-red-900/30 text-red-400 hover:bg-red-950/55 text-[10px] py-1.5 px-3 rounded flex items-center gap-1 cursor-pointer transition-all"
+                                >
+                                  <Trash2 size={10} /> Delete
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedFormId(form.id);
+                                  fetchSubmissions(form.id);
+                                }}
+                                className={`text-[10px] py-1.5 px-3.5 rounded font-bold font-mono uppercase cursor-pointer transition-all flex items-center gap-1.5 ${
+                                  hasSubmissions 
+                                    ? 'bg-purple-600 text-white shadow-lg' 
+                                    : 'bg-luxury-gold text-black hover:bg-yellow-500'
+                                }`}
+                              >
+                                <Eye size={11} /> {hasSubmissions ? "Viewing Submissions" : "Submissions"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* SUBMISSIONS LIST (RENDERED WHEN SELECTED FORM HAS SUBMISSIONS OPEN) */}
+                {selectedFormId && formList.find(f => f.id === selectedFormId) && (
+                  <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                      <div>
+                        <h4 className="text-xs uppercase font-mono tracking-wider text-purple-400 font-bold">
+                          Submissions Tracker
+                        </h4>
+                        <p className="text-xs text-white/50">
+                          Form: <span className="text-white font-serif font-bold uppercase">{formList.find(f => f.id === selectedFormId)?.title}</span>
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedFormId(null);
+                          setFormSubmissions([]);
+                        }}
+                        className="text-white/40 hover:text-white p-1"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {fetchingSubmissions ? (
+                      <div className="py-8 text-center text-white/40">Loading submissions log...</div>
+                    ) : formSubmissions.length === 0 ? (
+                      <div className="py-8 text-center text-white/30">No submissions received for this form yet. Fill it to generate data!</div>
+                    ) : (
+                      <div className="space-y-3.5 max-h-[400px] overflow-y-auto pr-1">
+                        {formSubmissions.map((sub, index) => {
+                          return (
+                            <div key={sub.id} className="bg-[#0B0B0F] border border-white/5 rounded-xl p-3.5 space-y-3">
+                              <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
+                                <span className="bg-purple-950/65 text-purple-300 border border-purple-900/40 text-[9px] px-2 py-0.5 rounded-full font-mono">
+                                  Submission #{formSubmissions.length - index}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] font-mono text-white/40">{new Date(sub.submittedAt).toLocaleString()}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSubmission(selectedFormId!, sub.id)}
+                                    className="text-white/40 hover:text-red-400 p-1"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* ANSWERS BLOCK */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                                {Object.entries(sub.answers || {}).map(([fieldLabel, val]) => (
+                                  <div key={fieldLabel} className="bg-[#15151D] p-2 rounded border border-white/5">
+                                    <p className="text-[9px] text-white/40 uppercase font-mono">{fieldLabel}</p>
+                                    <p className="text-white font-medium mt-0.5 whitespace-pre-line">{String(val)}</p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* METADATA BLOCK */}
+                              <div className="text-[9px] font-mono text-white/30 bg-[#15151D]/45 p-1.5 rounded flex flex-wrap justify-between gap-1.5">
+                                <span>IP: {sub.ip || "Unknown"}</span>
+                                <span className="truncate max-w-[200px]" title={sub.userAgent}>Browser: {sub.userAgent || "Unknown"}</span>
+                                <span className="truncate max-w-[150px]" title={sub.referer}>Referer: {sub.referer || "Direct"}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

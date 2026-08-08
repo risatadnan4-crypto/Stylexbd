@@ -37,6 +37,12 @@ export default function App() {
   const [isTrackMode, setIsTrackMode] = useState(false);
   const [isSearchPage, setIsSearchPage] = useState(false);
   const [isWishlistPage, setIsWishlistPage] = useState(false);
+  const [activeFormId, setActiveFormId] = useState<string | null>(null);
+  const [activeForm, setActiveForm] = useState<any | null>(null);
+  const [fetchingActiveForm, setFetchingActiveForm] = useState(false);
+  const [formResponses, setFormResponses] = useState<Record<string, any>>({});
+  const [formSubmittedSuccessfully, setFormSubmittedSuccessfully] = useState(false);
+  const [submittingForm, setSubmittingForm] = useState(false);
   
   // Authenticated staff details
   const [isAuthAdmin, setIsAuthAdmin] = useState(false);
@@ -289,7 +295,21 @@ export default function App() {
       setIsAdminView(false);
       setIsWishlistPage(false);
       setSelectedProduct(null);
+      setActiveFormId(null);
       return;
+    }
+
+    if (pathname.startsWith('/form/') || pathname.startsWith('/forms/')) {
+      const segments = pathname.split('/');
+      const fId = decodeURIComponent(segments[segments.length - 1] || '');
+      if (fId) {
+        setActiveFormId(fId);
+        setIsAdminView(false);
+        setIsTrackMode(false);
+        setIsWishlistPage(false);
+        setSelectedProduct(null);
+        return;
+      }
     }
 
     if (pathname.startsWith('/products/') || pathname.startsWith('/product/')) {
@@ -405,6 +425,7 @@ export default function App() {
     setIsAdminView(false);
     setIsTrackMode(false);
     setIsWishlistPage(false);
+    setActiveFormId(null);
     setActiveCategory('ALL');
   };
 
@@ -423,6 +444,38 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [products]);
+
+  // Fetch active form details for public view
+  React.useEffect(() => {
+    if (!activeFormId) {
+      setActiveForm(null);
+      setFormResponses({});
+      setFormSubmittedSuccessfully(false);
+      return;
+    }
+
+    const fetchActiveFormDetails = async () => {
+      setFetchingActiveForm(true);
+      setFormSubmittedSuccessfully(false);
+      setFormResponses({});
+      try {
+        const res = await fetch(`/api/forms/${activeFormId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActiveForm(data);
+        } else {
+          setActiveForm(null);
+        }
+      } catch (err) {
+        console.error("Error fetching form details:", err);
+        setActiveForm(null);
+      } finally {
+        setFetchingActiveForm(false);
+      }
+    };
+
+    fetchActiveFormDetails();
+  }, [activeFormId]);
 
   // Dynamic SEO meta tags, canonical URL, and JSON-LD schema management client-side
   React.useEffect(() => {
@@ -497,9 +550,15 @@ export default function App() {
       }
     };
 
-    const baseTitle = settings?.siteTitle || "STYLE X (StyleX) | #1 Premium Luxury Clothing Brand Bangladesh";
-    const baseDesc = settings?.siteMetaDesc || "Discover STYLE X (StyleX), Bangladesh's leading premium luxury fashion brand for clothing, royal streetwear, and authentic apparel. Shop modern outfits online with fast nationwide COD.";
-    const baseKeywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x premium, luxury fashion, premium clothing, style x online shop, authentic apparel, premium streetwear, style x store, fashion collective";
+    let baseTitle = settings?.siteTitle || "StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka";
+    if (!settings?.siteTitle || settings.siteTitle === "Style X" || settings.siteTitle === "StyleX BD") {
+      baseTitle = "StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka";
+    }
+    let baseDesc = settings?.siteMetaDesc || "Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing. Shop premium shirts, t-shirts, designer cargo pants, and hoodies with nationwide COD delivery.";
+    if (!settings?.siteMetaDesc || settings.siteMetaDesc === "Elite Luxury Fashion Showcase" || settings.siteMetaDesc.includes("Discover STYLE X")) {
+      baseDesc = "Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing. Shop premium shirts, t-shirts, designer cargo pants, and hoodies with nationwide COD delivery.";
+    }
+    const baseKeywords = "stylex, style x, stylex bd, premium clothing bangladesh, luxury fashion dhaka, stylex bangladesh, stylex online shop, luxury streetwear bd, buy clothing online dhaka, authentic apparel, premium shirts bd, designer streetwear bangladesh";
 
     let title = baseTitle;
     let desc = baseDesc;
@@ -573,6 +632,12 @@ export default function App() {
     updateOrCreateMeta('description', desc);
     updateOrCreateMeta('keywords', keywords);
     updateCanonical(canonical);
+
+    if (isWishlistPage || isAdminView) {
+      updateOrCreateMeta('robots', 'noindex, nofollow');
+    } else {
+      updateOrCreateMeta('robots', 'index, follow');
+    }
 
     // Open Graph / Social Rich Previews
     updateOrCreateMeta('og:title', title, true);
@@ -2159,6 +2224,202 @@ export default function App() {
       if (bScore !== aScore) return bScore - aScore;
       return a.title.localeCompare(b.title);
     });
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeForm) return;
+
+    // Validate required fields
+    for (const field of activeForm.fields) {
+      if (field.required && !formResponses[field.label]) {
+        alert(`Please fill in the required field: ${field.label}`);
+        return;
+      }
+    }
+
+    setSubmittingForm(true);
+    try {
+      const res = await fetch(`/api/forms/${activeForm.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: formResponses })
+      });
+      if (res.ok) {
+        setFormSubmittedSuccessfully(true);
+        setFormResponses({});
+      } else {
+        alert("Submission failed. Please try again.");
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      alert("Submission error. Please check your network.");
+    } finally {
+      setSubmittingForm(false);
+    }
+  };
+
+  // Render Public Form View
+  if (activeFormId) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans antialiased relative">
+        {/* Decorative backdrop gradients */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.06)_0%,transparent_65%)] pointer-events-none" />
+        
+        {/* Header */}
+        <header className="border-b border-white/5 py-4 px-6 bg-[#0B0B0F]/80 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="font-serif text-lg font-bold uppercase tracking-widest text-luxury-gold">Style X</span>
+            <div className="w-px h-4 bg-white/15" />
+            <span className="text-xs font-mono uppercase tracking-wider text-white/50">Forms Engine</span>
+          </div>
+          <a 
+            href="/" 
+            onClick={(e) => { e.preventDefault(); window.location.hash = ''; }}
+            className="text-xs text-white/60 hover:text-white transition-all hover:underline"
+          >
+            Back to Store
+          </a>
+        </header>
+
+        {/* Form Body Container */}
+        <main className="flex-1 flex items-center justify-center p-4 md:p-8 relative z-10">
+          <div className="w-full max-w-xl bg-[#0D0D14] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-6 md:p-8 rounded-2xl space-y-6">
+            {fetchingActiveForm ? (
+              <div className="py-12 text-center space-y-3">
+                <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs font-mono text-white/40 uppercase tracking-widest">Retrieving Form Details...</p>
+              </div>
+            ) : !activeForm ? (
+              <div className="py-12 text-center space-y-4">
+                <div className="w-12 h-12 bg-red-950/35 border border-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">!</div>
+                <div>
+                  <h2 className="font-serif text-lg uppercase tracking-wide font-bold">Form Not Found</h2>
+                  <p className="text-xs text-white/50 mt-1">This form does not exist or has been removed by the administrator.</p>
+                </div>
+                <button
+                  onClick={() => { window.location.hash = ''; }}
+                  className="bg-luxury-gold hover:bg-yellow-500 text-black font-extrabold text-[10px] uppercase font-mono tracking-widest px-4 py-2 rounded transition-all cursor-pointer"
+                >
+                  Return to Home
+                </button>
+              </div>
+            ) : formSubmittedSuccessfully ? (
+              <div className="py-12 text-center space-y-4 animate-fade-in">
+                <div className="w-12 h-12 bg-green-950/35 border border-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto text-xl">✓</div>
+                <div>
+                  <h2 className="font-serif text-lg uppercase tracking-wide font-bold text-white">Submission Received</h2>
+                  <p className="text-xs text-white/50 mt-1">Thank you! Your response has been securely logged and sent to Style X.</p>
+                </div>
+                <button
+                  onClick={() => setFormSubmittedSuccessfully(false)}
+                  className="bg-white/5 hover:bg-white/10 text-white border border-white/10 text-[10px] uppercase font-mono tracking-widest px-4 py-2 rounded transition-all cursor-pointer"
+                >
+                  Submit Another Response
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                <div className="border-b border-white/5 pb-4">
+                  <h2 className="font-serif text-xl uppercase tracking-wider text-white font-bold">{activeForm.title}</h2>
+                  {activeForm.description && (
+                    <p className="text-xs text-white/50 mt-1.5 leading-relaxed whitespace-pre-line">{activeForm.description}</p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {activeForm.fields.map((field: any) => {
+                    const isRequired = field.required;
+                    return (
+                      <div key={field.id} className="space-y-1.5">
+                        <label className="block text-xs text-white/70 font-medium">
+                          {field.label}
+                          {isRequired && <span className="text-red-400 ml-1 font-bold">*</span>}
+                        </label>
+
+                        {field.type === 'textarea' ? (
+                          <textarea
+                            required={isRequired}
+                            placeholder={field.placeholder || "Enter your reply..."}
+                            value={formResponses[field.label] || ''}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            rows={4}
+                            className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold resize-none"
+                          />
+                        ) : field.type === 'select' ? (
+                          <select
+                            required={isRequired}
+                            value={formResponses[field.label] || ''}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
+                          >
+                            <option value="">-- Choose an option --</option>
+                            {(field.options || []).map((opt: string) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : field.type === 'radio' ? (
+                          <div className="space-y-2 bg-white/5 p-3 rounded-lg border border-white/5">
+                            {(field.options || []).map((opt: string) => (
+                              <label key={opt} className="flex items-center gap-2.5 cursor-pointer text-xs text-white/80">
+                                <input
+                                  type="radio"
+                                  name={field.id}
+                                  required={isRequired}
+                                  checked={formResponses[field.label] === opt}
+                                  onChange={() => setFormResponses({ ...formResponses, [field.label]: opt })}
+                                  className="border-white/10 text-purple-600 bg-luxury-charcoal"
+                                />
+                                <span>{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : field.type === 'checkbox' ? (
+                          <label className="flex items-center gap-2.5 cursor-pointer bg-white/5 p-3 rounded-lg border border-white/5 text-xs text-white/80">
+                            <input
+                              type="checkbox"
+                              required={isRequired}
+                              checked={!!formResponses[field.label]}
+                              onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.checked })}
+                              className="rounded border-white/10 text-purple-600 bg-luxury-charcoal"
+                            />
+                            <span>{field.label}</span>
+                          </label>
+                        ) : (
+                          <input
+                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
+                            required={isRequired}
+                            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                            value={formResponses[field.label] || ''}
+                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <button
+                    type="submit"
+                    disabled={submittingForm}
+                    className="w-full bg-luxury-gold hover:bg-yellow-500 text-black font-extrabold py-3 tracking-widest uppercase font-mono rounded-lg transition-all cursor-pointer shadow-lg shadow-yellow-500/10 disabled:opacity-55"
+                  >
+                    {submittingForm ? "Submitting response..." : "Submit Response 🚀"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="py-4 text-center text-[10px] text-white/20 font-mono border-t border-white/5 bg-[#050505]">
+          Powered by Style X Curated Platform
+        </footer>
+      </div>
+    );
+  }
 
   // Render Admin View
   if (isAdminView && isAuthAdmin) {

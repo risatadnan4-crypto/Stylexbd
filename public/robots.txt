@@ -1,6 +1,13 @@
 User-agent: *
 Allow: /
-Allow: /products/
+Allow: /product/
 Allow: /category/
+Allow: /search
+Disallow: /admin
+Disallow: /api/
+Disallow: /checkout
+Disallow: /track
 
-Sitemap: https://stylexbd.vercel.app/sitemap.xml
+# Host & XML Sitemap Reference
+Host: https://stylexbd.vercel.app
+Sitemap: https://stylexbd.vercel.app/api/sitemap

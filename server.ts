@@ -138,8 +138,8 @@ let db = {
     globalPaymentMethod: "both",
     globalDeliveryDays: "",
     accentColor: "#D4AF37",
-    siteTitle: "Style X",
-    siteMetaDesc: "Elite Luxury Fashion Showcase",
+    siteTitle: "StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka",
+    siteMetaDesc: "Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing. Shop premium shirts, t-shirts, designer cargo pants, and hoodies with nationwide COD delivery.",
     sourceProtectionTitle: "Nice Try! 🛑",
     sourceProtectionDescription: "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls.",
     sourceProtectionImageUrl: "",
@@ -159,6 +159,8 @@ let lastSyncCompletedAt = 0;
 let localAiKeysLastUpdated = 0;
 let activeSyncPromise: Promise<void> | null = null;
 let isSettingsTableAvailable = true;
+let isFormsTableAvailable = true;
+let isFormSubmissionsTableAvailable = true;
 
 let lastLocalSettingsWrite = 0;
 let lastLocalProductsWrite = 0;
@@ -960,9 +962,29 @@ async function syncFromSupabase() {
     console.log("🔄 Fetching latest collections from Supabase database in parallel...");
 
     const safeSelect = async (table: string) => {
+      if (table === "forms" && !isFormsTableAvailable) {
+        return { data: null, error: null };
+      }
+      if (table === "form_submissions" && !isFormSubmissionsTableAvailable) {
+        return { data: null, error: null };
+      }
+
       try {
         const res = await supabase.from(table).select("*");
         if (res.error) {
+          const isMissingTable = res.error.message?.includes("Could not find the table") || 
+                                 res.error.message?.includes("relation") || 
+                                 res.error.message?.includes("does not exist");
+          if (isMissingTable) {
+            if (table === "forms") {
+              isFormsTableAvailable = false;
+            } else if (table === "form_submissions") {
+              isFormSubmissionsTableAvailable = false;
+            }
+            console.log(`ℹ️ Table '${table}' is not present in Supabase. Using local database fallback.`);
+            return { data: null, error: null };
+          }
+
           console.warn(`⚠️ Error selecting from ${table}:`, res.error.message);
           return { data: null, error: res.error };
         }
@@ -5030,18 +5052,22 @@ app.post("/api/forms", async (req, res) => {
   saveDB();
 
   try {
-    const payload = {
-      id: formObj.id,
-      title: formObj.title,
-      description: formObj.description,
-      fields: JSON.stringify(formObj.fields),
-      submissions_count: formObj.submissionsCount,
-      views_count: formObj.viewsCount,
-      created_at: formObj.createdAt
-    };
-    await supabase.from("forms").upsert(payload);
+    if (isFormsTableAvailable) {
+      const payload = {
+        id: formObj.id,
+        title: formObj.title,
+        description: formObj.description,
+        fields: JSON.stringify(formObj.fields),
+        submissions_count: formObj.submissionsCount,
+        views_count: formObj.viewsCount,
+        created_at: formObj.createdAt
+      };
+      await supabase.from("forms").upsert(payload);
+    }
   } catch (err: any) {
-    console.error("⚠️ Forms Supabase upsert failed:", err.message);
+    if (isFormsTableAvailable) {
+      console.error("⚠️ Forms Supabase upsert failed:", err.message);
+    }
   }
 
   res.json({ success: true, form: formObj });
@@ -5057,10 +5083,16 @@ app.delete("/api/forms/:id", async (req, res) => {
   saveDB();
 
   try {
-    await supabase.from("forms").delete().eq("id", id);
-    await supabase.from("form_submissions").delete().eq("form_id", id);
+    if (isFormsTableAvailable) {
+      await supabase.from("forms").delete().eq("id", id);
+    }
+    if (isFormSubmissionsTableAvailable) {
+      await supabase.from("form_submissions").delete().eq("form_id", id);
+    }
   } catch (err: any) {
-    console.error("⚠️ Forms Supabase delete failed:", err.message);
+    if (isFormsTableAvailable || isFormSubmissionsTableAvailable) {
+      console.error("⚠️ Forms Supabase delete failed:", err.message);
+    }
   }
 
   res.json({ success: true });
@@ -5078,9 +5110,13 @@ app.get("/api/forms/:id", async (req, res) => {
   saveDB();
 
   try {
-    await supabase.from("forms").update({ views_count: form.viewsCount }).eq("id", id);
+    if (isFormsTableAvailable) {
+      await supabase.from("forms").update({ views_count: form.viewsCount }).eq("id", id);
+    }
   } catch (err: any) {
-    console.error("⚠️ Forms Supabase views update failed:", err.message);
+    if (isFormsTableAvailable) {
+      console.error("⚠️ Forms Supabase views update failed:", err.message);
+    }
   }
 
   res.json(form);
@@ -5113,19 +5149,25 @@ app.post("/api/forms/:id/submit", async (req, res) => {
   saveDB();
 
   try {
-    await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
-    const payload = {
-      id: submission.id,
-      form_id: submission.formId,
-      answers: JSON.stringify(submission.answers),
-      submitted_at: submission.submittedAt,
-      user_agent: submission.userAgent,
-      ip: submission.ip,
-      referer: submission.referer
-    };
-    await supabase.from("form_submissions").insert(payload);
+    if (isFormsTableAvailable) {
+      await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+    }
+    if (isFormSubmissionsTableAvailable) {
+      const payload = {
+        id: submission.id,
+        form_id: submission.formId,
+        answers: JSON.stringify(submission.answers),
+        submitted_at: submission.submittedAt,
+        user_agent: submission.userAgent,
+        ip: submission.ip,
+        referer: submission.referer
+      };
+      await supabase.from("form_submissions").insert(payload);
+    }
   } catch (err: any) {
-    console.error("⚠️ Forms Supabase submission failed:", err.message);
+    if (isFormsTableAvailable || isFormSubmissionsTableAvailable) {
+      console.error("⚠️ Forms Supabase submission failed:", err.message);
+    }
   }
 
   res.json({ success: true, submission });
@@ -5147,16 +5189,22 @@ app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
   if (form && form.submissionsCount > 0) {
     form.submissionsCount--;
     try {
-      await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+      if (isFormsTableAvailable) {
+        await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+      }
     } catch (e) {}
   }
 
   saveDB();
 
   try {
-    await supabase.from("form_submissions").delete().eq("id", subId);
+    if (isFormSubmissionsTableAvailable) {
+      await supabase.from("form_submissions").delete().eq("id", subId);
+    }
   } catch (err: any) {
-    console.error("⚠️ Forms Supabase delete submission failed:", err.message);
+    if (isFormSubmissionsTableAvailable) {
+      console.error("⚠️ Forms Supabase delete submission failed:", err.message);
+    }
   }
 
   res.json({ success: true });
@@ -7094,7 +7142,7 @@ app.get("/api/xoro-admin/logs", xoroAdminRateLimitMiddleware, xoroAdminAuthMiddl
 });
 
 // Dynamically generated XML Sitemap for Search Engine Optimizations
-app.get("/sitemap.xml", (req, res) => {
+async function handleSitemapRequest(req: any, res: any) {
   const baseUrl = "https://stylexbd.vercel.app";
   const currentDate = new Date().toISOString().split("T")[0];
 
@@ -7112,40 +7160,55 @@ app.get("/sitemap.xml", (req, res) => {
     });
   };
 
-  // Base and Category pages of Style X (only include canonical HTTPS URLs)
-  const pages = [
+  // Static pages (homepage, categories, static pages) - Excludes /wishlist
+  const staticPages = [
     { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
-    { loc: `${baseUrl}/category/men`, priority: "0.8", changefreq: "weekly" },
-    { loc: `${baseUrl}/category/women`, priority: "0.8", changefreq: "weekly" },
-    { loc: `${baseUrl}/category/unisex`, priority: "0.8", changefreq: "weekly" },
-    { loc: `${baseUrl}/category/accessories`, priority: "0.8", changefreq: "weekly" },
-    { loc: `${baseUrl}/wishlist`, priority: "0.5", changefreq: "monthly" },
-    { loc: `${baseUrl}/track`, priority: "0.5", changefreq: "monthly" }
+    { loc: `${baseUrl}/category/men`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/women`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/unisex`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/category/accessories`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/about`, priority: "0.6", changefreq: "monthly" },
+    { loc: `${baseUrl}/faq`, priority: "0.6", changefreq: "monthly" },
+    { loc: `${baseUrl}/delivery`, priority: "0.5", changefreq: "monthly" },
+    { loc: `${baseUrl}/returns`, priority: "0.5", changefreq: "monthly" },
+    { loc: `${baseUrl}/contact`, priority: "0.5", changefreq: "monthly" }
   ];
 
-  // Include dynamic products from active luxury database using clean path structure
-  const productPages = (db.products || []).map((prod: any) => {
-    const slug = (prod.title || '')
-      .toString()
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
-    return {
-      loc: `${baseUrl}/products/${slug || encodeURIComponent(prod.code || prod.id)}`,
-      priority: "0.9",
-      changefreq: "weekly"
-    };
-  });
+  let productPages: any[] = [];
 
-  const allPages = [...pages, ...productPages];
+  try {
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("slug, updated_at")
+      .eq("is_published", true);
+
+    if (!error && Array.isArray(products)) {
+      productPages = products.map((prod: any) => {
+        const slug = prod.slug || '';
+        const lastmod = prod.updated_at ? new Date(prod.updated_at).toISOString().split('T')[0] : currentDate;
+        return {
+          loc: `${baseUrl}/product/${slug}`,
+          lastmod,
+          priority: "0.8",
+          changefreq: "weekly"
+        };
+      });
+    } else if (error) {
+      console.error("⚠️ Supabase sitemap fetch error inside server.ts:", error);
+    }
+  } catch (e: any) {
+    console.error("⚠️ Failed to fetch product slugs for sitemap inside server.ts:", e.message);
+  }
+
+  // Combine static and products
+  const allPages = [
+    ...staticPages.map(p => ({ ...p, lastmod: currentDate })),
+    ...productPages
+  ];
 
   const xmlEntries = allPages.map(page => `  <url>
     <loc>${escapeXml(page.loc)}</loc>
-    <lastmod>${currentDate}</lastmod>
+    <lastmod>${page.lastmod}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>`).join("\n");
@@ -7156,14 +7219,18 @@ ${xmlEntries}
 </urlset>`;
 
   res.header("Content-Type", "application/xml");
+  res.header("Cache-Control", "s-maxage=3600, stale-while-revalidate");
   res.send(sitemapXml);
-});
+}
+
+app.get("/sitemap.xml", handleSitemapRequest);
+app.get("/api/sitemap", handleSitemapRequest);
 
 // Dynamically generated robots.txt to direct and guide search crawlers
 app.get("/robots.txt", (req, res) => {
   const robots = `User-agent: *
 Allow: /
-Allow: /products/
+Allow: /product/
 Allow: /category/
 Allow: /search
 Disallow: /admin
@@ -7173,7 +7240,7 @@ Disallow: /track
 
 # Host & XML Sitemap Reference
 Host: https://stylexbd.vercel.app
-Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
+Sitemap: https://stylexbd.vercel.app/api/sitemap`;
 
   res.header("Content-Type", "text/plain");
   res.send(robots);
@@ -7300,9 +7367,15 @@ if (!isProduction) {
 
         // Extract route parameters from the pathname (clean SEO friendly URLs)
         const pathSegments = requestUrlPath.split("/").filter(Boolean);
-        let customTitle = db.settings?.siteTitle || "STYLE X | #1 Premium Luxury Clothing & Authentic Apparel Bangladesh";
-        let desc = db.settings?.siteMetaDesc || "Discover STYLE X, Bangladesh's leading destination for luxury fashion, streetwear, and authentic apparel. Shop premium suits, hoodies, panjabis, dresses, and lifestyle gear with fast nationwide COD.";
-        let keywords = "style x, stylex, style x bd, style x clothing, style x bangladesh, style x store, style x online shop, style x apparel, style x fashion, luxury clothing bangladesh, premium streetwear bd, luxury fashion dhaka, royal apparel, buy clothes online bd, style x dhaka, authentic apparel bangladesh, style x official";
+        let customTitle = db.settings?.siteTitle || "StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka";
+        if (!db.settings?.siteTitle || db.settings.siteTitle === "Style X" || db.settings.siteTitle === "StyleX BD") {
+          customTitle = "StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka";
+        }
+        let desc = db.settings?.siteMetaDesc || "Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing. Shop premium shirts, t-shirts, designer cargo pants, and hoodies with nationwide COD delivery.";
+        if (!db.settings?.siteMetaDesc || db.settings.siteMetaDesc === "Elite Luxury Fashion Showcase" || db.settings.siteMetaDesc.includes("Discover STYLE X")) {
+          desc = "Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing. Shop premium shirts, t-shirts, designer cargo pants, and hoodies with nationwide COD delivery.";
+        }
+        let keywords = "stylex, style x, stylex bd, premium clothing bangladesh, luxury fashion dhaka, stylex bangladesh, stylex online shop, luxury streetwear bd, buy clothing online dhaka, authentic apparel, premium shirts bd, designer streetwear bangladesh";
         let image = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&h=630&q=80";
         
         const protocol = req.headers["x-forwarded-proto"] || "https";
