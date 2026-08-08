@@ -3951,6 +3951,18 @@ export default function App() {
         wishlist={wishlist}
         onToggleWishlist={handleToggleWishlist}
         onAddToCart={handleAddToCart}
+        onLoadDraft={(items, checkoutDetails) => {
+          cartInitializedRef.current = true;
+          setCart(items);
+          if (checkoutDetails) {
+            if (checkoutDetails.customerName) localStorage.setItem('stylex_checkout_name', checkoutDetails.customerName);
+            if (checkoutDetails.customerPhone) localStorage.setItem('stylex_checkout_phone', checkoutDetails.customerPhone);
+            if (checkoutDetails.customerAddress) localStorage.setItem('stylex_checkout_address', checkoutDetails.customerAddress);
+            if (checkoutDetails.customerCity) localStorage.setItem('stylex_checkout_city', checkoutDetails.customerCity);
+            if (checkoutDetails.customerNotes) localStorage.setItem('stylex_checkout_notes', checkoutDetails.customerNotes);
+          }
+          setIsCartOpen(true);
+        }}
         onViewOrdersOnSeparatePage={() => {
           setIsTrackMode(true);
           setIsSearchPage(false);

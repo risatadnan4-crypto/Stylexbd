@@ -26,7 +26,8 @@ interface CustomerProfileModalProps {
   onAddToCart?: (p: Product, size: string) => void;
   onViewOrdersOnSeparatePage?: () => void;
   onViewWishlistOnSeparatePage?: () => void;
-  initialTab?: 'profile' | 'orders' | 'wishlist';
+  onLoadDraft?: (items: any[], customerDetails: any) => void;
+  initialTab?: 'profile' | 'orders' | 'wishlist' | 'drafts';
 }
 
 export default function CustomerProfileModal({
@@ -43,10 +44,11 @@ export default function CustomerProfileModal({
   onAddToCart = () => {},
   onViewOrdersOnSeparatePage,
   onViewWishlistOnSeparatePage,
+  onLoadDraft,
   initialTab = 'profile'
 }: CustomerProfileModalProps) {
-  // Tabs: 'profile' | 'orders' | 'wishlist'
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist'>(initialTab);
+  // Tabs: 'profile' | 'orders' | 'wishlist' | 'drafts'
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'drafts'>(initialTab);
 
   useEffect(() => {
     if (isOpen && initialTab) {
@@ -65,6 +67,27 @@ export default function CustomerProfileModal({
   // Orders State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [drafts, setDrafts] = useState<any[]>([]);
+
+  const loadDrafts = () => {
+    try {
+      const saved = localStorage.getItem('stylex_order_drafts');
+      if (saved) {
+        setDrafts(JSON.parse(saved));
+      } else {
+        setDrafts([]);
+      }
+    } catch (e) {
+      setDrafts([]);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDrafts();
+    }
+  }, [isOpen, activeTab]);
 
   useEffect(() => {
     if (customer) {
@@ -258,6 +281,18 @@ export default function CustomerProfileModal({
                     {wishlist.length}
                   </span>
                 </div>
+                <div 
+                  onClick={() => {
+                    setActiveTab('drafts');
+                    setSelectedOrder(null);
+                  }}
+                  className="mt-2 pt-2 border-t border-white/[0.05] flex justify-between items-center text-[10px] text-white/50 font-mono cursor-pointer hover:text-white transition-colors group/draft"
+                >
+                  <span className="group-hover/draft:text-luxury-gold transition-colors">SAVED DRAFTS:</span>
+                  <span className="text-[#d4af37] font-bold bg-[#d4af37]/10 px-2 py-0.5 rounded-full border border-[#d4af37]/20 group-hover/draft:border-luxury-gold/50 transition-all font-mono">
+                    {drafts.length}
+                  </span>
+                </div>
               </div>
 
               {/* Sidebar Navigation Tabs */}
@@ -306,6 +341,24 @@ export default function CustomerProfileModal({
                     <span>My Wishlist ↗</span>
                   </div>
                   <ChevronRight size={14} className={activeTab === 'wishlist' ? "text-luxury-gold" : "text-white/20"} />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('drafts');
+                    setSelectedOrder(null);
+                  }}
+                  className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider py-3 px-3.5 rounded-xl transition-all border duration-200 cursor-pointer ${
+                    activeTab === 'drafts'
+                      ? 'bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 text-luxury-gold border-luxury-gold/40 shadow-md font-black'
+                      : 'text-white/60 hover:text-white hover:bg-white/[0.03] border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles size={14} className={activeTab === 'drafts' ? "text-luxury-gold animate-pulse" : "text-white/40"} />
+                    <span>My Saved Drafts ({drafts.length})</span>
+                  </div>
+                  <ChevronRight size={14} className={activeTab === 'drafts' ? "text-luxury-gold" : "text-white/20"} />
                 </button>
 
                 <button
@@ -612,8 +665,7 @@ export default function CustomerProfileModal({
                    </form>
                  </div>
                )}
-
-              {/* TAB 3: WISHLIST PIECES */}
+                            {/* TAB 3: WISHLIST PIECES */}
               {activeTab === 'wishlist' && (
                 <div className="flex-1 flex flex-col space-y-4 min-h-0">
                   <div className="flex items-center justify-between flex-shrink-0">
@@ -645,6 +697,139 @@ export default function CustomerProfileModal({
                             onToggleWishlist={onToggleWishlist}
                             onAddToCart={onAddToCart}
                           />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: SAVED DRAFTS */}
+              {activeTab === 'drafts' && (
+                <div className="flex-1 flex flex-col space-y-4 min-h-0 text-left">
+                  <div className="flex items-center justify-between flex-shrink-0">
+                    <h4 className="text-xs uppercase font-black tracking-widest text-white/80 font-mono flex items-center gap-2">
+                      <Sparkles size={12} className="text-luxury-gold animate-pulse" />
+                      My Saved Order Drafts ({drafts.length})
+                    </h4>
+                  </div>
+
+                  {drafts.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center border border-white/5 bg-white/[0.01] rounded-2xl p-8 text-center max-w-xl mx-auto my-auto space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center text-white/30 border border-white/10">
+                        <ShoppingBag size={20} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs sm:text-sm font-medium text-white/80">No Order Drafts Found</p>
+                        <p className="text-[10.5px] text-white/40 leading-relaxed font-sans max-w-sm text-center">
+                          You can draft an order directly in your shopping bag. Save your cart item details and checkout contact fields to complete them later.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 overflow-y-auto pr-1.5 custom-scrollbar pb-6 flex-1">
+                      {drafts.map((draft) => {
+                        const formattedDate = new Date(draft.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+
+                        const handleDeleteDraft = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          const filtered = drafts.filter(d => d.id !== draft.id);
+                          localStorage.setItem('stylex_order_drafts', JSON.stringify(filtered));
+                          loadDrafts();
+                        };
+
+                        const handleLoadDraft = () => {
+                          if (onLoadDraft) {
+                            onLoadDraft(draft.items, draft.customerDetails);
+                            onClose();
+                          }
+                        };
+
+                        return (
+                          <div 
+                            key={draft.id}
+                            className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 sm:p-5 hover:bg-white/[0.04] transition-all duration-300 relative group/draftcard text-left"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                              <div>
+                                <span className="text-xs font-mono font-black text-luxury-gold uppercase tracking-wider block">
+                                  {draft.id}
+                                </span>
+                                <span className="text-[10px] text-white/40 font-mono">
+                                  Saved on {formattedDate}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={handleLoadDraft}
+                                  className="bg-gradient-to-r from-luxury-purple-glowing/20 to-luxury-gold/10 hover:from-luxury-purple-glowing/30 hover:to-luxury-gold/20 border border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold px-3 py-1.5 rounded-lg text-[10.5px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                                >
+                                  <ArrowRight size={12} />
+                                  <span>Resume Checkout</span>
+                                </button>
+                                <button
+                                  onClick={handleDeleteDraft}
+                                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center"
+                                  title="Delete Draft"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="pt-3.5 space-y-3">
+                              {/* Items preview */}
+                              <div className="space-y-2">
+                                <span className="text-[9.5px] font-mono tracking-widest text-white/30 uppercase block font-black">Draft Items</span>
+                                <div className="space-y-1.5 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
+                                  {draft.items.map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center text-[11px] bg-black/20 rounded-lg p-2 border border-white/[0.02]">
+                                      <div className="flex items-center gap-2 max-w-[70%]">
+                                        <div className="w-6 h-6 rounded bg-white/5 border border-white/10 overflow-hidden shrink-0">
+                                          <img 
+                                            src={item.selectedColorImage || item.product?.images?.[0] || 'https://placehold.co/100'} 
+                                            alt={item.product?.title || 'Bespoke Item'}
+                                            className="w-full h-full object-cover"
+                                            referrerPolicy="no-referrer"
+                                          />
+                                        </div>
+                                        <span className="text-white/80 truncate font-sans font-medium">{item.product?.title || 'Bespoke Item'}</span>
+                                      </div>
+                                      <div className="text-[10px] font-mono text-white/50 space-x-1.5 shrink-0">
+                                        <span>Size: <strong className="text-luxury-gold font-bold">{item.selectedSize}</strong></span>
+                                        {item.selectedColor && <span>Color: <strong className="text-white/70">{item.selectedColor}</strong></span>}
+                                        <span>x {item.quantity}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Details preview */}
+                              {(draft.customerDetails?.customerName || draft.customerDetails?.customerPhone) && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono border-t border-white/[0.03] pt-2.5">
+                                  {draft.customerDetails.customerName && (
+                                    <div className="text-white/50">
+                                      <span className="text-white/30 uppercase text-[8.5px] block font-black tracking-widest">Recipient Name</span>
+                                      <span className="text-white font-sans">{draft.customerDetails.customerName}</span>
+                                    </div>
+                                  )}
+                                  {draft.customerDetails.customerPhone && (
+                                    <div className="text-white/50">
+                                      <span className="text-white/30 uppercase text-[8.5px] block font-black tracking-widest">Phone Number</span>
+                                      <span>{draft.customerDetails.customerPhone}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>

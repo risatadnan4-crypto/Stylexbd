@@ -1941,10 +1941,10 @@ export default function XoroAssistant({
 
                           {/* Render helper panels based on message type/text hooks */}
                           {/* 1. COUPON SUGGESTIONS */}
-                          {!isUser && (m.text.includes("Code:") || m.text.includes("coupon") || m.type === 'coupons') && coupons.length > 0 && (
+                          {!isUser && (m.text.includes("Code:") || m.text.includes("coupon") || m.type === 'coupons') && coupons.filter(c => !c.isEspecial).length > 0 && (
                             <div className="mt-3.5 space-y-2 border-t border-white/5 pt-3">
                               <p className="text-[9px] font-mono uppercase text-luxury-gold tracking-widest font-bold">Active Promo Codes:</p>
-                              {coupons.map((c, cIdx) => (
+                              {coupons.filter(c => !c.isEspecial).map((c, cIdx) => (
                                 <div key={cIdx} className="flex items-center justify-between p-2 bg-black border border-white/5 rounded-xl">
                                   <div className="min-w-0">
                                     <p className="text-[10px] font-mono font-bold text-white tracking-wider flex items-center gap-1">

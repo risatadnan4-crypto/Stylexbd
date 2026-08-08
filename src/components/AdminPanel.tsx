@@ -92,7 +92,7 @@ export default function AdminPanel({
   onRefreshSettings,
   onRefreshCoupons
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'profit_calculator' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai' | 'ai_api_manager'>(() => {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'performance_dashboard' | 'profit_calculator' | 'inventory' | 'orders' | 'banners' | 'reviews' | 'coupons' | 'campaigns' | 'chat' | 'seo' | 'seo_health' | 'settings' | 'alerts' | 'sms' | 'customer_phones' | 'xoro_ai' | 'ai_api_manager' | 'forms'>(() => {
     return (sessionStorage.getItem('stylex_admin_active_tab') as any) || 'dashboard';
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -128,6 +128,24 @@ export default function AdminPanel({
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
   const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Form Generator states
+  const [formList, setFormList] = useState<FormGenerator[]>([]);
+  const [fetchingForms, setFetchingForms] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>([]);
+  const [fetchingSubmissions, setFetchingSubmissions] = useState(false);
+
+  // Creating/editing form state
+  const [newFormTitle, setNewFormTitle] = useState('');
+  const [newFormDesc, setNewFormDesc] = useState('');
+  const [newFormFields, setNewFormFields] = useState<FormField[]>([]);
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldType, setNewFieldType] = useState<FormField['type']>('text');
+  const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [newFieldPlaceholder, setNewFieldPlaceholder] = useState('');
+  const [newFieldOptions, setNewFieldOptions] = useState('');
+  const [isSavingForm, setIsSavingForm] = useState(false);
 
   // Custom Web Push dispatcher states
   const [pushTitleInput, setPushTitleInput] = useState('');
@@ -1452,6 +1470,7 @@ export default function AdminPanel({
   const [newCouponType, setNewCouponType] = useState<'PERCENTAGE' | 'FIXED'>('PERCENTAGE');
   const [newCouponVal, setNewCouponVal] = useState(10);
   const [newCouponMaxUses, setNewCouponMaxUses] = useState<string>('');
+  const [newCouponIsEspecial, setNewCouponIsEspecial] = useState(false);
 
   const [newBannerTitle, setNewBannerTitle] = useState('');
   const [newBannerSubtitle, setNewBannerSubtitle] = useState('');
@@ -1481,6 +1500,7 @@ export default function AdminPanel({
     fetchAlerts();
     fetchSmsLogs();
     fetchCustomerPhones();
+    fetchForms();
 
     const interval = setInterval(() => {
       // Periodic poll for dynamic admin updates (e.g. Chat alerts)
@@ -2292,12 +2312,14 @@ export default function AdminPanel({
           code: newCouponCode, 
           type: newCouponType, 
           value: newCouponVal,
-          maxUses: newCouponMaxUses ? Number(newCouponMaxUses) : undefined
+          maxUses: newCouponMaxUses ? Number(newCouponMaxUses) : undefined,
+          isEspecial: newCouponIsEspecial
         })
       });
       if (res.ok) {
         setNewCouponCode('');
         setNewCouponMaxUses('');
+        setNewCouponIsEspecial(false);
         fetchCoupons();
         onRefreshCoupons?.();
       } else {
@@ -3546,7 +3568,36 @@ ALTER TABLE public.failed_notifications ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS select_all_failed_notifications ON public.failed_notifications;
 CREATE POLICY select_all_failed_notifications ON public.failed_notifications FOR SELECT USING (true);
 DROP POLICY IF EXISTS insert_all_failed_notifications ON public.failed_notifications;
-CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR INSERT WITH CHECK (true);`;
+CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR INSERT WITH CHECK (true);
+
+-- 13. Create Forms Table & Security Policies
+CREATE TABLE IF NOT EXISTS public.forms (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    fields TEXT NOT NULL,
+    submissions_count NUMERIC DEFAULT 0,
+    views_count NUMERIC DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+ALTER TABLE public.forms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY select_all_forms ON public.forms FOR SELECT USING (true);
+CREATE POLICY all_forms_perm ON public.forms FOR ALL USING (true) WITH CHECK (true);
+
+-- 14. Create Form Submissions Table & Security Policies
+CREATE TABLE IF NOT EXISTS public.form_submissions (
+    id TEXT PRIMARY KEY,
+    form_id TEXT NOT NULL REFERENCES public.forms(id) ON DELETE CASCADE,
+    answers TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    user_agent TEXT,
+    ip TEXT,
+    referer TEXT
+);
+ALTER TABLE public.form_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY select_all_form_submissions ON public.form_submissions FOR SELECT USING (true);
+CREATE POLICY insert_all_form_submissions ON public.form_submissions FOR INSERT WITH CHECK (true);
+CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING (true) WITH CHECK (true);`;
                           try {
                             if (navigator.clipboard && navigator.clipboard.writeText) {
                               navigator.clipboard.writeText(sql);
@@ -5208,7 +5259,7 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
           <div className="space-y-6 animate-fade-in">
             <form onSubmit={handleCreateCoupon} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-5 rounded-2xl space-y-4">
               <h3 className="font-serif text-sm uppercase tracking-widest text-white border-b border-white/5 pb-2 font-bold">Generate coupon discount</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Coupon Code (Unique UPPERCASE)</label>
                   <input 
@@ -5235,12 +5286,23 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Max Usage Limit (Optional)</label>
+                  <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Max Usage Limit (Required for Especial)</label>
                   <input 
                     type="number" value={newCouponMaxUses} onChange={(e) => setNewCouponMaxUses(e.target.value)}
                     placeholder="Unlimited"
                     className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
                   />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center gap-2.5 bg-luxury-charcoal border border-white/10 rounded py-2 px-3 focus-within:border-luxury-gold cursor-pointer h-[34px] md:h-[38px] select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={newCouponIsEspecial} 
+                      onChange={(e) => setNewCouponIsEspecial(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-luxury-gold cursor-pointer rounded border-white/20 bg-zinc-900"
+                    />
+                    <span className="text-[10px] uppercase font-mono tracking-wider text-white font-bold">Especial Coupon 👑</span>
+                  </label>
                 </div>
               </div>
               <button 
@@ -5257,9 +5319,16 @@ CREATE POLICY insert_all_failed_notifications ON public.failed_notifications FOR
                 {coupons.map(c => (
                   <div key={c.code} className="flex justify-between items-center bg-[#0d0d0d] border border-white/5 p-4 rounded animate-fade-in">
                     <div className="space-y-2">
-                      <span className="font-mono text-white text-sm font-bold tracking-widest bg-luxury-charcoal border border-white/5 px-2.5 py-1 rounded">
-                        {c.code}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-white text-sm font-bold tracking-widest bg-luxury-charcoal border border-white/5 px-2.5 py-1 rounded">
+                          {c.code}
+                        </span>
+                        {c.isEspecial && (
+                          <span className="text-[8px] font-mono font-black text-[#15151d] bg-[#d4af37] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(212,175,55,0.3)]">
+                            👑 Especial
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-luxury-gold">
                         {c.type === 'PERCENTAGE' ? `${c.value}% discount benefit` : `Flat ৳${c.value} discount value`}
                       </p>

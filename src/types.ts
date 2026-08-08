@@ -129,6 +129,7 @@ export interface Coupon {
   active: boolean;
   maxUses?: number;
   usedCount?: number;
+  isEspecial?: boolean;
 }
 
 export interface ChatMessage {
@@ -170,4 +171,33 @@ export interface Customer {
   email: string;
   phone?: string;
   password?: string;
+}
+
+export interface FormField {
+  id: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'select' | 'radio' | 'checkbox';
+  required: boolean;
+  placeholder?: string;
+  options?: string[]; // for select, radio, checkbox
+}
+
+export interface FormGenerator {
+  id: string;
+  title: string;
+  description: string;
+  fields: FormField[];
+  submissionsCount: number;
+  viewsCount: number;
+  createdAt: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  answers: Record<string, any>;
+  submittedAt: string;
+  userAgent?: string;
+  ip?: string;
+  referer?: string;
 }

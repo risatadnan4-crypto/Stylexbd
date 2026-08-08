@@ -5,7 +5,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign } from "./src/types.js";
+import { Product, Order, Banner, Review, Coupon, ChatRoom, Campaign, FormGenerator, FormSubmission } from "./src/types.js";
 import { supabase } from "./src/lib/supabase.js";
 import { GoogleGenAI, Type } from "@google/genai";
 import nodemailer from "nodemailer";
@@ -90,6 +90,8 @@ let db = {
   campaigns: initialCampaigns,
   chats: [] as ChatRoom[],
   carts: {} as Record<string, any[]>,
+  forms: [] as FormGenerator[],
+  formSubmissions: [] as FormSubmission[],
   visits: 125,
   liveViews: 3,
   countedSessions: [] as string[],
@@ -979,7 +981,9 @@ async function syncFromSupabase() {
       reviewsResult,
       ordersResult,
       chatsResult,
-      settingsResult
+      settingsResult,
+      formsResult,
+      formSubmissionsResult
     ] = await Promise.all([
       safeSelect("products"),
       safeSelect("banners"),
@@ -988,7 +992,9 @@ async function syncFromSupabase() {
       safeSelect("reviews"),
       safeSelect("orders"),
       safeSelect("chats"),
-      safeSelect("settings")
+      safeSelect("settings"),
+      safeSelect("forms"),
+      safeSelect("form_submissions")
     ]);
 
     // 0. Pre-parse settings & banners fallback to populate productPayments
@@ -1182,13 +1188,15 @@ async function syncFromSupabase() {
             const maxUses = (c.maxUses !== undefined && c.maxUses !== null) ? Number(c.maxUses) : ((c.max_uses !== undefined && c.max_uses !== null) ? Number(c.max_uses) : existingLocal?.maxUses);
             const usedCount = (c.usedCount !== undefined && c.usedCount !== null) ? Number(c.usedCount) : ((c.used_count !== undefined && c.used_count !== null) ? Number(c.used_count) : (existingLocal?.usedCount || 0));
             const active = !!c.active && (maxUses === undefined || maxUses <= 0 || usedCount < maxUses);
+            const isEspecial = c.isEspecial !== undefined && c.isEspecial !== null ? !!c.isEspecial : ((c.is_especial !== undefined && c.is_especial !== null) ? !!c.is_especial : !!existingLocal?.isEspecial);
             return {
               code: c.code,
               type: c.type || existingLocal?.type || 'PERCENTAGE',
               value: Number(c.value),
               active,
               maxUses,
-              usedCount
+              usedCount,
+              isEspecial
             };
           });
           db.seededCoupons = true;
@@ -1298,6 +1306,55 @@ async function syncFromSupabase() {
         }
       }
     } catch (e: any) {}
+
+    // 7.5 Sync Forms and Form Submissions
+    try {
+      if (formsResult && !formsResult.error && formsResult.data) {
+        const formsData = formsResult.data;
+        if (formsData.length > 0) {
+          db.forms = formsData.map((f: any) => ({
+            id: f.id,
+            title: f.title || "Untitled Form",
+            description: f.description || "",
+            fields: typeof f.fields === "string" ? JSON.parse(f.fields) : (Array.isArray(f.fields) ? f.fields : []),
+            submissionsCount: Number(f.submissions_count || f.submissionsCount || 0),
+            viewsCount: Number(f.views_count || f.viewsCount || 0),
+            createdAt: f.created_at || f.createdAt || new Date().toISOString()
+          }));
+          console.log(`✅ Synced ${db.forms.length} forms from Supabase.`);
+        } else {
+          if (!db.forms) db.forms = [];
+        }
+      } else {
+        if (!db.forms) db.forms = [];
+      }
+    } catch (e: any) {
+      console.error("⚠️ Sync forms failed:", e.message);
+    }
+
+    try {
+      if (formSubmissionsResult && !formSubmissionsResult.error && formSubmissionsResult.data) {
+        const subData = formSubmissionsResult.data;
+        if (subData.length > 0) {
+          db.formSubmissions = subData.map((s: any) => ({
+            id: s.id,
+            formId: s.form_id || s.formId,
+            answers: typeof s.answers === "string" ? JSON.parse(s.answers) : (s.answers || {}),
+            submittedAt: s.submitted_at || s.submittedAt || new Date().toISOString(),
+            userAgent: s.user_agent || s.userAgent,
+            ip: s.ip,
+            referer: s.referer
+          }));
+          console.log(`✅ Synced ${db.formSubmissions.length} form submissions from Supabase.`);
+        } else {
+          if (!db.formSubmissions) db.formSubmissions = [];
+        }
+      } else {
+        if (!db.formSubmissions) db.formSubmissions = [];
+      }
+    } catch (e: any) {
+      console.error("⚠️ Sync form submissions failed:", e.message);
+    }
 
     // 8. Sync Settings & Persistent Views
     try {
@@ -2553,7 +2610,15 @@ app.post("/api/products", async (req, res) => {
     timerActive: resolvedTimerActive,
     timerEnabled: resolvedTimerActive,
     freeDelivery: !!newProduct.freeDelivery,
-    likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0
+    likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0,
+    deliveryPriceDhaka: newProduct.deliveryPriceDhaka !== undefined ? Number(newProduct.deliveryPriceDhaka) : 100,
+    deliveryPriceChattogram: newProduct.deliveryPriceChattogram !== undefined ? Number(newProduct.deliveryPriceChattogram) : 150,
+    deliveryPriceRajshahi: newProduct.deliveryPriceRajshahi !== undefined ? Number(newProduct.deliveryPriceRajshahi) : 150,
+    deliveryPriceKhulna: newProduct.deliveryPriceKhulna !== undefined ? Number(newProduct.deliveryPriceKhulna) : 150,
+    deliveryPriceBarishal: newProduct.deliveryPriceBarishal !== undefined ? Number(newProduct.deliveryPriceBarishal) : 150,
+    deliveryPriceSylhet: newProduct.deliveryPriceSylhet !== undefined ? Number(newProduct.deliveryPriceSylhet) : 150,
+    deliveryPriceRangpur: newProduct.deliveryPriceRangpur !== undefined ? Number(newProduct.deliveryPriceRangpur) : 150,
+    deliveryPriceMymensingh: newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150
   };
   await syncSettingsToCloud();
 
@@ -2730,7 +2795,15 @@ app.post("/api/products", async (req, res) => {
       timerActive: resolvedTimerActiveUpdate,
       timerEnabled: resolvedTimerActiveUpdate,
       freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
-      likes: target.likes !== undefined ? Number(target.likes) : 0
+      likes: target.likes !== undefined ? Number(target.likes) : 0,
+      deliveryPriceDhaka: target.deliveryPriceDhaka !== undefined ? Number(target.deliveryPriceDhaka) : 100,
+      deliveryPriceChattogram: target.deliveryPriceChattogram !== undefined ? Number(target.deliveryPriceChattogram) : 150,
+      deliveryPriceRajshahi: target.deliveryPriceRajshahi !== undefined ? Number(target.deliveryPriceRajshahi) : 150,
+      deliveryPriceKhulna: target.deliveryPriceKhulna !== undefined ? Number(target.deliveryPriceKhulna) : 150,
+      deliveryPriceBarishal: target.deliveryPriceBarishal !== undefined ? Number(target.deliveryPriceBarishal) : 150,
+      deliveryPriceSylhet: target.deliveryPriceSylhet !== undefined ? Number(target.deliveryPriceSylhet) : 150,
+      deliveryPriceRangpur: target.deliveryPriceRangpur !== undefined ? Number(target.deliveryPriceRangpur) : 150,
+      deliveryPriceMymensingh: target.deliveryPriceMymensingh !== undefined ? Number(target.deliveryPriceMymensingh) : 150
     };
 
     if (!(db.settings as any).productSeo) {
@@ -4710,13 +4783,15 @@ app.get("/api/coupons", async (req, res) => {
         const maxUses = (c.maxUses !== undefined && c.maxUses !== null) ? Number(c.maxUses) : ((c.max_uses !== undefined && c.max_uses !== null) ? Number(c.max_uses) : existingLocal?.maxUses);
         const usedCount = (c.usedCount !== undefined && c.usedCount !== null) ? Number(c.usedCount) : ((c.used_count !== undefined && c.used_count !== null) ? Number(c.used_count) : (existingLocal?.usedCount || 0));
         const active = !!c.active && (maxUses === undefined || maxUses <= 0 || usedCount < maxUses);
+        const isEspecial = c.isEspecial !== undefined && c.isEspecial !== null ? !!c.isEspecial : ((c.is_especial !== undefined && c.is_especial !== null) ? !!c.is_especial : !!existingLocal?.isEspecial);
         return {
           code: c.code,
           type: c.type || existingLocal?.type || 'PERCENTAGE',
           value: Number(c.value),
           active,
           maxUses,
-          usedCount
+          usedCount,
+          isEspecial
         };
       });
       db.coupons = coupons;
@@ -4922,8 +4997,173 @@ app.post("/api/sms-logs/send", async (req, res) => {
   }
 });
 
+// FORM GENERATOR API ENDPOINTS
+app.get("/api/forms", (req, res) => {
+  if (!db.forms) db.forms = [];
+  res.json(db.forms);
+});
+
+app.post("/api/forms", async (req, res) => {
+  const { id, title, description, fields } = req.body;
+  if (!db.forms) db.forms = [];
+  if (!db.formSubmissions) db.formSubmissions = [];
+
+  const targetId = id || crypto.randomUUID();
+  const existingIndex = db.forms.findIndex(f => f.id === targetId);
+
+  const formObj: FormGenerator = {
+    id: targetId,
+    title: title || "Untitled Form",
+    description: description || "",
+    fields: fields || [],
+    submissionsCount: existingIndex > -1 ? db.forms[existingIndex].submissionsCount : 0,
+    viewsCount: existingIndex > -1 ? db.forms[existingIndex].viewsCount : 0,
+    createdAt: existingIndex > -1 ? db.forms[existingIndex].createdAt : new Date().toISOString()
+  };
+
+  if (existingIndex > -1) {
+    db.forms[existingIndex] = formObj;
+  } else {
+    db.forms.push(formObj);
+  }
+
+  saveDB();
+
+  try {
+    const payload = {
+      id: formObj.id,
+      title: formObj.title,
+      description: formObj.description,
+      fields: JSON.stringify(formObj.fields),
+      submissions_count: formObj.submissionsCount,
+      views_count: formObj.viewsCount,
+      created_at: formObj.createdAt
+    };
+    await supabase.from("forms").upsert(payload);
+  } catch (err: any) {
+    console.error("⚠️ Forms Supabase upsert failed:", err.message);
+  }
+
+  res.json({ success: true, form: formObj });
+});
+
+app.delete("/api/forms/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!db.forms) db.forms = [];
+  db.forms = db.forms.filter(f => f.id !== id);
+  if (db.formSubmissions) {
+    db.formSubmissions = db.formSubmissions.filter(s => s.formId !== id);
+  }
+  saveDB();
+
+  try {
+    await supabase.from("forms").delete().eq("id", id);
+    await supabase.from("form_submissions").delete().eq("form_id", id);
+  } catch (err: any) {
+    console.error("⚠️ Forms Supabase delete failed:", err.message);
+  }
+
+  res.json({ success: true });
+});
+
+app.get("/api/forms/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!db.forms) db.forms = [];
+  const form = db.forms.find(f => f.id === id);
+  if (!form) {
+    return res.status(404).json({ message: "Form not found" });
+  }
+
+  form.viewsCount = (form.viewsCount || 0) + 1;
+  saveDB();
+
+  try {
+    await supabase.from("forms").update({ views_count: form.viewsCount }).eq("id", id);
+  } catch (err: any) {
+    console.error("⚠️ Forms Supabase views update failed:", err.message);
+  }
+
+  res.json(form);
+});
+
+app.post("/api/forms/:id/submit", async (req, res) => {
+  const { id } = req.params;
+  const { answers } = req.body;
+  if (!db.forms) db.forms = [];
+  if (!db.formSubmissions) db.formSubmissions = [];
+
+  const form = db.forms.find(f => f.id === id);
+  if (!form) {
+    return res.status(404).json({ message: "Form not found" });
+  }
+
+  form.submissionsCount = (form.submissionsCount || 0) + 1;
+
+  const submission: FormSubmission = {
+    id: crypto.randomUUID(),
+    formId: id,
+    answers: answers || {},
+    submittedAt: new Date().toISOString(),
+    userAgent: req.headers["user-agent"],
+    ip: req.ip || (req.headers["x-forwarded-for"] as string),
+    referer: req.headers["referer"]
+  };
+
+  db.formSubmissions.push(submission);
+  saveDB();
+
+  try {
+    await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+    const payload = {
+      id: submission.id,
+      form_id: submission.formId,
+      answers: JSON.stringify(submission.answers),
+      submitted_at: submission.submittedAt,
+      user_agent: submission.userAgent,
+      ip: submission.ip,
+      referer: submission.referer
+    };
+    await supabase.from("form_submissions").insert(payload);
+  } catch (err: any) {
+    console.error("⚠️ Forms Supabase submission failed:", err.message);
+  }
+
+  res.json({ success: true, submission });
+});
+
+app.get("/api/forms/:id/submissions", (req, res) => {
+  const { id } = req.params;
+  if (!db.formSubmissions) db.formSubmissions = [];
+  const list = db.formSubmissions.filter(s => s.formId === id);
+  res.json(list);
+});
+
+app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
+  const { id, subId } = req.params;
+  if (!db.formSubmissions) db.formSubmissions = [];
+  db.formSubmissions = db.formSubmissions.filter(s => s.id !== subId);
+
+  const form = db.forms?.find(f => f.id === id);
+  if (form && form.submissionsCount > 0) {
+    form.submissionsCount--;
+    try {
+      await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+    } catch (e) {}
+  }
+
+  saveDB();
+
+  try {
+    await supabase.from("form_submissions").delete().eq("id", subId);
+  } catch (err: any) {
+    console.error("⚠️ Forms Supabase delete submission failed:", err.message);
+  }
+
+  res.json({ success: true });
+});
+
 app.post("/api/coupons", async (req, res) => {
-  const { code, type, value, active, maxUses, usedCount } = req.body;
+  const { code, type, value, active, maxUses, usedCount, isEspecial } = req.body;
   // Capitalize coupon codes
   const upperCode = String(code).toUpperCase().trim();
   const existing = db.coupons.find(c => c.code === upperCode);
@@ -4936,7 +5176,8 @@ app.post("/api/coupons", async (req, res) => {
     value: Number(value), 
     active: active ?? true,
     maxUses: maxUses !== undefined && maxUses !== null && maxUses !== "" ? Number(maxUses) : undefined,
-    usedCount: usedCount !== undefined ? Number(usedCount) : 0
+    usedCount: usedCount !== undefined ? Number(usedCount) : 0,
+    isEspecial: !!isEspecial
   };
   db.coupons.push(newCoupon);
   saveDB();
@@ -4955,14 +5196,20 @@ app.post("/api/coupons", async (req, res) => {
       payload.usedCount = newCoupon.usedCount;
       payload.used_count = newCoupon.usedCount;
     }
-    const { error } = await supabase.from("coupons").upsert(payload);
-    if (error) {
-      await supabase.from("coupons").upsert({ 
-        code: newCoupon.code, 
-        type: newCoupon.type, 
-        value: newCoupon.value, 
-        active: newCoupon.active 
-      });
+    // Attempt upsert with isEspecial/is_especial, fallback if column missing
+    try {
+      const payloadWithEspecial = {
+        ...payload,
+        isEspecial: newCoupon.isEspecial,
+        is_especial: newCoupon.isEspecial
+      };
+      const { error } = await supabase.from("coupons").upsert(payloadWithEspecial);
+      if (error) {
+        // Fallback upsert without isEspecial
+        await supabase.from("coupons").upsert(payload);
+      }
+    } catch (innerErr) {
+      await supabase.from("coupons").upsert(payload);
     }
   } catch (err: any) {
     console.error("⚠️ Coupons Supabase upsert failed:", err.message);
@@ -5518,12 +5765,14 @@ app.post("/api/xoro/chat", async (req, res) => {
       whyBuy: p.whyBuy
     }));
 
-    const couponsContext = db.coupons.map((c: any) => ({
-      code: c.code,
-      discountPercent: c.discountPercent,
-      description: c.description,
-      minPurchase: c.minPurchase
-    }));
+    const couponsContext = db.coupons
+      .filter((c: any) => !c.isEspecial)
+      .map((c: any) => ({
+        code: c.code,
+        discountPercent: c.discountPercent,
+        description: c.description,
+        minPurchase: c.minPurchase
+      }));
 
     // 3. Execute Gemini call using AI Key Rotation Engine
     try {
@@ -5644,7 +5893,9 @@ Instructions for replies:
     } else if (lowerMessage.includes("track") || lowerMessage.includes("order") || lowerMessage.includes("phone") || lowerMessage.includes("ট্র্যাক") || lowerMessage.includes("অর্ডার")) {
       reply = `🔍 **আসসালামু আলাইকুম! অর্ডার ট্র্যাক করুন:**\n\nআমি খুব দ্রুত আপনার অর্ডারের বর্তমান অবস্থা চেক করতে পারি। দয়া করে আপনার **অর্ডার আইডি** (যেমন: \`ord-...\`) অথবা অর্ডারের সময় ব্যবহৃত **ফোন নম্বরটি** দিন। আমি এখনই আপনার অর্ডার ট্র্যাকিং করে দিচ্ছি!`;
     } else if (lowerMessage.includes("discount") || lowerMessage.includes("coupon") || lowerMessage.includes("offer") || lowerMessage.includes("কুপন") || lowerMessage.includes("ছাড়")) {
-      const couponsStr = db.coupons.map((c: any) => `🔑 কোড: **${c.code}** — **${c.discountPercent}% ছাড়** (${c.description})`).join("\n");
+      const couponsStr = db.coupons
+        .filter((c: any) => !c.isEspecial)
+        .map((c: any) => `🔑 কোড: **${c.code}** — **${c.type === 'PERCENTAGE' ? c.value + '%' : '৳' + c.value} ছাড়**`).join("\n");
       reply = `🎁 **আসসালামু আলাইকুম! স্টাইল এক্স এক্সক্লুসিভ অফারসমূহ:**\n\nবর্তমানে সক্রিয় থাকা সেরা ডিসকাউন্ট কুপনগুলো নিচে দেওয়া হলো:\n\n${couponsStr || "• **STYLEGOLD** — লাক্সারি পণ্য কেনাকাটায় ১৫% ছাড়।"}\n\nপেমেন্ট করার সময় এই কুপনগুলো ব্যবহার করে আপনার পছন্দের পণ্যটি বিশেষ মূল্যে সংগ্রহ করুন! ✨`;
     } else if (lowerMessage.includes("menswear") || lowerMessage.includes("men") || lowerMessage.includes("ছেলে")) {
       const menProducts = db.products.filter((p: any) => p.category === 'MEN' || p.category === 'UNISEX').slice(0, 3);

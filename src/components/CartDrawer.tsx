@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Trash2, ShieldCheck, ShoppingBag, Plus, Minus, Check, User, Phone, MapPin, FileText,
   Tag, ChevronDown, ChevronUp, ArrowLeft, ArrowRight, Sparkles, Clock, Award, Undo2, Lock, 
-  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt, Image as ImageIcon, Camera
+  Smartphone, Landmark, Copy, ExternalLink, MessageSquare, Eye, ZoomIn, Receipt, Image as ImageIcon, Camera,
+  History
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
@@ -183,6 +184,7 @@ export default function CartDrawer({
 
   // Session & Tracking Refs for Abandoned vs Completed Order Emails
   const checkoutSessionIdRef = useRef<string>(`SESS-CHK-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`);
+  const activeDraftIdRef = useRef<string | null>(null);
   const step1CompletedRef = useRef<boolean>(false);
   const orderCompletedRef = useRef<boolean>(false);
   const abandonedEmailSentRef = useRef<boolean>(false);
@@ -192,6 +194,74 @@ export default function CartDrawer({
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const citySelectRef = useRef<HTMLSelectElement>(null);
   const addressTextRef = useRef<HTMLTextAreaElement>(null);
+  const imageSelectionRef = useRef<HTMLDivElement>(null);
+  const transactionIdInputRef = useRef<HTMLInputElement>(null);
+
+  // Zoom & highlight state for invalid fields
+  const [invalidZoomFields, setInvalidZoomFields] = useState<Record<string, boolean>>({});
+
+  const triggerInvalidFieldAnimation = (field: string, ref?: React.RefObject<any>) => {
+    setInvalidZoomFields(prev => ({ ...prev, [field]: true }));
+    if (ref && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof ref.current.focus === 'function') {
+        setTimeout(() => {
+          ref.current?.focus();
+        }, 100);
+      }
+    }
+    setTimeout(() => {
+      setInvalidZoomFields(prev => ({ ...prev, [field]: false }));
+    }, 2000); // Resets zoom and red signal after 2 seconds (zooms out)
+  };
+
+  const [draftSavedMessage, setDraftSavedMessage] = useState<string | null>(null);
+
+  const handleSaveDraft = (silent = false) => {
+    if (cartItems.length === 0) return;
+    
+    const isNew = !activeDraftIdRef.current;
+    const draftId = activeDraftIdRef.current || `DRAFT-${Math.floor(100000 + Math.random() * 900000)}`;
+    if (isNew) {
+      activeDraftIdRef.current = draftId;
+    }
+
+    const newDraft = {
+      id: draftId,
+      date: new Date().toISOString(),
+      items: cartItems,
+      customerDetails: {
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity,
+        customerNotes,
+        customerEmail: customer?.email || ''
+      },
+      totalAmount: itemsTotal - discountAmount
+    };
+
+    const existingDraftsStr = localStorage.getItem('stylex_order_drafts');
+    let existingDrafts = [];
+    if (existingDraftsStr) {
+      try {
+        existingDrafts = JSON.parse(existingDraftsStr);
+      } catch (e) {
+        existingDrafts = [];
+      }
+    }
+
+    // Filter out previous version of this draft to update it in place
+    existingDrafts = existingDrafts.filter((d: any) => d.id !== draftId);
+
+    existingDrafts.unshift(newDraft);
+    localStorage.setItem('stylex_order_drafts', JSON.stringify(existingDrafts));
+
+    if (!silent) {
+      setDraftSavedMessage(`👑 Draft saved as #${draftId}! Resumable in your VIP Lounge.`);
+      setTimeout(() => setDraftSavedMessage(null), 5000);
+    }
+  };
 
   // Load saved progress from localStorage on mount
   useEffect(() => {
@@ -685,6 +755,9 @@ export default function CartDrawer({
 
   const handleCloseDrawer = () => {
     if (checkoutStep !== 'success') {
+      if (checkoutStep === 'step2' || step1CompletedRef.current) {
+        handleSaveDraft(true);
+      }
       handleAbandonCheckout();
     }
     onClose();
@@ -720,15 +793,30 @@ export default function CartDrawer({
     e.preventDefault();
     setErrorMessage('');
 
+    if (!isNameValid) {
+      triggerInvalidFieldAnimation('name', nameInputRef);
+      setErrorMessage('Full Name is required (minimum 3 characters). / পূর্ণ নাম আবশ্যক (কমপক্ষে ৩ অক্ষর)।');
+      return;
+    }
+
+    if (!isPhoneValid) {
+      triggerInvalidFieldAnimation('phone', phoneInputRef);
+      setErrorMessage('Valid 11-digit mobile number starting with 01 is required. / সঠিক ১১ ডিজিটের মোবাইল নম্বর আবশ্যক।');
+      return;
+    }
+
+    if (!isAddressValid) {
+      triggerInvalidFieldAnimation('address', addressTextRef);
+      setErrorMessage('Full Delivery Address is required (minimum 8 characters). / সম্পূর্ণ ডেলিভারি ঠিকানা আবশ্যক।');
+      return;
+    }
+
     if (!areImagesValid) {
+      triggerInvalidFieldAnimation('images', imageSelectionRef);
       setErrorMessage('Please select a product image / color variant for all items before proceeding. / অনুগ্রহ করে প্রতিটি পণ্যের ছবি পছন্দ করুন।');
       return;
     }
 
-    if (!isStep1Valid) {
-      setErrorMessage('Please ensure all required customer fields are valid.');
-      return;
-    }
     setIsTransitioningStep(true);
     step1CompletedRef.current = true;
 
@@ -768,6 +856,7 @@ export default function CartDrawer({
     setTimeout(() => {
       setIsTransitioningStep(false);
       setCheckoutStep('step2');
+      handleSaveDraft(true);
     }, 3600);
   };
 
@@ -791,6 +880,7 @@ export default function CartDrawer({
     if (activePaymentMethod !== 'cod') {
       const txErr = validateTransactionId(transactionId);
       if (txErr) {
+        triggerInvalidFieldAnimation('transactionId', transactionIdInputRef);
         setErrorMessage(txErr);
         return;
       }
@@ -847,6 +937,21 @@ export default function CartDrawer({
 
       // Mark order completed so NO abandoned email will ever be triggered
       orderCompletedRef.current = true;
+
+      // Clear draft if order successfully placed
+      if (activeDraftIdRef.current) {
+        try {
+          const savedDrafts = localStorage.getItem('stylex_order_drafts');
+          if (savedDrafts) {
+            const draftsArr = JSON.parse(savedDrafts);
+            const filtered = draftsArr.filter((d: any) => d.id !== activeDraftIdRef.current);
+            localStorage.setItem('stylex_order_drafts', JSON.stringify(filtered));
+          }
+        } catch (err) {
+          console.warn('Error clearing completed draft:', err);
+        }
+        activeDraftIdRef.current = null;
+      }
 
       // Record transaction
       if (activePaymentMethod !== 'cod' && transactionId) {
@@ -1192,7 +1297,11 @@ export default function CartDrawer({
 
                               <div className="grid grid-cols-1 gap-3.5 relative z-10">
                                 {/* Name Field */}
-                                <div className="relative group/input">
+                                <div className={`relative group/input transition-all duration-300 origin-center ${
+                                  invalidZoomFields['name']
+                                    ? 'scale-[1.05] ring-2 ring-red-500/80 bg-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.7)] z-30 rounded-xl'
+                                    : ''
+                                }`}>
                                   <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
                                     customerName
                                       ? isNameValid
@@ -1269,7 +1378,11 @@ export default function CartDrawer({
                                 </div>
 
                                 {/* Mobile Number */}
-                                <div className="relative group/input">
+                                <div className={`relative group/input transition-all duration-300 origin-center ${
+                                  invalidZoomFields['phone']
+                                    ? 'scale-[1.05] ring-2 ring-red-500/80 bg-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.7)] z-30 rounded-xl'
+                                    : ''
+                                }`}>
                                   <div className={`absolute top-1/2 -translate-y-1/2 left-3 md:left-4 transition-all duration-300 ${
                                     customerPhone
                                       ? isPhoneValid
@@ -1387,24 +1500,20 @@ export default function CartDrawer({
                                   </div>
                                 )}
 
-                                {/* Image Selection directly under Size Selection (Mobile Only) */}
+                                {/* Image Selection directly under Size Selection (All Screen Sizes) */}
                                 {enrichedCartItems && enrichedCartItems.length > 0 && (
-                                  <div className="md:hidden pt-2.5 border-t border-white/10 space-y-2">
+                                  <div 
+                                    ref={imageSelectionRef}
+                                    className={`pt-2.5 border-t transition-all duration-300 origin-center ${
+                                      invalidZoomFields['images']
+                                        ? 'scale-[1.04] ring-2 ring-red-500/80 bg-red-950/20 p-2 rounded-xl shadow-[0_0_25px_rgba(239,68,68,0.7)] z-30 border-red-500'
+                                        : 'border-white/10'
+                                    } space-y-2`}
+                                  >
                                     <div className="flex items-center justify-between">
                                       <label className="text-[10px] font-mono font-bold text-luxury-gold uppercase tracking-wider flex items-center gap-1.5">
                                         <ImageIcon size={12} className="text-luxury-gold animate-pulse" />
                                         Select Image / ছবি নির্বাচন করুন *
-                                      </label>
-                                      
-                                      <label className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-luxury-gold/10 hover:bg-luxury-gold/20 border border-luxury-gold/30 text-luxury-gold text-[9.5px] font-semibold transition-all">
-                                        <input 
-                                          type="file" 
-                                          accept="image/*" 
-                                          onChange={handleOrderImageChange} 
-                                          className="hidden" 
-                                        />
-                                        <Camera className="w-3 h-3" />
-                                        <span>+ Upload Photo</span>
                                       </label>
                                     </div>
 
@@ -1559,7 +1668,11 @@ export default function CartDrawer({
 
 
                                  {/* Complete Address */}
-                                 <div className="relative group/input">
+                                 <div className={`relative group/input transition-all duration-300 origin-center ${
+                                   invalidZoomFields['address']
+                                     ? 'scale-[1.05] ring-2 ring-red-500/80 bg-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.7)] z-30 rounded-xl'
+                                     : ''
+                                 }`}>
                                    <div className={`absolute top-3.5 left-3 md:left-4 transition-all duration-300 ${
                                      customerAddress
                                        ? isAddressValid
@@ -1761,57 +1874,7 @@ export default function CartDrawer({
                                       </div>
                                     </div>
 
-                                    {/* Select Image options directly under product photo */}
-                                    {productImagesList.length > 1 && (
-                                      <div className={`pt-2 border-t transition-all duration-300 ${!item.selectedColorImage ? 'border-red-500/40 bg-red-500/[0.04] p-2 rounded-xl ring-1 ring-red-500/30' : 'border-white/10'}`}>
-                                        <span className="text-[9px] sm:text-[9.5px] font-mono tracking-wider text-[#d4af37] font-bold uppercase block mb-1 flex items-center justify-between flex-wrap gap-1">
-                                          <span className="flex items-center gap-1">
-                                            <ImageIcon size={12} className={!item.selectedColorImage ? "text-red-400 animate-pulse" : "text-[#d4af37]"} />
-                                            Select Image / Color Variant * :
-                                          </span>
-                                          {!item.selectedColorImage ? (
-                                            <span className="text-[8.5px] font-mono text-red-300 bg-red-950/80 px-2 py-0.5 rounded border border-red-500/60 font-bold animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.4)]">
-                                              REQUIRED / ছবি নির্বাচন আবশ্যক *
-                                            </span>
-                                          ) : (
-                                            <span className="text-[8.5px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
-                                              ✓ Selected
-                                            </span>
-                                          )}
-                                        </span>
-                                        <div className="flex gap-2 overflow-x-auto py-1.5 scrollbar-hidden">
-                                          {productImagesList.map((imgUrl, imgIdx) => {
-                                            const isSelected = Boolean(item.selectedColorImage && item.selectedColorImage === imgUrl);
-                                            return (
-                                              <button
-                                                key={imgIdx}
-                                                type="button"
-                                                onClick={() => onUpdateColorImage && onUpdateColorImage(idx, imgUrl)}
-                                                className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-xl overflow-hidden border transition-all cursor-pointer shrink-0 relative ${
-                                                  isSelected
-                                                    ? 'border-[#d4af37] ring-2 ring-[#d4af37]/80 shadow-[0_0_14px_rgba(212,175,55,0.7)] scale-105'
-                                                    : !item.selectedColorImage
-                                                    ? 'border-red-500/30 hover:border-red-400 opacity-80 hover:opacity-100 hover:scale-102'
-                                                    : 'border-white/10 hover:border-[#d4af37]/35 opacity-60 hover:opacity-100'
-                                                }`}
-                                              >
-                                                <img 
-                                                  src={imgUrl} 
-                                                  alt={`Option ${imgIdx + 1}`} 
-                                                  className="w-full h-full object-cover"
-                                                  referrerPolicy="no-referrer"
-                                                />
-                                                {isSelected && (
-                                                  <div className="absolute top-1 right-1 bg-[#d4af37] text-black rounded-full p-0.5 shadow-md">
-                                                    <Check size={10} strokeWidth={3} />
-                                                  </div>
-                                                )}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
+
                                   </div>
                               );
                             })}
@@ -1974,7 +2037,11 @@ export default function CartDrawer({
                                 </div>
 
                                 {/* Transaction ID Input */}
-                                <div className="space-y-1 relative">
+                                <div className={`space-y-1 relative transition-all duration-300 origin-center ${
+                                  invalidZoomFields['transactionId']
+                                    ? 'scale-[1.05] ring-2 ring-red-500/80 bg-red-950/20 p-2 rounded-xl shadow-[0_0_25px_rgba(239,68,68,0.7)] z-30'
+                                    : ''
+                                }`}>
                                   <label className={`block text-[8px] font-mono uppercase tracking-[0.15em] transition-colors duration-300 ${
                                     transactionId
                                       ? !transactionError
@@ -1984,6 +2051,7 @@ export default function CartDrawer({
                                   }`}>Transaction ID *</label>
                                   <div className="relative">
                                     <input 
+                                      ref={transactionIdInputRef}
                                       type="text"
                                       required
                                       placeholder="Enter TrxID"
