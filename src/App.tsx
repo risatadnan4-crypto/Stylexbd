@@ -27,6 +27,76 @@ import { supabase } from './lib/supabaseClient';
 import AcousticScrollManager from './components/AcousticScrollManager';
 import FaqSection from './components/FaqSection';
 
+// Global window.fetch override to automatically inject dynamic CSRF and admin credentials headers on all /api/ requests
+const originalFetch = window.fetch;
+const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  let url = '';
+  if (typeof input === 'string') {
+    url = input;
+  } else if (input instanceof URL) {
+    url = input.toString();
+  } else if (input instanceof Request) {
+    url = input.url;
+  }
+
+  const isApiRoute = url.startsWith('/api/') || url.includes('/api/');
+
+  if (isApiRoute) {
+    const settingsStr = localStorage.getItem('stylex_settings');
+    let settingsObj: any = null;
+    if (settingsStr) {
+      try {
+        settingsObj = JSON.parse(settingsStr);
+      } catch (e) {}
+    }
+    const email = settingsObj?.adminEmail || sessionStorage.getItem('stylex_admin_email') || "risatadnan4@gmail.com";
+    const pass = settingsObj?.adminPassword || sessionStorage.getItem('stylex_admin_password');
+    const csrfToken = sessionStorage.getItem('stylex_csrf_token');
+
+    if (typeof input === 'string' || input instanceof URL) {
+      const headers = new Headers(init?.headers || {});
+      if (!headers.has('x-admin-email') && email) {
+        headers.set('x-admin-email', email);
+      }
+      if (!headers.has('x-admin-password') && pass) {
+        headers.set('x-admin-password', pass);
+      }
+      if (!headers.has('x-csrf-token') && csrfToken) {
+        headers.set('x-csrf-token', csrfToken);
+      }
+      init = {
+        ...init,
+        headers
+      };
+    } else {
+      try {
+        const reqInput = input as any;
+        if (reqInput && reqInput.headers && typeof reqInput.headers.set === 'function') {
+          if (email) reqInput.headers.set('x-admin-email', email);
+          if (pass) reqInput.headers.set('x-admin-password', pass);
+          if (csrfToken) reqInput.headers.set('x-csrf-token', csrfToken);
+        }
+      } catch (e) {}
+    }
+  }
+  return originalFetch(input, init);
+};
+
+try {
+  Object.defineProperty(window, 'fetch', {
+    value: customFetch,
+    configurable: true,
+    writable: true,
+    enumerable: true
+  });
+} catch (err) {
+  try {
+    (window as any).fetch = customFetch;
+  } catch (e) {
+    console.error("Failed to globally override fetch:", e);
+  }
+}
+
 export default function App() {
   // Premium entry loading screen states
   const [isSiteLoading, setIsSiteLoading] = useState(true);
@@ -1103,6 +1173,9 @@ export default function App() {
         const data = await res.json();
         setSettings(data);
         localStorage.setItem('stylex_settings', JSON.stringify(data));
+        if (data.csrfToken) {
+          sessionStorage.setItem('stylex_csrf_token', data.csrfToken);
+        }
       }
     } catch (err) {
       // Gracefully maintain existing cached settings if offline or restarting
@@ -1753,14 +1826,8 @@ export default function App() {
 
     // Predefined secure administrator credentials matching useremail
     const userEmail = settings?.adminEmail || "risatadnan4@gmail.com";
-    const activeAdminPassword = settings?.adminPassword || "risat123";
-    if (loginEmail.trim() === userEmail && loginPassword === activeAdminPassword) {
-      setIsAuthAdmin(true);
-      sessionStorage.setItem('stylex_admin_auth', 'true');
-      setShowLoginModal(false);
-      setIsAdminView(true);
-    } else if (loginEmail.trim() === "admin@stylex.com" && loginPassword === "admin") {
-      // Direct secondary staff login
+    const activeAdminPassword = settings?.adminPassword || "";
+    if (loginEmail.trim() === userEmail && loginPassword === activeAdminPassword && activeAdminPassword !== "") {
       setIsAuthAdmin(true);
       sessionStorage.setItem('stylex_admin_auth', 'true');
       setShowLoginModal(false);

@@ -107,7 +107,7 @@ let db = {
   settings: {
     whatsappNumber: "8801755104443",
     adminEmail: "risatadnan4@gmail.com",
-    adminPassword: "risat123",
+    adminPassword: "",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec",
     logoUrl: "/stylex_logo.jpg",
     xoroAvatarUrl: "",
@@ -279,7 +279,7 @@ try {
     db.settings = {
       whatsappNumber: db.settings?.whatsappNumber || "8801755104443",
       adminEmail: db.settings?.adminEmail || "risatadnan4@gmail.com",
-      adminPassword: db.settings?.adminPassword || "risat123",
+      adminPassword: db.settings?.adminPassword || "",
       appsScriptUrl: oldDefaultUrls.includes(currentScriptUrl)
         ? "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec" 
         : currentScriptUrl,
@@ -355,6 +355,38 @@ try {
   console.error("Failed to initialize VAPID keys for Web Push:", vErr.message);
 }
 
+// Active CSRF Tokens Set
+const activeCsrfTokens = new Set<string>();
+
+// Authentication, Authorization & CSRF Middleware
+const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean }, res: express.Response, next: express.NextFunction) => {
+  // CSRF Check
+  const csrfToken = req.headers["x-csrf-token"];
+  if (!csrfToken || !activeCsrfTokens.has(csrfToken as string)) {
+    return res.status(403).json({ message: "Security Warning: Invalid or missing CSRF handshake. Action Blocked." });
+  }
+
+  // Admin auth checking via Headers
+  const adminEmail = req.headers["x-admin-email"];
+  const adminPassword = req.headers["x-admin-password"];
+
+  const expectedEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
+  const expectedPassword = db.settings?.adminPassword;
+
+  if (!expectedPassword || expectedPassword === "") {
+    return res.status(401).json({ message: "প্রত্যাখ্যান! Admin password is not set on the server." });
+  }
+
+  const isSuperAdmin = adminEmail === expectedEmail && adminPassword === expectedPassword;
+
+  if (!isSuperAdmin) {
+    return res.status(401).json({ message: "প্রত্যাখ্যান! জোরো এডমিন এআই ব্যবহার করতে আপনার সুপার অ্যাডমিন অথরাইজেশন প্রয়োজন।" });
+  }
+
+  req.isSuperAdmin = isSuperAdmin;
+  next();
+};
+
 // Function to save database file
 function saveDB() {
   try {
@@ -376,17 +408,28 @@ function saveDB() {
 }
 
 // 🔐 AI API MANAGER VAULT & LOAD BALANCER ENGINE
-const AI_KEY_ENCRYPTION_SECRET = process.env.AI_KEY_ENCRYPTION_SECRET || "stylex-ai-key-secure-vault-98321893";
+let AI_KEY_ENCRYPTION_SECRET = process.env.AI_KEY_ENCRYPTION_SECRET;
+if (!AI_KEY_ENCRYPTION_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("CRITICAL CONFIGURATION ERROR: AI_KEY_ENCRYPTION_SECRET environment variable is not defined. Please configure it in your environment.");
+  } else {
+    console.error("⚠️ CRITICAL CONFIGURATION ERROR: AI_KEY_ENCRYPTION_SECRET environment variable is not defined.");
+    console.warn("⚠️ Fallback to a temporary local development key is active to prevent development server boot crash.");
+    AI_KEY_ENCRYPTION_SECRET = "stylex-dev-local-only-fallback-secret-key-182398213";
+  }
+}
 
 function encryptAiKey(rawKey: string): string {
   if (!rawKey) return "";
   try {
-    const cipher = crypto.createCipheriv('aes-256-cbc', crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32), Buffer.alloc(16, 0));
+    const iv = crypto.randomBytes(16);
+    const key = crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(rawKey, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return encrypted;
+    return `${iv.toString('hex')}:${encrypted}`;
   } catch (e) {
-    return Buffer.from(rawKey).toString('base64');
+    return `base64:${Buffer.from(rawKey).toString('base64')}`;
   }
 }
 
@@ -395,9 +438,23 @@ function decryptAiKey(encryptedHex: string): string {
   if (!encryptedHex) return envKey;
   let decrypted = "";
   try {
-    const decipher = crypto.createDecipheriv('aes-256-cbc', crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32), Buffer.alloc(16, 0));
-    decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    const key = crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32);
+    if (encryptedHex.startsWith("base64:")) {
+      decrypted = Buffer.from(encryptedHex.substring(7), 'base64').toString('utf8');
+    } else if (encryptedHex.includes(":")) {
+      const parts = encryptedHex.split(":");
+      const iv = Buffer.from(parts[0], 'hex');
+      const ciphertext = parts[1];
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+    } else {
+      // Legacy fixed-IV format
+      const iv = Buffer.alloc(16, 0);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+    }
   } catch (e) {
     try {
       decrypted = Buffer.from(encryptedHex, 'base64').toString('utf8');
@@ -1831,7 +1888,7 @@ app.get("/api/analytics", (req, res) => {
 });
 
 // 🧹 Clear Dashboard Data Endpoint
-app.post("/api/admin/clear-dashboard", async (req, res) => {
+app.post("/api/admin/clear-dashboard", xoroAdminAuthMiddleware, async (req, res) => {
   try {
     const { target = "all" } = req.body || {};
     const clearedItems: string[] = [];
@@ -2045,7 +2102,14 @@ app.get("/api/settings", async (req, res) => {
     console.warn("⚠️ API dynamically reading settings table bypass:", err);
   }
 
-  res.json(db.settings || { 
+  const token = crypto.randomBytes(24).toString("hex");
+  activeCsrfTokens.add(token);
+  if (activeCsrfTokens.size > 100) {
+    const firstValue = activeCsrfTokens.values().next().value;
+    if (firstValue) activeCsrfTokens.delete(firstValue);
+  }
+
+  const baseSettings = db.settings || { 
     whatsappNumber: "8801755104443", 
     adminEmail: "risatadnan4@gmail.com",
     appsScriptUrl: "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec",
@@ -2059,7 +2123,9 @@ app.get("/api/settings", async (req, res) => {
       { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
       { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
     ]
-  });
+  };
+
+  res.json({ ...baseSettings, csrfToken: token });
 });
 
 // Save client discount request and send dynamic email dispatch
@@ -2109,7 +2175,7 @@ app.post("/api/discount-request", async (req, res) => {
   }
 });
 
-app.post("/api/settings", async (req, res) => {
+app.post("/api/settings", xoroAdminAuthMiddleware, async (req, res) => {
   try {
     const { 
       whatsappNumber, adminEmail, adminPassword, appsScriptUrl, logoUrl, xoroAvatarUrl, 
@@ -2125,7 +2191,7 @@ app.post("/api/settings", async (req, res) => {
     db.settings = {
       whatsappNumber: whatsappNumber ? whatsappNumber.trim() : (db.settings?.whatsappNumber || "8801755104443"),
       adminEmail: adminEmail ? adminEmail.trim() : (db.settings?.adminEmail || "risatadnan4@gmail.com"),
-      adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || "risat123"),
+      adminPassword: adminPassword !== undefined ? adminPassword.trim() : (db.settings?.adminPassword || ""),
       appsScriptUrl: appsScriptUrl ? appsScriptUrl.trim() : (db.settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec"),
       logoUrl: logoUrl !== undefined ? logoUrl.trim() : (db.settings?.logoUrl || "/stylex_logo.jpg"),
       xoroAvatarUrl: xoroAvatarUrl !== undefined ? xoroAvatarUrl.trim() : (db.settings?.xoroAvatarUrl || ""),
@@ -2551,7 +2617,7 @@ const getBoolVal = (...vals: any[]): boolean => {
   return false;
 };
 
-app.post("/api/products", async (req, res) => {
+app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   const newProduct: Product = req.body;
   if (!newProduct.id) {
     newProduct.id = Math.random().toString(36).substring(2, 10);
@@ -2742,7 +2808,7 @@ app.post("/api/products", async (req, res) => {
   res.status(201).json(newProduct);
 });
 
-  app.put("/api/products/:id", async (req, res) => {
+  app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const idx = db.products.findIndex(p => p.id === req.params.id);
   if (idx !== -1) {
     const existingProd = db.products[idx];
@@ -2944,7 +3010,7 @@ app.post("/api/products/:id/like", async (req, res) => {
   return res.status(404).json({ error: "Product not found" });
 });
 
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const targetId = String(req.params.id || "").trim();
   if (!targetId) {
     return res.status(400).json({ error: "Product ID is required" });
@@ -4617,7 +4683,7 @@ async function sendBanglaSMSNotification(toPhone: string, message: string) {
   }
 }
 
-app.put("/api/orders/:id/status", async (req, res) => {
+app.put("/api/orders/:id/status", xoroAdminAuthMiddleware, async (req, res) => {
   const { status } = req.body;
   const idx = db.orders.findIndex(o => o.id === req.params.id);
   if (idx !== -1) {
@@ -4705,7 +4771,7 @@ app.put("/api/orders/:id/status", async (req, res) => {
   }
 });
 
-app.delete("/api/orders/:id", async (req, res) => {
+app.delete("/api/orders/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const idx = db.orders.findIndex(o => o.id === req.params.id);
   if (idx !== -1) {
     const deleted = db.orders.splice(idx, 1)[0];
@@ -5210,7 +5276,7 @@ app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
   res.json({ success: true });
 });
 
-app.post("/api/coupons", async (req, res) => {
+app.post("/api/coupons", xoroAdminAuthMiddleware, async (req, res) => {
   const { code, type, value, active, maxUses, usedCount, isEspecial } = req.body;
   // Capitalize coupon codes
   const upperCode = String(code).toUpperCase().trim();
@@ -5265,7 +5331,7 @@ app.post("/api/coupons", async (req, res) => {
   res.status(201).json(newCoupon);
 });
 
-app.delete("/api/coupons/:code", async (req, res) => {
+app.delete("/api/coupons/:code", xoroAdminAuthMiddleware, async (req, res) => {
   const codeParam = String(req.params.code).trim().toUpperCase();
   console.log(`[DELETE COUPON] Initiating delete for: ${codeParam}`);
   
@@ -5991,32 +6057,6 @@ const xoroAdminRateLimitMiddleware = (req: express.Request, res: express.Respons
   
   timestamps.push(now);
   xoroAdminRateLimitMap.set(ip, timestamps);
-  next();
-};
-
-// Authentication, Authorization & CSRF Middleware
-const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean }, res: express.Response, next: express.NextFunction) => {
-  // CSRF Check
-  const csrfToken = req.headers["x-csrf-token"];
-  if (csrfToken !== "stylex-csrf-secure-handshake-98322") {
-    return res.status(403).json({ message: "Security Warning: Invalid or missing CSRF handshake. Action Blocked." });
-  }
-
-  // Admin auth checking via Headers
-  const adminEmail = req.headers["x-admin-email"];
-  const adminPassword = req.headers["x-admin-password"];
-
-  const expectedEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
-  const expectedPassword = db.settings?.adminPassword || "risat123";
-
-  const isSuperAdmin = adminEmail === expectedEmail && adminPassword === expectedPassword;
-  const isSecondaryStaff = adminEmail === "admin@stylex.com" && adminPassword === "admin";
-
-  if (!isSuperAdmin && !isSecondaryStaff) {
-    return res.status(401).json({ message: "প্রত্যাখ্যান! জোরো এডমিন এআই ব্যবহার করতে আপনার সুপার অ্যাডমিন অথরাইজেশন প্রয়োজন।" });
-  }
-
-  req.isSuperAdmin = isSuperAdmin;
   next();
 };
 
@@ -6781,7 +6821,7 @@ function sanitizeAiKeyObject(k: any) {
 }
 
 // GET all AI keys (Masked)
-app.get("/api/admin/ai-keys", (req, res) => {
+app.get("/api/admin/ai-keys", xoroAdminAuthMiddleware, (req, res) => {
   initializeAiKeyPool();
   
   // Calculate aggregate stats
@@ -6813,7 +6853,7 @@ app.get("/api/admin/ai-keys", (req, res) => {
 });
 
 // POST add new AI Key
-app.post("/api/admin/ai-keys", async (req, res) => {
+app.post("/api/admin/ai-keys", xoroAdminAuthMiddleware, async (req, res) => {
   const { name, apiKey, key, priority, useEnv } = req.body;
 
   let rawKey = (apiKey || key || "").trim();
@@ -6866,7 +6906,7 @@ app.post("/api/admin/ai-keys", async (req, res) => {
 });
 
 // PUT update AI Key (Name / Priority)
-app.put("/api/admin/ai-keys/:id", async (req, res) => {
+app.put("/api/admin/ai-keys/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const { id } = req.params;
   const { name, priority, apiKey, status } = req.body;
 
@@ -6896,12 +6936,12 @@ app.put("/api/admin/ai-keys/:id", async (req, res) => {
 });
 
 // DELETE AI Key (Super Admin password confirmed)
-app.delete("/api/admin/ai-keys/:id", async (req, res) => {
+app.delete("/api/admin/ai-keys/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const { id } = req.params;
   const password = req.body?.password || req.body?.confirmPassword || req.query?.password;
 
-  const adminPassword = db.settings?.adminPassword || "risat123";
-  if (!password || String(password).trim() !== String(adminPassword).trim()) {
+  const adminPassword = db.settings?.adminPassword || "";
+  if (!password || !adminPassword || String(password).trim() !== String(adminPassword).trim()) {
     return res.status(401).json({ error: "Invalid Super Admin password confirmation." });
   }
 
@@ -6922,7 +6962,7 @@ app.delete("/api/admin/ai-keys/:id", async (req, res) => {
 });
 
 // POST toggle Enable/Disable
-app.post("/api/admin/ai-keys/:id/toggle", async (req, res) => {
+app.post("/api/admin/ai-keys/:id/toggle", xoroAdminAuthMiddleware, async (req, res) => {
   const { id } = req.params;
   const keyObj = db.aiKeys.find((k: any) => k.id === id);
   if (!keyObj) {
@@ -6946,7 +6986,7 @@ app.post("/api/admin/ai-keys/:id/toggle", async (req, res) => {
 });
 
 // POST Test API Key
-app.post("/api/admin/ai-keys/:id/test", async (req, res) => {
+app.post("/api/admin/ai-keys/:id/test", xoroAdminAuthMiddleware, async (req, res) => {
   const { id } = req.params;
   const keyObj = db.aiKeys.find((k: any) => k.id === id);
   if (!keyObj) {
@@ -7027,7 +7067,7 @@ app.post("/api/admin/ai-keys/:id/test", async (req, res) => {
 });
 
 // POST Batch Ping Benchmark All Active Keys
-app.post("/api/admin/ai-keys/benchmark", async (req, res) => {
+app.post("/api/admin/ai-keys/benchmark", xoroAdminAuthMiddleware, async (req, res) => {
   initializeAiKeyPool();
   const activeKeys = (db.aiKeys || []).filter((k: any) => k.status === 'active' || k.status === 'quota_exceeded');
   
@@ -7114,13 +7154,13 @@ app.post("/api/admin/ai-keys/benchmark", async (req, res) => {
 });
 
 // GET Audit Logs
-app.get("/api/admin/ai-keys/logs", (req, res) => {
+app.get("/api/admin/ai-keys/logs", xoroAdminAuthMiddleware, (req, res) => {
   const logs = db.aiApiAuditLogs || [];
   return res.json({ logs });
 });
 
 // GET Export Logs (Never exports raw API keys)
-app.get("/api/admin/ai-keys/logs/export", (req, res) => {
+app.get("/api/admin/ai-keys/logs/export", xoroAdminAuthMiddleware, (req, res) => {
   const logs = (db.aiApiAuditLogs || []).map(l => ({
     id: l.id,
     timestamp: l.timestamp,
