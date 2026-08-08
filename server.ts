@@ -7233,9 +7233,14 @@ Allow: /
 Allow: /product/
 Allow: /category/
 Allow: /search
+Allow: /api/sitemap
 Disallow: /admin
-Disallow: /api/
+Disallow: /wishlist
+Disallow: /cart
 Disallow: /checkout
+Disallow: /profile
+Disallow: /orders
+Disallow: /auth
 Disallow: /track
 
 # Host & XML Sitemap Reference

@@ -33,32 +33,36 @@ module.exports = async function handler(req, res) {
 
   let productPages = [];
   
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://kvwfibxfutoulvymmlfd.supabase.co';
-  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_H9VO46sxlCErey2huyYgSw_ltLEvlx2';
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('slug, updated_at')
-      .eq('is_published', true);
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing Supabase env vars — returning static sitemap only");
+  } else {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('slug, updated_at')
+        .eq('is_published', true);
 
-    if (!error && Array.isArray(products)) {
-      productPages = products.map(prod => {
-        const slug = prod.slug || '';
-        const lastmod = prod.updated_at ? new Date(prod.updated_at).toISOString().split('T')[0] : currentDate;
-        return {
-          loc: `${baseUrl}/product/${slug}`,
-          lastmod,
-          priority: "0.8",
-          changefreq: "weekly"
-        };
-      });
-    } else if (error) {
-      console.error("Supabase sitemap fetch error:", error);
+      if (!error && Array.isArray(products)) {
+        productPages = products.map(prod => {
+          const slug = prod.slug || '';
+          const lastmod = prod.updated_at ? new Date(prod.updated_at).toISOString().split('T')[0] : currentDate;
+          return {
+            loc: `${baseUrl}/product/${slug}`,
+            lastmod,
+            priority: "0.8",
+            changefreq: "weekly"
+          };
+        });
+      } else if (error) {
+        console.error("Supabase sitemap fetch error:", error);
+      }
+    } catch (e) {
+      console.error("Failed to fetch product slugs for sitemap:", e);
     }
-  } catch (e) {
-    console.error("Failed to fetch product slugs for sitemap:", e);
   }
 
   const allPages = [

@@ -2664,6 +2664,7 @@ export default function App() {
         {isWishlistPage ? (
           /* Dedicated Wishlist View / Page */
           <div className="bg-[#030107] min-h-[70vh] py-12 px-4 md:px-8 max-w-7xl mx-auto space-y-10 animate-fade-in font-sans">
+            <WishlistNoIndex />
             {/* Header section with back button */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/[0.06] pb-8">
               <div className="space-y-2 text-left">
@@ -4709,3 +4710,24 @@ export default function App() {
     </div>
   );
 }
+
+export function WishlistNoIndex() {
+  const metaRef = React.useRef<HTMLMetaElement | null>(null);
+
+  React.useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    metaRef.current = meta;
+
+    return () => {
+      if (metaRef.current && document.head.contains(metaRef.current)) {
+        document.head.removeChild(metaRef.current);
+      }
+    };
+  }, []);
+
+  return null;
+}
+
