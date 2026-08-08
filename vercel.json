@@ -7,6 +7,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/sitemap",
+      "destination": "/api/sitemap.js"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/index.ts"
     },

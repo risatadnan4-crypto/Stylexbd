@@ -87,20 +87,45 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Catch Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, F12
-      const isCtrlU = (e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U');
-      const isDevTools = (e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C'].includes(e.key);
-      const isF12 = e.key === 'F12';
+      // Catch Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, F12, Ctrl+S
+      const isCtrlU = (e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U' || e.keyCode === 85);
+      const isDevTools = (e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C', 'k', 'K'].includes(e.key);
+      const isF12 = e.key === 'F12' || e.keyCode === 123;
+      const isCtrlS = (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.keyCode === 83);
 
-      if (isCtrlU || isDevTools || isF12) {
+      if (isCtrlU || isDevTools || isF12 || isCtrlS) {
         e.preventDefault();
         e.stopPropagation();
         setShowSourceProtectionModal(true);
       }
     };
 
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      setShowSourceProtectionModal(true);
+    };
+
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('contextmenu', handleContextMenu, true);
+
+    // Advanced console/devtools opening detection via custom object getter
+    const devtoolsDetector = new Image();
+    Object.defineProperty(devtoolsDetector, 'id', {
+      get: () => {
+        setShowSourceProtectionModal(true);
+        throw new Error("DevTools detected and blocked.");
+      }
+    });
+
+    const detectorInterval = setInterval(() => {
+      console.log('%c', devtoolsDetector);
+    }, 1500);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('contextmenu', handleContextMenu, true);
+      clearInterval(detectorInterval);
+    };
   }, []);
 
   useEffect(() => {
