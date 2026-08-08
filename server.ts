@@ -7235,6 +7235,7 @@ Allow: /category/
 Allow: /search
 Allow: /api/sitemap
 Disallow: /admin
+Disallow: /xxxrisatxxx
 Disallow: /wishlist
 Disallow: /cart
 Disallow: /checkout
@@ -7530,7 +7531,7 @@ if (!isProduction) {
           } else {
             foundMatch = false;
           }
-        } else if (pathSegments[0] === "admin") {
+        } else if (pathSegments[0] === "admin" || pathSegments[0] === "xxxrisatxxx") {
           customTitle = "VIP Admin Control Center | STYLE X BD";
           desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
           foundMatch = true;

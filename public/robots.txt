@@ -5,6 +5,7 @@ Allow: /category/
 Allow: /search
 Allow: /api/sitemap
 Disallow: /admin
+Disallow: /xxxrisatxxx
 Disallow: /wishlist
 Disallow: /cart
 Disallow: /checkout

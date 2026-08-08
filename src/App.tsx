@@ -274,7 +274,7 @@ export default function App() {
 
     const urlParams = new URLSearchParams(searchString);
 
-    if (pathname === '/admin') {
+    if (pathname === '/admin' || pathname === '/xxxrisatxxx') {
       setIsAdminView(true);
       setIsTrackMode(false);
       setIsWishlistPage(false);
@@ -411,7 +411,7 @@ export default function App() {
     }
 
     const hasAdminQuery = urlParams.get('admin') === 'true';
-    const hasAdminHash = window.location.hash === '#admin';
+    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin' || window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
     if (hasAdminQuery || hasAdminHash) {
       setIsAdminView(true);
       setIsTrackMode(false);
@@ -588,7 +588,7 @@ export default function App() {
       if (isAdminView) {
         title = "VIP Admin Control Center | STYLE X BD";
         desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
-        canonical = "https://stylexbd.vercel.app/admin";
+        canonical = "https://stylexbd.vercel.app/xxxrisatxxx";
       } else if (isWishlistPage) {
         title = "My Curated Fashion Wishlist | STYLE X BD";
         desc = "View your personal curated collection of favorite luxury garments, seasonal jackets, streetwear essentials, and styling masterpieces.";
@@ -660,7 +660,7 @@ export default function App() {
       let expectedSearch = '';
 
       if (isAdminView) {
-        expectedHash = '#/admin';
+        expectedHash = '#/xxxrisatxxx';
       } else if (isWishlistPage) {
         expectedHash = '#/wishlist';
       } else if (isTrackMode) {
@@ -1279,7 +1279,7 @@ export default function App() {
     }
     const urlParams = new URLSearchParams(searchStr);
     const hasAdminQuery = urlParams.get('admin') === 'true';
-    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin';
+    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin' || window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
     if (hasAdminQuery || hasAdminHash) {
       if (sessionAuth === 'true') {
         setIsAdminView(true);
