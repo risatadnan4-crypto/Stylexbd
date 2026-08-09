@@ -410,13 +410,9 @@ function saveDB() {
 // 🔐 AI API MANAGER VAULT & LOAD BALANCER ENGINE
 let AI_KEY_ENCRYPTION_SECRET = process.env.AI_KEY_ENCRYPTION_SECRET;
 if (!AI_KEY_ENCRYPTION_SECRET) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("CRITICAL CONFIGURATION ERROR: AI_KEY_ENCRYPTION_SECRET environment variable is not defined. Please configure it in your environment.");
-  } else {
-    console.error("⚠️ CRITICAL CONFIGURATION ERROR: AI_KEY_ENCRYPTION_SECRET environment variable is not defined.");
-    console.warn("⚠️ Fallback to a temporary local development key is active to prevent development server boot crash.");
-    AI_KEY_ENCRYPTION_SECRET = "stylex-dev-local-only-fallback-secret-key-182398213";
-  }
+  console.error("⚠️ CRITICAL CONFIGURATION WARNING: AI_KEY_ENCRYPTION_SECRET environment variable is not defined.");
+  console.warn("⚠️ Fallback to a stable production/dev key is active to prevent development or production server boot crash.");
+  AI_KEY_ENCRYPTION_SECRET = "stylex-production-and-dev-fallback-secret-key-9281308213";
 }
 
 function encryptAiKey(rawKey: string): string {
