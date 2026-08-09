@@ -4707,7 +4707,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                             type="url" 
                             value={formCanonicalUrl} 
                             onChange={(e) => setFormCanonicalUrl(e.target.value)}
-                            placeholder="https://stylexbd.com/products/royal-silk-panjabi"
+                            placeholder="https://stylexbd.vercel.app/products/royal-silk-panjabi"
                             className={`w-full bg-luxury-charcoal text-white text-xs border ${
                               formCanonicalUrl && !isValidUrl(formCanonicalUrl) ? 'border-rose-500' : 'border-white/10'
                             } rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono`}
@@ -4748,7 +4748,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                             type="url" 
                             value={formOgImage} 
                             onChange={(e) => setFormOgImage(e.target.value)}
-                            placeholder="https://stylexbd.com/og-banner.jpg"
+                            placeholder="https://stylexbd.vercel.app/og-banner.jpg"
                             className={`w-full bg-luxury-charcoal text-white text-xs border ${
                               formOgImage && !isValidUrl(formOgImage) ? 'border-rose-500' : 'border-white/10'
                             } rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono`}
@@ -7782,7 +7782,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                             <p className="text-[9px] font-mono uppercase tracking-wider text-white/30">Google Search Result Snippet Preview</p>
                             <div className="bg-luxury-charcoal/40 p-3.5 rounded border border-white/5 max-w-2xl font-sans text-left">
                               <div className="text-[11px] font-mono text-zinc-400 truncate mb-0.5 text-left">
-                                https://stylexbd.com <span className="text-zinc-500">› products ›</span> <span className="text-blue-400 font-semibold">{product.seoSlug || 'untitled-slug'}</span>
+                                https://stylexbd.vercel.app <span className="text-zinc-500">› products ›</span> <span className="text-blue-400 font-semibold">{product.seoSlug || 'untitled-slug'}</span>
                               </div>
                               <div className="text-base text-[#8ab4f8] hover:underline cursor-pointer font-serif leading-tight font-medium text-left font-sans">
                                 {product.seoTitle || `${product.title} | Style X Bangladesh`}

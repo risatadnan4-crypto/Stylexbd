@@ -369,7 +369,7 @@ export default function App() {
 
     const urlParams = new URLSearchParams(searchString);
 
-    if (pathname === '/admin' || pathname === '/xxxrisatxxx') {
+    if (pathname === '/xxxrisatxxx') {
       setIsAdminView(true);
       setIsTrackMode(false);
       setIsWishlistPage(false);
@@ -505,9 +505,8 @@ export default function App() {
       }
     }
 
-    const hasAdminQuery = urlParams.get('admin') === 'true';
-    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin' || window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
-    if (hasAdminQuery || hasAdminHash) {
+    const hasAdminHash = window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
+    if (hasAdminHash) {
       setIsAdminView(true);
       setIsTrackMode(false);
       setIsWishlistPage(false);
@@ -1376,9 +1375,8 @@ export default function App() {
       searchStr = '?' + window.location.hash.split('?')[1];
     }
     const urlParams = new URLSearchParams(searchStr);
-    const hasAdminQuery = urlParams.get('admin') === 'true';
-    const hasAdminHash = window.location.hash === '#admin' || window.location.hash === '#/admin' || window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
-    if (hasAdminQuery || hasAdminHash) {
+    const hasAdminHash = window.location.hash === '#xxxrisatxxx' || window.location.hash === '#/xxxrisatxxx';
+    if (hasAdminHash) {
       if (sessionAuth === 'true') {
         setIsAdminView(true);
       } else {
