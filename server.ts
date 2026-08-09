@@ -1735,7 +1735,7 @@ app.use("/uploads", express.static(UPLOADS_DIR));
 const activeSessions = new Map<string, number>();
 
 // Clean up stale sessions on an interval (every 10 seconds)
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [id, lastPing] of activeSessions.entries()) {
     // If no heartbeat received in the last 25 seconds, remove session
@@ -1748,6 +1748,7 @@ setInterval(() => {
     db.liveViews = currentCount;
   }
 }, 10000);
+if (cleanupInterval.unref) cleanupInterval.unref();
 
 // Basic non-randomized initial handler for direct web loads
 app.use((req, res, next) => {
@@ -7748,7 +7749,8 @@ syncFromSupabase()
   .then(() => {
     initializeAiKeyPool();
     // Schedule periodic polling sync from Supabase
-    setInterval(syncFromSupabase, 45000);
+    const syncInterval = setInterval(syncFromSupabase, 45000);
+    if (syncInterval.unref) syncInterval.unref();
   })
   .catch((err: any) => {
     console.error("⚠️ Background sync runner scheduling failed:", err.message);
