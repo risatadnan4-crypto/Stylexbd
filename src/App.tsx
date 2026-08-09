@@ -410,13 +410,19 @@ export default function App() {
     if (pathname.startsWith('/products/') || pathname.startsWith('/product/')) {
       const segments = pathname.split('/');
       const codeSegment = decodeURIComponent(segments[segments.length - 1] || '').toLowerCase();
-      if (codeSegment && productList.length > 0) {
+      if (codeSegment) {
+        if (productList.length === 0) {
+          // Products are still loading; preserve path and do not reset state
+          return;
+        }
+        const codeSegmentNoHyphens = codeSegment.replace(/[\s\-]+/g, '');
         const found = productList.find(p => {
           const pCode = (p.code || '').toLowerCase();
           const pId = String(p.id).toLowerCase();
-          const pTitleSlug = (p.title || '')
-            .toString()
-            .toLowerCase()
+          const pSeo = (p.seoSlug || '').toLowerCase();
+          const pTitle = (p.title || '').toLowerCase();
+          const pTitleClean = pTitle.replace(/[\s\-]+/g, '');
+          const pTitleSlug = pTitle
             .trim()
             .replace(/\s+/g, '-')
             .replace(/[^\w\-]+/g, '')
@@ -424,26 +430,18 @@ export default function App() {
             .replace(/^-+/, '')
             .replace(/-+$/, '');
 
-          const pTitleSlugNoHyphens = (p.title || '')
-            .toString()
-            .toLowerCase()
-            .trim()
-            .replace(/[\s\-]+/g, '')
-            .replace(/[^\w]+/g, '');
+          if (pCode === codeSegment || pId === codeSegment || pSeo === codeSegment) return true;
+          if (pTitleSlug === codeSegment || pTitleClean === codeSegmentNoHyphens) return true;
+          if (pCode && codeSegment.startsWith(pCode + '-')) return true;
+          if (pId && codeSegment.startsWith(pId + '-')) return true;
+          if (pTitleClean && (pTitleClean.includes(codeSegmentNoHyphens) || codeSegmentNoHyphens.includes(pTitleClean))) return true;
 
-          const codeSegmentNoHyphens = codeSegment.replace(/[\s\-]+/g, '');
-
-          return (
-            pCode === codeSegment ||
-            pId === codeSegment ||
-            (p.seoSlug && p.seoSlug.toLowerCase() === codeSegment) ||
-            (p.seoSlug && p.seoSlug.toLowerCase().replace(/[\s\-]+/g, '') === codeSegmentNoHyphens) ||
-            (pCode && codeSegment.startsWith(pCode + '-')) ||
-            (pId && codeSegment.startsWith(pId + '-')) ||
-            codeSegment === pTitleSlug ||
-            codeSegment === pTitleSlugNoHyphens ||
-            codeSegmentNoHyphens === pTitleSlugNoHyphens
-          );
+          const codeWords = codeSegment.split(/[\s\-]+/).filter(w => w.length > 2);
+          if (codeWords.length > 0) {
+            const matchedCount = codeWords.filter(w => pTitle.includes(w) || pCode.includes(w) || pSeo.includes(w)).length;
+            if (matchedCount / codeWords.length >= 0.5) return true;
+          }
+          return false;
         });
         if (found) {
           setSelectedProduct(found);

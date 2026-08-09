@@ -415,22 +415,31 @@ if (!AI_KEY_ENCRYPTION_SECRET) {
   AI_KEY_ENCRYPTION_SECRET = "stylex-production-and-dev-fallback-secret-key-9281308213";
 }
 
+function cleanApiKeyString(keyStr: string): string {
+  if (!keyStr) return "";
+  // Strip out all characters outside valid printable ASCII range \x20-\x7E (including \uFFFD replacement characters)
+  const cleaned = keyStr.replace(/[^\x20-\x7E]/g, "").trim();
+  // Alphanumeric keys should not have whitespace or control characters
+  return cleaned.replace(/\s+/g, "");
+}
+
 function encryptAiKey(rawKey: string): string {
-  if (!rawKey) return "";
+  const cleanKey = cleanApiKeyString(rawKey);
+  if (!cleanKey) return "";
   try {
     const iv = crypto.randomBytes(16);
     const key = crypto.scryptSync(AI_KEY_ENCRYPTION_SECRET, 'salt', 32);
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(rawKey, 'utf8', 'hex');
+    let encrypted = cipher.update(cleanKey, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     return `${iv.toString('hex')}:${encrypted}`;
   } catch (e) {
-    return `base64:${Buffer.from(rawKey).toString('base64')}`;
+    return `base64:${Buffer.from(cleanKey).toString('base64')}`;
   }
 }
 
 function decryptAiKey(encryptedHex: string): string {
-  const envKey = (process.env.GEMINI_API_KEY || "").trim();
+  const envKey = cleanApiKeyString(process.env.GEMINI_API_KEY || "");
   if (!encryptedHex) return envKey;
   let decrypted = "";
   try {
@@ -459,7 +468,9 @@ function decryptAiKey(encryptedHex: string): string {
     }
   }
 
-  // If the decrypted key is a fake placeholder and we have a valid environment key, use envKey
+  decrypted = cleanApiKeyString(decrypted);
+
+  // If the decrypted key is a fake placeholder, corrupted or too short, use envKey if valid
   const isPlaceholder = !decrypted ||
     decrypted.includes("StyleX_") ||
     decrypted.includes("FreeKey_") ||
@@ -674,8 +685,19 @@ async function executeWithAiKeyRotation<T>(
   let lastError: any = null;
 
   for (const keyObj of candidateKeys) {
-    const rawKey = decryptAiKey(keyObj.encryptedKey) || process.env.GEMINI_API_KEY || "";
-    if (!rawKey) continue;
+    let rawKey = cleanApiKeyString(decryptAiKey(keyObj.encryptedKey) || process.env.GEMINI_API_KEY || "");
+    if (!rawKey || rawKey.length < 15 || rawKey.includes("StyleX_") || rawKey.includes("FreeKey_")) {
+      const cleanEnv = cleanApiKeyString(process.env.GEMINI_API_KEY || "");
+      if (cleanEnv && cleanEnv.length >= 20 && !cleanEnv.includes("StyleX_")) {
+        rawKey = cleanEnv;
+      } else {
+        keyObj.status = "invalid";
+        keyObj.lastError = "Invalid/Placeholder Key Format";
+        saveDB();
+        console.warn(`⛔ [AI API Manager] Placeholder or corrupted key on '${keyObj.name}'. Auto-switching...`);
+        continue;
+      }
+    }
 
     currentActiveAiKeyId = keyObj.id;
     keyObj.totalRequests = (keyObj.totalRequests || 0) + 1;
@@ -751,8 +773,11 @@ async function executeWithAiKeyRotation<T>(
         continue;
       }
 
-      // Detect Invalid Key
+      // Detect Invalid Key, Corrupted Key or ByteString Header Conversion Error
       if (
+        errMsg.includes("bytestring") ||
+        errMsg.includes("character at index") ||
+        errMsg.includes("greater than 255") ||
         errMsg.includes("400") ||
         errMsg.includes("401") ||
         errMsg.includes("403") ||
@@ -761,16 +786,16 @@ async function executeWithAiKeyRotation<T>(
         errMsg.includes("api_key_invalid")
       ) {
         keyObj.status = "invalid";
-        keyObj.lastError = "Invalid API Key or Unauthorized";
+        keyObj.lastError = `Invalid/Corrupted API Key: ${err.message}`;
         logAiApiAudit(
           "KEY_INVALIDATED",
           keyObj.name,
           "System Auto-Rotator",
-          `Key marked as Invalid due to 400/401/403 error: ${err.message}`,
+          `Key marked as Invalid due to format or authorization error: ${err.message}`,
           keyObj.keyHint
         );
         saveDB();
-        console.warn(`⛔ [AI API Manager] Invalid Key '${keyObj.name}'. Auto-switching...`);
+        console.warn(`⛔ [AI API Manager] Invalid/Corrupted Key '${keyObj.name}'. Auto-switching...`);
         continue;
       }
 
@@ -917,6 +942,12 @@ async function syncSettingsToCloud() {
 
         try {
           upsertPayload.productPayments = JSON.stringify(db.settings.productPayments || {});
+        } catch (e) {}
+
+        try {
+          upsertPayload.productSeo = typeof (db.settings as any).productSeo === "string" 
+            ? (db.settings as any).productSeo 
+            : JSON.stringify((db.settings as any).productSeo || {});
         } catch (e) {}
 
         let { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
@@ -1072,17 +1103,26 @@ async function syncFromSupabase() {
       safeSelect("form_submissions")
     ]);
 
-    // 0. Pre-parse settings & banners fallback to populate productPayments
+    // 0. Pre-parse settings & banners fallback to populate productPayments and productSeo
     try {
       if (settingsResult && !settingsResult.error && settingsResult.data) {
         const settingsData = settingsResult.data;
         const configRow = settingsData.find((r: any) => r.id === 1 || r.id === "1") || settingsData[0];
-        if (configRow && configRow.productPayments) {
-          try {
-            db.settings.productPayments = typeof configRow.productPayments === "string" 
-              ? JSON.parse(configRow.productPayments) 
-              : configRow.productPayments;
-          } catch (err) {}
+        if (configRow) {
+          if (configRow.productPayments) {
+            try {
+              db.settings.productPayments = typeof configRow.productPayments === "string" 
+                ? JSON.parse(configRow.productPayments) 
+                : configRow.productPayments;
+            } catch (err) {}
+          }
+          if (configRow.productSeo) {
+            try {
+              (db.settings as any).productSeo = typeof configRow.productSeo === "string" 
+                ? JSON.parse(configRow.productSeo) 
+                : configRow.productSeo;
+            } catch (err) {}
+          }
         }
       }
       if (bannersResult && !bannersResult.error && bannersResult.data) {
@@ -1093,6 +1133,9 @@ async function syncFromSupabase() {
             const fallbackSettings = JSON.parse(systemSettingsRow.subtitle);
             if (fallbackSettings.productPayments) {
               db.settings.productPayments = fallbackSettings.productPayments;
+            }
+            if (fallbackSettings.productSeo) {
+              (db.settings as any).productSeo = fallbackSettings.productSeo;
             }
           } catch (err) {}
         }
@@ -1505,6 +1548,12 @@ async function syncFromSupabase() {
           if (configRow.siteTitle !== undefined && configRow.siteTitle !== null) db.settings.siteTitle = configRow.siteTitle;
           if (configRow.siteMetaDesc !== undefined && configRow.siteMetaDesc !== null) db.settings.siteMetaDesc = configRow.siteMetaDesc;
           
+          if (configRow.productSeo) {
+            try {
+              (db.settings as any).productSeo = typeof configRow.productSeo === "string" ? JSON.parse(configRow.productSeo) : configRow.productSeo;
+            } catch (err) {}
+          }
+
           if (configRow.lotteryPrizes) {
             try {
               db.settings.lotteryPrizes = typeof configRow.lotteryPrizes === "string" ? JSON.parse(configRow.lotteryPrizes) : configRow.lotteryPrizes;
@@ -2034,6 +2083,12 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.siteTitle !== undefined && configRow.siteTitle !== null) db.settings.siteTitle = configRow.siteTitle;
           if (configRow.siteMetaDesc !== undefined && configRow.siteMetaDesc !== null) db.settings.siteMetaDesc = configRow.siteMetaDesc;
           
+          if (configRow.productSeo) {
+            try {
+              (db.settings as any).productSeo = typeof configRow.productSeo === "string" ? JSON.parse(configRow.productSeo) : configRow.productSeo;
+            } catch (err) {}
+          }
+
           if (configRow.lotteryPrizes) {
             try {
               db.settings.lotteryPrizes = typeof configRow.lotteryPrizes === "string" ? JSON.parse(configRow.lotteryPrizes) : configRow.lotteryPrizes;
@@ -2400,16 +2455,82 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     deliveryDays: getStr(paymentMeta.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
     freeDelivery: getBool(paymentMeta.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
     likes: getNum(paymentMeta.likes, nestedLocal.likes, p?.likes, local.likes, 0) ?? 0,
-    seoTitle: getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, ""),
-    seoDescription: getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, ""),
-    seoKeywords: getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, ""),
-    metaKeywords: getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, ""),
-    seoSlug: getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, ""),
-    canonicalUrl: getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, ""),
-    ogTitle: getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, ""),
-    ogDescription: getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, ""),
-    ogImage: getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, ""),
-    robots: getStr(p?.robots, seoMeta.robots, local.robots, "index, follow")
+    seoTitle: (() => {
+      const val = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoTitle: val };
+      }
+      return val;
+    })(),
+    seoDescription: (() => {
+      const val = getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoDescription) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoDescription: val };
+      }
+      return val;
+    })(),
+    seoKeywords: (() => {
+      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoKeywords) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoKeywords: val, metaKeywords: val };
+      }
+      return val;
+    })(),
+    metaKeywords: (() => {
+      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
+      return val;
+    })(),
+    seoSlug: (() => {
+      const val = getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoSlug) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoSlug: val };
+      }
+      return val;
+    })(),
+    canonicalUrl: (() => {
+      const val = getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.canonicalUrl) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), canonicalUrl: val };
+      }
+      return val;
+    })(),
+    ogTitle: (() => {
+      const val = getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.ogTitle) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogTitle: val };
+      }
+      return val;
+    })(),
+    ogDescription: (() => {
+      const val = getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.ogDescription) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogDescription: val };
+      }
+      return val;
+    })(),
+    ogImage: (() => {
+      const val = getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.ogImage) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogImage: val };
+      }
+      return val;
+    })(),
+    robots: (() => {
+      const val = getStr(p?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow");
+      if (val && !(db.settings as any).productSeo?.[id]?.robots) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), robots: val };
+      }
+      return val;
+    })()
   };
 }
 
@@ -2811,17 +2932,18 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     const existingProd = db.products[idx];
     const updatedBody = { ...req.body };
 
-    // Do not overwrite existing non-empty SEO fields if updatedBody passed undefined
-    if (updatedBody.seoTitle === undefined && existingProd.seoTitle) updatedBody.seoTitle = existingProd.seoTitle;
-    if (updatedBody.seoDescription === undefined && existingProd.seoDescription) updatedBody.seoDescription = existingProd.seoDescription;
-    if (updatedBody.seoKeywords === undefined && existingProd.seoKeywords) updatedBody.seoKeywords = existingProd.seoKeywords;
-    if (updatedBody.metaKeywords === undefined && existingProd.metaKeywords) updatedBody.metaKeywords = existingProd.metaKeywords;
-    if (updatedBody.seoSlug === undefined && existingProd.seoSlug) updatedBody.seoSlug = existingProd.seoSlug;
-    if (updatedBody.canonicalUrl === undefined && existingProd.canonicalUrl) updatedBody.canonicalUrl = existingProd.canonicalUrl;
-    if (updatedBody.ogTitle === undefined && existingProd.ogTitle) updatedBody.ogTitle = existingProd.ogTitle;
-    if (updatedBody.ogDescription === undefined && existingProd.ogDescription) updatedBody.ogDescription = existingProd.ogDescription;
-    if (updatedBody.ogImage === undefined && existingProd.ogImage) updatedBody.ogImage = existingProd.ogImage;
-    if (updatedBody.robots === undefined && existingProd.robots) updatedBody.robots = existingProd.robots;
+    // Do not overwrite existing non-empty SEO fields if updatedBody passed undefined or null without new values
+    const existingSeo = (db.settings as any)?.productSeo?.[existingProd.id] || {};
+    if (!updatedBody.seoTitle && (existingProd.seoTitle || existingSeo.seoTitle)) updatedBody.seoTitle = existingProd.seoTitle || existingSeo.seoTitle;
+    if (!updatedBody.seoDescription && (existingProd.seoDescription || existingSeo.seoDescription)) updatedBody.seoDescription = existingProd.seoDescription || existingSeo.seoDescription;
+    if (!updatedBody.seoKeywords && (existingProd.seoKeywords || existingProd.metaKeywords || existingSeo.seoKeywords || existingSeo.metaKeywords)) updatedBody.seoKeywords = existingProd.seoKeywords || existingProd.metaKeywords || existingSeo.seoKeywords || existingSeo.metaKeywords;
+    if (!updatedBody.metaKeywords && (existingProd.metaKeywords || existingProd.seoKeywords || existingSeo.metaKeywords || existingSeo.seoKeywords)) updatedBody.metaKeywords = existingProd.metaKeywords || existingProd.seoKeywords || existingSeo.metaKeywords || existingSeo.seoKeywords;
+    if (!updatedBody.seoSlug && (existingProd.seoSlug || existingSeo.seoSlug)) updatedBody.seoSlug = existingProd.seoSlug || existingSeo.seoSlug;
+    if (!updatedBody.canonicalUrl && (existingProd.canonicalUrl || existingSeo.canonicalUrl)) updatedBody.canonicalUrl = existingProd.canonicalUrl || existingSeo.canonicalUrl;
+    if (!updatedBody.ogTitle && (existingProd.ogTitle || existingSeo.ogTitle)) updatedBody.ogTitle = existingProd.ogTitle || existingSeo.ogTitle;
+    if (!updatedBody.ogDescription && (existingProd.ogDescription || existingSeo.ogDescription)) updatedBody.ogDescription = existingProd.ogDescription || existingSeo.ogDescription;
+    if (!updatedBody.ogImage && (existingProd.ogImage || existingSeo.ogImage)) updatedBody.ogImage = existingProd.ogImage || existingSeo.ogImage;
+    if (!updatedBody.robots && (existingProd.robots || existingSeo.robots)) updatedBody.robots = existingProd.robots || existingSeo.robots || "index, follow";
 
     if (updatedBody.deliveryPrice !== undefined) {
       updatedBody.deliveryPrice = Number(updatedBody.deliveryPrice);
@@ -7431,12 +7553,14 @@ if (!isProduction) {
         if (pathSegments[0] === "products" || pathSegments[0] === "product") {
           const productCode = decodeURIComponent(pathSegments[1] || "").toLowerCase();
           if (productCode && db.products) {
+            const productCodeNoHyphens = productCode.replace(/[\s\-]+/g, '');
             const foundProduct = db.products.find((p: any) => {
               const pCode = (p.code || "").toLowerCase();
               const pId = String(p.id).toLowerCase();
-              const pTitleSlug = (p.title || "")
-                .toString()
-                .toLowerCase()
+              const pSeo = (p.seoSlug || "").toLowerCase();
+              const pTitle = (p.title || "").toLowerCase();
+              const pTitleClean = pTitle.replace(/[\s\-]+/g, '');
+              const pTitleSlug = pTitle
                 .trim()
                 .replace(/\s+/g, '-')
                 .replace(/[^\w\-]+/g, '')
@@ -7444,26 +7568,18 @@ if (!isProduction) {
                 .replace(/^-+/, '')
                 .replace(/-+$/, '');
 
-              const pTitleSlugNoHyphens = (p.title || "")
-                .toString()
-                .toLowerCase()
-                .trim()
-                .replace(/[\s\-]+/g, '')
-                .replace(/[^\w]+/g, '');
+              if (pCode === productCode || pId === productCode || pSeo === productCode) return true;
+              if (pTitleSlug === productCode || pTitleClean === productCodeNoHyphens) return true;
+              if (pCode && productCode.startsWith(pCode + "-")) return true;
+              if (pId && productCode.startsWith(pId + "-")) return true;
+              if (pTitleClean && (pTitleClean.includes(productCodeNoHyphens) || productCodeNoHyphens.includes(pTitleClean))) return true;
 
-              const productCodeNoHyphens = productCode.replace(/[\s\-]+/g, '');
-
-              return (
-                pCode === productCode ||
-                pId === productCode ||
-                (p.seoSlug && p.seoSlug.toLowerCase() === productCode) ||
-                (p.seoSlug && p.seoSlug.toLowerCase().replace(/[\s\-]+/g, '') === productCodeNoHyphens) ||
-                (pCode && productCode.startsWith(pCode + "-")) ||
-                (pId && productCode.startsWith(pId + "-")) ||
-                productCode === pTitleSlug ||
-                productCode === pTitleSlugNoHyphens ||
-                productCodeNoHyphens === pTitleSlugNoHyphens
-              );
+              const codeWords = productCode.split(/[\s\-]+/).filter(w => w.length > 2);
+              if (codeWords.length > 0) {
+                const matchedCount = codeWords.filter(w => pTitle.includes(w) || pCode.includes(w) || pSeo.includes(w)).length;
+                if (matchedCount / codeWords.length >= 0.5) return true;
+              }
+              return false;
             });
 
             if (foundProduct) {
