@@ -156,7 +156,7 @@ export default function AdminPanel({
   // Settings State Management
   const [whatsappNumberInput, setWhatsappNumberInput] = useState(settings?.whatsappNumber || "8801755104443");
   const [adminEmailInput, setAdminEmailInput] = useState(settings?.adminEmail || "risatadnan4@gmail.com");
-  const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "risat123");
+  const [adminPasswordInput, setAdminPasswordInput] = useState(settings?.adminPassword || "");
   const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(settings?.appsScriptUrl || "https://script.google.com/macros/s/AKfycbwO87xXrLb1b-LS5XMoOmCHxo764LwXthLYkHA4AXZ_nJqTwvUHieOSTJkdp_UFf7mx/exec");
   const [logoUrlInput, setLogoUrlInput] = useState(settings?.logoUrl || "/stylex_logo.jpg");
   const [xoroAvatarUrlInput, setXoroAvatarUrlInput] = useState(settings?.xoroAvatarUrl || "");
@@ -294,13 +294,14 @@ export default function AdminPanel({
   const loadAuditLogs = async () => {
     try {
       const email = settings?.adminEmail || sessionStorage.getItem('stylex_admin_email') || "risatadnan4@gmail.com";
-      const pass = settings?.adminPassword || sessionStorage.getItem('stylex_admin_password') || "risat123";
+      const pass = settings?.adminPassword || sessionStorage.getItem('stylex_admin_password') || "";
+      const csrf = sessionStorage.getItem('stylex_csrf_token') || "";
 
       const res = await fetch('/api/xoro-admin/logs', {
         headers: {
           'x-admin-email': email,
           'x-admin-password': pass,
-          'x-csrf-token': 'stylex-csrf-secure-handshake-98322'
+          'x-csrf-token': csrf
         }
       });
       if (res.ok) {
@@ -437,7 +438,8 @@ export default function AdminPanel({
 
     try {
       const email = settings?.adminEmail || "risatadnan4@gmail.com";
-      const pass = settings?.adminPassword || "risat123";
+      const pass = settings?.adminPassword || "";
+      const csrf = sessionStorage.getItem('stylex_csrf_token') || "";
 
       const history = xoroMessages.map(m => ({
         role: m.role,
@@ -450,7 +452,7 @@ export default function AdminPanel({
           'Content-Type': 'application/json',
           'x-admin-email': email,
           'x-admin-password': pass,
-          'x-csrf-token': 'stylex-csrf-secure-handshake-98322'
+          'x-csrf-token': csrf
         },
         body: JSON.stringify({ message: userMsg, history })
       });
@@ -521,7 +523,8 @@ export default function AdminPanel({
 
     try {
       const email = settings?.adminEmail || "risatadnan4@gmail.com";
-      const pass = settings?.adminPassword || "risat123";
+      const pass = settings?.adminPassword || "";
+      const csrf = sessionStorage.getItem('stylex_csrf_token') || "";
 
       const res = await fetch('/api/xoro-admin/execute', {
         method: 'POST',
@@ -529,7 +532,7 @@ export default function AdminPanel({
           'Content-Type': 'application/json',
           'x-admin-email': email,
           'x-admin-password': pass,
-          'x-csrf-token': 'stylex-csrf-secure-handshake-98322'
+          'x-csrf-token': csrf
         },
         body: JSON.stringify({
           plan: activePlan,
@@ -576,7 +579,8 @@ export default function AdminPanel({
 
     try {
       const email = settings?.adminEmail || "risatadnan4@gmail.com";
-      const pass = settings?.adminPassword || "risat123";
+      const pass = settings?.adminPassword || "";
+      const csrf = sessionStorage.getItem('stylex_csrf_token') || "";
 
       const res = await fetch('/api/xoro-admin/rollback', {
         method: 'POST',
@@ -584,7 +588,7 @@ export default function AdminPanel({
           'Content-Type': 'application/json',
           'x-admin-email': email,
           'x-admin-password': pass,
-          'x-csrf-token': 'stylex-csrf-secure-handshake-98322'
+          'x-csrf-token': csrf
         },
         body: JSON.stringify({ logId })
       });
@@ -7149,7 +7153,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
           <div className="animate-fade-in text-left">
             <AiApiManager
               settings={settings}
-              adminPassword={settings?.adminPassword || 'risat123'}
+              adminPassword={settings?.adminPassword || ''}
               xoroRole={xoroRole}
             />
           </div>
@@ -9247,7 +9251,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       type="text"
                       value={adminPasswordInput}
                       onChange={(e) => setAdminPasswordInput(e.target.value)}
-                      placeholder="e.g. risat123"
+                      placeholder="Enter admin password"
                       className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
                       required
                     />

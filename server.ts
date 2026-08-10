@@ -373,14 +373,14 @@ const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean
   const expectedEmail = db.settings?.adminEmail || "risatadnan4@gmail.com";
   const expectedPassword = db.settings?.adminPassword;
 
-  if (!expectedPassword || expectedPassword === "") {
-    return res.status(401).json({ message: "প্রত্যাখ্যান! Admin password is not set on the server." });
+  if (!expectedPassword || String(expectedPassword).trim() === "") {
+    return res.status(401).json({ message: "Security Error: Admin password is not set on the server." });
   }
 
   const isSuperAdmin = adminEmail === expectedEmail && adminPassword === expectedPassword;
 
   if (!isSuperAdmin) {
-    return res.status(401).json({ message: "প্রত্যাখ্যান! জোরো এডমিন এআই ব্যবহার করতে আপনার সুপার অ্যাডমিন অথরাইজেশন প্রয়োজন।" });
+    return res.status(401).json({ message: "Security Error: Unauthorized admin credentials." });
   }
 
   req.isSuperAdmin = isSuperAdmin;
@@ -408,11 +408,9 @@ function saveDB() {
 }
 
 // 🔐 AI API MANAGER VAULT & LOAD BALANCER ENGINE
-let AI_KEY_ENCRYPTION_SECRET = process.env.AI_KEY_ENCRYPTION_SECRET;
+const AI_KEY_ENCRYPTION_SECRET = process.env.AI_KEY_ENCRYPTION_SECRET;
 if (!AI_KEY_ENCRYPTION_SECRET) {
-  console.error("⚠️ CRITICAL CONFIGURATION WARNING: AI_KEY_ENCRYPTION_SECRET environment variable is not defined.");
-  console.warn("⚠️ Fallback to a stable production/dev key is active to prevent development or production server boot crash.");
-  AI_KEY_ENCRYPTION_SECRET = "stylex-production-and-dev-fallback-secret-key-9281308213";
+  throw new Error("CRITICAL SECURITY ERROR: AI_KEY_ENCRYPTION_SECRET environment variable is not defined.");
 }
 
 function cleanApiKeyString(keyStr: string): string {

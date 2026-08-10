@@ -3917,7 +3917,7 @@ export default function App() {
               </div>
               
               <p className="text-[9px] text-white/40 italic leading-relaxed opacity-0 select-none pointer-events-none">
-                Test credentials: use <strong className="text-luxury-gold font-mono">risatadnan4@gmail.com</strong> with security password <strong className="text-luxury-gold font-mono">risat123</strong> to login as owner Admin!
+                Owner Administrator Access Authentication
               </p>
             </div>
 

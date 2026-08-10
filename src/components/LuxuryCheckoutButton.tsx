@@ -387,8 +387,8 @@ export default function LuxuryCheckoutButton({
           position: relative;
           width: 100%;
           height: 60px;
-          background: #060408;
-          border: 0.75px solid rgba(192, 132, 252, 0.3);
+          background: linear-gradient(135deg, #1f1402 0%, #422d02 50%, #1f1402 100%);
+          border: 1.5px solid rgba(255, 215, 0, 0.85);
           border-radius: 30px;
           cursor: pointer;
           outline: none;
@@ -400,9 +400,9 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 12px 30px rgba(0, 0, 0, 0.95), 
-              0 0 0 1px rgba(0, 0, 0, 1),
-              inset 0 1.5px 2px rgba(233, 213, 255, 0.25),
+              0 10px 30px rgba(0, 0, 0, 0.95), 
+              0 0 20px rgba(255, 215, 0, 0.35),
+              inset 0 1.5px 3px rgba(255, 240, 208, 0.4),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
           
           transform-style: preserve-3d;
@@ -412,38 +412,49 @@ export default function LuxuryCheckoutButton({
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: rgba(234, 208, 128, 0.85);
+          border-color: #FFE28A;
           box-shadow: 
-              0 18px 36px rgba(0, 0, 0, 0.95), 
-              0 0 25px rgba(234, 208, 128, 0.35),
-              inset 0 1.5px 3px rgba(255, 240, 208, 0.35),
+              0 18px 40px rgba(0, 0, 0, 0.95), 
+              0 0 35px rgba(255, 215, 0, 0.65),
+              inset 0 1.5px 3px rgba(255, 240, 208, 0.5),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
         }
 
         .luxury-btn:active {
-          border-color: rgba(212, 175, 55, 1);
+          border-color: rgba(255, 215, 0, 1);
           box-shadow: 
               0 10px 20px rgba(0, 0, 0, 0.95), 
-              0 0 30px rgba(212, 175, 55, 0.55),
+              0 0 35px rgba(255, 215, 0, 0.75),
               inset 0 1.5px 3px rgba(255, 240, 208, 0.5),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
           transform: scale(0.985);
         }
 
         @media (max-width: 480px) {
+          .viewport-3d {
+            padding: 6px 0 !important;
+          }
           .luxury-btn {
-            height: 52px;
-            border-radius: 26px;
+            height: 56px !important;
+            border-radius: 28px !important;
+            background: linear-gradient(135deg, #261a00 0%, #4e3500 50%, #261a00 100%) !important;
+            border: 2px solid #FFD700 !important;
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.45), 0 0 15px rgba(212, 175, 55, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
           }
           .label-text {
-            font-size: 10px !important;
+            font-size: 12.5px !important;
+            font-weight: 900 !important;
             letter-spacing: 2px !important;
+            color: #FFE28A !important;
+            background: none !important;
+            -webkit-text-fill-color: #FFE28A !important;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
           }
           .content-plate {
-            padding: 0 12px !important;
+            padding: 0 16px !important;
           }
           .delivery-vessel {
-            transform: scale(0.48);
+            transform: scale(0.52);
             transform-origin: bottom center;
             height: 52px !important;
             top: -2px !important;
@@ -452,65 +463,58 @@ export default function LuxuryCheckoutButton({
             gap: 6px !important;
           }
           .headline-success {
-            font-size: 11px !important;
-            letter-spacing: 2.5px !important;
+            font-size: 12px !important;
+            letter-spacing: 2px !important;
           }
           .subtext-success {
-            font-size: 8px !important;
+            font-size: 8.5px !important;
             letter-spacing: 1px !important;
           }
           .vector-checkmark {
-            width: 14px !important;
-            height: 14px !important;
+            width: 16px !important;
+            height: 16px !important;
           }
         }
 
         @media (max-width: 360px) {
           .luxury-btn {
-            height: 46px;
-            border-radius: 23px;
+            height: 52px !important;
+            border-radius: 26px !important;
+            border: 2px solid #FFD700 !important;
           }
           .label-text {
-            font-size: 9px !important;
+            font-size: 11px !important;
             letter-spacing: 1.5px !important;
           }
           .delivery-vessel {
-            transform: scale(0.42);
+            transform: scale(0.45);
             transform-origin: bottom center;
-            height: 46px !important;
-            top: -4px !important;
-          }
-          .headline-success {
-            font-size: 10px !important;
-            letter-spacing: 1.5px !important;
-          }
-          .subtext-success {
-            font-size: 7px !important;
-            letter-spacing: 0.8px !important;
+            height: 48px !important;
+            top: -3px !important;
           }
         }
 
         .luxury-btn.idle {
-          animation: absolute-luxury-cycle 5s infinite ease-in-out;
+          animation: absolute-luxury-cycle 4s infinite ease-in-out;
         }
 
         @keyframes absolute-luxury-cycle {
           0%, 100% { 
             transform: translateZ(0) scale(1); 
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.95), 0 0 30px rgba(192, 132, 252, 0.15); 
-            border-color: rgba(192, 132, 252, 0.3); 
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 215, 0, 0.4); 
+            border-color: rgba(255, 215, 0, 0.9); 
           }
           50% { 
-            transform: translateZ(12px) scale(1.008); 
-            box-shadow: 0 25px 55px rgba(0, 0, 0, 1), 0 0 55px rgba(234, 208, 128, 0.55); 
-            border-color: rgba(234, 208, 128, 0.7); 
+            transform: translateZ(8px) scale(1.01); 
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 1), 0 0 45px rgba(255, 215, 0, 0.8); 
+            border-color: rgba(255, 240, 150, 1); 
           }
         }
 
         .lens-sapphire {
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(192, 132, 252, 0.04) 50%, rgba(0, 0, 0, 0.75) 100%);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 215, 0, 0.05) 50%, rgba(0, 0, 0, 0.25) 100%);
           border-radius: inherit;
           pointer-events: none;
           z-index: 2;

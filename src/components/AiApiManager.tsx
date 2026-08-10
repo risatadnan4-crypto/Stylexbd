@@ -290,12 +290,13 @@ export const AiApiManager: React.FC<AiApiManagerProps> = ({ xoroRole, settings, 
 
   const getAuthHeaders = () => {
     const email = settings?.adminEmail || sessionStorage.getItem('stylex_admin_email') || "risatadnan4@gmail.com";
-    const pass = settings?.adminPassword || sessionStorage.getItem('stylex_admin_password') || "risat123";
+    const pass = settings?.adminPassword || sessionStorage.getItem('stylex_admin_password') || "";
+    const csrfToken = sessionStorage.getItem('stylex_csrf_token') || "";
     return {
       'Content-Type': 'application/json',
       'x-admin-email': email,
       'x-admin-password': pass,
-      'x-csrf-token': 'stylex-csrf-secure-handshake-98322'
+      'x-csrf-token': csrfToken
     };
   };
 

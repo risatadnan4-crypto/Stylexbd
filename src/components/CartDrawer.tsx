@@ -2297,16 +2297,25 @@ export default function CartDrawer({
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Bottom Row: The checkout button, beautifully spanning full width */}
-                      <div className="w-full">
-                        <LuxuryCheckoutButton
-                          isCheckingOut={isCheckingOut}
-                          disabled={isCheckingOut}
-                          label="PLACE LUXURY ORDER"
-                          vesselType={initialShowCheckout ? "CAR" : "CART"}
-                        />
+                    {/* Step 2 Sticky Mobile Footer */}
+                    <div className="bg-[#0b0413] border-t-2 border-luxury-gold/40 p-2.5 sm:p-3.5 flex flex-col gap-2 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.9)] z-20">
+                      <div className="flex justify-between items-center text-xs px-1">
+                        <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
+                          <ArrowLeft size={13} /> Edit Information
+                        </button>
+                        <div className="text-right flex items-center gap-2">
+                          <span className="text-[10px] text-white/50 font-mono uppercase">Total Due:</span>
+                          <span className="text-[#d4af37] font-mono font-black text-sm sm:text-base drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">{formatPrice(grandTotal)}</span>
+                        </div>
                       </div>
+                      <LuxuryCheckoutButton
+                        isCheckingOut={isCheckingOut}
+                        disabled={isCheckingOut}
+                        label="PLACE LUXURY ORDER"
+                        vesselType={initialShowCheckout ? "CAR" : "CART"}
+                      />
                     </div>
                   </form>
                 )}
