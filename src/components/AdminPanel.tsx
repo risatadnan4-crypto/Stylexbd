@@ -3553,7 +3553,7 @@ CREATE TABLE IF NOT EXISTS public.settings (
 
 -- Seed initial settings row if not present
 INSERT INTO public.settings (id, "whatsappNumber", "adminEmail", "adminPassword", "logoUrl")
-VALUES (1, '8801755104443', 'risatadnan4@gmail.com', 'risat123', '/stylex_logo.jpg')
+VALUES (1, '8801755104443', 'risatadnan4@gmail.com', 'your_secure_password', '/stylex_logo.jpg')
 ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;

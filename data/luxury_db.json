@@ -8,11 +8,11 @@
       "keyHint": "••••41B0",
       "status": "active",
       "priority": 2,
-      "totalRequests": 16,
-      "successRequests": 16,
+      "totalRequests": 17,
+      "successRequests": 17,
       "errorCount": 0,
-      "lastLatencyMs": 310,
-      "avgLatencyMs": 320,
+      "lastLatencyMs": 10025,
+      "avgLatencyMs": 3232,
       "latencyHistory": [
         {
           "timestamp": "2026-07-29T05:19:49.435Z",
@@ -68,9 +68,14 @@
           "timestamp": "2026-07-29T05:49:49.435Z",
           "latencyMs": 340,
           "status": "success"
+        },
+        {
+          "timestamp": "2026-08-10T08:25:07.909Z",
+          "latencyMs": 10025,
+          "status": "success"
         }
       ],
-      "lastUsed": "2026-07-29T05:49:49.435Z",
+      "lastUsed": "2026-08-10T08:24:57.883Z",
       "lastError": null,
       "createdTime": "2026-07-29T05:49:49.435Z"
     },
@@ -79,15 +84,15 @@
       "name": "Risat28",
       "encryptedKey": "2e612c31650d890d8c033dc1d28e856b73cea2f62e9613738cd7cdfd3e9fbb09403bd339c8894b16bf0163238b8f6c8c77965b15c4f403c9d71a4bdf2b77fc23",
       "keyHint": "••••Wwmw",
-      "status": "active",
+      "status": "invalid",
       "priority": 1,
-      "totalRequests": 1,
+      "totalRequests": 2,
       "successRequests": 1,
-      "errorCount": 0,
-      "lastUsed": "2026-08-06T10:47:50.599Z",
-      "lastError": null,
+      "errorCount": 1,
+      "lastUsed": "2026-08-10T08:24:57.788Z",
+      "lastError": "Invalid/Corrupted API Key: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
       "createdTime": "2026-08-06T10:47:22.696Z",
-      "lastLatencyMs": 6821,
+      "lastLatencyMs": 29,
       "avgLatencyMs": 6773,
       "latencyHistory": [
         {
@@ -99,12 +104,26 @@
           "timestamp": "2026-08-06T10:47:57.421Z",
           "latencyMs": 6821,
           "status": "success"
+        },
+        {
+          "timestamp": "2026-08-10T08:24:57.818Z",
+          "latencyMs": 29,
+          "status": "error"
         }
       ]
     }
   ],
   "aiKeysInitialized": true,
   "aiApiAuditLogs": [
+    {
+      "id": "log-1786350297818-227",
+      "timestamp": "2026-08-10T08:24:57.818Z",
+      "action": "KEY_INVALIDATED",
+      "keyName": "Risat28",
+      "keyHint": "••••Wwmw",
+      "user": "System Auto-Rotator",
+      "details": "Key marked as Invalid due to format or authorization error: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}"
+    },
     {
       "id": "log-1785315023179-747",
       "timestamp": "2026-07-29T08:50:23.179Z",
@@ -186,11 +205,11 @@
       "deliveryDays": "3-5",
       "freeDelivery": false,
       "likes": 311,
-      "seoTitle": "",
-      "seoDescription": "",
-      "seoKeywords": "",
-      "metaKeywords": "",
-      "seoSlug": "",
+      "seoTitle": "Acid Wash Drop Shoulder T-Shirt | STYLE X BD",
+      "seoDescription": "Buy official STYLE X Acid Wash Drop Shoulder online in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Order now!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, acid wash drop shoulder price in bangladesh, stylex acid wash drop shoulder, buy acid wash drop shoulder online bd, authentic style x acid wash drop shoulder",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, acid wash drop shoulder price in bangladesh, stylex acid wash drop shoulder, buy acid wash drop shoulder online bd, authentic style x acid wash drop shoulder",
+      "seoSlug": "acid-wash-drop-shoulder-tshirt-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
       "ogDescription": "",
@@ -4019,6 +4038,222 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-09T08:18:48.384Z",
       "created_at": "2026-08-09T08:18:48.590554+00:00"
+    },
+    {
+      "id": "room-mpqt9cdz",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:10:41.467Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:10:41.467Z",
+      "created_at": "2026-08-09T09:10:41.63618+00:00"
+    },
+    {
+      "id": "room-zpab9kjv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:12:12.342Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:12:12.342Z",
+      "created_at": "2026-08-09T09:12:13.004551+00:00"
+    },
+    {
+      "id": "room-vi1m4ik0",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:12:17.022Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:12:17.022Z",
+      "created_at": "2026-08-09T09:12:17.193227+00:00"
+    },
+    {
+      "id": "room-npzg25qw",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:21:16.179Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:21:16.179Z",
+      "created_at": "2026-08-09T09:21:16.801243+00:00"
+    },
+    {
+      "id": "room-fpfewxyc",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:43:15.986Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:43:15.986Z",
+      "created_at": "2026-08-09T09:43:16.109682+00:00"
+    },
+    {
+      "id": "room-m89kyx9e",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T09:43:16.010Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T09:43:16.010Z",
+      "created_at": "2026-08-09T09:43:16.129345+00:00"
+    },
+    {
+      "id": "room-5wi8mhkh",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-09T10:42:25.644Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-09T10:42:25.644Z",
+      "created_at": "2026-08-09T10:42:25.680242+00:00"
+    },
+    {
+      "id": "room-uxwyolg5",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-10T06:24:43.500Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-10T06:24:43.500Z",
+      "created_at": "2026-08-10T06:24:43.589075+00:00"
+    },
+    {
+      "id": "room-vjq2tzbs",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-10T07:25:06.160Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-10T07:25:06.160Z",
+      "created_at": "2026-08-10T07:25:06.524392+00:00"
+    },
+    {
+      "id": "room-etasafll",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-10T07:33:22.041Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-10T07:33:22.041Z",
+      "created_at": "2026-08-10T07:33:22.750881+00:00"
+    },
+    {
+      "id": "room-w759pka0",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-10T08:00:51.333Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-10T08:00:51.333Z",
+      "created_at": "2026-08-10T08:00:51.421389+00:00"
+    },
+    {
+      "id": "room-0nbvg3vn",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-10T08:24:36.495Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-10T08:24:36.495Z",
+      "created_at": "2026-08-10T08:24:36.679359+00:00"
     }
   ],
   "carts": {
@@ -4362,7 +4597,15 @@
         "timerActive": true,
         "timerEnabled": true,
         "freeDelivery": false,
-        "likes": 311
+        "likes": 311,
+        "deliveryPriceDhaka": 140,
+        "deliveryPriceChattogram": 140,
+        "deliveryPriceRajshahi": 140,
+        "deliveryPriceKhulna": 140,
+        "deliveryPriceBarishal": 140,
+        "deliveryPriceSylhet": 140,
+        "deliveryPriceRangpur": 140,
+        "deliveryPriceMymensingh": 140
       },
       "bqjaeckq": {
         "bkashNumber": "01816027852",
@@ -4532,6 +4775,18 @@
         "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, sada bahar three piece price in bangladesh, stylex sada bahar three piece, buy sada bahar three piece online bd, authentic style x sada bahar three piece",
         "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, sada bahar three piece price in bangladesh, stylex sada bahar three piece, buy sada bahar three piece online bd, authentic style x sada bahar three piece",
         "seoSlug": "sada-bahar-three-piece-stylex-bd",
+        "canonicalUrl": "",
+        "ogTitle": "",
+        "ogDescription": "",
+        "ogImage": "",
+        "robots": "index, follow"
+      },
+      "r9qm3w5m": {
+        "seoTitle": "Acid Wash Drop Shoulder T-Shirt | STYLE X BD",
+        "seoDescription": "Buy official STYLE X Acid Wash Drop Shoulder online in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Order now!",
+        "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, acid wash drop shoulder price in bangladesh, stylex acid wash drop shoulder, buy acid wash drop shoulder online bd, authentic style x acid wash drop shoulder",
+        "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, acid wash drop shoulder price in bangladesh, stylex acid wash drop shoulder, buy acid wash drop shoulder online bd, authentic style x acid wash drop shoulder",
+        "seoSlug": "acid-wash-drop-shoulder-tshirt-stylex-bd",
         "canonicalUrl": "",
         "ogTitle": "",
         "ogDescription": "",
