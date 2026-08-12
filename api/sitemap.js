@@ -1,6 +1,33 @@
 const { createClient } = require('@supabase/supabase-js');
 
 module.exports = async function handler(req, res) {
+  if (req.query && req.query.type === 'robots') {
+    const robots = `User-agent: *
+Allow: /
+Allow: /product/
+Allow: /products/
+Allow: /category/
+Allow: /search
+Allow: /sitemap.xml
+Allow: /api/sitemap
+Disallow: /admin
+Disallow: /xxxrisatxxx
+Disallow: /wishlist
+Disallow: /cart
+Disallow: /checkout
+Disallow: /profile
+Disallow: /orders
+Disallow: /auth
+Disallow: /track
+
+# Host & XML Sitemap Reference
+Host: https://stylexbd.vercel.app
+Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
+
+    res.setHeader("Content-Type", "text/plain");
+    return res.status(200).send(robots);
+  }
+
   const baseUrl = "https://stylexbd.vercel.app";
   const currentDate = new Date().toISOString().split("T")[0];
 
@@ -32,30 +59,42 @@ module.exports = async function handler(req, res) {
 
   try {
     let productPages = [];
+    const addedSlugs = new Set();
+    const addProductSlug = (slug, lastmod = currentDate) => {
+      if (!slug || addedSlugs.has(slug)) return;
+      addedSlugs.add(slug);
+      productPages.push(
+        { loc: `${baseUrl}/products/${slug}`, lastmod, priority: "0.8", changefreq: "weekly" },
+        { loc: `${baseUrl}/product/${slug}`, lastmod, priority: "0.8", changefreq: "weekly" }
+      );
+    };
+
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase env vars — returning static sitemap only");
-    } else {
+    if (supabaseUrl && supabaseKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
         const { data: products, error } = await supabase
           .from('products')
-          .select('slug, updated_at')
+          .select('title, seoSlug, code, slug, updated_at')
           .eq('is_published', true);
 
         if (!error && Array.isArray(products)) {
-          productPages = products.map(prod => ({
-            loc: `${baseUrl}/product/${prod.slug || ''}`,
-            lastmod: prod.updated_at 
-              ? new Date(prod.updated_at).toISOString().split('T')[0] 
-              : currentDate,
-            priority: "0.8",
-            changefreq: "weekly"
-          }));
-        } else if (error) {
-          console.error("Supabase sitemap fetch error:", error);
+          products.forEach(prod => {
+            const slug = prod.seoSlug || prod.slug || (prod.title || '')
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[^\w\-]+/g, '')
+              .replace(/\-\-+/g, '-')
+              .replace(/^-+/, '')
+              .replace(/-+$/, '') || prod.code;
+            const lastmod = prod.updated_at
+              ? new Date(prod.updated_at).toISOString().split('T')[0]
+              : currentDate;
+            if (slug) addProductSlug(slug, lastmod);
+          });
         }
       } catch (innerError) {
         console.error("Failed to fetch product slugs:", innerError);

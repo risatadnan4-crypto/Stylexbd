@@ -244,12 +244,12 @@ export default function Hero({
             className="flex flex-col items-center"
           >
             {/* Large Playfair Display Headers with sleek serif gradients */}
-            <h2 className="font-serif text-2xl xs:text-3xl sm:text-7xl md:text-9xl font-semibold tracking-normal leading-[1.1] sm:leading-[1.05] capitalize mb-3 sm:mb-8 scale-y-[0.98] drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+            <h1 className="font-serif text-2xl xs:text-3xl sm:text-7xl md:text-9xl font-semibold tracking-normal leading-[1.1] sm:leading-[1.05] capitalize mb-3 sm:mb-8 scale-y-[0.98] drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
               <span className="block text-white transition-all duration-300">Style <span className="font-serif italic font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-luxury-purple-glowing via-luxury-gold to-white">.X</span></span>
               <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-luxury-purple-glowing tracking-[0.1em] xs:tracking-[0.12em] sm:tracking-[0.15em] font-light text-xs xs:text-sm sm:text-4xl md:text-5xl uppercase mt-1 sm:mt-3 max-w-[280px] xs:max-w-xs sm:max-w-none line-clamp-2">
                 {currentBanner.title}
               </span>
-            </h2>
+            </h1>
 
             {/* Brand narrative details */}
             <p className="text-white/90 font-sans text-[10px] xs:text-[11px] sm:text-sm md:text-base font-medium tracking-wide max-w-[270px] xs:max-w-xs sm:max-w-xl leading-relaxed italic mb-4 sm:mb-10 min-h-[32px] sm:min-h-[48px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.955)] line-clamp-3 sm:line-clamp-none">

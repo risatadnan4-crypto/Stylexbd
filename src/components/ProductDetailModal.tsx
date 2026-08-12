@@ -630,7 +630,7 @@ export default function ProductDetailModal({
                 <span className="text-[10px] font-mono text-white/35 tracking-normal">{product.code.replace(/\s+/g, ' ')}</span>
               </div>
 
-              <h2 
+              <h1 
                 className="font-serif text-lg sm:text-xl lg:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-luxury-gold/90 uppercase leading-snug"
                 style={{ 
                   wordSpacing: 'normal', 
@@ -647,7 +647,7 @@ export default function ProductDetailModal({
                 }}
               >
                 {product.title.trim().replace(/\s+/g, ' ')}
-              </h2>
+              </h1>
             </div>
 
             <div className="space-y-4">

@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{dist,data}/**"
+      "includeFiles": ["dist/**", "data/**", "index.html"]
     }
   },
   "rewrites": [
@@ -27,7 +27,7 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/((?!api|uploads|assets|public|favicon.ico|index.html|vite.svg).*)$",
+      "source": "/:path*",
       "destination": "/api/index.ts"
     }
   ]

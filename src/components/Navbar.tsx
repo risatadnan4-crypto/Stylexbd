@@ -116,11 +116,11 @@ export default function Navbar({
             </div>
             
             <div className="flex flex-col">
-              <h1 className="font-serif text-xl tracking-widest font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-white group-hover:from-luxury-gold group-hover:to-orange-400 transition-all duration-500 relative">
+              <span className="font-serif text-xl tracking-widest font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-white group-hover:from-luxury-gold group-hover:to-orange-400 transition-all duration-500 relative block">
                 STYLE X
                 {/* Underline pulse indicator */}
                 <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-gradient-to-r from-luxury-gold to-luxury-purple-glowing group-hover:w-full transition-all duration-500"></span>
-              </h1>
+              </span>
               <p className="text-[9px] text-white/50 font-sans tracking-widest uppercase flex items-center gap-1 mt-0.5">
                 <span>LUXURY</span>
                 <span className="w-1 h-1 rounded-full bg-luxury-purple animate-ping"></span>

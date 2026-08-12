@@ -7336,24 +7336,53 @@ async function handleSitemapRequest(req: any, res: any) {
   ];
 
   let productPages: any[] = [];
+  const addedSlugs = new Set<string>();
+
+  const addProductSlug = (slug: string, lastmod: string = currentDate) => {
+    if (!slug || addedSlugs.has(slug)) return;
+    addedSlugs.add(slug);
+    productPages.push(
+      { loc: `${baseUrl}/products/${slug}`, lastmod, priority: "0.8", changefreq: "weekly" },
+      { loc: `${baseUrl}/product/${slug}`, lastmod, priority: "0.8", changefreq: "weekly" }
+    );
+  };
+
+  // Pre-fill from in-memory / local database
+  if (db.products && Array.isArray(db.products)) {
+    for (const prod of db.products) {
+      const slug = prod.seoSlug || (prod.title || '')
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '') || prod.code || String(prod.id);
+      if (slug) addProductSlug(slug);
+    }
+  }
 
   try {
     const { data: products, error } = await supabase
       .from("products")
-      .select("slug, updated_at")
+      .select("title, seoSlug, code, slug, updated_at")
       .eq("is_published", true);
 
     if (!error && Array.isArray(products)) {
-      productPages = products.map((prod: any) => {
-        const slug = prod.slug || '';
+      for (const prod of products) {
+        const slug = prod.seoSlug || prod.slug || (prod.title || '')
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '') || prod.code;
         const lastmod = prod.updated_at ? new Date(prod.updated_at).toISOString().split('T')[0] : currentDate;
-        return {
-          loc: `${baseUrl}/product/${slug}`,
-          lastmod,
-          priority: "0.8",
-          changefreq: "weekly"
-        };
-      });
+        if (slug) addProductSlug(slug, lastmod);
+      }
     } else if (error) {
       console.error("⚠️ Supabase sitemap fetch error inside server.ts:", error);
     }
@@ -7492,7 +7521,27 @@ if (!isProduction) {
             html = await fs.readFile(altPath3, "utf-8");
             indexPath = altPath3;
             } catch (e4) {
-              console.error("🚨 All index.html resolution paths failed:", e4);
+              try {
+                const altPath4 = path.resolve(process.cwd(), "index.html");
+                html = await fs.readFile(altPath4, "utf-8");
+                indexPath = altPath4;
+              } catch (e5) {
+                console.error("🚨 All index.html resolution paths failed:", e5);
+                html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka</title>
+    <meta name="description" content="Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing." />
+    <link rel="icon" type="image/jpg" href="/stylex_logo.jpg" />
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+              }
             }
           }
         }
@@ -7844,6 +7893,23 @@ if (!isProduction) {
         if (productSchemaJson) {
           html = html.replace(/<script id="json-ld-product-schema" type="application\/ld\+json">.*?<\/script>/gi, "");
           html = html.replace("</head>", `${productSchemaJson}\n</head>`);
+        }
+
+        // Pre-render semantic fallback DOM inside <div id="root"> for non-JS crawlers
+        const prHeading = customTitle ? customTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "StyleX BD";
+        const prDesc = desc ? desc.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+        const prImage = image ? image.replace(/"/g, "&quot;") : "";
+
+        let prBody = `<main style="padding:2rem;max-width:1200px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+          `<header><h1 style="font-size:2rem;margin-bottom:0.75rem;">${prHeading}</h1></header>` +
+          `<article><p style="font-size:1.1rem;line-height:1.6;">${prDesc}</p>` +
+          (prImage ? `<img src="${prImage}" alt="${prHeading}" style="max-width:100%;height:auto;margin:1rem 0;border-radius:8px;" />` : "") +
+          `</article></main>`;
+
+        if (html.includes('<div id="root"></div>')) {
+          html = html.replace('<div id="root"></div>', `<div id="root">${prBody}</div>`);
+        } else if (html.includes('<div id="root">')) {
+          html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${prBody}</div>`);
         }
 
         res.send(html);
