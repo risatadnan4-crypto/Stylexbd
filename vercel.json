@@ -20,11 +20,11 @@
     },
     {
       "source": "/sitemap.xml",
-      "destination": "/api/index.ts"
+      "destination": "/sitemap.xml"
     },
     {
       "source": "/robots.txt",
-      "destination": "/api/index.ts"
+      "destination": "/robots.txt"
     },
     {
       "source": "/:path*",

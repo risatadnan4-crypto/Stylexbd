@@ -96,8 +96,8 @@ export default function LuxuryCheckoutButton({
     const colors = [
       '#C084FC', // purple-royal
       '#E9D5FF', // purple-pure
-      '#EAD080', // gold-mid
-      '#FFF0D0', // gold-pure
+      '#A855F7', // bright purple
+      '#F472B6', // pink-purple highlight
     ];
 
     const createParticle = (x: number, y: number, count = 1) => {
@@ -387,8 +387,8 @@ export default function LuxuryCheckoutButton({
           position: relative;
           width: 100%;
           height: 60px;
-          background: linear-gradient(135deg, #1f1402 0%, #422d02 50%, #1f1402 100%);
-          border: 1.5px solid rgba(255, 215, 0, 0.85);
+          background: linear-gradient(135deg, #230240 0%, #5c10a3 50%, #230240 100%);
+          border: 1.5px solid #C084FC;
           border-radius: 30px;
           cursor: pointer;
           outline: none;
@@ -401,8 +401,8 @@ export default function LuxuryCheckoutButton({
           
           box-shadow: 
               0 10px 30px rgba(0, 0, 0, 0.95), 
-              0 0 20px rgba(255, 215, 0, 0.35),
-              inset 0 1.5px 3px rgba(255, 240, 208, 0.4),
+              0 0 25px rgba(154, 77, 255, 0.6),
+              inset 0 1.5px 3px rgba(233, 213, 255, 0.4),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
           
           transform-style: preserve-3d;
@@ -412,51 +412,62 @@ export default function LuxuryCheckoutButton({
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: #FFE28A;
+          border-color: #E9D5FF;
           box-shadow: 
               0 18px 40px rgba(0, 0, 0, 0.95), 
-              0 0 35px rgba(255, 215, 0, 0.65),
-              inset 0 1.5px 3px rgba(255, 240, 208, 0.5),
+              0 0 35px rgba(192, 132, 252, 0.95),
+              inset 0 1.5px 3px rgba(233, 213, 255, 0.5),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
         }
 
         .luxury-btn:active {
-          border-color: rgba(255, 215, 0, 1);
+          border-color: rgba(192, 132, 252, 1);
           box-shadow: 
               0 10px 20px rgba(0, 0, 0, 0.95), 
-              0 0 35px rgba(255, 215, 0, 0.75),
-              inset 0 1.5px 3px rgba(255, 240, 208, 0.5),
+              0 0 35px rgba(192, 132, 252, 0.95),
+              inset 0 1.5px 3px rgba(233, 213, 255, 0.5),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
           transform: scale(0.985);
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
           .viewport-3d {
-            padding: 6px 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 4px 0 !important;
           }
           .luxury-btn {
-            height: 56px !important;
-            border-radius: 28px !important;
-            background: linear-gradient(135deg, #261a00 0%, #4e3500 50%, #261a00 100%) !important;
-            border: 2px solid #FFD700 !important;
-            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.45), 0 0 15px rgba(212, 175, 55, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+            height: 54px !important;
+            border-radius: 27px !important;
+            background: linear-gradient(135deg, #230240 0%, #5c10a3 50%, #230240 100%) !important;
+            border: 1.5px solid #C084FC !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), 0 0 20px rgba(154, 77, 255, 0.45), inset 0 1px 2px rgba(233, 213, 255, 0.4) !important;
+            touch-action: manipulation;
           }
           .label-text {
-            font-size: 12.5px !important;
-            font-weight: 900 !important;
-            letter-spacing: 2px !important;
-            color: #FFE28A !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            letter-spacing: 1px !important;
+            color: #E9D5FF !important;
             background: none !important;
-            -webkit-text-fill-color: #FFE28A !important;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+            -webkit-text-fill-color: #E9D5FF !important;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
+            white-space: normal !important;
+            text-align: center !important;
+            line-height: 1.25 !important;
+            display: inline-block !important;
+            max-width: 82% !important;
           }
           .content-plate {
             padding: 0 16px !important;
+            left: 0 !important;
+            top: 0 !important;
+            box-sizing: border-box !important;
           }
           .delivery-vessel {
-            transform: scale(0.52);
+            transform: scale(0.5);
             transform-origin: bottom center;
-            height: 52px !important;
+            height: 50px !important;
             top: -2px !important;
           }
           .success-row {
@@ -464,11 +475,13 @@ export default function LuxuryCheckoutButton({
           }
           .headline-success {
             font-size: 12px !important;
-            letter-spacing: 2px !important;
+            letter-spacing: 1.5px !important;
+            white-space: nowrap !important;
           }
           .subtext-success {
             font-size: 8.5px !important;
             letter-spacing: 1px !important;
+            white-space: nowrap !important;
           }
           .vector-checkmark {
             width: 16px !important;
@@ -476,20 +489,21 @@ export default function LuxuryCheckoutButton({
           }
         }
 
-        @media (max-width: 360px) {
+        @media (max-width: 380px) {
           .luxury-btn {
             height: 52px !important;
             border-radius: 26px !important;
-            border: 2px solid #FFD700 !important;
+            border: 1.5px solid #C084FC !important;
           }
           .label-text {
-            font-size: 11px !important;
-            letter-spacing: 1.5px !important;
+            font-size: 10px !important;
+            letter-spacing: 0.5px !important;
+            max-width: 80% !important;
           }
           .delivery-vessel {
-            transform: scale(0.45);
+            transform: scale(0.44);
             transform-origin: bottom center;
-            height: 48px !important;
+            height: 46px !important;
             top: -3px !important;
           }
         }
@@ -501,20 +515,20 @@ export default function LuxuryCheckoutButton({
         @keyframes absolute-luxury-cycle {
           0%, 100% { 
             transform: translateZ(0) scale(1); 
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 215, 0, 0.4); 
-            border-color: rgba(255, 215, 0, 0.9); 
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), 0 0 25px rgba(192, 132, 252, 0.45); 
+            border-color: rgba(192, 132, 252, 0.9); 
           }
           50% { 
             transform: translateZ(8px) scale(1.01); 
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 1), 0 0 45px rgba(255, 215, 0, 0.8); 
-            border-color: rgba(255, 240, 150, 1); 
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 1), 0 0 45px rgba(192, 132, 252, 0.8); 
+            border-color: rgba(233, 213, 255, 1); 
           }
         }
 
         .lens-sapphire {
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 215, 0, 0.05) 50%, rgba(0, 0, 0, 0.25) 100%);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(192, 132, 252, 0.05) 50%, rgba(0, 0, 0, 0.25) 100%);
           border-radius: inherit;
           pointer-events: none;
           z-index: 2;
@@ -541,7 +555,7 @@ export default function LuxuryCheckoutButton({
               transparent 15%, 
               rgba(192, 132, 252, 0.1) 35%, 
               rgba(255, 255, 255, 0.4) 50%, 
-              rgba(234, 208, 128, 0.25) 65%, 
+              rgba(192, 132, 252, 0.25) 65%, 
               transparent 85%);
           transform: skewX(-25deg);
           z-index: 3;
@@ -570,12 +584,17 @@ export default function LuxuryCheckoutButton({
 
         .content-plate {
           position: absolute;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 100%;
           height: 100%;
           padding: 0 40px;
+          box-sizing: border-box;
           z-index: 5;
           pointer-events: none;
           will-change: opacity, transform;
@@ -588,7 +607,7 @@ export default function LuxuryCheckoutButton({
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 4px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #FFF0D0 100%);
+          background: linear-gradient(180deg, #FFFFFF 0%, #E9D5FF 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -602,7 +621,7 @@ export default function LuxuryCheckoutButton({
         }
         .luxury-btn:hover .icon-arrow svg {
           transform: translateX(8px);
-          stroke: #EAD080;
+          stroke: #E9D5FF;
         }
 
         .state-loading { opacity: 0; transform: translateY(8px); }
@@ -670,7 +689,7 @@ export default function LuxuryCheckoutButton({
         .cargo-brand {
           font-size: 8.5px;
           font-weight: 800;
-          color: #FFF0D0;
+          color: #E9D5FF;
           text-shadow: 0 0 8px #C084FC;
         }
 
@@ -771,22 +790,22 @@ export default function LuxuryCheckoutButton({
           <div className="delivery-vessel" ref={vanRef}>
             {vesselType === 'CART' ? (
               /* Sleek Aerodynamic Style X Gold Hypercar / Coupe (Step 1 VIP Speed Machine) */
-              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_16px_rgba(212,175,55,0.65)]" viewBox="0 0 160 80" fill="none">
+              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_16px_rgba(192,132,252,0.65)]" viewBox="0 0 160 80" fill="none">
                 {/* Hypercar aerodynamic silhouette */}
-                <path d="M5 52 C18 52, 28 46, 48 34 C68 22, 100 20, 118 26 C134 31, 150 42, 156 48 C159 51, 159 55, 152 55 L5 55 Z" fill="url(#hypercarGrad)" stroke="#EAD080" strokeWidth="1.75" />
+                <path d="M5 52 C18 52, 28 46, 48 34 C68 22, 100 20, 118 26 C134 31, 150 42, 156 48 C159 51, 159 55, 152 55 L5 55 Z" fill="url(#hypercarGrad)" stroke="#C084FC" strokeWidth="1.75" />
                 {/* Glass canopy roof */}
                 <path d="M54 31 C70 19, 96 17, 112 25 C102 25, 68 28, 54 31 Z" fill="#0c051a" stroke="#C084FC" strokeWidth="1.2" />
                 {/* Side window tint */}
                 <path d="M60 30 C72 22, 92 21, 104 25 C90 25, 70 27, 60 30 Z" fill="#24103e" opacity="0.9" />
                 {/* Gold body side accent / racing line */}
-                <path d="M22 47 Q72 41 146 47" stroke="#EAD080" strokeWidth="1.2" strokeDasharray="4 1.5" />
+                <path d="M22 47 Q72 41 146 47" stroke="#C084FC" strokeWidth="1.2" strokeDasharray="4 1.5" />
                 {/* Rear spoiler wing */}
-                <path d="M6 38 L22 36 L24 42 L8 42 Z" fill="#d4af37" stroke="#EAD080" strokeWidth="0.8" />
+                <path d="M6 38 L22 36 L24 42 L8 42 Z" fill="#7c3aed" stroke="#C084FC" strokeWidth="0.8" />
                 {/* Branding text */}
                 <text x="48" y="47" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" letterSpacing="1.5">STYLE X</text>
-                <text x="96" y="47" fill="#EAD080" fontSize="7.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">VIP</text>
+                <text x="96" y="47" fill="#C084FC" fontSize="7.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">VIP</text>
                 {/* Hyper Xenon Headlight Beam */}
-                <circle cx="154" cy="49" r="3" fill="#FFF0D0" className="drop-shadow-[0_0_12px_#FFF0D0]" />
+                <circle cx="154" cy="49" r="3" fill="#E9D5FF" className="drop-shadow-[0_0_12px_#E9D5FF]" />
                 {/* Red LED Taillight Bar */}
                 <rect x="5" y="47" width="8" height="3" rx="1.5" fill="#EF4444" className="drop-shadow-[0_0_8px_#EF4444]" />
                 <defs>
@@ -800,12 +819,12 @@ export default function LuxuryCheckoutButton({
               </svg>
             ) : (
               /* Style X Express Heavy Freight Delivery Vessel (Step 2 Final Order) */
-              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_12px_rgba(212,175,55,0.4)]" viewBox="0 0 160 80" fill="none">
-                <path d="M10 50 L25 25 L65 20 L110 20 L145 38 L155 50 L155 60 L10 60 Z" fill="url(#vanGrad)" stroke="#EAD080" strokeWidth="1.5" />
+              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_12px_rgba(192,132,252,0.4)]" viewBox="0 0 160 80" fill="none">
+                <path d="M10 50 L25 25 L65 20 L110 20 L145 38 L155 50 L155 60 L10 60 Z" fill="url(#vanGrad)" stroke="#C084FC" strokeWidth="1.5" />
                 <path d="M70 24 L105 24 L132 38 L70 38 Z" fill="#120c1f" stroke="#C084FC" strokeWidth="1" />
                 <text x="32" y="48" fill="#FFFFFF" fontSize="11" fontWeight="900" fontFamily="sans-serif" letterSpacing="1">STYLE X</text>
-                <text x="80" y="48" fill="#EAD080" fontSize="8" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.5">EXPRESS</text>
-                <circle cx="150" cy="46" r="3" fill="#FFF0D0" className="drop-shadow-[0_0_8px_#FFF0D0]" />
+                <text x="80" y="48" fill="#C084FC" fontSize="8" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.5">EXPRESS</text>
+                <circle cx="150" cy="46" r="3" fill="#E9D5FF" className="drop-shadow-[0_0_8px_#E9D5FF]" />
                 <rect x="12" y="44" width="10" height="3" rx="1.5" fill="#EF4444" />
                 <defs>
                   <linearGradient id="vanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -817,19 +836,19 @@ export default function LuxuryCheckoutButton({
               </svg>
             )}
             <div className="wheel wheel-back" ref={wBackRef}>
-              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.8)]">
-                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#EAD080" strokeWidth="2" />
+              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]">
+                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#C084FC" strokeWidth="2" />
                 <circle cx="10" cy="10" r="4" fill="#C084FC" />
-                <line x1="10" y1="1" x2="10" y2="19" stroke="#EAD080" strokeWidth="1.5" />
-                <line x1="1" y1="10" x2="19" y2="10" stroke="#EAD080" strokeWidth="1.5" />
+                <line x1="10" y1="1" x2="10" y2="19" stroke="#C084FC" strokeWidth="1.5" />
+                <line x1="1" y1="10" x2="19" y2="10" stroke="#C084FC" strokeWidth="1.5" />
               </svg>
             </div>
             <div className="wheel wheel-front" ref={wFrontRef}>
-              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.8)]">
-                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#EAD080" strokeWidth="2" />
+              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]">
+                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#C084FC" strokeWidth="2" />
                 <circle cx="10" cy="10" r="4" fill="#C084FC" />
-                <line x1="10" y1="1" x2="10" y2="19" stroke="#EAD080" strokeWidth="1.5" />
-                <line x1="1" y1="10" x2="19" y2="10" stroke="#EAD080" strokeWidth="1.5" />
+                <line x1="10" y1="1" x2="10" y2="19" stroke="#C084FC" strokeWidth="1.5" />
+                <line x1="1" y1="10" x2="19" y2="10" stroke="#C084FC" strokeWidth="1.5" />
               </svg>
             </div>
           </div>
