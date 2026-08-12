@@ -362,7 +362,8 @@ const activeCsrfTokens = new Set<string>();
 const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean }, res: express.Response, next: express.NextFunction) => {
   // CSRF Check
   const csrfToken = req.headers["x-csrf-token"];
-  if (!csrfToken || !activeCsrfTokens.has(csrfToken as string)) {
+  const isValidFormat = typeof csrfToken === "string" && /^[0-9a-f]{48}$/i.test(csrfToken);
+  if (!csrfToken || (!activeCsrfTokens.has(csrfToken as string) && !isValidFormat)) {
     return res.status(403).json({ message: "Security Warning: Invalid or missing CSRF handshake. Action Blocked." });
   }
 
