@@ -7425,7 +7425,6 @@ Allow: /category/
 Allow: /search
 Allow: /api/sitemap
 Disallow: /admin
-Disallow: /xxxrisatxxx
 Disallow: /wishlist
 Disallow: /cart
 Disallow: /checkout
@@ -7735,9 +7734,37 @@ if (!isProduction) {
           } else {
             foundMatch = false;
           }
-        } else if (pathSegments[0] === "xxxrisatxxx") {
-          customTitle = "VIP Admin Control Center | STYLE X BD";
-          desc = "Access secure VIP administration controls, manage curated inventories, view orders ledger, configure dynamic alerts, and interact with the concierge team.";
+        } else if (pathSegments[0] === "about") {
+          customTitle = "About StyleX BD | The Curated Luxury Fashion Experience";
+          desc = "Discover the heritage, curation standards, and vision of StyleX BD. Bangladesh's premium destination for high-end streetwear and artisanal fashion curation.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "faq") {
+          customTitle = "Frequently Asked Questions | StyleX BD Help Center";
+          desc = "Find answers to frequently asked questions about orders, payments, size guides, and secure nationwide Cash on Delivery with StyleX BD.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "delivery") {
+          customTitle = "Secure Nationwide Delivery Information | StyleX BD";
+          desc = "Learn about our premium physical verification delivery handoff, delivery timelines, and secure Cash on Delivery (COD) services across Bangladesh.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "returns") {
+          customTitle = "Easy Returns & Exchange Policy | StyleX BD";
+          desc = "Read our step-by-step returns, claims, and exchange guidelines for all StyleX BD apparel, ensuring a risk-free luxury shopping experience.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "contact") {
+          customTitle = "Contact Private Concierge Support | StyleX BD";
+          desc = "Reach out to the StyleX BD private concierge, customer support, or admin team for bespoke order assistance, WhatsApp concierge, or partner inquiries.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "size-guide") {
+          customTitle = "Official StyleX BD Apparel Size Guide";
+          desc = "Find the perfect fit with our comprehensive size guide. Measurements for shirts, t-shirts, cargo pants, hoodies, and jackets from StyleX BD.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "blog") {
+          customTitle = "StyleX Editorial Blog | Luxury Fashion & Streetwear Trends";
+          desc = "Explore the latest style lookbooks, streetwear culture insights, fabric curation notes, and luxury fashion trends from the StyleX BD editorial team.";
+          foundMatch = true;
+        } else if (pathSegments[0] === "rewards") {
+          customTitle = "VIP Rewards & Loyalty Benefits Program | StyleX BD";
+          desc = "Discover the StyleX BD VIP rewards program. Earn exclusive member passes, loyalty discounts, rare product drop access, and private styling benefits.";
           foundMatch = true;
         } else if (pathSegments[0] === "wishlist") {
           customTitle = "My Curated Fashion Wishlist | STYLE X BD";
