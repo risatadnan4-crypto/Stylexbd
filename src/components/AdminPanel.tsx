@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
-  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell,
+  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell, ShoppingBag,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
   Bot, ShieldCheck, ShieldAlert, Undo, Search, Lock, AlertTriangle,
   Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator
@@ -128,6 +128,69 @@ export default function AdminPanel({
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
   const [adminReplyText, setAdminReplyText] = useState('');
   const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const [newOrderToasts, setNewOrderToasts] = useState<Array<{
+    id: string;
+    customerName: string;
+    customerCity: string;
+    totalAmount: number;
+    itemsCount: number;
+    date: string;
+  }>>([]);
+  const ordersRef = useRef<string[]>([]);
+
+  const playNewOrderSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(440, ctx.currentTime); // A4
+      osc2.frequency.exponentialRampToValueAtTime(587.33, ctx.currentTime + 0.1); // D5
+      
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc1.start();
+      osc2.start();
+      
+      osc1.stop(ctx.currentTime + 0.8);
+      osc2.stop(ctx.currentTime + 0.8);
+    } catch (err) {
+      console.warn("AudioContext failed to play chime:", err);
+    }
+  };
+
+  const addOrderToast = (order: Order) => {
+    setNewOrderToasts(prev => {
+      if (prev.some(t => t.id === order.id)) return prev;
+      return [
+        ...prev,
+        {
+          id: order.id,
+          customerName: order.customerName,
+          customerCity: order.customerCity || order.district || "Bangladesh",
+          totalAmount: order.totalAmount,
+          itemsCount: order.items?.length || 1,
+          date: order.date
+        }
+      ];
+    });
+    playNewOrderSound();
+  };
 
   // Form Generator states
   const [formList, setFormList] = useState<FormGenerator[]>([]);
@@ -1507,8 +1570,9 @@ export default function AdminPanel({
     fetchForms();
 
     const interval = setInterval(() => {
-      // Periodic poll for dynamic admin updates (e.g. Chat alerts)
+      // Periodic poll for dynamic admin updates (e.g. Chat alerts, new orders)
       fetchAnalytics();
+      fetchOrders();
       fetchChats();
       fetchAlerts();
       fetchSmsLogs();
@@ -1545,7 +1609,19 @@ export default function AdminPanel({
   const fetchOrders = async () => {
     try {
       const res = await fetch('/api/orders');
-      if (res.ok) setOrders(await res.json());
+      if (res.ok) {
+        const data: Order[] = await res.json();
+        if (ordersRef.current && ordersRef.current.length > 0) {
+          const newOrders = data.filter(o => !ordersRef.current.includes(o.id));
+          if (newOrders.length > 0) {
+            newOrders.forEach(newOrd => {
+              addOrderToast(newOrd);
+            });
+          }
+        }
+        ordersRef.current = data.map(o => o.id);
+        setOrders(data);
+      }
     } catch (e) {}
   };
 
@@ -9902,6 +9978,69 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
 
         </div>
       </main>
+
+      {/* 🔔 AUTOMATED NEW ORDER TOAST NOTIFICATIONS */}
+      <div className="fixed bottom-24 right-6 z-[9999] flex flex-col gap-3 items-end pointer-events-none">
+        {newOrderToasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="pointer-events-auto w-80 bg-[#0e0e14]/95 border-l-4 border-l-luxury-gold border border-white/10 rounded-r-xl p-4 shadow-[0_15px_40px_rgba(212,175,55,0.15)] flex flex-col gap-2.5 animate-slide-in backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:border-luxury-gold/50"
+          >
+            {/* Subtle background pulse */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-luxury-gold/5 rounded-full filter blur-xl pointer-events-none" />
+
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center text-luxury-gold shrink-0">
+                  <ShoppingBag size={15} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-mono tracking-widest text-luxury-gold font-extrabold uppercase">
+                    NEW ORDER RECEIVED
+                  </h4>
+                  <p className="text-[9px] font-mono text-zinc-500">{toast.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setNewOrderToasts(prev => prev.filter(t => t.id !== toast.id))}
+                className="text-white/40 hover:text-white transition-colors cursor-pointer p-0.5 rounded-md hover:bg-white/5"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-1 font-sans">
+              <p className="text-[11px] text-zinc-300 font-bold">
+                Customer: <span className="text-white">{toast.customerName}</span>
+              </p>
+              <p className="text-[10px] text-zinc-400">
+                Location: <span className="text-zinc-200">{toast.customerCity}</span>
+              </p>
+              <div className="flex items-center justify-between text-[11px] border-t border-white/5 pt-2 mt-1">
+                <span className="text-zinc-400">
+                  Total: <span className="text-white font-mono font-bold">৳{toast.totalAmount}</span>
+                </span>
+                <span className="text-[9px] font-mono px-2 py-0.5 bg-luxury-gold/10 text-luxury-gold rounded-full border border-luxury-gold/20 font-bold">
+                  {toast.itemsCount} {toast.itemsCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1 border-t border-white/5 mt-1 justify-end">
+              <button
+                onClick={() => {
+                  setActiveTab('orders');
+                  setNewOrderToasts(prev => prev.filter(t => t.id !== toast.id));
+                }}
+                className="text-[9px] font-mono font-bold tracking-wider uppercase text-luxury-gold hover:text-white hover:bg-luxury-gold/20 px-2.5 py-1 rounded border border-luxury-gold/25 transition-all cursor-pointer flex items-center gap-1"
+              >
+                <span>View Order</span>
+                <ChevronRight size={10} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {adminToast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-luxury-black/95 border-2 border-luxury-gold/50 text-white px-5 py-3.5 rounded-xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] animate-fade-in font-display backdrop-blur-md">
