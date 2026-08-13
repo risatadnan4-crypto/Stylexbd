@@ -2631,20 +2631,15 @@ app.get("/api/products/:id", async (req, res) => {
 
 // Resilient helper to upsert product data to Supabase, automatically handling schema columns mismatch and database alters
 async function upsertProductToSupabase(productPayload: any) {
-  // Strip local-only payment & setting metadata before sending to Supabase
+  // We do NOT hard-delete payment/delivery parameters here because the products table
+  // may have these columns; if they don't exist, our dynamic pruning loop below
+  // will gracefully prune them and retry! This guarantees perfect persistence.
   const basePayload = { ...productPayload };
-  delete basePayload.bkashNumber;
-  delete basePayload.nagadNumber;
-  delete basePayload.paymentType;
-  delete basePayload.paymentPercentage;
-  delete basePayload.deliveryCharge;
-  delete basePayload.deliveryDays;
-  delete basePayload.isPinned;
-  delete basePayload.freeDelivery;
 
-  // Try dynamic payload supporting both snake_case and camelCase SEO & OpenGraph columns, pruning any unsupported columns dynamically in a loop
+  // Try dynamic payload supporting both snake_case and camelCase SEO, OpenGraph, division-wise delivery prices, and payment options, pruning any unsupported columns dynamically in a loop
   const payloadSnake: any = {
     ...basePayload,
+    // SEO & OG mappings
     seo_title: basePayload.seoTitle || null,
     seo_description: basePayload.seoDescription || null,
     seo_keywords: basePayload.seoKeywords || basePayload.metaKeywords || null,
@@ -2656,6 +2651,70 @@ async function upsertProductToSupabase(productPayload: any) {
     og_image: basePayload.ogImage || null,
     robots: basePayload.robots || null,
     
+    // Division-wise delivery prices snake_case mappings
+    delivery_price: basePayload.deliveryPrice !== undefined && basePayload.deliveryPrice !== null ? Number(basePayload.deliveryPrice) : null,
+    delivery_price_dhaka: basePayload.deliveryPriceDhaka !== undefined && basePayload.deliveryPriceDhaka !== null ? Number(basePayload.deliveryPriceDhaka) : null,
+    delivery_price_chattogram: basePayload.deliveryPriceChattogram !== undefined && basePayload.deliveryPriceChattogram !== null ? Number(basePayload.deliveryPriceChattogram) : null,
+    delivery_price_rajshahi: basePayload.deliveryPriceRajshahi !== undefined && basePayload.deliveryPriceRajshahi !== null ? Number(basePayload.deliveryPriceRajshahi) : null,
+    delivery_price_khulna: basePayload.deliveryPriceKhulna !== undefined && basePayload.deliveryPriceKhulna !== null ? Number(basePayload.deliveryPriceKhulna) : null,
+    delivery_price_barishal: basePayload.deliveryPriceBarishal !== undefined && basePayload.deliveryPriceBarishal !== null ? Number(basePayload.deliveryPriceBarishal) : null,
+    delivery_price_sylhet: basePayload.deliveryPriceSylhet !== undefined && basePayload.deliveryPriceSylhet !== null ? Number(basePayload.deliveryPriceSylhet) : null,
+    delivery_price_rangpur: basePayload.deliveryPriceRangpur !== undefined && basePayload.deliveryPriceRangpur !== null ? Number(basePayload.deliveryPriceRangpur) : null,
+    delivery_price_mymensingh: basePayload.deliveryPriceMymensingh !== undefined && basePayload.deliveryPriceMymensingh !== null ? Number(basePayload.deliveryPriceMymensingh) : null,
+
+    // Product other fields mapping to snake_case
+    image_url: basePayload.imageUrl || null,
+    why_buy: basePayload.whyBuy || null,
+    lottery_eligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : null,
+    coupon_code: basePayload.couponCode || null,
+    coupon_discount_percent: basePayload.couponDiscountPercent !== undefined && basePayload.couponDiscountPercent !== null ? Number(basePayload.couponDiscountPercent) : null,
+    offer_price: basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : null,
+    timer_offer_price: basePayload.timerOfferPrice !== undefined && basePayload.timerOfferPrice !== null ? Number(basePayload.timerOfferPrice) : (basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : null),
+    timer_start_time: basePayload.timerStartTime || null,
+    timer_start_date: basePayload.timerStartDate || basePayload.timerStartTime || null,
+    timer_end_time: basePayload.timerEndTime || null,
+    timer_end_date: basePayload.timerEndDate || basePayload.timerEndTime || null,
+    timer_message: basePayload.timerMessage || null,
+    timer_active: basePayload.timerActive !== undefined ? !!basePayload.timerActive : null,
+    timer_enabled: basePayload.timerEnabled !== undefined ? !!basePayload.timerEnabled : (basePayload.timerActive !== undefined ? !!basePayload.timerActive : null),
+
+    // Payment and custom delivery fields mappings
+    bkash_number: basePayload.bkashNumber || null,
+    nagad_number: basePayload.nagadNumber || null,
+    payment_type: basePayload.paymentType || null,
+    payment_percentage: basePayload.paymentPercentage !== undefined && basePayload.paymentPercentage !== null ? Number(basePayload.paymentPercentage) : null,
+    delivery_charge: basePayload.deliveryCharge !== undefined && basePayload.deliveryCharge !== null ? Number(basePayload.deliveryCharge) : null,
+    delivery_days: basePayload.deliveryDays || null,
+    is_pinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : null,
+    free_delivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : null,
+
+    // Support camelCase properties as well
+    deliveryPrice: basePayload.deliveryPrice !== undefined && basePayload.deliveryPrice !== null ? Number(basePayload.deliveryPrice) : undefined,
+    deliveryPriceDhaka: basePayload.deliveryPriceDhaka !== undefined && basePayload.deliveryPriceDhaka !== null ? Number(basePayload.deliveryPriceDhaka) : undefined,
+    deliveryPriceChattogram: basePayload.deliveryPriceChattogram !== undefined && basePayload.deliveryPriceChattogram !== null ? Number(basePayload.deliveryPriceChattogram) : undefined,
+    deliveryPriceRajshahi: basePayload.deliveryPriceRajshahi !== undefined && basePayload.deliveryPriceRajshahi !== null ? Number(basePayload.deliveryPriceRajshahi) : undefined,
+    deliveryPriceKhulna: basePayload.deliveryPriceKhulna !== undefined && basePayload.deliveryPriceKhulna !== null ? Number(basePayload.deliveryPriceKhulna) : undefined,
+    deliveryPriceBarishal: basePayload.deliveryPriceBarishal !== undefined && basePayload.deliveryPriceBarishal !== null ? Number(basePayload.deliveryPriceBarishal) : undefined,
+    deliveryPriceSylhet: basePayload.deliveryPriceSylhet !== undefined && basePayload.deliveryPriceSylhet !== null ? Number(basePayload.deliveryPriceSylhet) : undefined,
+    deliveryPriceRangpur: basePayload.deliveryPriceRangpur !== undefined && basePayload.deliveryPriceRangpur !== null ? Number(basePayload.deliveryPriceRangpur) : undefined,
+    deliveryPriceMymensingh: basePayload.deliveryPriceMymensingh !== undefined && basePayload.deliveryPriceMymensingh !== null ? Number(basePayload.deliveryPriceMymensingh) : undefined,
+    lotteryEligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : undefined,
+    couponCode: basePayload.couponCode,
+    couponDiscountPercent: basePayload.couponDiscountPercent !== undefined && basePayload.couponDiscountPercent !== null ? Number(basePayload.couponDiscountPercent) : undefined,
+    offerPrice: basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : undefined,
+    timerOfferPrice: basePayload.timerOfferPrice !== undefined && basePayload.timerOfferPrice !== null ? Number(basePayload.timerOfferPrice) : undefined,
+    timerStartTime: basePayload.timerStartTime,
+    timerEndTime: basePayload.timerEndTime,
+    timerMessage: basePayload.timerMessage,
+    timerActive: basePayload.timerActive !== undefined ? !!basePayload.timerActive : undefined,
+    bkashNumber: basePayload.bkashNumber,
+    nagadNumber: basePayload.nagadNumber,
+    paymentType: basePayload.paymentType,
+    paymentPercentage: basePayload.paymentPercentage !== undefined && basePayload.paymentPercentage !== null ? Number(basePayload.paymentPercentage) : undefined,
+    deliveryCharge: basePayload.deliveryCharge !== undefined && basePayload.deliveryCharge !== null ? Number(basePayload.deliveryCharge) : undefined,
+    deliveryDays: basePayload.deliveryDays,
+    freeDelivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : undefined,
+
     // Support camelCase SEO properties
     seoTitle: basePayload.seoTitle || null,
     seoDescription: basePayload.seoDescription || null,

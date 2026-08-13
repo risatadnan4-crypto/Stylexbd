@@ -448,10 +448,18 @@ export default function CartDrawer({
           return max;
         }
         let customPrice = 150;
+        const generalCharge = item.product.deliveryCharge !== undefined && item.product.deliveryCharge > 0 
+          ? Number(item.product.deliveryCharge) 
+          : undefined;
+
         if (shippingDivision === "Dhaka") {
-          customPrice = item.product.deliveryPriceDhaka !== undefined 
-            ? Number(item.product.deliveryPriceDhaka) 
-            : (item.product.deliveryCharge !== undefined && item.product.deliveryCharge > 0 ? Number(item.product.deliveryCharge) : 100);
+          if (generalCharge !== undefined) {
+            customPrice = generalCharge;
+          } else {
+            customPrice = item.product.deliveryPriceDhaka !== undefined 
+              ? Number(item.product.deliveryPriceDhaka) 
+              : 100;
+          }
         } else {
           let specificPrice: number | undefined = undefined;
           switch (shippingDivision) {
@@ -477,12 +485,13 @@ export default function CartDrawer({
               specificPrice = item.product.deliveryPriceMymensingh;
               break;
           }
-          if (specificPrice !== undefined) {
+
+          if (specificPrice !== undefined && (generalCharge === undefined || specificPrice !== 150)) {
             customPrice = Number(specificPrice);
+          } else if (generalCharge !== undefined) {
+            customPrice = generalCharge;
           } else {
-            customPrice = item.product.deliveryCharge !== undefined && item.product.deliveryCharge > 0
-              ? Number(item.product.deliveryCharge)
-              : 150;
+            customPrice = 150;
           }
         }
         return customPrice > max ? customPrice : max;

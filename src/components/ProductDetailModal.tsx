@@ -954,7 +954,7 @@ export default function ProductDetailModal({
               <div className="flex items-center gap-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 px-4 w-full sm:w-fit justify-center sm:justify-start animate-fade-in mt-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />
                 <span className="text-[11px] sm:text-xs font-mono text-purple-300 font-bold uppercase tracking-wide sm:tracking-widest leading-normal">
-                  🚀 Delivery: ৳{product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100} (Dhaka) / ৳{product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150} (Outside) - {globalDeliveryDays || product.deliveryDays || "3-5"} Days
+                  🚀 Delivery: ৳{product.deliveryCharge !== undefined && product.deliveryCharge > 0 ? product.deliveryCharge : (product.deliveryPriceDhaka !== undefined ? product.deliveryPriceDhaka : 100)} (Dhaka) / ৳{product.deliveryCharge !== undefined && product.deliveryCharge > 0 ? product.deliveryCharge : (product.deliveryPriceChattogram !== undefined ? product.deliveryPriceChattogram : 150)} (Outside) - {globalDeliveryDays || product.deliveryDays || "3-5"} Days
                 </span>
               </div>
             )}

@@ -3452,6 +3452,24 @@ export default function AdminPanel({
                   setFormRobots('index, follow');
                   setEnableKeywordsEdit(false);
                   setUploadProgress('');
+
+                  // Reset delivery charge parameters and payment configurations to fresh default states
+                  setFormDeliveryPrice(100);
+                  setFormDeliveryPriceDhaka(100);
+                  setFormDeliveryPriceChattogram(150);
+                  setFormDeliveryPriceRajshahi(150);
+                  setFormDeliveryPriceKhulna(150);
+                  setFormDeliveryPriceBarishal(150);
+                  setFormDeliveryPriceSylhet(150);
+                  setFormDeliveryPriceRangpur(150);
+                  setFormDeliveryPriceMymensingh(150);
+                  setFormDeliveryCharge(100);
+                  setFormDeliveryDays('3-5');
+                  setFormPaymentType('cod');
+                  setFormPaymentPercentage(10);
+                  setFormBkashNumber('');
+                  setFormNagadNumber('');
+
                   setShowProductForm(!showProductForm);
                 }}
                 className="bg-gradient-to-r from-luxury-gold-dark to-luxury-gold text-luxury-black font-display font-semibold uppercase text-xs tracking-widest py-2.5 px-5 rounded hover:brightness-110 flex items-center gap-1.5 transition-all cursor-pointer"
@@ -3853,7 +3871,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
 
             {/* Interactive Add/Edit Form Overlay wrapper */}
             {showProductForm && (
-              <form onSubmit={handleSaveProductSubmit} className="bg-[#15151D] border border-luxury-gold/40 p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+              <form onSubmit={handleSaveProductSubmit} className="bg-[#121218] border border-[#d4af37]/40 p-8 rounded-2xl space-y-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md">
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <h3 className="font-serif text-lg text-white font-bold uppercase">
                     {editingProduct ? `Edit Curated Piece: ${editingProduct.title}` : "Create Exquisite Product Collection"}
@@ -4057,7 +4075,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   </div>
 
                   {/* Style X Payment Configuration */}
-                  <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#d4af37]/5 to-transparent border border-[#d4af37]/20 p-5 rounded-xl space-y-4">
+                  <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#d4af37]/8 to-[#15151d]/10 border border-[#d4af37]/30 p-6 rounded-xl space-y-5 shadow-[0_0_20px_rgba(212,175,55,0.05)] transition-all duration-300 hover:border-[#d4af37]/55">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">⚜️</span>
                       <h4 className="text-xs uppercase font-serif tracking-widest text-[#d4af37] font-bold">Style X Independent Payment Settings</h4>
@@ -4106,7 +4124,10 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           type="number"
                           required
                           value={formDeliveryCharge}
-                          onChange={(e) => setFormDeliveryCharge(Number(e.target.value))}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setFormDeliveryCharge(val);
+                          }}
                           placeholder="e.g. 100"
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                         />
@@ -4229,7 +4250,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   </div>
 
                   {/* LOTTERY & EXCLUSIVE PRODUCT COUPON SETTINGS */}
-                  <div className="md:col-span-2 border border-white/5 bg-white/[0.02] p-4 rounded-xl space-y-4">
+                  <div className="md:col-span-2 border border-white/10 bg-white/[0.03] p-6 rounded-xl space-y-5 shadow-[0_4px_24px_rgba(0,0,0,0.15)] transition-all duration-300 hover:border-white/20">
                     <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5 border-b border-white/5 pb-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
                       Campaign & Coupon Integration
@@ -8939,7 +8960,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* SYSTEM ROUTING CONTROLLER CARD */}
-              <form onSubmit={handleSaveSettings} className="border border-[rgba(255,255,255,0.08)] hover:border-luxury-gold/45 bg-[#15151D] p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)] relative overflow-hidden transition-all duration-300">
+              <form onSubmit={handleSaveSettings} className="border border-[#d4af37]/30 hover:border-[#d4af37]/60 bg-[#121218] p-8 rounded-2xl space-y-5 shadow-[0_12px_40px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all duration-300 backdrop-blur-md">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl"></div>
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded bg-green-500/10 border border-green-500/30 text-green-400">
