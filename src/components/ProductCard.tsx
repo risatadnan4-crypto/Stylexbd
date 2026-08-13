@@ -487,20 +487,7 @@ export default function ProductCard({
             </a>
           </h3>
 
-          {/* SEO Keywords tags for better indexing */}
-          {keywordTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1 mb-1.5 justify-start">
-              {keywordTags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="text-[8px] sm:text-[9.5px] bg-[#0c051a] text-zinc-400 hover:text-luxury-gold border border-luxury-gold/15 hover:border-luxury-gold/30 rounded px-1.5 py-0.5 transition-colors duration-200 cursor-pointer select-none"
-                  title={`Explore #${tag}`}
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* SEO Keywords tags are indexed via SEOManager; removed from card visual render for a cleaner premium UI */}
 
           {/* Pricing & Exclusive tag / Flash Sale Badge */}
           <div className="flex items-center justify-between gap-2 border-t border-white/5 pt-2 px-1">

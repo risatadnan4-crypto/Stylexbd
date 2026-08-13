@@ -151,7 +151,8 @@ let db = {
       { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
       { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
     ],
-    productPayments: {} as Record<string, any>
+    productPayments: {} as Record<string, any>,
+    productSeo: {} as Record<string, any>
   }
 };
 
@@ -325,7 +326,8 @@ try {
         { text: "Exclusive Concierge Pass", value: "MEMBER_PASS", type: "pass" },
         { text: "Royal Golden Keychain", value: "KEYCHAIN", type: "merch" }
       ],
-      productPayments: db.settings?.productPayments || {}
+      productPayments: db.settings?.productPayments || {},
+      productSeo: (db.settings as any)?.productSeo || {}
     };
 
     // Auto-generate keywords for all existing products on startup for complete SEO consistency
@@ -2317,7 +2319,8 @@ app.post("/api/settings", xoroAdminAuthMiddleware, async (req, res) => {
       sourceProtectionDescription: sourceProtectionDescription !== undefined ? sourceProtectionDescription.trim() : (db.settings?.sourceProtectionDescription || "This application's proprietary source code, styling assets, and architecture are protected by strict intellectual property controls."),
       sourceProtectionImageUrl: sourceProtectionImageUrl !== undefined ? sourceProtectionImageUrl.trim() : (db.settings?.sourceProtectionImageUrl || ""),
       lotteryPrizes: Array.isArray(lotteryPrizes) ? lotteryPrizes : (db.settings?.lotteryPrizes || []),
-      productPayments: db.settings?.productPayments || {}
+      productPayments: db.settings?.productPayments || {},
+      productSeo: (db.settings as any)?.productSeo || {}
     };
 
     lastLocalSettingsWrite = Date.now();
