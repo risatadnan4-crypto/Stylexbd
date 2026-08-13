@@ -109,6 +109,7 @@ export default function App() {
   const [isWishlistPage, setIsWishlistPage] = useState(false);
   const [activeFormId, setActiveFormId] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<any | null>(null);
+  const [currentPath, setCurrentPath] = useState<string>('/');
   const [fetchingActiveForm, setFetchingActiveForm] = useState(false);
   const [formResponses, setFormResponses] = useState<Record<string, any>>({});
   const [formSubmittedSuccessfully, setFormSubmittedSuccessfully] = useState(false);
@@ -367,6 +368,7 @@ export default function App() {
       }
     }
 
+    setCurrentPath(pathname);
     const urlParams = new URLSearchParams(searchString);
 
     if (pathname === '/xxxrisatxxx') {
@@ -715,6 +717,38 @@ export default function App() {
           keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
           canonical = "https://stylexbd.vercel.app/category/accessories";
         }
+      } else if (currentPath === '/about') {
+        title = "About StyleX BD | The Curated Luxury Fashion Experience";
+        desc = "Discover the heritage, curation standards, and vision of StyleX BD. Bangladesh's premium destination for high-end streetwear and artisanal fashion curation.";
+        canonical = "https://stylexbd.vercel.app/about";
+      } else if (currentPath === '/faq') {
+        title = "Frequently Asked Questions | StyleX BD Help Center";
+        desc = "Find answers to frequently asked questions about orders, payments, size guides, and secure nationwide Cash on Delivery with StyleX BD.";
+        canonical = "https://stylexbd.vercel.app/faq";
+      } else if (currentPath === '/delivery') {
+        title = "Secure Nationwide Delivery Information | StyleX BD";
+        desc = "Learn about our premium physical verification delivery handoff, delivery timelines, and secure Cash on Delivery (COD) services across Bangladesh.";
+        canonical = "https://stylexbd.vercel.app/delivery";
+      } else if (currentPath === '/returns') {
+        title = "Easy Returns & Exchange Policy | StyleX BD";
+        desc = "Read our step-by-step returns, claims, and exchange guidelines for all StyleX BD apparel, ensuring a risk-free luxury shopping experience.";
+        canonical = "https://stylexbd.vercel.app/returns";
+      } else if (currentPath === '/contact') {
+        title = "Contact Private Concierge Support | StyleX BD";
+        desc = "Reach out to the StyleX BD private concierge, customer support, or admin team for bespoke order assistance, WhatsApp concierge, or partner inquiries.";
+        canonical = "https://stylexbd.vercel.app/contact";
+      } else if (currentPath === '/size-guide') {
+        title = "Official StyleX BD Apparel Size Guide";
+        desc = "Find the perfect fit with our comprehensive size guide. Measurements for shirts, t-shirts, cargo pants, hoodies, and jackets from StyleX BD.";
+        canonical = "https://stylexbd.vercel.app/size-guide";
+      } else if (currentPath === '/blog') {
+        title = "StyleX Editorial Blog | Luxury Fashion & Streetwear Trends";
+        desc = "Explore the latest style lookbooks, streetwear culture insights, fabric curation notes, and luxury fashion trends from the StyleX BD editorial team.";
+        canonical = "https://stylexbd.vercel.app/blog";
+      } else if (currentPath === '/rewards') {
+        title = "VIP Rewards & Loyalty Benefits Program | StyleX BD";
+        desc = "Discover the StyleX BD VIP rewards program. Earn exclusive member passes, loyalty discounts, rare product drop access, and private styling benefits.";
+        canonical = "https://stylexbd.vercel.app/rewards";
       }
     }
 
@@ -743,7 +777,7 @@ export default function App() {
     updateOrCreateMeta('twitter:url', canonical);
     updateOrCreateMeta('twitter:image', imageUrl);
 
-  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, settings]);
+  }, [selectedProduct, activeCategory, searchQuery, isAdminView, isWishlistPage, isTrackMode, settings, currentPath]);
 
   // Hash-based URL State Synchronizer for 404-free page refreshes & SEO deep-linking
   React.useEffect(() => {

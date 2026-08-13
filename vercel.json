@@ -8,15 +8,15 @@
   "rewrites": [
     {
       "source": "/api/sitemap",
-      "destination": "/api/sitemap.js"
+      "destination": "/api/sitemap"
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/index.ts"
+      "destination": "/api/index"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "/api/index.ts"
+      "destination": "/api/index"
     },
     {
       "source": "/sitemap.xml",
@@ -28,7 +28,7 @@
     },
     {
       "source": "/:path*",
-      "destination": "/api/index.ts"
+      "destination": "/api/index"
     }
   ]
 }
