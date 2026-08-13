@@ -2482,6 +2482,10 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       }
       return val;
     })(),
+    seo_keywords: (() => {
+      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
+      return val;
+    })(),
     metaKeywords: (() => {
       const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
       return val;

@@ -17,6 +17,7 @@ import OrderTracker from './components/OrderTracker';
 import LiveChat from './components/LiveChat';
 import LotteryModal, { LotteryPrize } from './components/LotteryModal';
 import AdminPanel from './components/AdminPanel';
+import SEOManager from './components/SEOManager';
 import XoroAssistant from './components/XoroAssistant';
 // @ts-ignore
 import defaultXoroAvatar from './assets/images/xoro_mascot_3d_1782635214676.jpg';
@@ -2602,6 +2603,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans overflow-x-hidden antialiased">
+      <SEOManager 
+        products={products} 
+        selectedProduct={selectedProduct} 
+        currentPath={currentPath} 
+      />
       {/* Premium Loader Overlay */}
       <AnimatePresence mode="wait">
         {isSiteLoading && (

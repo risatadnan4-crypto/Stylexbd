@@ -1484,6 +1484,7 @@ export default function AdminPanel({
   const [formOgDescription, setFormOgDescription] = useState('');
   const [formOgImage, setFormOgImage] = useState('');
   const [formRobots, setFormRobots] = useState('index, follow');
+  const [enableKeywordsEdit, setEnableKeywordsEdit] = useState(false);
 
   const isValidUrl = (urlStr: string): boolean => {
     if (!urlStr || !urlStr.trim()) return true;
@@ -2202,7 +2203,10 @@ export default function AdminPanel({
       const data = await response.json();
       if (data.seoTitle) setFormSeoTitle(data.seoTitle);
       if (data.seoSlug) setFormSeoSlug(data.seoSlug);
-      if (data.seoKeywords) setFormSeoKeywords(data.seoKeywords);
+      if (data.seoKeywords) {
+        setFormSeoKeywords(data.seoKeywords);
+        setEnableKeywordsEdit(true);
+      }
       if (data.seoDescription) setFormSeoDescription(data.seoDescription);
 
       setAdminToast({
@@ -2303,6 +2307,7 @@ export default function AdminPanel({
       seoTitle: formSeoTitle || null,
       seoDescription: formSeoDescription || null,
       seoKeywords: formSeoKeywords || formMetaKeywords || null,
+      seo_keywords: formSeoKeywords || formMetaKeywords || null,
       metaKeywords: formMetaKeywords || formSeoKeywords || null,
       seoSlug: formSeoSlug || null,
       canonicalUrl: formCanonicalUrl || null,
@@ -2416,14 +2421,15 @@ export default function AdminPanel({
     setFormLikes(prod.likes !== undefined ? Number(prod.likes) : 0);
     setFormSeoTitle(prod.seoTitle || '');
     setFormSeoDescription(prod.seoDescription || '');
-    setFormSeoKeywords(prod.seoKeywords || prod.metaKeywords || '');
-    setFormMetaKeywords(prod.metaKeywords || prod.seoKeywords || '');
+    setFormSeoKeywords(prod.seo_keywords || prod.seoKeywords || prod.metaKeywords || '');
+    setFormMetaKeywords(prod.metaKeywords || prod.seo_keywords || prod.seoKeywords || '');
     setFormSeoSlug(prod.seoSlug || '');
     setFormCanonicalUrl(prod.canonicalUrl || '');
     setFormOgTitle(prod.ogTitle || '');
     setFormOgDescription(prod.ogDescription || '');
     setFormOgImage(prod.ogImage || '');
     setFormRobots(prod.robots || 'index, follow');
+    setEnableKeywordsEdit(!!(prod.seo_keywords || prod.seoKeywords || prod.metaKeywords));
     setShowProductForm(true);
   };
 
@@ -3444,6 +3450,7 @@ export default function AdminPanel({
                   setFormOgDescription('');
                   setFormOgImage('');
                   setFormRobots('index, follow');
+                  setEnableKeywordsEdit(false);
                   setUploadProgress('');
                   setShowProductForm(!showProductForm);
                 }}
@@ -4767,18 +4774,44 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           />
                         </div>
 
-                        <div className="md:col-span-2">
-                          <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">SEO Focus Keywords / Meta Keywords (ফোকাস / মেটা কিওয়ার্ডস)</label>
-                          <input 
-                            type="text" 
-                            value={formSeoKeywords} 
-                            onChange={(e) => {
-                              setFormSeoKeywords(e.target.value);
-                              setFormMetaKeywords(e.target.value);
-                            }}
-                            placeholder="e.g. panjabi, premium clothing, silk, stylex"
-                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                          />
+                        <div className="md:col-span-2 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">
+                              SEO Focus Keywords / Meta Keywords (ফোকাস / মেটা কিওয়ার্ডস)
+                            </label>
+                            
+                            {/* Toggle Switch */}
+                            <label className="relative inline-flex items-center cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                checked={enableKeywordsEdit}
+                                onChange={(e) => setEnableKeywordsEdit(e.target.checked)}
+                                className="sr-only peer"
+                              />
+                              <div className="w-8 h-4 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-luxury-gold"></div>
+                              <span className="ml-2 text-[10px] font-mono text-white/40 uppercase tracking-widest peer-checked:text-luxury-gold">
+                                {enableKeywordsEdit ? "Edit Enabled" : "Edit Disabled"}
+                              </span>
+                            </label>
+                          </div>
+
+                          {enableKeywordsEdit ? (
+                            <input 
+                              type="text" 
+                              value={formSeoKeywords} 
+                              onChange={(e) => {
+                                setFormSeoKeywords(e.target.value);
+                                setFormMetaKeywords(e.target.value);
+                              }}
+                              placeholder="e.g. panjabi, premium clothing, silk, stylex"
+                              className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
+                            />
+                          ) : (
+                            <div className="w-full bg-luxury-charcoal/50 text-white/40 text-xs border border-white/5 rounded py-2.5 px-3 select-none italic flex justify-between items-center">
+                              <span className="truncate max-w-[85%]">{formSeoKeywords || "No keywords defined. Toggle 'Edit Enabled' to configure."}</span>
+                              <span className="text-[9px] font-mono uppercase bg-white/5 text-white/30 px-1.5 py-0.5 rounded">Locked</span>
+                            </div>
+                          )}
                         </div>
 
                         <div>

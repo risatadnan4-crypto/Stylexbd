@@ -53,6 +53,7 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
+  seo_keywords?: string;
   metaKeywords?: string;
   seoSlug?: string;
   canonicalUrl?: string;
