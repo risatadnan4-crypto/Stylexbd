@@ -327,6 +327,18 @@ try {
       ],
       productPayments: db.settings?.productPayments || {}
     };
+
+    // Auto-generate keywords for all existing products on startup for complete SEO consistency
+    if (db.products && db.products.length > 0) {
+      db.products.forEach(p => {
+        const generated = generateSeoKeywordsForProduct(p.title);
+        p.seoKeywords = generated;
+        p.seo_keywords = generated;
+        p.metaKeywords = generated;
+      });
+      console.log(`✨ Successfully synchronized and generated SEO keywords for all ${db.products.length} existing products.`);
+    }
+
     saveDB();
   }
 } catch (err) {
@@ -387,6 +399,28 @@ const xoroAdminAuthMiddleware = (req: express.Request & { isSuperAdmin?: boolean
   req.isSuperAdmin = isSuperAdmin;
   next();
 };
+
+// Helper to generate SEO keywords for a product title
+function generateSeoKeywordsForProduct(title: string): string {
+  const base = [
+    "stylex",
+    "style x",
+    "style x bd",
+    "stylex bd",
+    "style x bangladesh",
+    "stylex online shopping",
+    "stylex clothing"
+  ];
+  if (!title) return base.join(", ");
+  const cleanTitle = title.trim().toLowerCase();
+  const titleSpecific = [
+    `${cleanTitle} price in bangladesh`,
+    `stylex ${cleanTitle}`,
+    `buy ${cleanTitle} online bd`,
+    `authentic style x ${cleanTitle}`
+  ];
+  return [...base, ...titleSpecific].join(", ");
+}
 
 // Function to save database file
 function saveDB() {
@@ -2751,6 +2785,13 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   if (!newProduct.code) {
     newProduct.code = `XP-${Math.floor(100 + Math.random() * 900)}`;
   }
+
+  // Auto-generate keywords for the new product
+  const generatedKeywords = generateSeoKeywordsForProduct(newProduct.title);
+  newProduct.seoKeywords = generatedKeywords;
+  newProduct.seo_keywords = generatedKeywords;
+  newProduct.metaKeywords = generatedKeywords;
+
   // Ensure deliveryPrice has a numeric fallback if not provided
   newProduct.deliveryPrice = newProduct.deliveryPrice !== undefined ? Number(newProduct.deliveryPrice) : 100;
   newProduct.deliveryPriceDhaka = newProduct.deliveryPriceDhaka !== undefined ? Number(newProduct.deliveryPriceDhaka) : 100;

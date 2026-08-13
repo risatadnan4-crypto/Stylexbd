@@ -3891,7 +3891,38 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Product Title</label>
                       <input 
-                        type="text" required value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
+                        type="text" required value={formTitle} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormTitle(val);
+                          // Auto-generate keywords dynamically for new products
+                          if (editingProduct === null) {
+                            const base = [
+                              "stylex",
+                              "style x",
+                              "style x bd",
+                              "stylex bd",
+                              "style x bangladesh",
+                              "stylex online shopping",
+                              "stylex clothing"
+                            ];
+                            if (val.trim()) {
+                              const cleanTitle = val.trim().toLowerCase();
+                              const keywords = [
+                                ...base,
+                                `${cleanTitle} price in bangladesh`,
+                                `stylex ${cleanTitle}`,
+                                `buy ${cleanTitle} online bd`,
+                                `authentic style x ${cleanTitle}`
+                              ].join(", ");
+                              setFormSeoKeywords(keywords);
+                              setFormMetaKeywords(keywords);
+                            } else {
+                              setFormSeoKeywords('');
+                              setFormMetaKeywords('');
+                            }
+                          }
+                        }}
                         placeholder="e.g. Risat Adnan Signature Tee"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
                       />
