@@ -2464,7 +2464,6 @@ function serializeDimensions(dimensionsVal: any, colorsVal: any, extraMeta?: any
 function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
   const local = localProduct || {};
   const id = String(p?.id || local.id || Math.random().toString(36).substring(2, 10));
-  const nestedLocal = (id && local && (local as any)[id]) || local || {};
   const paymentMeta = pm && Object.keys(pm).length > 0 
     ? pm 
     : (((db.settings as any)?.productPayments && id && (db.settings as any).productPayments[id]) || {});
@@ -2560,132 +2559,92 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return "Standard Fitting";
   })();
 
+  const resolvedOfferPrice = (() => {
+    if (local.offerPrice !== undefined) {
+      return local.offerPrice !== null && local.offerPrice !== "" && !isNaN(Number(local.offerPrice)) ? Number(local.offerPrice) : undefined;
+    }
+    if (p?.offerPrice !== undefined) {
+      return p.offerPrice !== null && p.offerPrice !== "" && !isNaN(Number(p.offerPrice)) ? Number(p.offerPrice) : undefined;
+    }
+    if (p?.offer_price !== undefined) {
+      return p.offer_price !== null && p.offer_price !== "" && !isNaN(Number(p.offer_price)) ? Number(p.offer_price) : undefined;
+    }
+    if (dimObj?.offerPrice !== undefined) {
+      return dimObj.offerPrice !== null && dimObj.offerPrice !== "" && !isNaN(Number(dimObj.offerPrice)) ? Number(dimObj.offerPrice) : undefined;
+    }
+    if (paymentMeta?.offerPrice !== undefined) {
+      return paymentMeta.offerPrice !== null && paymentMeta.offerPrice !== "" && !isNaN(Number(paymentMeta.offerPrice)) ? Number(paymentMeta.offerPrice) : undefined;
+    }
+    return undefined;
+  })();
+
+  const resolvedSeoKeywords = getStr(local.seoKeywords, local.seo_keywords, local.metaKeywords, p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, dimObj?.seoKeywords, seoMeta.seoKeywords, "");
+  const resolvedSeoTitle = getStr(local.seoTitle, p?.seoTitle, p?.seo_title, dimObj?.seoTitle, seoMeta.seoTitle, "");
+  const resolvedSeoDesc = getStr(local.seoDescription, p?.seoDescription, p?.seo_description, dimObj?.seoDescription, seoMeta.seoDescription, "");
+  const resolvedSeoSlug = getStr(local.seoSlug, p?.seoSlug, p?.seo_slug, dimObj?.seoSlug, seoMeta.seoSlug, "");
+  const resolvedCanonical = getStr(local.canonicalUrl, p?.canonicalUrl, p?.canonical_url, dimObj?.canonicalUrl, seoMeta.canonicalUrl, "");
+  const resolvedOgTitle = getStr(local.ogTitle, p?.ogTitle, p?.og_title, dimObj?.ogTitle, seoMeta.ogTitle, "");
+  const resolvedOgDesc = getStr(local.ogDescription, p?.ogDescription, p?.og_description, dimObj?.ogDescription, seoMeta.ogDescription, "");
+  const resolvedOgImage = getStr(local.ogImage, p?.ogImage, p?.og_image, dimObj?.ogImage, seoMeta.ogImage, "");
+  const resolvedRobots = getStr(local.robots, p?.robots, dimObj?.robots, seoMeta.robots, "index, follow");
+
   return {
     id,
-    code: getStr(p?.code, p?.product_code, paymentMeta.code, local.code, `XP-${Math.floor(100 + Math.random() * 900)}`),
-    title: getStr(p?.title, p?.product_title, local.title, "Untitled Creation"),
-    description: getStr(p?.description, p?.product_description, local.description, ""),
-    price: getNum(p?.price, local.price, 0) ?? 0,
-    category: (getStr(p?.category, local.category, "UNISEX") as any),
-    stock: getNum(p?.stock, local.stock, 0) ?? 0,
-    imageUrl: getStr(p?.imageUrl, p?.image_url, local.imageUrl, ""),
+    code: getStr(local.code, p?.code, p?.product_code, paymentMeta.code, `XP-${Math.floor(100 + Math.random() * 900)}`),
+    title: getStr(local.title, p?.title, p?.product_title, "Untitled Creation"),
+    description: getStr(local.description, p?.description, p?.product_description, ""),
+    price: getNum(local.price, p?.price, 0) ?? 0,
+    category: (getStr(local.category, p?.category, "UNISEX") as any),
+    stock: getNum(local.stock, p?.stock, 0) ?? 0,
+    imageUrl: getStr(local.imageUrl, p?.imageUrl, p?.image_url, ""),
     images: parsedImages,
     colors: parsedColors,
     sizes: parsedSizes,
     dimensions: resolvedDimensionsText,
-    whyBuy: getStr(p?.whyBuy, p?.why_buy, local.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
-    trending: getBool(p?.trending, local.trending, true),
-    featured: getBool(p?.featured, local.featured, true),
-    isPinned: getBool(p?.isPinned, p?.is_pinned, dimObj?.isPinned, paymentMeta.isPinned, nestedLocal.isPinned, local.isPinned, false),
-    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, dimObj?.deliveryPrice, dimObj?.delivery_price, paymentMeta.deliveryPrice, nestedLocal.deliveryPrice, local.deliveryPrice, 100) ?? 100,
-    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, dimObj?.deliveryPriceDhaka, dimObj?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, nestedLocal.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
-    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, dimObj?.deliveryPriceChattogram, dimObj?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, nestedLocal.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
-    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, dimObj?.deliveryPriceRajshahi, dimObj?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, nestedLocal.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
-    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, dimObj?.deliveryPriceKhulna, dimObj?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, nestedLocal.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
-    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, dimObj?.deliveryPriceBarishal, dimObj?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, nestedLocal.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
-    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, dimObj?.deliveryPriceSylhet, dimObj?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, nestedLocal.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
-    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, dimObj?.deliveryPriceRangpur, dimObj?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, nestedLocal.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
-    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, dimObj?.deliveryPriceMymensingh, dimObj?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, nestedLocal.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
-    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, nestedLocal.lotteryEligible, local.lotteryEligible, true),
-    couponCode: getStr(p?.couponCode, p?.coupon_code, dimObj?.couponCode, nestedLocal.couponCode, local.couponCode, ""),
-    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent, nestedLocal.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
-    offerPrice: getNum(paymentMeta.offerPrice, paymentMeta.timerOfferPrice, dimObj?.offerPrice, dimObj?.timerOfferPrice, nestedLocal.offerPrice, nestedLocal.timerOfferPrice, p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, local.offerPrice) ?? undefined,
-    timerOfferPrice: getNum(paymentMeta.timerOfferPrice, paymentMeta.offerPrice, dimObj?.timerOfferPrice, dimObj?.offerPrice, nestedLocal.timerOfferPrice, nestedLocal.offerPrice, p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, local.timerOfferPrice) ?? undefined,
-    timerStartTime: getStr(paymentMeta.timerStartTime, paymentMeta.timerStartDate, dimObj?.timerStartTime, dimObj?.timerStartDate, nestedLocal.timerStartTime, nestedLocal.timerStartDate, p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, local.timerStartTime, ""),
-    timerStartDate: getStr(paymentMeta.timerStartDate, paymentMeta.timerStartTime, dimObj?.timerStartDate, dimObj?.timerStartTime, nestedLocal.timerStartDate, nestedLocal.timerStartTime, p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, local.timerStartDate, ""),
-    timerEndTime: getStr(paymentMeta.timerEndTime, paymentMeta.timerEndDate, dimObj?.timerEndTime, dimObj?.timerEndDate, nestedLocal.timerEndTime, nestedLocal.timerEndDate, p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, local.timerEndTime, ""),
-    timerEndDate: getStr(paymentMeta.timerEndDate, paymentMeta.timerEndTime, dimObj?.timerEndDate, dimObj?.timerEndTime, nestedLocal.timerEndDate, nestedLocal.timerEndTime, p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, local.timerEndDate, ""),
-    timerMessage: getStr(paymentMeta.timerMessage, dimObj?.timerMessage, nestedLocal.timerMessage, p?.timerMessage, p?.timer_message, local.timerMessage, ""),
-    timerActive: getBool(paymentMeta.timerActive, paymentMeta.timerEnabled, dimObj?.timerActive, dimObj?.timerEnabled, nestedLocal.timerActive, nestedLocal.timerEnabled, p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, local.timerActive, true),
-    timerEnabled: getBool(paymentMeta.timerEnabled, paymentMeta.timerActive, dimObj?.timerEnabled, dimObj?.timerActive, nestedLocal.timerEnabled, nestedLocal.timerActive, p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, local.timerEnabled, true),
-    bkashNumber: getStr(paymentMeta.bkashNumber, dimObj?.bkashNumber, nestedLocal.bkashNumber, p?.bkashNumber, p?.bkash_number, local.bkashNumber, ""),
-    nagadNumber: getStr(paymentMeta.nagadNumber, dimObj?.nagadNumber, nestedLocal.nagadNumber, p?.nagadNumber, p?.nagad_number, local.nagadNumber, ""),
-    paymentType: (getStr(paymentMeta.paymentType, dimObj?.paymentType, nestedLocal.paymentType, p?.paymentType, p?.payment_type, local.paymentType, "cod") as any),
-    paymentPercentage: getNum(paymentMeta.paymentPercentage, dimObj?.paymentPercentage, nestedLocal.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, local.paymentPercentage, 10) ?? 10,
-    deliveryCharge: getNum(paymentMeta.deliveryCharge, dimObj?.deliveryCharge, nestedLocal.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, local.deliveryCharge, 100) ?? 100,
-    deliveryDays: getStr(paymentMeta.deliveryDays, dimObj?.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
-    freeDelivery: getBool(paymentMeta.freeDelivery, dimObj?.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
-    likes: getNum(p?.likes, paymentMeta.likes, dimObj?.likes, nestedLocal.likes, local.likes, 0) ?? 0,
-    seoTitle: (() => {
-      const val = getStr(p?.seoTitle, p?.seo_title, dimObj?.seoTitle, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoTitle: val };
-      }
-      return val;
-    })(),
-    seoDescription: (() => {
-      const val = getStr(p?.seoDescription, p?.seo_description, dimObj?.seoDescription, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoDescription) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoDescription: val };
-      }
-      return val;
-    })(),
-    seoKeywords: (() => {
-      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, dimObj?.seoKeywords, dimObj?.metaKeywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoKeywords) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoKeywords: val, metaKeywords: val };
-      }
-      return val;
-    })(),
-    seo_keywords: (() => {
-      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, dimObj?.seoKeywords, dimObj?.metaKeywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
-      return val;
-    })(),
-    metaKeywords: (() => {
-      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, dimObj?.metaKeywords, dimObj?.seoKeywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
-      return val;
-    })(),
-    seoSlug: (() => {
-      const val = getStr(p?.seoSlug, p?.seo_slug, dimObj?.seoSlug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoSlug) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoSlug: val };
-      }
-      return val;
-    })(),
-    canonicalUrl: (() => {
-      const val = getStr(p?.canonicalUrl, p?.canonical_url, dimObj?.canonicalUrl, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.canonicalUrl) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), canonicalUrl: val };
-      }
-      return val;
-    })(),
-    ogTitle: (() => {
-      const val = getStr(p?.ogTitle, p?.og_title, dimObj?.ogTitle, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.ogTitle) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogTitle: val };
-      }
-      return val;
-    })(),
-    ogDescription: (() => {
-      const val = getStr(p?.ogDescription, p?.og_description, dimObj?.ogDescription, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.ogDescription) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogDescription: val };
-      }
-      return val;
-    })(),
-    ogImage: (() => {
-      const val = getStr(p?.ogImage, p?.og_image, dimObj?.ogImage, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.ogImage) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogImage: val };
-      }
-      return val;
-    })(),
-    robots: (() => {
-      const val = getStr(p?.robots, dimObj?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow");
-      if (val && !(db.settings as any).productSeo?.[id]?.robots) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), robots: val };
-      }
-      return val;
-    })()
+    whyBuy: getStr(local.whyBuy, p?.whyBuy, p?.why_buy, dimObj?.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
+    trending: getBool(local.trending, p?.trending, true),
+    featured: getBool(local.featured, p?.featured, true),
+    isPinned: getBool(local.isPinned, p?.isPinned, p?.is_pinned, dimObj?.isPinned, paymentMeta.isPinned, false),
+    deliveryPrice: getNum(local.deliveryPrice, p?.deliveryPrice, p?.delivery_price, dimObj?.deliveryPrice, paymentMeta.deliveryPrice, 100) ?? 100,
+    deliveryPriceDhaka: getNum(local.deliveryPriceDhaka, p?.deliveryPriceDhaka, p?.delivery_price_dhaka, dimObj?.deliveryPriceDhaka, paymentMeta.deliveryPriceDhaka, 100) ?? 100,
+    deliveryPriceChattogram: getNum(local.deliveryPriceChattogram, p?.deliveryPriceChattogram, p?.delivery_price_chattogram, dimObj?.deliveryPriceChattogram, paymentMeta.deliveryPriceChattogram, 150) ?? 150,
+    deliveryPriceRajshahi: getNum(local.deliveryPriceRajshahi, p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, dimObj?.deliveryPriceRajshahi, paymentMeta.deliveryPriceRajshahi, 150) ?? 150,
+    deliveryPriceKhulna: getNum(local.deliveryPriceKhulna, p?.deliveryPriceKhulna, p?.delivery_price_khulna, dimObj?.deliveryPriceKhulna, paymentMeta.deliveryPriceKhulna, 150) ?? 150,
+    deliveryPriceBarishal: getNum(local.deliveryPriceBarishal, p?.deliveryPriceBarishal, p?.delivery_price_barishal, dimObj?.deliveryPriceBarishal, paymentMeta.deliveryPriceBarishal, 150) ?? 150,
+    deliveryPriceSylhet: getNum(local.deliveryPriceSylhet, p?.deliveryPriceSylhet, p?.delivery_price_sylhet, dimObj?.deliveryPriceSylhet, paymentMeta.deliveryPriceSylhet, 150) ?? 150,
+    deliveryPriceRangpur: getNum(local.deliveryPriceRangpur, p?.deliveryPriceRangpur, p?.delivery_price_rangpur, dimObj?.deliveryPriceRangpur, paymentMeta.deliveryPriceRangpur, 150) ?? 150,
+    deliveryPriceMymensingh: getNum(local.deliveryPriceMymensingh, p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, dimObj?.deliveryPriceMymensingh, paymentMeta.deliveryPriceMymensingh, 150) ?? 150,
+    lotteryEligible: getBool(local.lotteryEligible, p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, true),
+    couponCode: getStr(local.couponCode, p?.couponCode, p?.coupon_code, dimObj?.couponCode, ""),
+    couponDiscountPercent: getNum(local.couponDiscountPercent, p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent) ?? undefined,
+    offerPrice: resolvedOfferPrice,
+    timerOfferPrice: resolvedOfferPrice,
+    timerStartTime: getStr(local.timerStartTime, local.timerStartDate, p?.timerStartTime, p?.timer_start_time, dimObj?.timerStartTime, paymentMeta.timerStartTime, ""),
+    timerStartDate: getStr(local.timerStartDate, local.timerStartTime, p?.timerStartDate, p?.timer_start_date, dimObj?.timerStartDate, paymentMeta.timerStartDate, ""),
+    timerEndTime: getStr(local.timerEndTime, local.timerEndDate, p?.timerEndTime, p?.timer_end_time, dimObj?.timerEndTime, paymentMeta.timerEndTime, ""),
+    timerEndDate: getStr(local.timerEndDate, local.timerEndTime, p?.timerEndDate, p?.timer_end_date, dimObj?.timerEndDate, paymentMeta.timerEndDate, ""),
+    timerMessage: getStr(local.timerMessage, p?.timerMessage, p?.timer_message, dimObj?.timerMessage, paymentMeta.timerMessage, ""),
+    timerActive: getBool(local.timerActive, local.timerEnabled, p?.timerActive, p?.timer_active, dimObj?.timerActive, paymentMeta.timerActive, true),
+    timerEnabled: getBool(local.timerEnabled, local.timerActive, p?.timerEnabled, p?.timer_enabled, dimObj?.timerEnabled, paymentMeta.timerEnabled, true),
+    bkashNumber: getStr(local.bkashNumber, p?.bkashNumber, p?.bkash_number, dimObj?.bkashNumber, paymentMeta.bkashNumber, ""),
+    nagadNumber: getStr(local.nagadNumber, p?.nagadNumber, p?.nagad_number, dimObj?.nagadNumber, paymentMeta.nagadNumber, ""),
+    paymentType: (getStr(local.paymentType, p?.paymentType, p?.payment_type, dimObj?.paymentType, paymentMeta.paymentType, "cod") as any),
+    paymentPercentage: getNum(local.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, dimObj?.paymentPercentage, paymentMeta.paymentPercentage, 10) ?? 10,
+    deliveryCharge: getNum(local.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, dimObj?.deliveryCharge, paymentMeta.deliveryCharge, 100) ?? 100,
+    deliveryDays: getStr(local.deliveryDays, p?.deliveryDays, p?.delivery_days, dimObj?.deliveryDays, paymentMeta.deliveryDays, "3-5"),
+    freeDelivery: getBool(local.freeDelivery, p?.freeDelivery, p?.free_delivery, dimObj?.freeDelivery, paymentMeta.freeDelivery, false),
+    likes: getNum(local.likes, p?.likes, dimObj?.likes, paymentMeta.likes, 0) ?? 0,
+    seoTitle: resolvedSeoTitle,
+    seoDescription: resolvedSeoDesc,
+    seoKeywords: resolvedSeoKeywords,
+    seo_keywords: resolvedSeoKeywords,
+    metaKeywords: resolvedSeoKeywords,
+    seoSlug: resolvedSeoSlug,
+    canonicalUrl: resolvedCanonical,
+    ogTitle: resolvedOgTitle,
+    ogDescription: resolvedOgDesc,
+    ogImage: resolvedOgImage,
+    robots: resolvedRobots
   };
 }
 
@@ -2980,13 +2939,22 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     newProduct.code = `XP-${Math.floor(100 + Math.random() * 900)}`;
   }
 
-  // Auto-generate keywords for the new product
-  const generatedKeywords = generateSeoKeywordsForProduct(newProduct.title);
-  newProduct.seoKeywords = generatedKeywords;
-  newProduct.seo_keywords = generatedKeywords;
-  newProduct.metaKeywords = generatedKeywords;
+  // Auto-generate keywords for the new product only if not explicitly provided
+  if (!newProduct.seoKeywords && !newProduct.metaKeywords && !newProduct.seo_keywords) {
+    const generatedKeywords = generateSeoKeywordsForProduct(newProduct.title);
+    newProduct.seoKeywords = generatedKeywords;
+    newProduct.seo_keywords = generatedKeywords;
+    newProduct.metaKeywords = generatedKeywords;
+  }
 
-  // Ensure deliveryPrice has a numeric fallback if not provided
+  const resolvedOfferPrice = newProduct.offerPrice !== undefined && newProduct.offerPrice !== null && (newProduct.offerPrice as any) !== "" && !isNaN(Number(newProduct.offerPrice))
+    ? Number(newProduct.offerPrice)
+    : null;
+
+  newProduct.price = Number(newProduct.price || 0);
+  newProduct.stock = Number(newProduct.stock || 0);
+  newProduct.offerPrice = resolvedOfferPrice;
+  newProduct.timerOfferPrice = resolvedOfferPrice;
   newProduct.deliveryPrice = newProduct.deliveryPrice !== undefined ? Number(newProduct.deliveryPrice) : 100;
   newProduct.deliveryPriceDhaka = newProduct.deliveryPriceDhaka !== undefined ? Number(newProduct.deliveryPriceDhaka) : 100;
   newProduct.deliveryPriceChattogram = newProduct.deliveryPriceChattogram !== undefined ? Number(newProduct.deliveryPriceChattogram) : 150;
@@ -2996,6 +2964,16 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   newProduct.deliveryPriceSylhet = newProduct.deliveryPriceSylhet !== undefined ? Number(newProduct.deliveryPriceSylhet) : 150;
   newProduct.deliveryPriceRangpur = newProduct.deliveryPriceRangpur !== undefined ? Number(newProduct.deliveryPriceRangpur) : 150;
   newProduct.deliveryPriceMymensingh = newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150;
+  newProduct.timerStartTime = newProduct.timerStartTime || null;
+  newProduct.timerStartDate = newProduct.timerStartTime || null;
+  newProduct.timerEndTime = newProduct.timerEndTime || null;
+  newProduct.timerEndDate = newProduct.timerEndTime || null;
+  newProduct.timerMessage = newProduct.timerMessage || null;
+  newProduct.timerActive = newProduct.timerActive !== undefined ? !!newProduct.timerActive : true;
+  newProduct.timerEnabled = newProduct.timerActive;
+  newProduct.couponCode = newProduct.couponCode ? String(newProduct.couponCode).trim() : "";
+  newProduct.couponDiscountPercent = newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null && (newProduct.couponDiscountPercent as any) !== "" ? Number(newProduct.couponDiscountPercent) : null;
+  newProduct.likes = Number(newProduct.likes || 0);
   
   db.products.push(newProduct);
   saveDB();
@@ -3035,11 +3013,6 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     db.settings.productPayments = {};
   }
 
-  const resolvedOfferPrice = getNumVal(newProduct.offerPrice, newProduct.timerOfferPrice);
-  const resolvedTimerStartTime = getStrVal(newProduct.timerStartTime, newProduct.timerStartDate);
-  const resolvedTimerEndTime = getStrVal(newProduct.timerEndTime, newProduct.timerEndDate);
-  const resolvedTimerActive = getBoolVal(newProduct.timerActive, newProduct.timerEnabled);
-
   db.settings.productPayments[newProduct.id] = {
     bkashNumber: newProduct.bkashNumber || "",
     nagadNumber: newProduct.nagadNumber || "",
@@ -3050,23 +3023,39 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     isPinned: !!newProduct.isPinned,
     offerPrice: resolvedOfferPrice,
     timerOfferPrice: resolvedOfferPrice,
-    timerStartTime: resolvedTimerStartTime,
-    timerStartDate: resolvedTimerStartTime,
-    timerEndTime: resolvedTimerEndTime,
-    timerEndDate: resolvedTimerEndTime,
+    timerStartTime: newProduct.timerStartTime,
+    timerStartDate: newProduct.timerStartTime,
+    timerEndTime: newProduct.timerEndTime,
+    timerEndDate: newProduct.timerEndTime,
     timerMessage: newProduct.timerMessage || null,
-    timerActive: resolvedTimerActive,
-    timerEnabled: resolvedTimerActive,
+    timerActive: newProduct.timerActive,
+    timerEnabled: newProduct.timerActive,
     freeDelivery: !!newProduct.freeDelivery,
-    likes: newProduct.likes !== undefined ? Number(newProduct.likes) : 0,
-    deliveryPriceDhaka: newProduct.deliveryPriceDhaka !== undefined ? Number(newProduct.deliveryPriceDhaka) : 100,
-    deliveryPriceChattogram: newProduct.deliveryPriceChattogram !== undefined ? Number(newProduct.deliveryPriceChattogram) : 150,
-    deliveryPriceRajshahi: newProduct.deliveryPriceRajshahi !== undefined ? Number(newProduct.deliveryPriceRajshahi) : 150,
-    deliveryPriceKhulna: newProduct.deliveryPriceKhulna !== undefined ? Number(newProduct.deliveryPriceKhulna) : 150,
-    deliveryPriceBarishal: newProduct.deliveryPriceBarishal !== undefined ? Number(newProduct.deliveryPriceBarishal) : 150,
-    deliveryPriceSylhet: newProduct.deliveryPriceSylhet !== undefined ? Number(newProduct.deliveryPriceSylhet) : 150,
-    deliveryPriceRangpur: newProduct.deliveryPriceRangpur !== undefined ? Number(newProduct.deliveryPriceRangpur) : 150,
-    deliveryPriceMymensingh: newProduct.deliveryPriceMymensingh !== undefined ? Number(newProduct.deliveryPriceMymensingh) : 150
+    likes: newProduct.likes,
+    deliveryPriceDhaka: newProduct.deliveryPriceDhaka,
+    deliveryPriceChattogram: newProduct.deliveryPriceChattogram,
+    deliveryPriceRajshahi: newProduct.deliveryPriceRajshahi,
+    deliveryPriceKhulna: newProduct.deliveryPriceKhulna,
+    deliveryPriceBarishal: newProduct.deliveryPriceBarishal,
+    deliveryPriceSylhet: newProduct.deliveryPriceSylhet,
+    deliveryPriceRangpur: newProduct.deliveryPriceRangpur,
+    deliveryPriceMymensingh: newProduct.deliveryPriceMymensingh
+  };
+
+  if (!(db.settings as any).productSeo) {
+    (db.settings as any).productSeo = {};
+  }
+  (db.settings as any).productSeo[newProduct.id] = {
+    seoTitle: newProduct.seoTitle || "",
+    seoDescription: newProduct.seoDescription || "",
+    seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || "",
+    metaKeywords: newProduct.metaKeywords || newProduct.seoKeywords || "",
+    seoSlug: newProduct.seoSlug || "",
+    canonicalUrl: newProduct.canonicalUrl || "",
+    ogTitle: newProduct.ogTitle || "",
+    ogDescription: newProduct.ogDescription || "",
+    ogImage: newProduct.ogImage || "",
+    robots: newProduct.robots || "index, follow"
   };
   await syncSettingsToCloud();
 
@@ -3081,18 +3070,18 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       stock: Number(newProduct.stock || 0),
       imageUrl: newProduct.imageUrl,
       images: Array.isArray(newProduct.images) ? JSON.stringify(newProduct.images) : JSON.stringify([]),
-      sizes: JSON.stringify(newProduct.sizes),
+      sizes: typeof newProduct.sizes === "string" ? newProduct.sizes : JSON.stringify(newProduct.sizes),
       colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
       dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors, {
-        deliveryPrice: Number(newProduct.deliveryPrice || 100),
-        deliveryPriceDhaka: Number(newProduct.deliveryPriceDhaka || 100),
-        deliveryPriceChattogram: Number(newProduct.deliveryPriceChattogram || 150),
-        deliveryPriceRajshahi: Number(newProduct.deliveryPriceRajshahi || 150),
-        deliveryPriceKhulna: Number(newProduct.deliveryPriceKhulna || 150),
-        deliveryPriceBarishal: Number(newProduct.deliveryPriceBarishal || 150),
-        deliveryPriceSylhet: Number(newProduct.deliveryPriceSylhet || 150),
-        deliveryPriceRangpur: Number(newProduct.deliveryPriceRangpur || 150),
-        deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150),
+        deliveryPrice: newProduct.deliveryPrice,
+        deliveryPriceDhaka: newProduct.deliveryPriceDhaka,
+        deliveryPriceChattogram: newProduct.deliveryPriceChattogram,
+        deliveryPriceRajshahi: newProduct.deliveryPriceRajshahi,
+        deliveryPriceKhulna: newProduct.deliveryPriceKhulna,
+        deliveryPriceBarishal: newProduct.deliveryPriceBarishal,
+        deliveryPriceSylhet: newProduct.deliveryPriceSylhet,
+        deliveryPriceRangpur: newProduct.deliveryPriceRangpur,
+        deliveryPriceMymensingh: newProduct.deliveryPriceMymensingh,
         deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
         deliveryDays: newProduct.deliveryDays || "",
         freeDelivery: !!newProduct.freeDelivery,
@@ -3107,10 +3096,10 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
         offerPrice: resolvedOfferPrice,
         timerOfferPrice: resolvedOfferPrice,
-        timerStartTime: resolvedTimerStartTime,
-        timerEndTime: resolvedTimerEndTime,
+        timerStartTime: newProduct.timerStartTime,
+        timerEndTime: newProduct.timerEndTime,
         timerMessage: newProduct.timerMessage || null,
-        timerActive: resolvedTimerActive,
+        timerActive: newProduct.timerActive,
         seoTitle: newProduct.seoTitle || null,
         seoDescription: newProduct.seoDescription || null,
         seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || null,
@@ -3127,23 +3116,23 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       featured: !!newProduct.featured,
       isPinned: !!newProduct.isPinned,
       likes: Number(newProduct.likes || 0),
-      deliveryPrice: Number(newProduct.deliveryPrice || 100),
-      deliveryPriceDhaka: Number(newProduct.deliveryPriceDhaka || 100),
-      deliveryPriceChattogram: Number(newProduct.deliveryPriceChattogram || 150),
-      deliveryPriceRajshahi: Number(newProduct.deliveryPriceRajshahi || 150),
-      deliveryPriceKhulna: Number(newProduct.deliveryPriceKhulna || 150),
-      deliveryPriceBarishal: Number(newProduct.deliveryPriceBarishal || 150),
-      deliveryPriceSylhet: Number(newProduct.deliveryPriceSylhet || 150),
-      deliveryPriceRangpur: Number(newProduct.deliveryPriceRangpur || 150),
-      deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150),
+      deliveryPrice: newProduct.deliveryPrice,
+      deliveryPriceDhaka: newProduct.deliveryPriceDhaka,
+      deliveryPriceChattogram: newProduct.deliveryPriceChattogram,
+      deliveryPriceRajshahi: newProduct.deliveryPriceRajshahi,
+      deliveryPriceKhulna: newProduct.deliveryPriceKhulna,
+      deliveryPriceBarishal: newProduct.deliveryPriceBarishal,
+      deliveryPriceSylhet: newProduct.deliveryPriceSylhet,
+      deliveryPriceRangpur: newProduct.deliveryPriceRangpur,
+      deliveryPriceMymensingh: newProduct.deliveryPriceMymensingh,
       lotteryEligible: newProduct.lotteryEligible !== undefined ? !!newProduct.lotteryEligible : true,
       couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
       couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
-      offerPrice: newProduct.offerPrice !== undefined && newProduct.offerPrice !== null ? Number(newProduct.offerPrice) : null,
-      timerStartTime: newProduct.timerStartTime || null,
-      timerEndTime: newProduct.timerEndTime || null,
+      offerPrice: resolvedOfferPrice,
+      timerStartTime: newProduct.timerStartTime,
+      timerEndTime: newProduct.timerEndTime,
       timerMessage: newProduct.timerMessage || null,
-      timerActive: newProduct.timerActive !== undefined ? !!newProduct.timerActive : true,
+      timerActive: newProduct.timerActive,
       bkashNumber: newProduct.bkashNumber || "",
       nagadNumber: newProduct.nagadNumber || "",
       paymentType: newProduct.paymentType || "cod",
@@ -3162,23 +3151,6 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       ogImage: newProduct.ogImage || null,
       robots: newProduct.robots || "index, follow"
     };
-
-    if (!(db.settings as any).productSeo) {
-      (db.settings as any).productSeo = {};
-    }
-    (db.settings as any).productSeo[newProduct.id] = {
-      seoTitle: newProduct.seoTitle || "",
-      seoDescription: newProduct.seoDescription || "",
-      seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || "",
-      metaKeywords: newProduct.metaKeywords || newProduct.seoKeywords || "",
-      seoSlug: newProduct.seoSlug || "",
-      canonicalUrl: newProduct.canonicalUrl || "",
-      ogTitle: newProduct.ogTitle || "",
-      ogDescription: newProduct.ogDescription || "",
-      ogImage: newProduct.ogImage || "",
-      robots: newProduct.robots || "index, follow"
-    };
-    await syncSettingsToCloud();
     
     try {
       const { error: upsertError } = await upsertProductToSupabase(payload);
@@ -3207,64 +3179,85 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   res.status(201).json(newProduct);
 });
 
-  app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
+app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const targetId = String(req.params.id || "").trim();
   const idx = db.products.findIndex(p => String(p.id).trim() === targetId || String(p.code || "").trim().toUpperCase() === targetId.toUpperCase());
   if (idx !== -1) {
     const existingProd = db.products[idx];
-    const updatedBody = { ...req.body };
+    const b = req.body;
 
-    // Do not overwrite existing non-empty SEO fields if updatedBody passed undefined or null without new values
-    const existingSeo = (db.settings as any)?.productSeo?.[existingProd.id] || {};
-    if (!updatedBody.seoTitle && (existingProd.seoTitle || existingSeo.seoTitle)) updatedBody.seoTitle = existingProd.seoTitle || existingSeo.seoTitle;
-    if (!updatedBody.seoDescription && (existingProd.seoDescription || existingSeo.seoDescription)) updatedBody.seoDescription = existingProd.seoDescription || existingSeo.seoDescription;
-    if (!updatedBody.seoKeywords && (existingProd.seoKeywords || existingProd.metaKeywords || existingSeo.seoKeywords || existingSeo.metaKeywords)) updatedBody.seoKeywords = existingProd.seoKeywords || existingProd.metaKeywords || existingSeo.seoKeywords || existingSeo.metaKeywords;
-    if (!updatedBody.metaKeywords && (existingProd.metaKeywords || existingProd.seoKeywords || existingSeo.metaKeywords || existingSeo.seoKeywords)) updatedBody.metaKeywords = existingProd.metaKeywords || existingProd.seoKeywords || existingSeo.metaKeywords || existingSeo.seoKeywords;
-    if (!updatedBody.seoSlug && (existingProd.seoSlug || existingSeo.seoSlug)) updatedBody.seoSlug = existingProd.seoSlug || existingSeo.seoSlug;
-    if (!updatedBody.canonicalUrl && (existingProd.canonicalUrl || existingSeo.canonicalUrl)) updatedBody.canonicalUrl = existingProd.canonicalUrl || existingSeo.canonicalUrl;
-    if (!updatedBody.ogTitle && (existingProd.ogTitle || existingSeo.ogTitle)) updatedBody.ogTitle = existingProd.ogTitle || existingSeo.ogTitle;
-    if (!updatedBody.ogDescription && (existingProd.ogDescription || existingSeo.ogDescription)) updatedBody.ogDescription = existingProd.ogDescription || existingSeo.ogDescription;
-    if (!updatedBody.ogImage && (existingProd.ogImage || existingSeo.ogImage)) updatedBody.ogImage = existingProd.ogImage || existingSeo.ogImage;
-    if (!updatedBody.robots && (existingProd.robots || existingSeo.robots)) updatedBody.robots = existingProd.robots || existingSeo.robots || "index, follow";
+    const resolvedOfferPrice = b.offerPrice !== undefined
+      ? (b.offerPrice === null || b.offerPrice === "" || isNaN(Number(b.offerPrice)) ? null : Number(b.offerPrice))
+      : existingProd.offerPrice;
 
-    if (updatedBody.deliveryPrice !== undefined) {
-      updatedBody.deliveryPrice = Number(updatedBody.deliveryPrice);
-    }
-    if (updatedBody.deliveryPriceDhaka !== undefined) {
-      updatedBody.deliveryPriceDhaka = Number(updatedBody.deliveryPriceDhaka);
-    }
-    if (updatedBody.deliveryPriceChattogram !== undefined) {
-      updatedBody.deliveryPriceChattogram = Number(updatedBody.deliveryPriceChattogram);
-    }
-    if (updatedBody.deliveryPriceRajshahi !== undefined) {
-      updatedBody.deliveryPriceRajshahi = Number(updatedBody.deliveryPriceRajshahi);
-    }
-    if (updatedBody.deliveryPriceKhulna !== undefined) {
-      updatedBody.deliveryPriceKhulna = Number(updatedBody.deliveryPriceKhulna);
-    }
-    if (updatedBody.deliveryPriceBarishal !== undefined) {
-      updatedBody.deliveryPriceBarishal = Number(updatedBody.deliveryPriceBarishal);
-    }
-    if (updatedBody.deliveryPriceSylhet !== undefined) {
-      updatedBody.deliveryPriceSylhet = Number(updatedBody.deliveryPriceSylhet);
-    }
-    if (updatedBody.deliveryPriceRangpur !== undefined) {
-      updatedBody.deliveryPriceRangpur = Number(updatedBody.deliveryPriceRangpur);
-    }
-    if (updatedBody.deliveryPriceMymensingh !== undefined) {
-      updatedBody.deliveryPriceMymensingh = Number(updatedBody.deliveryPriceMymensingh);
-    }
-    db.products[idx] = { ...db.products[idx], ...updatedBody };
+    const updatedProd: Product = {
+      ...existingProd,
+      ...b,
+      id: existingProd.id,
+      code: b.code !== undefined ? b.code : existingProd.code,
+      title: b.title !== undefined ? b.title : existingProd.title,
+      description: b.description !== undefined ? b.description : existingProd.description,
+      price: b.price !== undefined ? Number(b.price) : existingProd.price,
+      stock: b.stock !== undefined ? Number(b.stock) : existingProd.stock,
+      category: b.category !== undefined ? b.category : existingProd.category,
+      imageUrl: b.imageUrl !== undefined ? b.imageUrl : existingProd.imageUrl,
+      images: b.images !== undefined ? b.images : existingProd.images,
+      colors: b.colors !== undefined ? b.colors : existingProd.colors,
+      sizes: b.sizes !== undefined ? b.sizes : existingProd.sizes,
+      dimensions: b.dimensions !== undefined ? b.dimensions : existingProd.dimensions,
+      whyBuy: b.whyBuy !== undefined ? b.whyBuy : existingProd.whyBuy,
+      trending: b.trending !== undefined ? !!b.trending : existingProd.trending,
+      featured: b.featured !== undefined ? !!b.featured : existingProd.featured,
+      isPinned: b.isPinned !== undefined ? !!b.isPinned : existingProd.isPinned,
+      deliveryPrice: b.deliveryPrice !== undefined ? Number(b.deliveryPrice) : existingProd.deliveryPrice,
+      deliveryPriceDhaka: b.deliveryPriceDhaka !== undefined ? Number(b.deliveryPriceDhaka) : existingProd.deliveryPriceDhaka,
+      deliveryPriceChattogram: b.deliveryPriceChattogram !== undefined ? Number(b.deliveryPriceChattogram) : existingProd.deliveryPriceChattogram,
+      deliveryPriceRajshahi: b.deliveryPriceRajshahi !== undefined ? Number(b.deliveryPriceRajshahi) : existingProd.deliveryPriceRajshahi,
+      deliveryPriceKhulna: b.deliveryPriceKhulna !== undefined ? Number(b.deliveryPriceKhulna) : existingProd.deliveryPriceKhulna,
+      deliveryPriceBarishal: b.deliveryPriceBarishal !== undefined ? Number(b.deliveryPriceBarishal) : existingProd.deliveryPriceBarishal,
+      deliveryPriceSylhet: b.deliveryPriceSylhet !== undefined ? Number(b.deliveryPriceSylhet) : existingProd.deliveryPriceSylhet,
+      deliveryPriceRangpur: b.deliveryPriceRangpur !== undefined ? Number(b.deliveryPriceRangpur) : existingProd.deliveryPriceRangpur,
+      deliveryPriceMymensingh: b.deliveryPriceMymensingh !== undefined ? Number(b.deliveryPriceMymensingh) : existingProd.deliveryPriceMymensingh,
+      lotteryEligible: b.lotteryEligible !== undefined ? !!b.lotteryEligible : existingProd.lotteryEligible,
+      couponCode: b.couponCode !== undefined ? String(b.couponCode).trim() : existingProd.couponCode,
+      couponDiscountPercent: b.couponDiscountPercent !== undefined ? (b.couponDiscountPercent === null || b.couponDiscountPercent === "" ? null : Number(b.couponDiscountPercent)) : existingProd.couponDiscountPercent,
+      offerPrice: resolvedOfferPrice,
+      timerOfferPrice: resolvedOfferPrice,
+      timerStartTime: b.timerStartTime !== undefined ? (b.timerStartTime || null) : existingProd.timerStartTime,
+      timerStartDate: b.timerStartTime !== undefined ? (b.timerStartTime || null) : existingProd.timerStartDate,
+      timerEndTime: b.timerEndTime !== undefined ? (b.timerEndTime || null) : existingProd.timerEndTime,
+      timerEndDate: b.timerEndTime !== undefined ? (b.timerEndTime || null) : existingProd.timerEndDate,
+      timerMessage: b.timerMessage !== undefined ? (b.timerMessage || null) : existingProd.timerMessage,
+      timerActive: b.timerActive !== undefined ? !!b.timerActive : existingProd.timerActive,
+      timerEnabled: b.timerActive !== undefined ? !!b.timerActive : existingProd.timerEnabled,
+      bkashNumber: b.bkashNumber !== undefined ? (b.bkashNumber || "") : existingProd.bkashNumber,
+      nagadNumber: b.nagadNumber !== undefined ? (b.nagadNumber || "") : existingProd.nagadNumber,
+      paymentType: b.paymentType !== undefined ? b.paymentType : existingProd.paymentType,
+      paymentPercentage: b.paymentPercentage !== undefined ? (b.paymentPercentage !== null ? Number(b.paymentPercentage) : null) : existingProd.paymentPercentage,
+      deliveryCharge: b.deliveryCharge !== undefined ? Number(b.deliveryCharge) : existingProd.deliveryCharge,
+      deliveryDays: b.deliveryDays !== undefined ? String(b.deliveryDays) : existingProd.deliveryDays,
+      freeDelivery: b.freeDelivery !== undefined ? !!b.freeDelivery : existingProd.freeDelivery,
+      likes: b.likes !== undefined ? Number(b.likes) : existingProd.likes,
+      seoTitle: b.seoTitle !== undefined ? (b.seoTitle || null) : existingProd.seoTitle,
+      seoDescription: b.seoDescription !== undefined ? (b.seoDescription || null) : existingProd.seoDescription,
+      seoKeywords: b.seoKeywords !== undefined ? (b.seoKeywords || null) : (b.metaKeywords !== undefined ? b.metaKeywords : existingProd.seoKeywords),
+      seo_keywords: b.seoKeywords !== undefined ? (b.seoKeywords || null) : (b.metaKeywords !== undefined ? b.metaKeywords : existingProd.seo_keywords),
+      metaKeywords: b.metaKeywords !== undefined ? (b.metaKeywords || null) : (b.seoKeywords !== undefined ? b.seoKeywords : existingProd.metaKeywords),
+      seoSlug: b.seoSlug !== undefined ? (b.seoSlug || null) : existingProd.seoSlug,
+      canonicalUrl: b.canonicalUrl !== undefined ? (b.canonicalUrl || null) : existingProd.canonicalUrl,
+      ogTitle: b.ogTitle !== undefined ? (b.ogTitle || null) : existingProd.ogTitle,
+      ogDescription: b.ogDescription !== undefined ? (b.ogDescription || null) : existingProd.ogDescription,
+      ogImage: b.ogImage !== undefined ? (b.ogImage || null) : existingProd.ogImage,
+      robots: b.robots !== undefined ? (b.robots || "index, follow") : (existingProd.robots || "index, follow")
+    };
+
+    db.products[idx] = updatedProd;
     saveDB();
-    const target = db.products[idx];
+
+    const target = updatedProd;
     if (!db.settings.productPayments) {
       db.settings.productPayments = {};
     }
-
-    const resolvedOfferPriceUpdate = getNumVal(target.offerPrice, target.timerOfferPrice);
-    const resolvedTimerStartTimeUpdate = getStrVal(target.timerStartTime, target.timerStartDate);
-    const resolvedTimerEndTimeUpdate = getStrVal(target.timerEndTime, target.timerEndDate);
-    const resolvedTimerActiveUpdate = getBoolVal(target.timerActive, target.timerEnabled);
 
     db.settings.productPayments[target.id] = {
       bkashNumber: target.bkashNumber || "",
@@ -3274,15 +3267,15 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
       deliveryDays: target.deliveryDays || "",
       isPinned: !!target.isPinned,
-      offerPrice: resolvedOfferPriceUpdate,
-      timerOfferPrice: resolvedOfferPriceUpdate,
-      timerStartTime: resolvedTimerStartTimeUpdate,
-      timerStartDate: resolvedTimerStartTimeUpdate,
-      timerEndTime: resolvedTimerEndTimeUpdate,
-      timerEndDate: resolvedTimerEndTimeUpdate,
+      offerPrice: target.offerPrice,
+      timerOfferPrice: target.timerOfferPrice,
+      timerStartTime: target.timerStartTime,
+      timerStartDate: target.timerStartDate,
+      timerEndTime: target.timerEndTime,
+      timerEndDate: target.timerEndDate,
       timerMessage: target.timerMessage || null,
-      timerActive: resolvedTimerActiveUpdate,
-      timerEnabled: resolvedTimerActiveUpdate,
+      timerActive: target.timerActive,
+      timerEnabled: target.timerEnabled,
       freeDelivery: target.freeDelivery !== undefined ? !!target.freeDelivery : false,
       likes: target.likes !== undefined ? Number(target.likes) : 0,
       deliveryPriceDhaka: target.deliveryPriceDhaka !== undefined ? Number(target.deliveryPriceDhaka) : 100,
@@ -3347,12 +3340,12 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
           lotteryEligible: target.lotteryEligible !== undefined ? !!target.lotteryEligible : true,
           couponCode: target.couponCode ? target.couponCode.trim() : "",
           couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
-          offerPrice: resolvedOfferPriceUpdate,
-          timerOfferPrice: resolvedOfferPriceUpdate,
-          timerStartTime: resolvedTimerStartTimeUpdate,
-          timerEndTime: resolvedTimerEndTimeUpdate,
+          offerPrice: target.offerPrice,
+          timerOfferPrice: target.timerOfferPrice,
+          timerStartTime: target.timerStartTime,
+          timerEndTime: target.timerEndTime,
           timerMessage: target.timerMessage || null,
-          timerActive: resolvedTimerActiveUpdate,
+          timerActive: target.timerActive,
           seoTitle: target.seoTitle || null,
           seoDescription: target.seoDescription || null,
           seoKeywords: target.seoKeywords || target.metaKeywords || null,
