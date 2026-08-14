@@ -2391,7 +2391,7 @@ function tryJsonParse(val: any) {
   }
 }
 
-function serializeDimensions(dimensionsVal: any, colorsVal: any): string {
+function serializeDimensions(dimensionsVal: any, colorsVal: any, extraMeta?: any): string {
   let baseObj: any = {};
   if (typeof dimensionsVal === "string" && dimensionsVal.trim().startsWith("{")) {
     baseObj = tryJsonParse(dimensionsVal) || {};
@@ -2399,6 +2399,13 @@ function serializeDimensions(dimensionsVal: any, colorsVal: any): string {
     baseObj = { dimensions: dimensionsVal || "Standard Fitting" };
   }
   baseObj.colors = colorsVal || [];
+  if (extraMeta && typeof extraMeta === "object") {
+    for (const [k, v] of Object.entries(extraMeta)) {
+      if (v !== undefined && v !== null) {
+        baseObj[k] = v;
+      }
+    }
+  }
   return JSON.stringify(baseObj);
 }
 
@@ -2437,17 +2444,18 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     }
   }
 
-  // Colors
+  // Colors & dimensions JSON metadata
   let parsedColors: any[] = [];
   let rawColors = (p?.colors !== undefined && p?.colors !== null) ? p.colors : local.colors;
+  let dimObj: any = {};
+  const dimStr = p?.dimensions || local.dimensions;
+  if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
+    dimObj = tryJsonParse(dimStr) || {};
+  }
 
   if (rawColors === undefined || rawColors === null || (Array.isArray(rawColors) && rawColors.length === 0)) {
-    const dimStr = p?.dimensions || local.dimensions;
-    if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
-      const parsedDim = tryJsonParse(dimStr);
-      if (parsedDim && Array.isArray(parsedDim.colors) && parsedDim.colors.length > 0) {
-        rawColors = parsedDim.colors;
-      }
+    if (dimObj && Array.isArray(dimObj.colors) && dimObj.colors.length > 0) {
+      rawColors = dimObj.colors;
     }
   }
 
@@ -2487,6 +2495,19 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return null;
   };
 
+  const resolvedDimensionsText = (() => {
+    if (typeof dimObj?.dimensions === "string" && dimObj.dimensions.trim() !== "") {
+      return dimObj.dimensions;
+    }
+    if (typeof p?.dimensions === "string" && !p.dimensions.trim().startsWith("{") && p.dimensions.trim() !== "") {
+      return p.dimensions;
+    }
+    if (typeof local.dimensions === "string" && !local.dimensions.trim().startsWith("{") && local.dimensions.trim() !== "") {
+      return local.dimensions;
+    }
+    return "Standard Fitting";
+  })();
+
   return {
     id,
     code: getStr(p?.code, p?.product_code, paymentMeta.code, local.code, `XP-${Math.floor(100 + Math.random() * 900)}`),
@@ -2499,40 +2520,78 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     images: parsedImages,
     colors: parsedColors,
     sizes: parsedSizes,
-    dimensions: getStr(p?.dimensions, local.dimensions, "Standard Fitting"),
+    dimensions: resolvedDimensionsText,
     whyBuy: getStr(p?.whyBuy, p?.why_buy, local.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
     trending: getBool(p?.trending, local.trending, true),
     featured: getBool(p?.featured, local.featured, true),
-    isPinned: getBool(p?.isPinned, p?.is_pinned, paymentMeta.isPinned, nestedLocal.isPinned, local.isPinned, false),
-    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, paymentMeta.deliveryPrice, nestedLocal.deliveryPrice, local.deliveryPrice, 100) ?? 100,
-    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, nestedLocal.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
-    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, nestedLocal.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
-    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, nestedLocal.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
-    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, nestedLocal.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
-    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, nestedLocal.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
-    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, nestedLocal.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
-    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, nestedLocal.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
-    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, nestedLocal.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
-    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, nestedLocal.lotteryEligible, local.lotteryEligible, true),
-    couponCode: getStr(p?.couponCode, p?.coupon_code, nestedLocal.couponCode, local.couponCode, ""),
-    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, nestedLocal.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
-    offerPrice: getNum(paymentMeta.offerPrice, paymentMeta.timerOfferPrice, nestedLocal.offerPrice, nestedLocal.timerOfferPrice, p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, local.offerPrice) ?? undefined,
-    timerOfferPrice: getNum(paymentMeta.timerOfferPrice, paymentMeta.offerPrice, nestedLocal.timerOfferPrice, nestedLocal.offerPrice, p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, local.timerOfferPrice) ?? undefined,
-    timerStartTime: getStr(paymentMeta.timerStartTime, paymentMeta.timerStartDate, nestedLocal.timerStartTime, nestedLocal.timerStartDate, p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, local.timerStartTime, ""),
-    timerStartDate: getStr(paymentMeta.timerStartDate, paymentMeta.timerStartTime, nestedLocal.timerStartDate, nestedLocal.timerStartTime, p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, local.timerStartDate, ""),
-    timerEndTime: getStr(paymentMeta.timerEndTime, paymentMeta.timerEndDate, nestedLocal.timerEndTime, nestedLocal.timerEndDate, p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, local.timerEndTime, ""),
-    timerEndDate: getStr(paymentMeta.timerEndDate, paymentMeta.timerEndTime, nestedLocal.timerEndDate, nestedLocal.timerEndTime, p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, local.timerEndDate, ""),
-    timerMessage: getStr(paymentMeta.timerMessage, nestedLocal.timerMessage, p?.timerMessage, p?.timer_message, local.timerMessage, ""),
-    timerActive: getBool(paymentMeta.timerActive, paymentMeta.timerEnabled, nestedLocal.timerActive, nestedLocal.timerEnabled, p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, local.timerActive, true),
-    timerEnabled: getBool(paymentMeta.timerEnabled, paymentMeta.timerActive, nestedLocal.timerEnabled, nestedLocal.timerActive, p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, local.timerEnabled, true),
-    bkashNumber: getStr(paymentMeta.bkashNumber, nestedLocal.bkashNumber, p?.bkashNumber, p?.bkash_number, local.bkashNumber, ""),
-    nagadNumber: getStr(paymentMeta.nagadNumber, nestedLocal.nagadNumber, p?.nagadNumber, p?.nagad_number, local.nagadNumber, ""),
-    paymentType: (getStr(paymentMeta.paymentType, nestedLocal.paymentType, p?.paymentType, p?.payment_type, local.paymentType, "cod") as any),
-    paymentPercentage: getNum(paymentMeta.paymentPercentage, nestedLocal.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, local.paymentPercentage, 10) ?? 10,
-    deliveryCharge: getNum(paymentMeta.deliveryCharge, nestedLocal.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, local.deliveryCharge, 100) ?? 100,
-    deliveryDays: getStr(paymentMeta.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
-    freeDelivery: getBool(paymentMeta.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
-    likes: getNum(paymentMeta.likes, nestedLocal.likes, p?.likes, local.likes, 0) ?? 0,
+    isPinned: getBool(p?.isPinned, p?.is_pinned, dimObj?.isPinned, paymentMeta.isPinned, nestedLocal.isPinned, local.isPinned, false),
+    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, dimObj?.deliveryPrice, dimObj?.delivery_price, paymentMeta.deliveryPrice, nestedLocal.deliveryPrice, local.deliveryPrice, 100) ?? 100,
+    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, dimObj?.deliveryPriceDhaka, dimObj?.delivery_price_dhaka, paymentMeta.deliveryPriceDhaka, nestedLocal.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
+    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, dimObj?.deliveryPriceChattogram, dimObj?.delivery_price_chattogram, paymentMeta.deliveryPriceChattogram, nestedLocal.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
+    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, dimObj?.deliveryPriceRajshahi, dimObj?.delivery_price_rajshahi, paymentMeta.deliveryPriceRajshahi, nestedLocal.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
+    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, dimObj?.deliveryPriceKhulna, dimObj?.delivery_price_khulna, paymentMeta.deliveryPriceKhulna, nestedLocal.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
+    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, dimObj?.deliveryPriceBarishal, dimObj?.delivery_price_barishal, paymentMeta.deliveryPriceBarishal, nestedLocal.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
+    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, dimObj?.deliveryPriceSylhet, dimObj?.delivery_price_sylhet, paymentMeta.deliveryPriceSylhet, nestedLocal.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
+    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, dimObj?.deliveryPriceRangpur, dimObj?.delivery_price_rangpur, paymentMeta.deliveryPriceRangpur, nestedLocal.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
+    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, dimObj?.deliveryPriceMymensingh, dimObj?.delivery_price_mymensingh, paymentMeta.deliveryPriceMymensingh, nestedLocal.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
+    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, nestedLocal.lotteryEligible, local.lotteryEligible, true),
+    couponCode: getStr(p?.couponCode, p?.coupon_code, dimObj?.couponCode, nestedLocal.couponCode, local.couponCode, ""),
+    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent, nestedLocal.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
+    offerPrice: getNum(paymentMeta.offerPrice, paymentMeta.timerOfferPrice, dimObj?.offerPrice, dimObj?.timerOfferPrice, nestedLocal.offerPrice, nestedLocal.timerOfferPrice, p?.offerPrice, p?.offer_price, p?.timerOfferPrice, p?.timer_offer_price, local.offerPrice) ?? undefined,
+    timerOfferPrice: getNum(paymentMeta.timerOfferPrice, paymentMeta.offerPrice, dimObj?.timerOfferPrice, dimObj?.offerPrice, nestedLocal.timerOfferPrice, nestedLocal.offerPrice, p?.timerOfferPrice, p?.timer_offer_price, p?.offerPrice, p?.offer_price, local.timerOfferPrice) ?? undefined,
+    timerStartTime: getStr(paymentMeta.timerStartTime, paymentMeta.timerStartDate, dimObj?.timerStartTime, dimObj?.timerStartDate, nestedLocal.timerStartTime, nestedLocal.timerStartDate, p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, local.timerStartTime, ""),
+    timerStartDate: getStr(paymentMeta.timerStartDate, paymentMeta.timerStartTime, dimObj?.timerStartDate, dimObj?.timerStartTime, nestedLocal.timerStartDate, nestedLocal.timerStartTime, p?.timerStartDate, p?.timer_start_date, p?.timerStartTime, p?.timer_start_time, local.timerStartDate, ""),
+    timerEndTime: getStr(paymentMeta.timerEndTime, paymentMeta.timerEndDate, dimObj?.timerEndTime, dimObj?.timerEndDate, nestedLocal.timerEndTime, nestedLocal.timerEndDate, p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, local.timerEndTime, ""),
+    timerEndDate: getStr(paymentMeta.timerEndDate, paymentMeta.timerEndTime, dimObj?.timerEndDate, dimObj?.timerEndTime, nestedLocal.timerEndDate, nestedLocal.timerEndTime, p?.timerEndDate, p?.timer_end_date, p?.timerEndTime, p?.timer_end_time, local.timerEndDate, ""),
+    timerMessage: getStr(paymentMeta.timerMessage, dimObj?.timerMessage, nestedLocal.timerMessage, p?.timerMessage, p?.timer_message, local.timerMessage, ""),
+    timerActive: getBool(paymentMeta.timerActive, paymentMeta.timerEnabled, dimObj?.timerActive, dimObj?.timerEnabled, nestedLocal.timerActive, nestedLocal.timerEnabled, p?.timerActive, p?.timer_active, p?.timerEnabled, p?.timer_enabled, local.timerActive, true),
+    timerEnabled: getBool(paymentMeta.timerEnabled, paymentMeta.timerActive, dimObj?.timerEnabled, dimObj?.timerActive, nestedLocal.timerEnabled, nestedLocal.timerActive, p?.timerEnabled, p?.timer_enabled, p?.timerActive, p?.timer_active, local.timerEnabled, true),
+    bkashNumber: getStr(paymentMeta.bkashNumber, dimObj?.bkashNumber, nestedLocal.bkashNumber, p?.bkashNumber, p?.bkash_number, local.bkashNumber, ""),
+    nagadNumber: getStr(paymentMeta.nagadNumber, dimObj?.nagadNumber, nestedLocal.nagadNumber, p?.nagadNumber, p?.nagad_number, local.nagadNumber, ""),
+    paymentType: (getStr(paymentMeta.paymentType, dimObj?.paymentType, nestedLocal.paymentType, p?.paymentType, p?.payment_type, local.paymentType, "cod") as any),
+    paymentPercentage: getNum(paymentMeta.paymentPercentage, dimObj?.paymentPercentage, nestedLocal.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, local.paymentPercentage, 10) ?? 10,
+    deliveryCharge: getNum(paymentMeta.deliveryCharge, dimObj?.deliveryCharge, nestedLocal.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, local.deliveryCharge, 100) ?? 100,
+    deliveryDays: getStr(paymentMeta.deliveryDays, dimObj?.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
+    freeDelivery: getBool(paymentMeta.freeDelivery, dimObj?.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
+    likes: getNum(paymentMeta.likes, dimObj?.likes, nestedLocal.likes, p?.likes, local.likes, 0) ?? 0,
+    seoTitle: (() => {
+      const val = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoTitle: val };
+      }
+      return val;
+    })(),
+    seoDescription: (() => {
+      const val = getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoDescription) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoDescription: val };
+      }
+      return val;
+    })(),
+    seoKeywords: (() => {
+      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.seoKeywords) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoKeywords: val };
+      }
+      return val;
+    })(),
+    metaKeywords: (() => {
+      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
+      if (val && !(db.settings as any).productSeo?.[id]?.metaKeywords) {
+        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
+        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), metaKeywords: val };
+      }
+      return val;
+    })(),
+    seoSlug: getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, ""),
+    canonicalUrl: getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, ""),
+    ogTitle: getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, ""),
+    ogDescription: getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, ""),
+    ogImage: getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, ""),
+    robots: getStr(p?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow"),
     seoTitle: (() => {
       const val = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
       if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
@@ -2989,7 +3048,31 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       images: Array.isArray(newProduct.images) ? JSON.stringify(newProduct.images) : JSON.stringify([]),
       sizes: JSON.stringify(newProduct.sizes),
       colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
-      dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors),
+      dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors, {
+        deliveryPrice: Number(newProduct.deliveryPrice || 100),
+        deliveryPriceDhaka: Number(newProduct.deliveryPriceDhaka || 100),
+        deliveryPriceChattogram: Number(newProduct.deliveryPriceChattogram || 150),
+        deliveryPriceRajshahi: Number(newProduct.deliveryPriceRajshahi || 150),
+        deliveryPriceKhulna: Number(newProduct.deliveryPriceKhulna || 150),
+        deliveryPriceBarishal: Number(newProduct.deliveryPriceBarishal || 150),
+        deliveryPriceSylhet: Number(newProduct.deliveryPriceSylhet || 150),
+        deliveryPriceRangpur: Number(newProduct.deliveryPriceRangpur || 150),
+        deliveryPriceMymensingh: Number(newProduct.deliveryPriceMymensingh || 150),
+        deliveryCharge: newProduct.deliveryCharge !== undefined ? Number(newProduct.deliveryCharge) : Number(newProduct.deliveryPrice || 100),
+        deliveryDays: newProduct.deliveryDays || "",
+        freeDelivery: !!newProduct.freeDelivery,
+        paymentType: newProduct.paymentType || "cod",
+        paymentPercentage: newProduct.paymentPercentage !== undefined && newProduct.paymentPercentage !== null ? Number(newProduct.paymentPercentage) : null,
+        bkashNumber: newProduct.bkashNumber || "",
+        nagadNumber: newProduct.nagadNumber || "",
+        isPinned: !!newProduct.isPinned,
+        offerPrice: resolvedOfferPrice,
+        timerOfferPrice: resolvedOfferPrice,
+        timerStartTime: resolvedTimerStartTime,
+        timerEndTime: resolvedTimerEndTime,
+        timerMessage: newProduct.timerMessage || null,
+        timerActive: resolvedTimerActive
+      }),
       whyBuy: newProduct.whyBuy,
       trending: !!newProduct.trending,
       featured: !!newProduct.featured,
@@ -3191,7 +3274,31 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         images: Array.isArray(target.images) ? JSON.stringify(target.images) : JSON.stringify([]),
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
         colors: Array.isArray(target.colors) ? JSON.stringify(target.colors) : JSON.stringify([]),
-        dimensions: serializeDimensions(target.dimensions, target.colors),
+        dimensions: serializeDimensions(target.dimensions, target.colors, {
+          deliveryPrice: Number(target.deliveryPrice || 100),
+          deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
+          deliveryPriceChattogram: Number(target.deliveryPriceChattogram || 150),
+          deliveryPriceRajshahi: Number(target.deliveryPriceRajshahi || 150),
+          deliveryPriceKhulna: Number(target.deliveryPriceKhulna || 150),
+          deliveryPriceBarishal: Number(target.deliveryPriceBarishal || 150),
+          deliveryPriceSylhet: Number(target.deliveryPriceSylhet || 150),
+          deliveryPriceRangpur: Number(target.deliveryPriceRangpur || 150),
+          deliveryPriceMymensingh: Number(target.deliveryPriceMymensingh || 150),
+          deliveryCharge: target.deliveryCharge !== undefined ? Number(target.deliveryCharge) : Number(target.deliveryPrice || 100),
+          deliveryDays: target.deliveryDays || "",
+          freeDelivery: !!target.freeDelivery,
+          paymentType: target.paymentType || "cod",
+          paymentPercentage: target.paymentPercentage !== undefined && target.paymentPercentage !== null ? Number(target.paymentPercentage) : null,
+          bkashNumber: target.bkashNumber || "",
+          nagadNumber: target.nagadNumber || "",
+          isPinned: !!target.isPinned,
+          offerPrice: resolvedOfferPriceUpdate,
+          timerOfferPrice: resolvedOfferPriceUpdate,
+          timerStartTime: resolvedTimerStartTimeUpdate,
+          timerEndTime: resolvedTimerEndTimeUpdate,
+          timerMessage: target.timerMessage || null,
+          timerActive: resolvedTimerActiveUpdate
+        }),
         whyBuy: target.whyBuy,
         trending: !!target.trending,
         featured: !!target.featured,

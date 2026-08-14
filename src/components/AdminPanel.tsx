@@ -2369,15 +2369,15 @@ export default function AdminPanel({
       title: formTitle,
       description: formDescription,
       price: finalPrice,
-      deliveryPrice: Number(formDeliveryPrice || 100),
-      deliveryPriceDhaka: Number(formDeliveryPriceDhaka || 100),
-      deliveryPriceChattogram: Number(formDeliveryPriceChattogram || 150),
-      deliveryPriceRajshahi: Number(formDeliveryPriceRajshahi || 150),
-      deliveryPriceKhulna: Number(formDeliveryPriceKhulna || 150),
-      deliveryPriceBarishal: Number(formDeliveryPriceBarishal || 150),
-      deliveryPriceSylhet: Number(formDeliveryPriceSylhet || 150),
-      deliveryPriceRangpur: Number(formDeliveryPriceRangpur || 150),
-      deliveryPriceMymensingh: Number(formDeliveryPriceMymensingh || 150),
+      deliveryPrice: Number(formDeliveryPrice || formDeliveryPriceDhaka || formDeliveryCharge || 100),
+      deliveryPriceDhaka: formDeliveryPriceDhaka !== '' && formDeliveryPriceDhaka !== undefined && formDeliveryPriceDhaka !== null ? Number(formDeliveryPriceDhaka) : 100,
+      deliveryPriceChattogram: formDeliveryPriceChattogram !== '' && formDeliveryPriceChattogram !== undefined && formDeliveryPriceChattogram !== null ? Number(formDeliveryPriceChattogram) : 150,
+      deliveryPriceRajshahi: formDeliveryPriceRajshahi !== '' && formDeliveryPriceRajshahi !== undefined && formDeliveryPriceRajshahi !== null ? Number(formDeliveryPriceRajshahi) : 150,
+      deliveryPriceKhulna: formDeliveryPriceKhulna !== '' && formDeliveryPriceKhulna !== undefined && formDeliveryPriceKhulna !== null ? Number(formDeliveryPriceKhulna) : 150,
+      deliveryPriceBarishal: formDeliveryPriceBarishal !== '' && formDeliveryPriceBarishal !== undefined && formDeliveryPriceBarishal !== null ? Number(formDeliveryPriceBarishal) : 150,
+      deliveryPriceSylhet: formDeliveryPriceSylhet !== '' && formDeliveryPriceSylhet !== undefined && formDeliveryPriceSylhet !== null ? Number(formDeliveryPriceSylhet) : 150,
+      deliveryPriceRangpur: formDeliveryPriceRangpur !== '' && formDeliveryPriceRangpur !== undefined && formDeliveryPriceRangpur !== null ? Number(formDeliveryPriceRangpur) : 150,
+      deliveryPriceMymensingh: formDeliveryPriceMymensingh !== '' && formDeliveryPriceMymensingh !== undefined && formDeliveryPriceMymensingh !== null ? Number(formDeliveryPriceMymensingh) : 150,
       stock: Number(formStock),
       category: formCategory,
       sizes: parsedSizes,
@@ -3643,14 +3643,69 @@ CREATE TABLE IF NOT EXISTS public.products (
     "whyBuy" TEXT,
     trending BOOLEAN DEFAULT true,
     featured BOOLEAN DEFAULT true,
+    "isPinned" BOOLEAN DEFAULT false,
+    "freeDelivery" BOOLEAN DEFAULT false,
+    "deliveryPrice" NUMERIC DEFAULT 100,
+    "deliveryPriceDhaka" NUMERIC DEFAULT 100,
+    "deliveryPriceChattogram" NUMERIC DEFAULT 150,
+    "deliveryPriceRajshahi" NUMERIC DEFAULT 150,
+    "deliveryPriceKhulna" NUMERIC DEFAULT 150,
+    "deliveryPriceBarishal" NUMERIC DEFAULT 150,
+    "deliveryPriceSylhet" NUMERIC DEFAULT 150,
+    "deliveryPriceRangpur" NUMERIC DEFAULT 150,
+    "deliveryPriceMymensingh" NUMERIC DEFAULT 150,
+    "deliveryCharge" NUMERIC DEFAULT 100,
+    "deliveryDays" TEXT DEFAULT '3-5',
+    "paymentType" TEXT DEFAULT 'cod',
+    "paymentPercentage" NUMERIC DEFAULT 10,
+    "bkashNumber" TEXT,
+    "nagadNumber" TEXT,
+    "offerPrice" NUMERIC,
+    "timerOfferPrice" NUMERIC,
+    "timerStartTime" TEXT,
+    "timerEndTime" TEXT,
+    "timerMessage" TEXT,
+    "timerActive" BOOLEAN DEFAULT true,
+    likes NUMERIC DEFAULT 0,
     "lotteryEligible" BOOLEAN DEFAULT true,
     "couponCode" TEXT DEFAULT '',
     "couponDiscountPercent" NUMERIC DEFAULT 15,
     "seoTitle" TEXT,
     "seoDescription" TEXT,
     "seoKeywords" TEXT,
-    "seoSlug" TEXT
+    "seoSlug" TEXT,
+    canonical_url TEXT,
+    og_title TEXT,
+    og_description TEXT,
+    og_image TEXT,
+    robots TEXT
 );
+
+-- Ensure all delivery and pricing columns exist on products table (Automatic Migration)
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPrice" NUMERIC DEFAULT 100;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceDhaka" NUMERIC DEFAULT 100;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceChattogram" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceRajshahi" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceKhulna" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceBarishal" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceSylhet" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceRangpur" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryPriceMymensingh" NUMERIC DEFAULT 150;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryCharge" NUMERIC DEFAULT 100;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "deliveryDays" TEXT DEFAULT '3-5';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "freeDelivery" BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "paymentType" TEXT DEFAULT 'cod';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "paymentPercentage" NUMERIC DEFAULT 10;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "bkashNumber" TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "nagadNumber" TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "isPinned" BOOLEAN DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "offerPrice" NUMERIC;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "timerOfferPrice" NUMERIC;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "timerStartTime" TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "timerEndTime" TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "timerMessage" TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS "timerActive" BOOLEAN DEFAULT true;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS likes NUMERIC DEFAULT 0;
 
 -- 2. Create Banners Table
 CREATE TABLE IF NOT EXISTS public.banners (

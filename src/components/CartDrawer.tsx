@@ -453,12 +453,12 @@ export default function CartDrawer({
           : undefined;
 
         if (shippingDivision === "Dhaka") {
-          if (generalCharge !== undefined) {
+          if (item.product.deliveryPriceDhaka !== undefined && item.product.deliveryPriceDhaka !== null) {
+            customPrice = Number(item.product.deliveryPriceDhaka);
+          } else if (generalCharge !== undefined) {
             customPrice = generalCharge;
           } else {
-            customPrice = item.product.deliveryPriceDhaka !== undefined 
-              ? Number(item.product.deliveryPriceDhaka) 
-              : 100;
+            customPrice = 100;
           }
         } else {
           let specificPrice: number | undefined = undefined;
@@ -486,7 +486,7 @@ export default function CartDrawer({
               break;
           }
 
-          if (specificPrice !== undefined && (generalCharge === undefined || specificPrice !== 150)) {
+          if (specificPrice !== undefined && specificPrice !== null) {
             customPrice = Number(specificPrice);
           } else if (generalCharge !== undefined) {
             customPrice = generalCharge;
