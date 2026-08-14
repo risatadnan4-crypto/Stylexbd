@@ -129,6 +129,18 @@ export default function AdminPanel({
   const [adminReplyText, setAdminReplyText] = useState('');
   const [adminToast, setAdminToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  const getAdminHeaders = () => {
+    const email = settings?.adminEmail || sessionStorage.getItem('stylex_admin_email') || "risatadnan4@gmail.com";
+    const pass = settings?.adminPassword || sessionStorage.getItem('stylex_admin_password') || "";
+    const csrf = sessionStorage.getItem('stylex_csrf_token') || "";
+    return {
+      'Content-Type': 'application/json',
+      'x-admin-email': email,
+      'x-admin-password': pass,
+      'x-csrf-token': csrf
+    };
+  };
+
   const [newOrderToasts, setNewOrderToasts] = useState<Array<{
     id: string;
     customerName: string;
@@ -897,7 +909,7 @@ export default function AdminPanel({
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ 
           whatsappNumber: whatsappNumberInput,
           adminEmail: adminEmailInput,
@@ -994,7 +1006,7 @@ export default function AdminPanel({
     try {
       await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ 
           whatsappNumber: whatsappNumberInput,
           adminEmail: adminEmailInput,
@@ -1362,7 +1374,7 @@ export default function AdminPanel({
       };
       await fetch("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         body: JSON.stringify(payload)
       });
       if (onRefreshSettings) {
@@ -1894,7 +1906,7 @@ export default function AdminPanel({
       setSavingSmsGateway(true);
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           whatsappNumber: whatsappNumberInput,
           adminEmail: adminEmailInput,
@@ -2322,7 +2334,7 @@ export default function AdminPanel({
       const url = isEditing ? `/api/products/${editingProduct.id}` : `/api/products`;
       const res = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify(productPayload)
       });
 
@@ -2437,7 +2449,10 @@ export default function AdminPanel({
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product permanently?")) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${id}`, { 
+        method: 'DELETE',
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         setAdminToast({ message: "Product deleted successfully!", type: 'success' });
         setTimeout(() => setAdminToast(null), 3000);
@@ -2459,7 +2474,7 @@ export default function AdminPanel({
     try {
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ status: nextStatus })
       });
       if (res.ok) {
@@ -2474,7 +2489,8 @@ export default function AdminPanel({
     if (!window.confirm("Are you sure you want to delete this order permanently?")) return;
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAdminHeaders()
       });
       if (res.ok) {
         fetchOrders();
@@ -2490,7 +2506,7 @@ export default function AdminPanel({
     try {
       const res = await fetch('/api/coupons', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ 
           code: newCouponCode, 
           type: newCouponType, 
@@ -2514,7 +2530,10 @@ export default function AdminPanel({
 
   const handleDeleteCoupon = async (code: string) => {
     try {
-      const res = await fetch(`/api/coupons/${code}`, { method: 'DELETE' });
+      const res = await fetch(`/api/coupons/${code}`, { 
+        method: 'DELETE',
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         setAdminToast({ message: `COUPON "${code}" DELETED SUCCESSFULLY`, type: 'success' });
         fetchCoupons();
@@ -7368,7 +7387,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       try {
                         const res = await fetch("/api/settings", {
                           method: "POST",
-                          headers: { "Content-Type": "application/json" },
+                          headers: getAdminHeaders(),
                           body: JSON.stringify({ 
                             whatsappNumber: whatsappNumberInput,
                             adminEmail: adminEmailInput,
@@ -7555,7 +7574,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
 
                 const saveRes = await fetch(`/api/products/${p.id}`, {
                   method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: getAdminHeaders(),
                   body: JSON.stringify(payload)
                 });
 
@@ -7620,7 +7639,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
 
                     const saveRes = await fetch(`/api/products/${item.product.id}`, {
                       method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: getAdminHeaders(),
                       body: JSON.stringify(payload)
                     });
 

@@ -387,8 +387,10 @@ export default function LuxuryCheckoutButton({
           position: relative;
           width: 100%;
           height: 60px;
-          background: linear-gradient(135deg, #230240 0%, #5c10a3 50%, #230240 100%);
-          border: 1.5px solid #C084FC;
+          background: linear-gradient(135deg, rgba(20, 6, 38, 0.18) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(20, 6, 38, 0.18) 100%);
+          backdrop-filter: blur(16px) saturate(140%);
+          -webkit-backdrop-filter: blur(16px) saturate(140%);
+          border: 1.2px solid rgba(192, 132, 252, 0.4);
           border-radius: 30px;
           cursor: pointer;
           outline: none;
@@ -400,10 +402,10 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 10px 30px rgba(0, 0, 0, 0.95), 
-              0 0 25px rgba(154, 77, 255, 0.6),
-              inset 0 1.5px 3px rgba(233, 213, 255, 0.4),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
+              0 10px 30px rgba(0, 0, 0, 0.75), 
+              0 0 25px rgba(154, 77, 255, 0.2),
+              inset 0 1.5px 3px rgba(255, 255, 255, 0.35),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
           
           transform-style: preserve-3d;
           backface-visibility: hidden;
@@ -412,21 +414,23 @@ export default function LuxuryCheckoutButton({
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: #E9D5FF;
+          border-color: rgba(233, 213, 255, 0.7);
+          background: linear-gradient(135deg, rgba(20, 6, 38, 0.22) 0%, rgba(139, 92, 246, 0.3) 50%, rgba(20, 6, 38, 0.22) 100%);
           box-shadow: 
-              0 18px 40px rgba(0, 0, 0, 0.95), 
-              0 0 35px rgba(192, 132, 252, 0.95),
-              inset 0 1.5px 3px rgba(233, 213, 255, 0.5),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
+              0 18px 40px rgba(0, 0, 0, 0.8), 
+              0 0 35px rgba(192, 132, 252, 0.5),
+              inset 0 1.5px 3px rgba(255, 255, 255, 0.45),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
         }
 
         .luxury-btn:active {
-          border-color: rgba(192, 132, 252, 1);
+          border-color: rgba(192, 132, 252, 0.8);
+          background: linear-gradient(135deg, rgba(20, 6, 38, 0.26) 0%, rgba(139, 92, 246, 0.35) 50%, rgba(20, 6, 38, 0.26) 100%);
           box-shadow: 
-              0 10px 20px rgba(0, 0, 0, 0.95), 
-              0 0 35px rgba(192, 132, 252, 0.95),
-              inset 0 1.5px 3px rgba(233, 213, 255, 0.5),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.95);
+              0 10px 20px rgba(0, 0, 0, 0.8), 
+              0 0 35px rgba(192, 132, 252, 0.5),
+              inset 0 1.5px 3px rgba(255, 255, 255, 0.45),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
           transform: scale(0.985);
         }
 
@@ -439,9 +443,11 @@ export default function LuxuryCheckoutButton({
           .luxury-btn {
             height: 54px !important;
             border-radius: 27px !important;
-            background: linear-gradient(135deg, #230240 0%, #5c10a3 50%, #230240 100%) !important;
-            border: 1.5px solid #C084FC !important;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8), 0 0 20px rgba(154, 77, 255, 0.45), inset 0 1px 2px rgba(233, 213, 255, 0.4) !important;
+            background: linear-gradient(135deg, rgba(20, 6, 38, 0.2) 0%, rgba(139, 92, 246, 0.25) 50%, rgba(20, 6, 38, 0.2) 100%) !important;
+            backdrop-filter: blur(12px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+            border: 1.2px solid rgba(192, 132, 252, 0.45) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 20px rgba(154, 77, 255, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.35) !important;
             touch-action: manipulation;
           }
           .label-text {
