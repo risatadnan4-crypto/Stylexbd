@@ -2553,9 +2553,9 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     deliveryCharge: getNum(paymentMeta.deliveryCharge, dimObj?.deliveryCharge, nestedLocal.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, local.deliveryCharge, 100) ?? 100,
     deliveryDays: getStr(paymentMeta.deliveryDays, dimObj?.deliveryDays, nestedLocal.deliveryDays, p?.deliveryDays, p?.delivery_days, local.deliveryDays, "3-5"),
     freeDelivery: getBool(paymentMeta.freeDelivery, dimObj?.freeDelivery, nestedLocal.freeDelivery, p?.freeDelivery, p?.free_delivery, local.freeDelivery, false),
-    likes: getNum(paymentMeta.likes, dimObj?.likes, nestedLocal.likes, p?.likes, local.likes, 0) ?? 0,
+    likes: getNum(p?.likes, paymentMeta.likes, dimObj?.likes, nestedLocal.likes, local.likes, 0) ?? 0,
     seoTitle: (() => {
-      const val = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
+      const val = getStr(p?.seoTitle, p?.seo_title, dimObj?.seoTitle, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
       if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoTitle: val };
@@ -2563,7 +2563,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     seoDescription: (() => {
-      const val = getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
+      const val = getStr(p?.seoDescription, p?.seo_description, dimObj?.seoDescription, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
       if (val && !(db.settings as any).productSeo?.[id]?.seoDescription) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoDescription: val };
@@ -2571,45 +2571,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     seoKeywords: (() => {
-      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoKeywords) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoKeywords: val };
-      }
-      return val;
-    })(),
-    metaKeywords: (() => {
-      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.metaKeywords) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), metaKeywords: val };
-      }
-      return val;
-    })(),
-    seoSlug: getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, ""),
-    canonicalUrl: getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, ""),
-    ogTitle: getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, ""),
-    ogDescription: getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, ""),
-    ogImage: getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, ""),
-    robots: getStr(p?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow"),
-    seoTitle: (() => {
-      const val = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, local.seoTitle, nestedLocal.seoTitle, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoTitle) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoTitle: val };
-      }
-      return val;
-    })(),
-    seoDescription: (() => {
-      const val = getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, local.seoDescription, nestedLocal.seoDescription, "");
-      if (val && !(db.settings as any).productSeo?.[id]?.seoDescription) {
-        if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
-        (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoDescription: val };
-      }
-      return val;
-    })(),
-    seoKeywords: (() => {
-      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
+      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, dimObj?.seoKeywords, dimObj?.metaKeywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
       if (val && !(db.settings as any).productSeo?.[id]?.seoKeywords) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoKeywords: val, metaKeywords: val };
@@ -2617,15 +2579,15 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     seo_keywords: (() => {
-      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
+      const val = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, dimObj?.seoKeywords, dimObj?.metaKeywords, seoMeta.seoKeywords, seoMeta.metaKeywords, local.seoKeywords, local.metaKeywords, nestedLocal.seoKeywords, "");
       return val;
     })(),
     metaKeywords: (() => {
-      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
+      const val = getStr(p?.metaKeywords, p?.meta_keywords, p?.seoKeywords, p?.seo_keywords, dimObj?.metaKeywords, dimObj?.seoKeywords, seoMeta.metaKeywords, seoMeta.seoKeywords, local.metaKeywords, local.seoKeywords, nestedLocal.metaKeywords, "");
       return val;
     })(),
     seoSlug: (() => {
-      const val = getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, "");
+      const val = getStr(p?.seoSlug, p?.seo_slug, dimObj?.seoSlug, seoMeta.seoSlug, local.seoSlug, nestedLocal.seoSlug, "");
       if (val && !(db.settings as any).productSeo?.[id]?.seoSlug) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), seoSlug: val };
@@ -2633,7 +2595,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     canonicalUrl: (() => {
-      const val = getStr(p?.canonicalUrl, p?.canonical_url, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, "");
+      const val = getStr(p?.canonicalUrl, p?.canonical_url, dimObj?.canonicalUrl, seoMeta.canonicalUrl, local.canonicalUrl, nestedLocal.canonicalUrl, "");
       if (val && !(db.settings as any).productSeo?.[id]?.canonicalUrl) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), canonicalUrl: val };
@@ -2641,7 +2603,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     ogTitle: (() => {
-      const val = getStr(p?.ogTitle, p?.og_title, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, "");
+      const val = getStr(p?.ogTitle, p?.og_title, dimObj?.ogTitle, seoMeta.ogTitle, local.ogTitle, nestedLocal.ogTitle, "");
       if (val && !(db.settings as any).productSeo?.[id]?.ogTitle) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogTitle: val };
@@ -2649,7 +2611,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     ogDescription: (() => {
-      const val = getStr(p?.ogDescription, p?.og_description, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, "");
+      const val = getStr(p?.ogDescription, p?.og_description, dimObj?.ogDescription, seoMeta.ogDescription, local.ogDescription, nestedLocal.ogDescription, "");
       if (val && !(db.settings as any).productSeo?.[id]?.ogDescription) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogDescription: val };
@@ -2657,7 +2619,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     ogImage: (() => {
-      const val = getStr(p?.ogImage, p?.og_image, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, "");
+      const val = getStr(p?.ogImage, p?.og_image, dimObj?.ogImage, seoMeta.ogImage, local.ogImage, nestedLocal.ogImage, "");
       if (val && !(db.settings as any).productSeo?.[id]?.ogImage) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), ogImage: val };
@@ -2665,7 +2627,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       return val;
     })(),
     robots: (() => {
-      const val = getStr(p?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow");
+      const val = getStr(p?.robots, dimObj?.robots, seoMeta.robots, local.robots, nestedLocal.robots, "index, follow");
       if (val && !(db.settings as any).productSeo?.[id]?.robots) {
         if (!(db.settings as any).productSeo) (db.settings as any).productSeo = {};
         (db.settings as any).productSeo[id] = { ...((db.settings as any).productSeo[id] || {}), robots: val };
@@ -2784,8 +2746,10 @@ async function upsertProductToSupabase(productPayload: any) {
     delivery_days: basePayload.deliveryDays || null,
     is_pinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : null,
     free_delivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : null,
+    likes: basePayload.likes !== undefined && basePayload.likes !== null ? Number(basePayload.likes) : null,
 
     // Support camelCase properties as well
+    isPinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : undefined,
     deliveryPrice: basePayload.deliveryPrice !== undefined && basePayload.deliveryPrice !== null ? Number(basePayload.deliveryPrice) : undefined,
     deliveryPriceDhaka: basePayload.deliveryPriceDhaka !== undefined && basePayload.deliveryPriceDhaka !== null ? Number(basePayload.deliveryPriceDhaka) : undefined,
     deliveryPriceChattogram: basePayload.deliveryPriceChattogram !== undefined && basePayload.deliveryPriceChattogram !== null ? Number(basePayload.deliveryPriceChattogram) : undefined,
@@ -3066,16 +3030,32 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         bkashNumber: newProduct.bkashNumber || "",
         nagadNumber: newProduct.nagadNumber || "",
         isPinned: !!newProduct.isPinned,
+        likes: Number(newProduct.likes || 0),
+        lotteryEligible: newProduct.lotteryEligible !== undefined ? !!newProduct.lotteryEligible : true,
+        couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
+        couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
         offerPrice: resolvedOfferPrice,
         timerOfferPrice: resolvedOfferPrice,
         timerStartTime: resolvedTimerStartTime,
         timerEndTime: resolvedTimerEndTime,
         timerMessage: newProduct.timerMessage || null,
-        timerActive: resolvedTimerActive
+        timerActive: resolvedTimerActive,
+        seoTitle: newProduct.seoTitle || null,
+        seoDescription: newProduct.seoDescription || null,
+        seoKeywords: newProduct.seoKeywords || newProduct.metaKeywords || null,
+        metaKeywords: newProduct.metaKeywords || newProduct.seoKeywords || null,
+        seoSlug: newProduct.seoSlug || null,
+        canonicalUrl: newProduct.canonicalUrl || null,
+        ogTitle: newProduct.ogTitle || null,
+        ogDescription: newProduct.ogDescription || null,
+        ogImage: newProduct.ogImage || null,
+        robots: newProduct.robots || "index, follow"
       }),
       whyBuy: newProduct.whyBuy,
       trending: !!newProduct.trending,
       featured: !!newProduct.featured,
+      isPinned: !!newProduct.isPinned,
+      likes: Number(newProduct.likes || 0),
       deliveryPrice: Number(newProduct.deliveryPrice || 100),
       deliveryPriceDhaka: Number(newProduct.deliveryPriceDhaka || 100),
       deliveryPriceChattogram: Number(newProduct.deliveryPriceChattogram || 150),
@@ -3292,17 +3272,32 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
           bkashNumber: target.bkashNumber || "",
           nagadNumber: target.nagadNumber || "",
           isPinned: !!target.isPinned,
+          likes: Number(target.likes || 0),
+          lotteryEligible: target.lotteryEligible !== undefined ? !!target.lotteryEligible : true,
+          couponCode: target.couponCode ? target.couponCode.trim() : "",
+          couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
           offerPrice: resolvedOfferPriceUpdate,
           timerOfferPrice: resolvedOfferPriceUpdate,
           timerStartTime: resolvedTimerStartTimeUpdate,
           timerEndTime: resolvedTimerEndTimeUpdate,
           timerMessage: target.timerMessage || null,
-          timerActive: resolvedTimerActiveUpdate
+          timerActive: resolvedTimerActiveUpdate,
+          seoTitle: target.seoTitle || null,
+          seoDescription: target.seoDescription || null,
+          seoKeywords: target.seoKeywords || target.metaKeywords || null,
+          metaKeywords: target.metaKeywords || target.seoKeywords || null,
+          seoSlug: target.seoSlug || null,
+          canonicalUrl: target.canonicalUrl || null,
+          ogTitle: target.ogTitle || null,
+          ogDescription: target.ogDescription || null,
+          ogImage: target.ogImage || null,
+          robots: target.robots || "index, follow"
         }),
         whyBuy: target.whyBuy,
         trending: !!target.trending,
         featured: !!target.featured,
         isPinned: !!target.isPinned,
+        likes: Number(target.likes || 0),
         deliveryPrice: Number(target.deliveryPrice || 100),
         deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
         deliveryPriceChattogram: Number(target.deliveryPriceChattogram || 150),
