@@ -4172,78 +4172,181 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   </div>
 
                   {/* Delivery Pricing Matrix */}
-                  <div className="col-span-1 md:col-span-2 bg-black/40 border border-white/[0.04] p-4 rounded-xl space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase font-serif tracking-widest text-[#d4af37] font-bold">⚜️ Division-Wise Delivery Pricing (৳)</span>
-                      <span className="text-[9px] text-[#a78bfa] font-mono">8 BD DIVISIONS</span>
+                  <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-[#1a1226]/80 via-[#120b1c]/90 to-[#0c0714] border border-[#d4af37]/35 p-5 md:p-6 rounded-xl space-y-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] relative overflow-hidden group">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></span>
+                        <h4 className="text-xs uppercase font-serif tracking-widest text-[#d4af37] font-bold">
+                          ⚜️ Division-Wise Delivery Pricing (বাংলাদেশ ৮ বিভাগ ডেলিভারি চার্জ)
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormDeliveryPriceDhaka(100);
+                            setFormDeliveryPriceChattogram(150);
+                            setFormDeliveryPriceRajshahi(150);
+                            setFormDeliveryPriceKhulna(150);
+                            setFormDeliveryPriceBarishal(150);
+                            setFormDeliveryPriceSylhet(150);
+                            setFormDeliveryPriceRangpur(150);
+                            setFormDeliveryPriceMymensingh(150);
+                          }}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-[#d4af37]/15 hover:bg-[#d4af37]/25 text-[#d4af37] border border-[#d4af37]/30 transition-all cursor-pointer"
+                        >
+                          Default 100/150
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormDeliveryPriceDhaka(80);
+                            setFormDeliveryPriceChattogram(130);
+                            setFormDeliveryPriceRajshahi(130);
+                            setFormDeliveryPriceKhulna(130);
+                            setFormDeliveryPriceBarishal(130);
+                            setFormDeliveryPriceSylhet(130);
+                            setFormDeliveryPriceRangpur(130);
+                            setFormDeliveryPriceMymensingh(130);
+                          }}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all cursor-pointer"
+                        >
+                          Standard 80/130
+                        </button>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1 flex items-center justify-between">
-                          <span>Dhaka (৳)</span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+
+                    <p className="text-[10.5px] text-white/60 font-sans leading-relaxed">
+                      কাস্টমার চেকআউটে যে বিভাগ সিলেক্ট করবেন, স্বয়ংক্রিয়ভাবে সেই বিভাগের ডেলিভারি চার্জ যোগ হবে।
+                    </p>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                      {/* Dhaka */}
+                      <div className="bg-black/40 border border-emerald-500/25 rounded-lg p-2.5 transition-colors focus-within:border-emerald-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-emerald-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Dhaka (ঢাকা)</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]"></span>
                         </label>
-                        <input 
-                          type="number" required value={formDeliveryPriceDhaka} onChange={(e) => setFormDeliveryPriceDhaka(Number(e.target.value))}
-                          placeholder="Default 100"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-emerald-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceDhaka} onChange={(e) => setFormDeliveryPriceDhaka(Number(e.target.value))}
+                            placeholder="100"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-emerald-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Chattogram (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceChattogram} onChange={(e) => setFormDeliveryPriceChattogram(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Chattogram */}
+                      <div className="bg-black/40 border border-[#a78bfa]/25 rounded-lg p-2.5 transition-colors focus-within:border-[#a78bfa]">
+                        <label className="block text-[9.5px] uppercase font-mono text-[#c4b5fd] font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Chattogram (চট্টগ্রাম)</span>
+                          <span className="w-2 h-2 rounded-full bg-[#a78bfa] shadow-[0_0_6px_#a78bfa]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-[#a78bfa] font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceChattogram} onChange={(e) => setFormDeliveryPriceChattogram(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-[#a78bfa]"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Rajshahi (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceRajshahi} onChange={(e) => setFormDeliveryPriceRajshahi(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Rajshahi */}
+                      <div className="bg-black/40 border border-amber-500/25 rounded-lg p-2.5 transition-colors focus-within:border-amber-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-amber-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Rajshahi (রাজশাহী)</span>
+                          <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-amber-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceRajshahi} onChange={(e) => setFormDeliveryPriceRajshahi(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Khulna (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceKhulna} onChange={(e) => setFormDeliveryPriceKhulna(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Khulna */}
+                      <div className="bg-black/40 border border-cyan-500/25 rounded-lg p-2.5 transition-colors focus-within:border-cyan-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-cyan-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Khulna (খুলনা)</span>
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-cyan-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceKhulna} onChange={(e) => setFormDeliveryPriceKhulna(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Barishal (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceBarishal} onChange={(e) => setFormDeliveryPriceBarishal(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Barishal */}
+                      <div className="bg-black/40 border border-rose-500/25 rounded-lg p-2.5 transition-colors focus-within:border-rose-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-rose-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Barishal (বরিশাল)</span>
+                          <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_6px_#fb7185]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-rose-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceBarishal} onChange={(e) => setFormDeliveryPriceBarishal(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-rose-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Sylhet (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceSylhet} onChange={(e) => setFormDeliveryPriceSylhet(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Sylhet */}
+                      <div className="bg-black/40 border border-sky-500/25 rounded-lg p-2.5 transition-colors focus-within:border-sky-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-sky-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Sylhet (সিলেট)</span>
+                          <span className="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-sky-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceSylhet} onChange={(e) => setFormDeliveryPriceSylhet(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-sky-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Rangpur (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceRangpur} onChange={(e) => setFormDeliveryPriceRangpur(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Rangpur */}
+                      <div className="bg-black/40 border border-orange-500/25 rounded-lg p-2.5 transition-colors focus-within:border-orange-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-orange-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Rangpur (রংপুর)</span>
+                          <span className="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_6px_#fb923c]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-orange-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceRangpur} onChange={(e) => setFormDeliveryPriceRangpur(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-orange-400"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[9px] uppercase font-mono text-white/50 mb-1">Mymensingh (৳)</label>
-                        <input 
-                          type="number" required value={formDeliveryPriceMymensingh} onChange={(e) => setFormDeliveryPriceMymensingh(Number(e.target.value))}
-                          placeholder="Default 150"
-                          className="w-full bg-[#120a1c] text-white text-xs border border-white/5 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold"
-                        />
+
+                      {/* Mymensingh */}
+                      <div className="bg-black/40 border border-indigo-500/25 rounded-lg p-2.5 transition-colors focus-within:border-indigo-400">
+                        <label className="block text-[9.5px] uppercase font-mono text-indigo-300 font-semibold mb-1.5 flex items-center justify-between">
+                          <span>Mymensingh (ময়মনসিংহ)</span>
+                          <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_6px_#818cf8]"></span>
+                        </label>
+                        <div className="relative flex items-center">
+                          <span className="absolute left-2.5 text-xs text-indigo-400 font-bold">৳</span>
+                          <input 
+                            type="number" required value={formDeliveryPriceMymensingh} onChange={(e) => setFormDeliveryPriceMymensingh(Number(e.target.value))}
+                            placeholder="150"
+                            className="w-full bg-[#120a1c] text-white text-xs border border-white/10 rounded py-2 pl-6 pr-2 font-mono font-bold focus:outline-none focus:border-indigo-400"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

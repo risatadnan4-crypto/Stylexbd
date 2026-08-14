@@ -3152,17 +3152,16 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     };
     await syncSettingsToCloud();
     
-    let { error: upsertError } = await upsertProductToSupabase(payload);
-
-    if (upsertError) {
-      console.error("⚠️ Failed to mirror product creation to Supabase: ", upsertError.message);
-      return res.status(500).json({ 
-        message: `Product creation failed on Supabase: ${upsertError.message} (Code: ${upsertError.code || 'unknown'}). Please run the schema bootstrap or verify the table columns.` 
-      });
+    try {
+      const { error: upsertError } = await upsertProductToSupabase(payload);
+      if (upsertError) {
+        console.warn("⚠️ Non-fatal warning mirroring product creation to Supabase: ", formatSupabaseError(upsertError));
+      }
+    } catch (upsertEx: any) {
+      console.warn("⚠️ Exception during Supabase product creation upsert: ", formatSupabaseError(upsertEx));
     }
   } catch (err: any) {
-    console.error("⚠️ Failed to mirror product creation to Supabase: ", err.message);
-    return res.status(500).json({ message: `Database integration error: ${err.message}` });
+    console.warn("⚠️ Failed to mirror product creation to cloud database (saved locally): ", formatSupabaseError(err));
   }
 
   // Dispatch Real-Time Push Notification for New Product Drop
@@ -3181,7 +3180,8 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
 });
 
   app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
-  const idx = db.products.findIndex(p => p.id === req.params.id);
+  const targetId = String(req.params.id || "").trim();
+  const idx = db.products.findIndex(p => String(p.id).trim() === targetId || String(p.code || "").trim().toUpperCase() === targetId.toUpperCase());
   if (idx !== -1) {
     const existingProd = db.products[idx];
     const updatedBody = { ...req.body };
@@ -3377,17 +3377,16 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         robots: target.robots || "index, follow"
       };
 
-      let { error: upsertError } = await upsertProductToSupabase(payload);
-
-      if (upsertError) {
-        console.error("⚠️ Failed to mirror product update to Supabase: ", upsertError.message);
-        return res.status(500).json({ 
-          message: `Product update failed on Supabase: ${upsertError.message} (Code: ${upsertError.code || 'unknown'}). Please run the schema bootstrap or verify the table columns.` 
-        });
+      try {
+        let { error: upsertError } = await upsertProductToSupabase(payload);
+        if (upsertError) {
+          console.warn("⚠️ Non-fatal warning mirroring product update to Supabase: ", formatSupabaseError(upsertError));
+        }
+      } catch (upsertEx: any) {
+        console.warn("⚠️ Exception during Supabase product update upsert: ", formatSupabaseError(upsertEx));
       }
     } catch (err: any) {
-      console.error("⚠️ Failed to mirror product update to Supabase: ", err.message);
-      return res.status(500).json({ message: `Database integration error: ${err.message}` });
+      console.warn("⚠️ Failed to mirror product update to Supabase (saved locally): ", formatSupabaseError(err));
     }
 
     res.json(target);
