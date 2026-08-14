@@ -6,12 +6,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function test() {
-  console.log("Querying products table...");
-  const { data, error } = await supabase.from("products").select("*");
-  if (error) {
-    console.error("❌ Error:", error);
+  console.log("Querying forms table...");
+  const { data: forms, error: formsError } = await supabase.from("forms").select("*");
+  if (formsError) {
+    console.error("❌ Forms Error:", formsError);
   } else {
-    console.log("✅ Success! Found", data?.length, "products.");
+    console.log("✅ Forms Success! Found", forms?.length, "forms.");
+    if (forms && forms.length > 0) {
+      console.log("Sample form:", forms[0]);
+    }
+  }
+
+  console.log("Querying form_submissions table...");
+  const { data: subs, error: subsError } = await supabase.from("form_submissions").select("*");
+  if (subsError) {
+    console.error("❌ Submissions Error:", subsError);
+  } else {
+    console.log("✅ Submissions Success! Found", subs?.length, "submissions.");
+    if (subs && subs.length > 0) {
+      console.log("Sample submission:", subs[0]);
+    }
   }
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, LayoutGrid, ClipboardList, Image as ImageIcon, 
   MessageSquare, Star, Tag, Trophy, Globe, Sparkles, Plus, 
-  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell, ShoppingBag,
+  Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell, ShoppingBag, Download,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
   Bot, ShieldCheck, ShieldAlert, Undo, Search, Lock, AlertTriangle,
   Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator
@@ -120,6 +120,8 @@ export default function AdminPanel({
   const [isAddingPhone, setIsAddingPhone] = useState(false);
   const [phoneSearchQuery, setPhoneSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>('ALL');
   const [fetchingSmsLogs, setFetchingSmsLogs] = useState(false);
   const [manualSmsPhone, setManualSmsPhone] = useState('');
   const [manualSmsMsg, setManualSmsMsg] = useState('');
@@ -1638,6 +1640,83 @@ export default function AdminPanel({
     } catch (e) {}
   };
 
+  const handleExportOrdersToCSV = (filteredOrdersList: Order[]) => {
+    try {
+      if (filteredOrdersList.length === 0) {
+        alert("No orders match the selected filters to export.");
+        return;
+      }
+
+      const headers = [
+        "Order ID",
+        "Date",
+        "Customer Name",
+        "Phone",
+        "Email",
+        "City/District",
+        "District/State",
+        "Area",
+        "Address",
+        "Payment Type",
+        "Payment Method",
+        "Total Amount",
+        "Status",
+        "Customer Notes",
+        "Items Details"
+      ];
+
+      const rows = filteredOrdersList.map(ord => {
+        const itemsStr = ord.items.map(it => 
+          `${it.title} (Size: ${it.selectedSize}${it.selectedColor ? `, Color: ${it.selectedColor}` : ''}) x${it.quantity} @ ৳${it.price}`
+        ).join(" | ");
+
+        const escapeCSV = (val: any) => {
+          if (val === undefined || val === null) return '""';
+          let str = String(val).replace(/"/g, '""');
+          return `"${str}"`;
+        };
+
+        return [
+          escapeCSV(ord.id),
+          escapeCSV(ord.date ? new Date(ord.date).toLocaleDateString() : ""),
+          escapeCSV(ord.customerName),
+          escapeCSV(ord.customerPhone),
+          escapeCSV(ord.customerEmail || ""),
+          escapeCSV(ord.customerCity || ""),
+          escapeCSV(ord.district || ""),
+          escapeCSV(ord.area || ""),
+          escapeCSV(ord.customerAddress),
+          escapeCSV(ord.paymentType || ""),
+          escapeCSV(ord.paymentMethod || ""),
+          escapeCSV(ord.totalAmount),
+          escapeCSV(ord.status),
+          escapeCSV(ord.customerNotes || ""),
+          escapeCSV(itemsStr)
+        ];
+      });
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.join(","))
+      ].join("\n");
+
+      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute("download", `stylex_orders_report_${timestamp}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error("❌ Failed exporting orders to CSV:", err);
+      alert("An error occurred while exporting orders. Please try again.");
+    }
+  };
+
   const fetchBanners = async () => {
     try {
       const res = await fetch('/api/banners');
@@ -1669,7 +1748,9 @@ export default function AdminPanel({
   const fetchForms = async () => {
     setFetchingForms(true);
     try {
-      const res = await fetch('/api/forms');
+      const res = await fetch('/api/forms', {
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setFormList(data);
@@ -1684,7 +1765,9 @@ export default function AdminPanel({
   const fetchSubmissions = async (formId: string) => {
     setFetchingSubmissions(true);
     try {
-      const res = await fetch(`/api/forms/${formId}/submissions`);
+      const res = await fetch(`/api/forms/${formId}/submissions`, {
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setFormSubmissions(data);
@@ -1705,7 +1788,7 @@ export default function AdminPanel({
     try {
       const res = await fetch('/api/forms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           id: selectedFormId || undefined,
           title: newFormTitle,
@@ -1731,7 +1814,10 @@ export default function AdminPanel({
   const handleDeleteForm = async (formId: string) => {
     if (!confirm("Are you sure you want to delete this form and all its submissions?")) return;
     try {
-      const res = await fetch(`/api/forms/${formId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/forms/${formId}`, { 
+        method: 'DELETE',
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         if (selectedFormId === formId) {
           setSelectedFormId(null);
@@ -1747,7 +1833,10 @@ export default function AdminPanel({
   const handleDeleteSubmission = async (formId: string, subId: string) => {
     if (!confirm("Are you sure you want to delete this submission?")) return;
     try {
-      const res = await fetch(`/api/forms/${formId}/submissions/${subId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/forms/${formId}/submissions/${subId}`, { 
+        method: 'DELETE',
+        headers: getAdminHeaders()
+      });
       if (res.ok) {
         fetchSubmissions(formId);
         fetchForms();
@@ -2813,6 +2902,17 @@ export default function AdminPanel({
     "name": "Style X Collective"
   }
 }`;
+
+  const filteredOrdersList = orders.filter((ord) => {
+    const matchesQuery = 
+      ord.id.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      ord.customerName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      ord.customerPhone.includes(orderSearchQuery) ||
+      (ord.customerCity && ord.customerCity.toLowerCase().includes(orderSearchQuery.toLowerCase())) ||
+      (ord.district && ord.district.toLowerCase().includes(orderSearchQuery.toLowerCase()));
+    const matchesStatus = orderStatusFilter === 'ALL' || ord.status === orderStatusFilter;
+    return matchesQuery && matchesStatus;
+  });
 
   return (
     <div className="min-h-screen w-full bg-[#0B0B0F] text-white flex flex-col lg:flex-row antialiased relative">
@@ -5214,9 +5314,62 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
         {/* 3. ORDERS TRACKING UPDATER */}
         {activeTab === 'orders' && (
           <div className="space-y-6 animate-fade-in">
+            {/* SEARCH, STATUS FILTER, & CSV EXPORT CONTROL BAR */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-1">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white/45">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    value={orderSearchQuery}
+                    onChange={(e) => setOrderSearchQuery(e.target.value)}
+                    placeholder="Search by ID, Customer Name, Phone, or City..."
+                    className="w-full bg-luxury-charcoal text-white text-xs pl-9 pr-4 py-2.5 border border-white/10 rounded-xl focus:outline-none focus:border-luxury-gold transition-colors placeholder:text-white/30"
+                  />
+                  {orderSearchQuery && (
+                    <button 
+                      onClick={() => setOrderSearchQuery('')}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/40 hover:text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] uppercase font-mono tracking-wider text-white/50 whitespace-nowrap">Status:</span>
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="bg-luxury-charcoal text-white font-mono text-xs border border-white/10 rounded-xl py-2 px-3 focus:outline-none focus:border-luxury-gold cursor-pointer"
+                  >
+                    <option value="ALL">ALL STATUSES</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="CONFIRMED">CONFIRMED</option>
+                    <option value="SHIPPED">SHIPPED</option>
+                    <option value="DELIVERED">DELIVERED</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* CSV Export Button */}
+              <button
+                onClick={() => handleExportOrdersToCSV(filteredOrdersList)}
+                className="flex items-center justify-center gap-2 font-display font-bold uppercase tracking-widest text-[10px] bg-luxury-gold text-black hover:bg-white border border-luxury-gold hover:border-white py-2.5 px-5 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(212,175,55,0.15)] hover:shadow-white/10 cursor-pointer"
+              >
+                <Download size={14} />
+                Export CSV ({filteredOrdersList.length})
+              </button>
+            </div>
+
             <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5">
-              {orders.length === 0 ? (
-                <p className="text-xs text-white/40 py-8 text-center italic">No orders received yet.</p>
+              {filteredOrdersList.length === 0 ? (
+                <p className="text-xs text-white/40 py-8 text-center italic">No orders match the selected filters.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs divide-y divide-white/5">
@@ -5232,7 +5385,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 text-white/85">
-                      {orders.slice().reverse().map((ord) => (
+                      {filteredOrdersList.slice().reverse().map((ord) => (
                         <tr key={ord.id} className="hover:bg-white/[0.01]">
                           
                           <td className="py-4 font-mono text-[10.5px]">

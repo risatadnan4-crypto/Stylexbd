@@ -180,7 +180,23 @@ let isReviewsSyncPending = false;
 // Load database if exists
 try {
   let dbLoaded = false;
-  if (fs.existsSync(DB_FILE)) {
+  
+  // Try loading from writable /tmp path first (in case of read-only filesystem fallback in previous runs)
+  const TMP_DB_FILE = "/tmp/luxury_db.json";
+  if (fs.existsSync(TMP_DB_FILE)) {
+    try {
+      const rawData = fs.readFileSync(TMP_DB_FILE, "utf-8");
+      const parsedData = JSON.parse(rawData);
+      db = { ...db, ...parsedData };
+      dbLoaded = true;
+      DB_FILE = TMP_DB_FILE;
+      console.log("🌱 Successfully loaded database from writable /tmp fallback path.");
+    } catch (err) {
+      console.error("⚠️ Failed reading TMP_DB_FILE:", err);
+    }
+  }
+
+  if (!dbLoaded && fs.existsSync(DB_FILE)) {
     try {
       const rawData = fs.readFileSync(DB_FILE, "utf-8");
       const parsedData = JSON.parse(rawData);
@@ -429,17 +445,17 @@ function saveDB() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
   } catch (err: any) {
-    if (err?.code === "EROFS" || err?.message?.includes("read-only")) {
-      if (!DB_FILE.startsWith("/tmp") && fs.existsSync("/tmp")) {
-        try {
-          DB_FILE = path.join("/tmp", "luxury_db.json");
-          fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-        } catch (tmpErr) {
-          // Silent fallback for read-only serverless environment
-        }
+    if (!DB_FILE.startsWith("/tmp")) {
+      try {
+        const fallbackPath = "/tmp/luxury_db.json";
+        fs.writeFileSync(fallbackPath, JSON.stringify(db, null, 2), "utf-8");
+        DB_FILE = fallbackPath;
+        console.log("💾 File system write failed on original path, fell back to writable /tmp:", DB_FILE);
+      } catch (tmpErr: any) {
+        console.error("❌ Even /tmp fallback write failed:", tmpErr.message);
       }
     } else {
-      console.warn("Notice: Local filesystem cache write skipped:", err?.message || err);
+      console.error("❌ DB write error on /tmp path:", err?.message || err);
     }
   }
 }
@@ -2375,6 +2391,17 @@ function tryJsonParse(val: any) {
   }
 }
 
+function serializeDimensions(dimensionsVal: any, colorsVal: any): string {
+  let baseObj: any = {};
+  if (typeof dimensionsVal === "string" && dimensionsVal.trim().startsWith("{")) {
+    baseObj = tryJsonParse(dimensionsVal) || {};
+  } else {
+    baseObj = { dimensions: dimensionsVal || "Standard Fitting" };
+  }
+  baseObj.colors = colorsVal || [];
+  return JSON.stringify(baseObj);
+}
+
 function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
   const local = localProduct || {};
   const id = String(p?.id || local.id || Math.random().toString(36).substring(2, 10));
@@ -2412,7 +2439,18 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 
   // Colors
   let parsedColors: any[] = [];
-  const rawColors = p?.colors ?? local.colors;
+  let rawColors = (p?.colors !== undefined && p?.colors !== null) ? p.colors : local.colors;
+
+  if (rawColors === undefined || rawColors === null || (Array.isArray(rawColors) && rawColors.length === 0)) {
+    const dimStr = p?.dimensions || local.dimensions;
+    if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
+      const parsedDim = tryJsonParse(dimStr);
+      if (parsedDim && Array.isArray(parsedDim.colors) && parsedDim.colors.length > 0) {
+        rawColors = parsedDim.colors;
+      }
+    }
+  }
+
   if (rawColors !== undefined && rawColors !== null) {
     const res = tryJsonParse(rawColors);
     if (Array.isArray(res)) {
@@ -2951,7 +2989,7 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       images: Array.isArray(newProduct.images) ? JSON.stringify(newProduct.images) : JSON.stringify([]),
       sizes: JSON.stringify(newProduct.sizes),
       colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
-      dimensions: newProduct.dimensions,
+      dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors),
       whyBuy: newProduct.whyBuy,
       trending: !!newProduct.trending,
       featured: !!newProduct.featured,
@@ -3153,7 +3191,7 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         images: Array.isArray(target.images) ? JSON.stringify(target.images) : JSON.stringify([]),
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
         colors: Array.isArray(target.colors) ? JSON.stringify(target.colors) : JSON.stringify([]),
-        dimensions: target.dimensions,
+        dimensions: serializeDimensions(target.dimensions, target.colors),
         whyBuy: target.whyBuy,
         trending: !!target.trending,
         featured: !!target.featured,
@@ -5315,12 +5353,12 @@ app.post("/api/sms-logs/send", async (req, res) => {
 });
 
 // FORM GENERATOR API ENDPOINTS
-app.get("/api/forms", (req, res) => {
+app.get("/api/forms", xoroAdminAuthMiddleware, (req, res) => {
   if (!db.forms) db.forms = [];
   res.json(db.forms);
 });
 
-app.post("/api/forms", async (req, res) => {
+app.post("/api/forms", xoroAdminAuthMiddleware, async (req, res) => {
   const { id, title, description, fields } = req.body;
   if (!db.forms) db.forms = [];
   if (!db.formSubmissions) db.formSubmissions = [];
@@ -5357,18 +5395,24 @@ app.post("/api/forms", async (req, res) => {
         views_count: formObj.viewsCount,
         created_at: formObj.createdAt
       };
-      await supabase.from("forms").upsert(payload);
+      const { error } = await supabase.from("forms").upsert(payload);
+      if (error) {
+        console.error("⚠️ Forms Supabase upsert failed:", error.message);
+        if (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist")) {
+          isFormsTableAvailable = false;
+        }
+      }
     }
   } catch (err: any) {
     if (isFormsTableAvailable) {
-      console.error("⚠️ Forms Supabase upsert failed:", err.message);
+      console.error("⚠️ Forms Supabase upsert exception:", err.message);
     }
   }
 
   res.json({ success: true, form: formObj });
 });
 
-app.delete("/api/forms/:id", async (req, res) => {
+app.delete("/api/forms/:id", xoroAdminAuthMiddleware, async (req, res) => {
   const { id } = req.params;
   if (!db.forms) db.forms = [];
   db.forms = db.forms.filter(f => f.id !== id);
@@ -5379,14 +5423,20 @@ app.delete("/api/forms/:id", async (req, res) => {
 
   try {
     if (isFormsTableAvailable) {
-      await supabase.from("forms").delete().eq("id", id);
+      const { error } = await supabase.from("forms").delete().eq("id", id);
+      if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+        isFormsTableAvailable = false;
+      }
     }
     if (isFormSubmissionsTableAvailable) {
-      await supabase.from("form_submissions").delete().eq("form_id", id);
+      const { error } = await supabase.from("form_submissions").delete().eq("form_id", id);
+      if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+        isFormSubmissionsTableAvailable = false;
+      }
     }
   } catch (err: any) {
     if (isFormsTableAvailable || isFormSubmissionsTableAvailable) {
-      console.error("⚠️ Forms Supabase delete failed:", err.message);
+      console.error("⚠️ Forms Supabase delete exception:", err.message);
     }
   }
 
@@ -5406,11 +5456,14 @@ app.get("/api/forms/:id", async (req, res) => {
 
   try {
     if (isFormsTableAvailable) {
-      await supabase.from("forms").update({ views_count: form.viewsCount }).eq("id", id);
+      const { error } = await supabase.from("forms").update({ views_count: form.viewsCount }).eq("id", id);
+      if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+        isFormsTableAvailable = false;
+      }
     }
   } catch (err: any) {
     if (isFormsTableAvailable) {
-      console.error("⚠️ Forms Supabase views update failed:", err.message);
+      console.error("⚠️ Forms Supabase views update exception:", err.message);
     }
   }
 
@@ -5445,7 +5498,10 @@ app.post("/api/forms/:id/submit", async (req, res) => {
 
   try {
     if (isFormsTableAvailable) {
-      await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+      const { error } = await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+      if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+        isFormsTableAvailable = false;
+      }
     }
     if (isFormSubmissionsTableAvailable) {
       const payload = {
@@ -5457,25 +5513,31 @@ app.post("/api/forms/:id/submit", async (req, res) => {
         ip: submission.ip,
         referer: submission.referer
       };
-      await supabase.from("form_submissions").insert(payload);
+      const { error } = await supabase.from("form_submissions").insert(payload);
+      if (error) {
+        console.error("⚠️ Forms Supabase submission failed:", error.message);
+        if (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist")) {
+          isFormSubmissionsTableAvailable = false;
+        }
+      }
     }
   } catch (err: any) {
     if (isFormsTableAvailable || isFormSubmissionsTableAvailable) {
-      console.error("⚠️ Forms Supabase submission failed:", err.message);
+      console.error("⚠️ Forms Supabase submission exception:", err.message);
     }
   }
 
   res.json({ success: true, submission });
 });
 
-app.get("/api/forms/:id/submissions", (req, res) => {
+app.get("/api/forms/:id/submissions", xoroAdminAuthMiddleware, (req, res) => {
   const { id } = req.params;
   if (!db.formSubmissions) db.formSubmissions = [];
   const list = db.formSubmissions.filter(s => s.formId === id);
   res.json(list);
 });
 
-app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
+app.delete("/api/forms/:id/submissions/:subId", xoroAdminAuthMiddleware, async (req, res) => {
   const { id, subId } = req.params;
   if (!db.formSubmissions) db.formSubmissions = [];
   db.formSubmissions = db.formSubmissions.filter(s => s.id !== subId);
@@ -5485,7 +5547,10 @@ app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
     form.submissionsCount--;
     try {
       if (isFormsTableAvailable) {
-        await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+        const { error } = await supabase.from("forms").update({ submissions_count: form.submissionsCount }).eq("id", id);
+        if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+          isFormsTableAvailable = false;
+        }
       }
     } catch (e) {}
   }
@@ -5494,7 +5559,10 @@ app.delete("/api/forms/:id/submissions/:subId", async (req, res) => {
 
   try {
     if (isFormSubmissionsTableAvailable) {
-      await supabase.from("form_submissions").delete().eq("id", subId);
+      const { error } = await supabase.from("form_submissions").delete().eq("id", subId);
+      if (error && (error.message?.includes("Could not find the table") || error.message?.includes("relation") || error.message?.includes("does not exist"))) {
+        isFormSubmissionsTableAvailable = false;
+      }
     }
   } catch (err: any) {
     if (isFormSubmissionsTableAvailable) {
