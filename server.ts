@@ -940,6 +940,30 @@ function registerCustomerPhone(phone: string, name?: string, email?: string, sou
   saveDB();
 }
 
+// Resilient helper to clean and format Supabase errors, preventing raw Cloudflare/502 Bad Gateway HTML dumps
+function formatSupabaseError(err: any): string {
+  if (!err) return "";
+  const raw = typeof err === "string" ? err : (err.message || (err.error && err.error.message) || String(err));
+  if (
+    raw.includes("<!DOCTYPE") ||
+    raw.includes("<html") ||
+    raw.includes("cf-error") ||
+    raw.includes("502") ||
+    raw.includes("Bad Gateway") ||
+    raw.includes("bad gateway")
+  ) {
+    return "HTTP 502 Bad Gateway (Supabase connection or edge proxy temporarily waking up/unavailable; active memory cache serving requests)";
+  }
+  if (raw.includes("503") || raw.includes("504") || raw.includes("Gateway Timeout") || raw.includes("Service Unavailable")) {
+    return "HTTP 503/504 Service Unavailable (Supabase temporarily unresponsive; active memory cache serving requests)";
+  }
+  if (raw.includes("FetchError") || raw.includes("ECONNREFUSED") || raw.includes("ETIMEDOUT") || raw.includes("fetch failed")) {
+    return "Network connection issue with Supabase endpoint; local database active";
+  }
+  const stripped = raw.replace(/<[^>]*>?/gm, "").trim();
+  return stripped.length > 250 ? stripped.substring(0, 250) + "..." : stripped;
+}
+
 // Function to synchronize settings to Supabase cloud as a bulletproof failsafe
 async function syncSettingsToCloud() {
   saveDB();
@@ -1124,12 +1148,12 @@ async function syncFromSupabase() {
             return { data: null, error: null };
           }
 
-          console.warn(`⚠️ Error selecting from ${table}:`, res.error.message);
+          console.warn(`⚠️ Error selecting from ${table}:`, formatSupabaseError(res.error));
           return { data: null, error: res.error };
         }
         return res;
       } catch (err: any) {
-        console.warn(`⚠️ Exception selecting from ${table}:`, err?.message || err);
+        console.warn(`⚠️ Exception selecting from ${table}:`, formatSupabaseError(err));
         return { data: null, error: err };
       }
     };
@@ -1245,10 +1269,10 @@ async function syncFromSupabase() {
           }
         }
       } else if (productsResult.error) {
-        console.warn("⚠️ [Supabase Products Sync Warning]:", productsResult.error.message);
+        console.warn("⚠️ [Supabase Products Sync Warning]:", formatSupabaseError(productsResult.error));
       }
     } catch (e: any) {
-      console.warn("⚠️ Products table setup not verified:", e.message);
+      console.warn("⚠️ Products table setup not verified:", formatSupabaseError(e));
     }
 
     // 2. Sync Banners
@@ -2658,7 +2682,7 @@ app.get("/api/products", async (req, res) => {
       return res.json(mergedProducts);
     }
   } catch (err: any) {
-    console.warn("⚠️ Direct products fetch fallback to memory cache:", err.message);
+    console.warn("⚠️ Direct products fetch fallback to memory cache:", formatSupabaseError(err));
   }
   const fallbackProducts = (db.products || []).map((lp: any) => {
     const pm = (db.settings?.productPayments && db.settings.productPayments[lp.id]) || {};
@@ -2679,7 +2703,7 @@ app.get("/api/products/:id", async (req, res) => {
       return res.json(prod);
     }
   } catch (err: any) {
-    console.warn("⚠️ Direct product selected select fallback:", err.message);
+    console.warn("⚠️ Direct product selected select fallback:", formatSupabaseError(err));
   }
 
   if (localProduct) {
@@ -2789,10 +2813,24 @@ async function upsertProductToSupabase(productPayload: any) {
   };
 
   let currentPayload = { ...payloadSnake };
-  let result = await supabase.from("products").upsert(currentPayload);
+  let result: any;
+  try {
+    result = await supabase.from("products").upsert(currentPayload);
+  } catch (err: any) {
+    console.warn("[PRODUCTS_SYNC] Supabase upsert network exception:", formatSupabaseError(err));
+    return { data: null, error: null };
+  }
   
+  if (result.error) {
+    const errText = result.error.message || String(result.error);
+    if (errText.includes("<!DOCTYPE") || errText.includes("502") || errText.includes("Bad Gateway") || errText.includes("503") || errText.includes("504")) {
+      console.warn("[PRODUCTS_SYNC] Supabase cloud connection is temporarily sleeping or restarting (502 Bad Gateway). Product is persisted safely in local storage.");
+      return { data: null, error: null };
+    }
+  }
+
   let retries = 0;
-  while (result.error && (result.error.message.includes("column") || result.error.message.includes("does not exist") || result.error.code === "42703" || result.error.code === "PGRST102") && retries < 25) {
+  while (result.error && (result.error.message?.includes("column") || result.error.message?.includes("does not exist") || result.error.code === "42703" || result.error.code === "PGRST102") && retries < 25) {
     retries++;
     const match = result.error.message.match(/column "([^"]+)"/);
     if (match && match[1]) {
@@ -2808,7 +2846,12 @@ async function upsertProductToSupabase(productPayload: any) {
         }
       }
     }
-    result = await supabase.from("products").upsert(currentPayload);
+    try {
+      result = await supabase.from("products").upsert(currentPayload);
+    } catch (err: any) {
+      console.warn("[PRODUCTS_SYNC] Retry upsert caught exception:", formatSupabaseError(err));
+      break;
+    }
   }
   
   return result;
