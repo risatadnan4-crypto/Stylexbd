@@ -941,6 +941,26 @@ function registerCustomerPhone(phone: string, name?: string, email?: string, sou
 }
 
 // Resilient helper to clean and format Supabase errors, preventing raw Cloudflare/502 Bad Gateway HTML dumps
+function isSupabaseGatewayError(err: any): boolean {
+  if (!err) return false;
+  const raw = typeof err === "string" ? err : (err.message || (err.error && err.error.message) || String(err));
+  return (
+    raw.includes("<!DOCTYPE") ||
+    raw.includes("<html") ||
+    raw.includes("cf-error") ||
+    raw.includes("502") ||
+    raw.includes("Bad Gateway") ||
+    raw.includes("bad gateway") ||
+    raw.includes("503") ||
+    raw.includes("504") ||
+    raw.includes("Gateway Timeout") ||
+    raw.includes("Service Unavailable") ||
+    raw.includes("ECONNREFUSED") ||
+    raw.includes("ETIMEDOUT") ||
+    raw.includes("fetch failed")
+  );
+}
+
 function formatSupabaseError(err: any): string {
   if (!err) return "";
   const raw = typeof err === "string" ? err : (err.message || (err.error && err.error.message) || String(err));
@@ -1148,11 +1168,19 @@ async function syncFromSupabase() {
             return { data: null, error: null };
           }
 
+          if (isSupabaseGatewayError(res.error)) {
+            // Transient 502 Bad Gateway / Cloudflare waking up - return cleanly without failing app
+            return { data: null, error: null };
+          }
+
           console.warn(`⚠️ Error selecting from ${table}:`, formatSupabaseError(res.error));
           return { data: null, error: res.error };
         }
         return res;
       } catch (err: any) {
+        if (isSupabaseGatewayError(err)) {
+          return { data: null, error: null };
+        }
         console.warn(`⚠️ Exception selecting from ${table}:`, formatSupabaseError(err));
         return { data: null, error: err };
       }
@@ -3489,7 +3517,9 @@ app.get("/api/banners", async (req, res) => {
       return res.json(banners);
     }
   } catch (err: any) {
-    console.warn("⚠️ Direct banners fetch fallback:", err.message);
+    if (!isSupabaseGatewayError(err)) {
+      console.warn("⚠️ Direct banners fetch fallback:", formatSupabaseError(err));
+    }
   }
   res.json(db.banners);
 });
