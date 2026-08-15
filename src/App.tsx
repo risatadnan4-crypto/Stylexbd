@@ -401,7 +401,7 @@ export default function App() {
       const segments = pathname.split('/');
       const fId = decodeURIComponent(segments[segments.length - 1] || '');
       if (fId) {
-        setActiveFormId(fId);
+        setActiveFormId(prev => (prev === fId ? prev : fId));
         setIsAdminView(false);
         setIsTrackMode(false);
         setIsWishlistPage(false);
@@ -524,20 +524,22 @@ export default function App() {
     setActiveCategory('ALL');
   };
 
-  // Initial path parsing once products are loaded
+  // Initial path parsing immediately on mount and when products load
   React.useEffect(() => {
-    if (products && products.length > 0) {
-      parseCurrentUrl(products);
-    }
+    parseCurrentUrl(products);
   }, [products]);
 
-  // Support forward/back history buttons seamlessly
+  // Support forward/back history buttons and hash changes seamlessly
   React.useEffect(() => {
     const handlePopState = () => {
       parseCurrentUrl(products);
     };
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
   }, [products]);
 
   // Fetch active form details for public view
@@ -549,10 +551,13 @@ export default function App() {
       return;
     }
 
+    // Preserve existing form answers if the active form is already loaded
+    if (activeForm && activeForm.id === activeFormId) {
+      return;
+    }
+
     const fetchActiveFormDetails = async () => {
       setFetchingActiveForm(true);
-      setFormSubmittedSuccessfully(false);
-      setFormResponses({});
       try {
         const res = await fetch(`/api/forms/${activeFormId}`);
         if (res.ok) {
@@ -2354,7 +2359,9 @@ export default function App() {
 
     // Validate required fields
     for (const field of activeForm.fields) {
-      if (field.required && !formResponses[field.label]) {
+      const val = formResponses[field.label] !== undefined ? formResponses[field.label] : formResponses[field.id];
+      const isEmpty = val === undefined || val === null || (typeof val === 'string' && val.trim() === '') || (typeof val === 'boolean' && !val);
+      if (field.required && isEmpty) {
         alert(`Please fill in the required field: ${field.label}`);
         return;
       }
@@ -2371,11 +2378,12 @@ export default function App() {
         setFormSubmittedSuccessfully(true);
         setFormResponses({});
       } else {
-        alert("Submission failed. Please try again.");
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || errData.error || "Submission failed. Please try again.");
       }
     } catch (err) {
       console.error("Submission error:", err);
-      alert("Submission error. Please check your network.");
+      alert("Submission error. Please check your network connection.");
     } finally {
       setSubmittingForm(false);
     }
@@ -2463,16 +2471,22 @@ export default function App() {
                           <textarea
                             required={isRequired}
                             placeholder={field.placeholder || "Enter your reply..."}
-                            value={formResponses[field.label] || ''}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                            }}
                             rows={4}
                             className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold resize-none"
                           />
                         ) : field.type === 'select' ? (
                           <select
                             required={isRequired}
-                            value={formResponses[field.label] || ''}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                            }}
                             className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
                           >
                             <option value="">-- Choose an option --</option>
@@ -2488,8 +2502,10 @@ export default function App() {
                                   type="radio"
                                   name={field.id}
                                   required={isRequired}
-                                  checked={formResponses[field.label] === opt}
-                                  onChange={() => setFormResponses({ ...formResponses, [field.label]: opt })}
+                                  checked={(formResponses[field.label] ?? formResponses[field.id]) === opt}
+                                  onChange={() => {
+                                    setFormResponses(prev => ({ ...prev, [field.label]: opt, [field.id]: opt }));
+                                  }}
                                   className="border-white/10 text-purple-600 bg-luxury-charcoal"
                                 />
                                 <span>{opt}</span>
@@ -2501,8 +2517,11 @@ export default function App() {
                             <input
                               type="checkbox"
                               required={isRequired}
-                              checked={!!formResponses[field.label]}
-                              onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.checked })}
+                              checked={!!(formResponses[field.label] ?? formResponses[field.id])}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFormResponses(prev => ({ ...prev, [field.label]: checked, [field.id]: checked }));
+                              }}
                               className="rounded border-white/10 text-purple-600 bg-luxury-charcoal"
                             />
                             <span>{field.label}</span>
@@ -2512,8 +2531,11 @@ export default function App() {
                             type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
                             required={isRequired}
                             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                            value={formResponses[field.label] || ''}
-                            onChange={(e) => setFormResponses({ ...formResponses, [field.label]: e.target.value })}
+                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                            }}
                             className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
                           />
                         )}

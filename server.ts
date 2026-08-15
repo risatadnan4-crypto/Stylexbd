@@ -256,6 +256,16 @@ try {
         restoredAny = true;
         console.log("🌱 Restored reviews from local template backup.");
       }
+      if ((!db.forms || db.forms.length === 0) && templateDb.forms && templateDb.forms.length > 0) {
+        db.forms = templateDb.forms;
+        restoredAny = true;
+        console.log("🌱 Restored forms from local template backup.");
+      }
+      if ((!db.formSubmissions || db.formSubmissions.length === 0) && templateDb.formSubmissions && templateDb.formSubmissions.length > 0) {
+        db.formSubmissions = templateDb.formSubmissions;
+        restoredAny = true;
+        console.log("🌱 Restored form submissions from local template backup.");
+      }
       
       if (restoredAny) {
         saveDB();
@@ -277,6 +287,9 @@ try {
     db.failed_notifications = parsedData.failed_notifications || [];
     db.backInStockAlerts = db.backInStockAlerts || [];
     db.pushSubscriptions = parsedData.pushSubscriptions || [];
+    db.forms = parsedData.forms || [];
+    db.formSubmissions = parsedData.formSubmissions || [];
+    db.carts = parsedData.carts || {};
     db.vapidKeys = parsedData.vapidKeys || null;
     db.seededCoupons = parsedData.seededCoupons !== undefined ? !!parsedData.seededCoupons : false;
     db.seededCampaigns = parsedData.seededCampaigns !== undefined ? !!parsedData.seededCampaigns : false;
@@ -1115,6 +1128,8 @@ async function syncSettingsToCloud() {
         smsSubscriptions: db.smsSubscriptions || [],
         customerPhones: db.customerPhones || [],
         pushSubscriptions: db.pushSubscriptions || [],
+        forms: db.forms || [],
+        formSubmissions: db.formSubmissions || [],
         carts: db.carts || {}
       }),
       imageUrl: db.settings?.logoUrl || "/stylex_logo.jpg",
@@ -1127,6 +1142,29 @@ async function syncSettingsToCloud() {
     } else {
       console.log("✅ Backup of settings and custom collections mirrored to Supabase 'banners' metadata table successfully.");
       bannersSuccess = true;
+    }
+
+    // Mirror forms and submissions to dedicated banner metadata rows for large payload reliability
+    if (db.forms && db.forms.length > 0) {
+      await supabase.from("banners").upsert({
+        id: "system_forms_metadata",
+        title: "SYSTEM_FORMS_METADATA",
+        subtitle: JSON.stringify(db.forms),
+        imageUrl: "/stylex_logo.jpg",
+        active: false,
+        isVideo: false
+      }, { onConflict: "id" }).catch(() => {});
+    }
+
+    if (db.formSubmissions && db.formSubmissions.length > 0) {
+      await supabase.from("banners").upsert({
+        id: "system_form_submissions_metadata",
+        title: "SYSTEM_FORM_SUBMISSIONS_METADATA",
+        subtitle: JSON.stringify(db.formSubmissions),
+        imageUrl: "/stylex_logo.jpg",
+        active: false,
+        isVideo: false
+      }, { onConflict: "id" }).catch(() => {});
     }
   } catch (bannerErr: any) {
     console.error("⚠️ Failed to write settings backup to banners table:", bannerErr.message);
@@ -1384,11 +1422,40 @@ async function syncFromSupabase() {
               if (fallbackSettings.carts !== undefined && typeof fallbackSettings.carts === "object") {
                 db.carts = fallbackSettings.carts;
               }
+              if (fallbackSettings.forms !== undefined && Array.isArray(fallbackSettings.forms) && (!db.forms || db.forms.length === 0)) {
+                db.forms = fallbackSettings.forms;
+              }
+              if (fallbackSettings.formSubmissions !== undefined && Array.isArray(fallbackSettings.formSubmissions) && (!db.formSubmissions || db.formSubmissions.length === 0)) {
+                db.formSubmissions = fallbackSettings.formSubmissions;
+              }
 
               saveDB();
             } catch (jsonErr: any) {
               console.warn("⚠️ Failed to parse fallback settings from banners table:", jsonErr.message);
             }
+          }
+
+          // Check dedicated forms and form submissions metadata rows
+          const systemFormsRow = bannersData.find((b: any) => b.id === "system_forms_metadata");
+          if (systemFormsRow && systemFormsRow.subtitle) {
+            try {
+              const cloudForms = JSON.parse(systemFormsRow.subtitle);
+              if (Array.isArray(cloudForms) && cloudForms.length > 0) {
+                db.forms = cloudForms;
+                console.log(`✅ Restored ${db.forms.length} forms from Supabase cloud metadata row.`);
+              }
+            } catch (e) {}
+          }
+
+          const systemSubmissionsRow = bannersData.find((b: any) => b.id === "system_form_submissions_metadata");
+          if (systemSubmissionsRow && systemSubmissionsRow.subtitle) {
+            try {
+              const cloudSubs = JSON.parse(systemSubmissionsRow.subtitle);
+              if (Array.isArray(cloudSubs) && cloudSubs.length > 0) {
+                db.formSubmissions = cloudSubs;
+                console.log(`✅ Restored ${db.formSubmissions.length} form submissions from Supabase cloud metadata row.`);
+              }
+            } catch (e) {}
           }
         } else {
           if (db.banners && db.banners.length > 0) {
@@ -3500,7 +3567,7 @@ app.get("/api/banners", async (req, res) => {
   try {
     const { data, error } = await supabase.from("banners").select("*");
     if (!error && data) {
-      const banners = data.filter((b: any) => b.id !== "system_settings_metadata").map((b: any) => ({
+      const banners = data.filter((b: any) => !b.id?.startsWith("system_") && !b.title?.startsWith("SYSTEM_")).map((b: any) => ({
         ...b,
         active: !!b.active
       }));
@@ -3514,7 +3581,7 @@ app.get("/api/banners", async (req, res) => {
       console.warn("⚠️ Direct banners fetch fallback:", formatSupabaseError(err));
     }
   }
-  res.json(db.banners);
+  res.json((db.banners || []).filter((b: any) => !b.id?.startsWith("system_") && !b.title?.startsWith("SYSTEM_")));
 });
 
 app.post("/api/banners", async (req, res) => {
@@ -5550,6 +5617,7 @@ app.post("/api/forms", xoroAdminAuthMiddleware, async (req, res) => {
   }
 
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   try {
     if (isFormsTableAvailable) {
@@ -5587,6 +5655,7 @@ app.delete("/api/forms/:id", xoroAdminAuthMiddleware, async (req, res) => {
     db.formSubmissions = db.formSubmissions.filter(s => s.formId !== id);
   }
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   try {
     if (isFormsTableAvailable) {
@@ -5662,6 +5731,7 @@ app.post("/api/forms/:id/submit", async (req, res) => {
 
   db.formSubmissions.push(submission);
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   try {
     if (isFormsTableAvailable) {
@@ -5723,6 +5793,7 @@ app.delete("/api/forms/:id/submissions/:subId", xoroAdminAuthMiddleware, async (
   }
 
   saveDB();
+  syncSettingsToCloud().catch(() => {});
 
   try {
     if (isFormSubmissionsTableAvailable) {

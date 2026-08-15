@@ -2394,6 +2394,7 @@ export default function AdminPanel({
       couponCode: formCouponCode,
       couponDiscountPercent: Number(formCouponDiscountPercent),
       offerPrice: finalOfferPrice,
+      timerOfferPrice: finalOfferPrice,
       timerStartTime: formTimerStartTime || null,
       timerEndTime: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
@@ -2473,10 +2474,15 @@ export default function AdminPanel({
     
     setFormPrice(prod.price);
     setFormOldPriceField('');
-    const hasOffer = prod.offerPrice !== undefined && prod.offerPrice !== null && Number(prod.offerPrice) > 0;
+    const offerVal = (prod.offerPrice !== undefined && prod.offerPrice !== null && prod.offerPrice !== '')
+      ? prod.offerPrice
+      : ((prod.timerOfferPrice !== undefined && prod.timerOfferPrice !== null && prod.timerOfferPrice !== '')
+        ? prod.timerOfferPrice
+        : null);
+    const hasOffer = offerVal !== null && !isNaN(Number(offerVal)) && Number(offerVal) > 0;
     if (hasOffer) {
-      setFormOfferPrice(Number(prod.offerPrice));
-      const calculatedPercent = Math.round(((prod.price - Number(prod.offerPrice)) / prod.price) * 100);
+      setFormOfferPrice(Number(offerVal));
+      const calculatedPercent = prod.price > 0 ? Math.round(((prod.price - Number(offerVal)) / prod.price) * 100) : 0;
       setFormOfferDiscountPercent(calculatedPercent > 0 && calculatedPercent <= 100 ? calculatedPercent : '');
     } else {
       setFormOfferPrice('');
@@ -9920,29 +9926,73 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Event End Date &amp; Time:</label>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Event End Date &amp; Time:</label>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
+                                  setGlobalTimerActiveInput(true);
+                                }}
+                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
+                              >
+                                +24h
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
+                                  setGlobalTimerActiveInput(true);
+                                }}
+                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
+                              >
+                                +3d
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
+                                  setGlobalTimerActiveInput(true);
+                                }}
+                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
+                              >
+                                +7d
+                              </button>
+                              {globalTimerEndTimeInput && (
+                                <button
+                                  type="button"
+                                  onClick={() => setGlobalTimerEndTimeInput('')}
+                                  className="text-[8px] font-mono text-red-400 hover:text-red-300 px-1 py-0.5"
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+                          </div>
                           <input 
                             type="datetime-local"
                             value={globalTimerEndTimeInput}
                             onChange={(e) => setGlobalTimerEndTimeInput(e.target.value)}
-                            disabled={!globalTimerActiveInput}
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2 py-2.5 font-mono text-white transition-all disabled:opacity-40"
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2 py-2.5 font-mono text-white transition-all"
                           />
-                          <p className="text-[8px] text-zinc-500 font-mono">Specify when the global flash sale banner countdown should expire.</p>
+                          <p className="text-[8px] text-zinc-500 font-mono">Specify when the global flash sale countdown should expire (optional; if blank, banner message displays directly).</p>
                         </div>
 
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Promotion Headline Message:</label>
+                        <div className="space-y-1.5">
+                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Promotion Headline Message / Banner Message:</label>
                           <input 
                             type="text"
                             value={globalTimerMessageInput}
                             onChange={(e) => setGlobalTimerMessageInput(e.target.value)}
-                            disabled={!globalTimerActiveInput}
                             placeholder="e.g. SPECIAL ROYAL EID CARRIAGE PRIVILEGES ACTIVE"
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all disabled:opacity-40"
+                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all"
                           />
-                          <p className="text-[8px] text-zinc-500 font-mono">Display message text rendered next to the global timer countdown.</p>
+                          <p className="text-[8px] text-zinc-500 font-mono">Display message text rendered in the luxury global store announcement / countdown banner.</p>
                         </div>
                       </div>
                     </div>
