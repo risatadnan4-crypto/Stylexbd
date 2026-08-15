@@ -453,23 +453,66 @@ function generateSeoKeywordsForProduct(title: string): string {
   return [...base, ...titleSpecific].join(", ");
 }
 
-// Function to save database file
+// Function to safely serialize database with circular reference and BigInt protection
+function safeStringify(obj: any): string {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, (_key, value) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return undefined; // Drop circular reference safely
+      }
+      seen.add(value);
+    }
+    if (typeof value === "bigint") {
+      return value.toString();
+    }
+    return value;
+  }, 2);
+}
+
+// Atomic file write helper
+function writeDatabaseToPath(targetPath: string, jsonStr: string): boolean {
+  try {
+    const dir = path.dirname(targetPath);
+    if (!fs.existsSync(dir)) {
+      try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+    }
+    const tempPath = `${targetPath}.${Date.now()}.${Math.random().toString(36).substring(2, 7)}.tmp`;
+    fs.writeFileSync(tempPath, jsonStr, "utf-8");
+    try {
+      fs.renameSync(tempPath, targetPath);
+    } catch (renameErr) {
+      // Fallback copy and remove temp if cross-device or OS locked
+      fs.copyFileSync(tempPath, targetPath);
+      try { fs.unlinkSync(tempPath); } catch (uErr) {}
+    }
+    return true;
+  } catch (err: any) {
+    return false;
+  }
+}
+
+// Bulletproof Function to save database file atomically
 function saveDB() {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-  } catch (err: any) {
-    if (!DB_FILE.startsWith("/tmp")) {
-      try {
+    const serialized = safeStringify(db);
+    const success = writeDatabaseToPath(DB_FILE, serialized);
+    if (!success) {
+      if (!DB_FILE.startsWith("/tmp")) {
         const fallbackPath = "/tmp/luxury_db.json";
-        fs.writeFileSync(fallbackPath, JSON.stringify(db, null, 2), "utf-8");
-        DB_FILE = fallbackPath;
-        console.log("💾 File system write failed on original path, fell back to writable /tmp:", DB_FILE);
-      } catch (tmpErr: any) {
-        console.error("❌ Even /tmp fallback write failed:", tmpErr.message);
+        const fallbackSuccess = writeDatabaseToPath(fallbackPath, serialized);
+        if (fallbackSuccess) {
+          DB_FILE = fallbackPath;
+          console.log("💾 Database persistence fell back to writable /tmp path:", DB_FILE);
+        } else {
+          console.error("❌ Critical: Database persistence failed on /tmp path");
+        }
+      } else {
+        console.error("❌ Critical: Database write error on /tmp path");
       }
-    } else {
-      console.error("❌ DB write error on /tmp path:", err?.message || err);
     }
+  } catch (err: any) {
+    console.error("❌ Uncaught exception inside saveDB():", err?.message || err);
   }
 }
 

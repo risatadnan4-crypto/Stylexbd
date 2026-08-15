@@ -2474,9 +2474,9 @@ export default function AdminPanel({
     
     setFormPrice(prod.price);
     setFormOldPriceField('');
-    const offerVal = (prod.offerPrice !== undefined && prod.offerPrice !== null && prod.offerPrice !== '')
+    const offerVal = (prod.offerPrice !== undefined && prod.offerPrice !== null && (prod.offerPrice as any) !== '')
       ? prod.offerPrice
-      : ((prod.timerOfferPrice !== undefined && prod.timerOfferPrice !== null && prod.timerOfferPrice !== '')
+      : ((prod.timerOfferPrice !== undefined && prod.timerOfferPrice !== null && (prod.timerOfferPrice as any) !== '')
         ? prod.timerOfferPrice
         : null);
     const hasOffer = offerVal !== null && !isNaN(Number(offerVal)) && Number(offerVal) > 0;
