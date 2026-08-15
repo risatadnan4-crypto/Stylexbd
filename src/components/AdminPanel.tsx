@@ -4860,8 +4860,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       
                       {/* Image preview frame */}
                       {formImageUrl && (
-                        <div className="w-16 h-16 bg-luxury-charcoal rounded overflow-hidden border border-white/10 flex-shrink-0">
-                          <img src={formImageUrl} alt="Product Preview" className="w-full h-full object-cover" />
+                        <div className="w-20 h-20 bg-black/60 rounded-xl overflow-hidden border border-luxury-gold/40 flex-shrink-0 flex items-center justify-center p-1 shadow-inner relative group">
+                          <img 
+                            src={formImageUrl} 
+                            alt="Product Preview" 
+                            className="max-w-full max-h-full w-auto h-auto object-contain rounded transition-transform group-hover:scale-105" 
+                            referrerPolicy="no-referrer"
+                          />
                         </div>
                       )}
                     </div>
@@ -4920,8 +4925,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         <label className="block text-[9px] uppercase font-mono tracking-wider text-[#d4af37] font-semibold">Active Secondary Gallery ({formImages.length} images)</label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
                           {formImages.map((imgUrl, index) => (
-                            <div key={index} className="relative group/img aspect-square bg-[#0c0c0c] border border-white/10 rounded overflow-hidden">
-                              <img src={imgUrl} alt={`Gallery index ${index}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <div key={index} className="relative group/img aspect-square bg-black/60 border border-white/15 rounded-lg overflow-hidden flex items-center justify-center p-1 shadow-sm">
+                              <img 
+                                src={imgUrl} 
+                                alt={`Gallery index ${index}`} 
+                                className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/img:scale-105" 
+                                referrerPolicy="no-referrer" 
+                              />
                               <div className="absolute inset-0 bg-black/75 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 gap-2">
                                 <span className="text-[10px] text-white/80 font-mono">#{index + 1}</span>
                                 <button
@@ -6107,6 +6117,8 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       >
                         <option value="text">Text Input</option>
                         <option value="textarea">Paragraph Area</option>
+                        <option value="image">Image / Photo Upload (Multiple)</option>
+                        <option value="file">File / Document Upload</option>
                         <option value="number">Numeric Input</option>
                         <option value="email">Email Address</option>
                         <option value="phone">Phone Number</option>
@@ -6362,12 +6374,34 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
 
                               {/* ANSWERS BLOCK */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
-                                {Object.entries(sub.answers || {}).map(([fieldLabel, val]) => (
-                                  <div key={fieldLabel} className="bg-[#15151D] p-2 rounded border border-white/5">
-                                    <p className="text-[9px] text-white/40 uppercase font-mono">{fieldLabel}</p>
-                                    <p className="text-white font-medium mt-0.5 whitespace-pre-line">{String(val)}</p>
-                                  </div>
-                                ))}
+                                {Object.entries(sub.answers || {}).map(([fieldLabel, val]) => {
+                                  const isImgArray = Array.isArray(val) && val.some(v => typeof v === 'string' && (v.startsWith('data:image/') || v.startsWith('http') || v.includes('/uploads/')));
+                                  const isSingleImg = typeof val === 'string' && (val.startsWith('data:image/') || (val.startsWith('http') && /\.(jpeg|jpg|png|webp|gif)/i.test(val)));
+
+                                  return (
+                                    <div key={fieldLabel} className="bg-[#15151D] p-2.5 rounded border border-white/5 space-y-1.5">
+                                      <p className="text-[9px] text-white/40 uppercase font-mono">{fieldLabel}</p>
+                                      {isImgArray ? (
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                          {(val as string[]).map((img, imgIdx) => (
+                                            <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer" className="block relative group/img">
+                                              <img src={img} alt={`Upload ${imgIdx+1}`} className="w-14 h-14 object-cover rounded border border-white/10 group-hover/img:border-purple-400 transition-colors" />
+                                              <span className="absolute bottom-0 right-0 bg-black/80 text-[8px] font-mono px-1 rounded-tl text-white/70">#{imgIdx+1}</span>
+                                            </a>
+                                          ))}
+                                        </div>
+                                      ) : isSingleImg ? (
+                                        <div className="pt-1">
+                                          <a href={val as string} target="_blank" rel="noopener noreferrer" className="inline-block">
+                                            <img src={val as string} alt="Upload" className="max-h-24 max-w-full object-cover rounded border border-white/10 hover:border-purple-400 transition-colors" />
+                                          </a>
+                                        </div>
+                                      ) : (
+                                        <p className="text-white font-medium mt-0.5 whitespace-pre-line break-words">{String(val)}</p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
 
                               {/* METADATA BLOCK */}

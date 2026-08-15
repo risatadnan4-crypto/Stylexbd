@@ -23,6 +23,7 @@ export default function LuxuryCheckoutButton({
   const wBackRef = useRef<HTMLDivElement>(null);
   const wFrontRef = useRef<HTMLDivElement>(null);
   const packageRef = useRef<HTMLDivElement>(null);
+  const courierPersonRef = useRef<HTMLDivElement>(null);
 
   const [animState, setAnimState] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE');
 
@@ -47,6 +48,7 @@ export default function LuxuryCheckoutButton({
     if (wBackRef.current) gsap.killTweensOf(wBackRef.current);
     if (wFrontRef.current) gsap.killTweensOf(wFrontRef.current);
     if (packageRef.current) gsap.killTweensOf(packageRef.current);
+    if (courierPersonRef.current) gsap.killTweensOf(courierPersonRef.current);
 
     gsap.set(btn, { rotateX: 0, rotateY: 0, scale: 1 });
     const defState = btn.querySelector('.state-default');
@@ -59,12 +61,9 @@ export default function LuxuryCheckoutButton({
     if (succState) gsap.set(succState, { opacity: 0, scale: 0.92 });
     if (progTrack) gsap.set(progTrack, { width: '0%', opacity: 1 });
 
-    if (vanRef.current) {
-      gsap.set(vanRef.current, { left: '-160px' });
-    }
-    if (packageRef.current) {
-      gsap.set(packageRef.current, { opacity: 0, scale: 0.4 });
-    }
+    if (vanRef.current) gsap.set(vanRef.current, { left: '-160px', opacity: 1 });
+    if (courierPersonRef.current) gsap.set(courierPersonRef.current, { opacity: 0, scale: 0.8, x: 0, y: 0 });
+    if (packageRef.current) gsap.set(packageRef.current, { opacity: 0, scale: 0.8, left: '0px', top: '0px' });
   };
 
   // Particle System Canvas
@@ -241,76 +240,119 @@ export default function LuxuryCheckoutButton({
       ease: 'power1.inOut'
     });
 
-    // 4. Animate Delivery Van Driving Across the Runway
+    // 4. Animate Courier Vehicle & Courier Delivery Person loading product
     if (vanRef.current && wBackRef.current && wFrontRef.current) {
+      // Setup elements initial positions
+      gsap.set(vanRef.current, { left: '-160px', opacity: 1 });
+      if (courierPersonRef.current) gsap.set(courierPersonRef.current, { opacity: 0, scale: 0.8, x: -10, y: 0 });
+      if (packageRef.current) gsap.set(packageRef.current, { opacity: 0, scale: 0.7, left: '38%', top: '22px' });
+
       // Rapid wheel spin
       gsap.to([wBackRef.current, wFrontRef.current], {
-        rotate: 1440,
-        duration: 3.2,
-        ease: 'power1.inOut'
+        rotate: 1080,
+        duration: 1.2,
+        ease: 'power2.out'
       });
 
-      // Van chassis bounding rattle / micro-bounce
+      // Van chassis vibration
       gsap.to(vanRef.current.querySelector('.van-body-svg'), {
         y: -1.5,
-        repeat: 14,
+        repeat: 18,
         yoyo: true,
-        duration: 0.12,
+        duration: 0.1,
         ease: 'power1.inOut'
       });
 
-      // Drive across track
+      // Phase 1: Courier Car arrives and stops in the middle
       gsap.to(vanRef.current, {
-        left: '60%',
-        duration: 2.2,
-        ease: 'power2.inOut',
+        left: '42%',
+        duration: 1.2,
+        ease: 'power3.out',
         onComplete: () => {
-          // Release cargo package in the middle
-          if (packageRef.current) {
-            gsap.set(packageRef.current, {
-              left: '60%',
-              top: '12px',
-              scale: 0.4,
-              opacity: 0,
-              rotate: 0
+          // Phase 2: Courier person appears holding product box
+          if (courierPersonRef.current && packageRef.current) {
+            gsap.to(courierPersonRef.current, {
+              opacity: 1,
+              scale: 1,
+              x: 0,
+              duration: 0.35,
+              ease: 'back.out(1.5)'
             });
-            // Ejection trajectory
+
             gsap.to(packageRef.current, {
               opacity: 1,
               scale: 1,
-              left: '72%',
-              top: '4px',
-              rotate: 360,
-              duration: 0.8,
-              ease: 'power2.out',
-              onComplete: () => {
-                // Fade package into background track
-                gsap.to(packageRef.current, {
-                  opacity: 0,
-                  scale: 0.3,
-                  y: 6,
-                  duration: 0.4,
-                  ease: 'power2.in'
-                });
-              }
+              left: '37%',
+              top: '18px',
+              duration: 0.35,
+              ease: 'power2.out'
             });
-          }
 
-          // Complete the van drive off
-          gsap.to(vanRef.current, {
-            left: '115%',
-            duration: 1.2,
-            delay: 0.2,
-            ease: 'power2.in'
-          });
+            // Person lifts and places product into courier van trunk/cargo
+            setTimeout(() => {
+              // Person animation: step forward and hands placing parcel
+              gsap.to(courierPersonRef.current, {
+                x: 12,
+                y: -2,
+                duration: 0.6,
+                ease: 'power2.inOut'
+              });
+
+              // Parcel lifts up and moves into vehicle cargo area
+              gsap.to(packageRef.current, {
+                left: '46%',
+                top: '8px',
+                scale: 0.85,
+                rotate: 20,
+                duration: 0.6,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                  // Parcel slides cleanly into van
+                  gsap.to(packageRef.current, {
+                    scale: 0.4,
+                    opacity: 0,
+                    left: '49%',
+                    top: '14px',
+                    duration: 0.35,
+                    ease: 'power2.in'
+                  });
+
+                  // Person waves / steps back and fades smoothly
+                  gsap.to(courierPersonRef.current, {
+                    opacity: 0,
+                    x: -4,
+                    scale: 0.85,
+                    duration: 0.4,
+                    delay: 0.1,
+                    ease: 'power2.in'
+                  });
+
+                  // Phase 3: Wheels spin again and Courier Car drives off quickly
+                  setTimeout(() => {
+                    gsap.to([wBackRef.current, wFrontRef.current], {
+                      rotate: '+=1440',
+                      duration: 1.2,
+                      ease: 'power2.in'
+                    });
+
+                    gsap.to(vanRef.current, {
+                      left: '120%',
+                      duration: 1.1,
+                      ease: 'power3.in'
+                    });
+                  }, 250);
+                }
+              });
+            }, 450);
+          }
         }
       });
     }
 
-    // 5. Success State transition after 3.6s
+    // 5. Success State transition after 3.8s
     setTimeout(() => {
       triggerSuccessAnimation();
-    }, 3600);
+    }, 3800);
   };
 
   const triggerSuccessAnimation = () => {
@@ -368,10 +410,10 @@ export default function LuxuryCheckoutButton({
           position: relative;
           width: 100%;
           height: 58px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(147, 51, 234, 0.28) 45%, rgba(212, 175, 55, 0.2) 80%, rgba(255, 255, 255, 0.08) 100%);
-          backdrop-filter: blur(24px) saturate(180%);
-          -webkit-backdrop-filter: blur(24px) saturate(180%);
-          border: 1.5px solid rgba(233, 213, 255, 0.55);
+          background: linear-gradient(135deg, rgba(147, 51, 234, 0.4) 0%, rgba(107, 33, 168, 0.5) 50%, rgba(20, 6, 38, 0.6) 100%);
+          backdrop-filter: blur(20px) saturate(160%);
+          -webkit-backdrop-filter: blur(20px) saturate(160%);
+          border: 1.5px solid rgba(216, 180, 254, 0.6);
           border-radius: 9999px;
           cursor: pointer;
           outline: none;
@@ -383,39 +425,36 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 14px 35px rgba(0, 0, 0, 0.75), 
-              0 0 30px rgba(168, 85, 247, 0.35),
-              0 0 15px rgba(212, 175, 55, 0.2),
-              inset 0 2px 4px rgba(255, 255, 255, 0.7),
-              inset 0 -2px 6px rgba(0, 0, 0, 0.5);
+              0 12px 30px rgba(0, 0, 0, 0.7), 
+              0 0 25px rgba(168, 85, 247, 0.35),
+              inset 0 1.5px 2px rgba(255, 255, 255, 0.6),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.4);
           
           transform-style: preserve-3d;
           backface-visibility: hidden;
           will-change: transform, box-shadow, border-color;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: rgba(255, 255, 255, 0.85);
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(168, 85, 247, 0.38) 45%, rgba(212, 175, 55, 0.28) 80%, rgba(255, 255, 255, 0.12) 100%);
+          border-color: rgba(233, 213, 255, 0.9);
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(126, 34, 206, 0.6) 50%, rgba(30, 10, 55, 0.7) 100%);
           box-shadow: 
-              0 20px 45px rgba(0, 0, 0, 0.85), 
-              0 0 40px rgba(192, 132, 252, 0.6),
-              0 0 20px rgba(212, 175, 55, 0.35),
-              inset 0 2px 5px rgba(255, 255, 255, 0.85),
-              inset 0 -2px 6px rgba(0, 0, 0, 0.5);
+              0 16px 38px rgba(0, 0, 0, 0.8), 
+              0 0 35px rgba(192, 132, 252, 0.55),
+              inset 0 2px 4px rgba(255, 255, 255, 0.75),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.4);
           transform: translateY(-1px) scale(1.01);
         }
 
         .luxury-btn:active {
           border-color: rgba(233, 213, 255, 0.95);
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(168, 85, 247, 0.45) 50%, rgba(20, 6, 38, 0.3) 100%);
+          background: linear-gradient(135deg, rgba(147, 51, 234, 0.55) 0%, rgba(107, 33, 168, 0.65) 50%, rgba(20, 6, 38, 0.75) 100%);
           box-shadow: 
-              0 8px 25px rgba(0, 0, 0, 0.8), 
-              0 0 35px rgba(192, 132, 252, 0.5),
-              inset 0 1.5px 3px rgba(255, 255, 255, 0.6),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
-          transform: scale(0.98);
+              0 6px 18px rgba(0, 0, 0, 0.8), 
+              0 0 25px rgba(192, 132, 252, 0.45),
+              inset 0 1px 2px rgba(255, 255, 255, 0.5);
+          transform: scale(0.985);
         }
 
         @media (max-width: 640px) {
@@ -427,22 +466,21 @@ export default function LuxuryCheckoutButton({
           .luxury-btn {
             height: 52px !important;
             border-radius: 9999px !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(147, 51, 234, 0.32) 45%, rgba(212, 175, 55, 0.22) 80%, rgba(255, 255, 255, 0.1) 100%) !important;
-            backdrop-filter: blur(20px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-            border: 1.5px solid rgba(233, 213, 255, 0.65) !important;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), 0 0 25px rgba(168, 85, 247, 0.35), inset 0 1.5px 3px rgba(255, 255, 255, 0.65) !important;
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.45) 0%, rgba(107, 33, 168, 0.55) 50%, rgba(20, 6, 38, 0.65) 100%) !important;
+            backdrop-filter: blur(16px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+            border: 1.5px solid rgba(216, 180, 254, 0.65) !important;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7), 0 0 20px rgba(168, 85, 247, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 0.6) !important;
             touch-action: manipulation;
           }
           .label-text {
-            font-size: 11.5px !important;
+            font-size: 12px !important;
             font-weight: 800 !important;
-            letter-spacing: 1.5px !important;
+            letter-spacing: 1.8px !important;
             color: #FFFFFF !important;
-            background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 50%, #E9D5FF 100%) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+            background: none !important;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
             white-space: normal !important;
             text-align: center !important;
             line-height: 1.2 !important;
@@ -603,18 +641,18 @@ export default function LuxuryCheckoutButton({
         .label-text {
           font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
           font-size: 13px;
-          font-weight: 700;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 4px;
-          background: linear-gradient(180deg, #FFFFFF 0%, #E9D5FF 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+          letter-spacing: 3px;
+          color: #FFFFFF;
+          -webkit-text-fill-color: #FFFFFF;
+          background: none;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
         }
         .icon-arrow svg {
           width: 14px;
           height: 14px;
-          stroke: #C084FC;
+          stroke: #E9D5FF;
           stroke-width: 2.5;
           transition: transform 0.5s cubic-bezier(0.1, 0.9, 0.1, 1);
         }
@@ -643,53 +681,67 @@ export default function LuxuryCheckoutButton({
         .delivery-vessel {
           position: absolute;
           left: -160px;
-          top: -5px;
-          width: 135px;
-          height: 78px;
+          top: -6px;
+          width: 140px;
+          height: 75px;
           transform: scale(0.55);
           transform-origin: bottom center;
           will-change: transform;
         }
         .wheel {
           position: absolute;
-          width: 16px;
-          height: 16px;
-          bottom: 5px;
+          width: 20px;
+          height: 20px;
+          bottom: 7px;
           will-change: transform;
         }
-        .wheel-back { left: 24px; }
-        .wheel-front { left: 93px; }
+        .wheel-back { left: 22px; }
+        .wheel-front { left: 97px; }
 
         .cargo-package {
           position: absolute;
           left: 45px;
           top: 18px;
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           opacity: 0;
           perspective: 1000px;
-          z-index: 5;
+          z-index: 8;
           will-change: transform, opacity;
         }
         .cargo-geometry {
           width: 100%;
           height: 100%;
-          background: #0b0711;
-          border: 0.85px solid #C084FC;
+          background: linear-gradient(135deg, #180a29 0%, #2e1065 100%);
+          border: 1px solid #E9D5FF;
           box-shadow: 
-              0 15px 35px rgba(0, 0, 0, 0.95),
-              0 0 20px rgba(192, 132, 252, 0.4);
+              0 8px 20px rgba(0, 0, 0, 0.95),
+              0 0 15px rgba(192, 132, 252, 0.6);
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 2px;
-          transform: rotateX(35deg) rotateY(42deg);
+          border-radius: 3px;
+          transform: rotateX(25deg) rotateY(35deg);
         }
         .cargo-brand {
-          font-size: 8.5px;
-          font-weight: 800;
-          color: #E9D5FF;
-          text-shadow: 0 0 8px #C084FC;
+          font-size: 8px;
+          font-weight: 900;
+          color: #F5D0FE;
+          text-shadow: 0 0 6px #C084FC;
+          letter-spacing: 0.5px;
+        }
+
+        .courier-person {
+          position: absolute;
+          left: 24%;
+          top: 4px;
+          width: 32px;
+          height: 48px;
+          z-index: 7;
+          opacity: 0;
+          pointer-events: none;
+          transform-origin: bottom center;
+          will-change: transform, opacity;
         }
 
         .state-success {
@@ -787,70 +839,195 @@ export default function LuxuryCheckoutButton({
         {/* Delivery Vehicle Runway Animation (Style X Express Vessel) */}
         <div className="theater-runway" aria-hidden="true">
           <div className="delivery-vessel" ref={vanRef}>
-            {vesselType === 'CART' ? (
-              /* Sleek Aerodynamic Style X Gold Hypercar / Coupe (Step 1 VIP Speed Machine) */
-              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_16px_rgba(192,132,252,0.65)]" viewBox="0 0 160 80" fill="none">
-                {/* Hypercar aerodynamic silhouette */}
-                <path d="M5 52 C18 52, 28 46, 48 34 C68 22, 100 20, 118 26 C134 31, 150 42, 156 48 C159 51, 159 55, 152 55 L5 55 Z" fill="url(#hypercarGrad)" stroke="#C084FC" strokeWidth="1.75" />
-                {/* Glass canopy roof */}
-                <path d="M54 31 C70 19, 96 17, 112 25 C102 25, 68 28, 54 31 Z" fill="#0c051a" stroke="#C084FC" strokeWidth="1.2" />
-                {/* Side window tint */}
-                <path d="M60 30 C72 22, 92 21, 104 25 C90 25, 70 27, 60 30 Z" fill="#24103e" opacity="0.9" />
-                {/* Gold body side accent / racing line */}
-                <path d="M22 47 Q72 41 146 47" stroke="#C084FC" strokeWidth="1.2" strokeDasharray="4 1.5" />
-                {/* Rear spoiler wing */}
-                <path d="M6 38 L22 36 L24 42 L8 42 Z" fill="#7c3aed" stroke="#C084FC" strokeWidth="0.8" />
-                {/* Branding text */}
-                <text x="48" y="47" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" letterSpacing="1.5">STYLE X</text>
-                <text x="96" y="47" fill="#C084FC" fontSize="7.5" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.8">VIP</text>
-                {/* Hyper Xenon Headlight Beam */}
-                <circle cx="154" cy="49" r="3" fill="#E9D5FF" className="drop-shadow-[0_0_12px_#E9D5FF]" />
-                {/* Red LED Taillight Bar */}
-                <rect x="5" y="47" width="8" height="3" rx="1.5" fill="#EF4444" className="drop-shadow-[0_0_8px_#EF4444]" />
-                <defs>
-                  <linearGradient id="hypercarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#0c0617" />
-                    <stop offset="35%" stopColor="#2a1444" />
-                    <stop offset="70%" stopColor="#130826" />
-                    <stop offset="100%" stopColor="#080310" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            ) : (
-              /* Style X Express Heavy Freight Delivery Vessel (Step 2 Final Order) */
-              <svg className="van-body-svg w-full h-full drop-shadow-[0_4px_12px_rgba(192,132,252,0.4)]" viewBox="0 0 160 80" fill="none">
-                <path d="M10 50 L25 25 L65 20 L110 20 L145 38 L155 50 L155 60 L10 60 Z" fill="url(#vanGrad)" stroke="#C084FC" strokeWidth="1.5" />
-                <path d="M70 24 L105 24 L132 38 L70 38 Z" fill="#120c1f" stroke="#C084FC" strokeWidth="1" />
-                <text x="32" y="48" fill="#FFFFFF" fontSize="11" fontWeight="900" fontFamily="sans-serif" letterSpacing="1">STYLE X</text>
-                <text x="80" y="48" fill="#C084FC" fontSize="8" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.5">EXPRESS</text>
-                <circle cx="150" cy="46" r="3" fill="#E9D5FF" className="drop-shadow-[0_0_8px_#E9D5FF]" />
-                <rect x="12" y="44" width="10" height="3" rx="1.5" fill="#EF4444" />
-                <defs>
-                  <linearGradient id="vanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#0c0617" />
-                    <stop offset="50%" stopColor="#1a0f2e" />
-                    <stop offset="100%" stopColor="#080310" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            )}
+            {/* High-Fidelity Yellow Delivery Van (from Reference Image) */}
+            <svg className="van-body-svg w-full h-full drop-shadow-[0_6px_14px_rgba(0,0,0,0.6)]" viewBox="0 0 160 80" fill="none">
+              {/* Main Yellow Van Body */}
+              <path 
+                d="M 12 18 
+                   C 12 14, 16 11, 24 11 
+                   L 105 11 
+                   C 114 11, 126 18, 134 27 
+                   L 146 40 
+                   C 152 46, 154 50, 152 56 
+                   L 150 58 
+                   L 12 58 
+                   Z" 
+                fill="#FFB81C" 
+              />
+
+              {/* Roof Shading / Highlight */}
+              <path 
+                d="M 22 11 L 105 11 C 113 11, 122 17, 130 25 L 128 27 C 121 19, 112 13, 104 13 L 22 13 Z" 
+                fill="#FFD54F" 
+                opacity="0.7" 
+              />
+
+              {/* Bottom Dark Trim / Rocker Panel */}
+              <path 
+                d="M 12 49 
+                   L 20 49 
+                   C 20 49, 21 40, 36 40 
+                   C 51 40, 52 49, 52 49 
+                   L 104 49 
+                   C 104 49, 105 40, 120 40 
+                   C 135 40, 136 49, 136 49 
+                   L 151 49 
+                   L 150 58 
+                   L 12 58 
+                   Z" 
+                fill="#2B2B2B" 
+              />
+
+              {/* Yellow Wheel Arch Moldings */}
+              <path 
+                d="M 18 49 C 19 38, 53 38, 54 49" 
+                stroke="#FFB81C" 
+                strokeWidth="3.5" 
+                fill="none" 
+              />
+              <path 
+                d="M 102 49 C 103 38, 137 38, 138 49" 
+                stroke="#FFB81C" 
+                strokeWidth="3.5" 
+                fill="none" 
+              />
+
+              {/* Cabin Window Frame & Glass */}
+              <path 
+                d="M 97 16 
+                   L 124 16 
+                   C 127 16, 130 19, 133 24 
+                   L 137 34 
+                   C 138 36, 137 38, 134 38 
+                   L 97 38 
+                   C 95 38, 94 36, 94 34 
+                   L 94 19 
+                   C 94 17, 95 16, 97 16 Z" 
+                fill="#FFFFFF" 
+                stroke="#E5A00D" 
+                strokeWidth="1.2" 
+              />
+
+              {/* Inside Cabin: Driver Seat Headrest */}
+              <rect x="96" y="24" width="4.5" height="10" rx="2" fill="#1F2937" />
+
+              {/* Inside Cabin: Driver Character (Red cap, Red shirt, smiling) */}
+              {/* Driver Red Shirt Body */}
+              <path d="M 98 38 L 102 31 L 114 31 L 118 38 Z" fill="#DC2626" />
+              {/* Driver Neck & Face */}
+              <circle cx="109" cy="24" r="5" fill="#FED7AA" />
+              {/* Smiling eyes & mouth */}
+              <path d="M 109 25 Q 112 28 114 25" stroke="#9A3412" strokeWidth="0.8" fill="none" />
+              <circle cx="111" cy="23" r="0.8" fill="#1F2937" />
+              {/* Red Cap with visor */}
+              <ellipse cx="109" cy="20" rx="5.5" ry="2.5" fill="#DC2626" />
+              <path d="M 104 20 C 104 16, 114 16, 114 20 Z" fill="#B91C1C" />
+              <path d="M 109 20 L 116 21 L 114 22 Z" fill="#991B1B" />
+              {/* Driver Arm reaching to steering wheel */}
+              <path d="M 108 34 L 119 32 L 123 30" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
+              {/* Steering Wheel */}
+              <line x1="123" y1="26" x2="120" y2="35" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
+              <ellipse cx="121.5" cy="30.5" rx="1.5" ry="4" fill="none" stroke="#111827" strokeWidth="1" />
+
+              {/* Side Mirror */}
+              <rect x="135" y="32" width="3.5" height="6" rx="1" fill="#FFA000" stroke="#CC8000" strokeWidth="0.5" />
+
+              {/* Door Cut Line */}
+              <path d="M 92 16 L 92 48" stroke="#E5A00D" strokeWidth="1" strokeDasharray="1 1" />
+              <circle cx="95" cy="40" r="1" fill="#B45309" />
+
+              {/* Bold White DELIVERY Text */}
+              <text 
+                x="40" 
+                y="33" 
+                fill="#FFFFFF" 
+                fontSize="10.5" 
+                fontWeight="900" 
+                fontFamily="system-ui, -apple-system, sans-serif" 
+                letterSpacing="1.2"
+              >
+                DELIVERY
+              </text>
+
+              {/* Front Headlight (Almond/Curved Yellow-White) */}
+              <path 
+                d="M 142 38 
+                   C 148 42, 151 46, 149 50 
+                   L 138 49 
+                   Z" 
+                fill="#FFFDE7" 
+                stroke="#FFD54F" 
+                strokeWidth="0.8" 
+                className="drop-shadow-[0_0_6px_#FFF9C4]" 
+              />
+
+              {/* Rear Vertical Red Taillight */}
+              <rect x="11" y="34" width="3.5" height="12" rx="1" fill="#DC2626" />
+              <rect x="11" y="38" width="3.5" height="4" fill="#FCA5A5" opacity="0.6" />
+            </svg>
+
+            {/* Rear Alloy Wheel */}
             <div className="wheel wheel-back" ref={wBackRef}>
-              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]">
-                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#C084FC" strokeWidth="2" />
-                <circle cx="10" cy="10" r="4" fill="#C084FC" />
-                <line x1="10" y1="1" x2="10" y2="19" stroke="#C084FC" strokeWidth="1.5" />
-                <line x1="1" y1="10" x2="19" y2="10" stroke="#C084FC" strokeWidth="1.5" />
+              <svg viewBox="0 0 24 24" className="w-full h-full drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                {/* Black Rubber Tire */}
+                <circle cx="12" cy="12" r="11" fill="#1C1917" stroke="#292524" strokeWidth="1" />
+                {/* Silver Rim Edge */}
+                <circle cx="12" cy="12" r="8" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1" />
+                {/* Wheel Hub Center */}
+                <circle cx="12" cy="12" r="3.5" fill="#4B5563" />
+                <circle cx="12" cy="12" r="1.5" fill="#E5E7EB" />
+                {/* 5 Silver Twin Spokes */}
+                <line x1="12" y1="4" x2="12" y2="20" stroke="#9CA3AF" strokeWidth="1.5" />
+                <line x1="4.4" y1="9.5" x2="19.6" y2="14.5" stroke="#9CA3AF" strokeWidth="1.5" />
+                <line x1="4.4" y1="14.5" x2="19.6" y2="9.5" stroke="#9CA3AF" strokeWidth="1.5" />
               </svg>
             </div>
+
+            {/* Front Alloy Wheel */}
             <div className="wheel wheel-front" ref={wFrontRef}>
-              <svg viewBox="0 0 20 20" className="w-full h-full text-luxury-gold drop-shadow-[0_0_6px_rgba(192,132,252,0.8)]">
-                <circle cx="10" cy="10" r="9" fill="#080310" stroke="#C084FC" strokeWidth="2" />
-                <circle cx="10" cy="10" r="4" fill="#C084FC" />
-                <line x1="10" y1="1" x2="10" y2="19" stroke="#C084FC" strokeWidth="1.5" />
-                <line x1="1" y1="10" x2="19" y2="10" stroke="#C084FC" strokeWidth="1.5" />
+              <svg viewBox="0 0 24 24" className="w-full h-full drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                {/* Black Rubber Tire */}
+                <circle cx="12" cy="12" r="11" fill="#1C1917" stroke="#292524" strokeWidth="1" />
+                {/* Silver Rim Edge */}
+                <circle cx="12" cy="12" r="8" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1" />
+                {/* Wheel Hub Center */}
+                <circle cx="12" cy="12" r="3.5" fill="#4B5563" />
+                <circle cx="12" cy="12" r="1.5" fill="#E5E7EB" />
+                {/* 5 Silver Twin Spokes */}
+                <line x1="12" y1="4" x2="12" y2="20" stroke="#9CA3AF" strokeWidth="1.5" />
+                <line x1="4.4" y1="9.5" x2="19.6" y2="14.5" stroke="#9CA3AF" strokeWidth="1.5" />
+                <line x1="4.4" y1="14.5" x2="19.6" y2="9.5" stroke="#9CA3AF" strokeWidth="1.5" />
               </svg>
             </div>
           </div>
+
+          {/* Courier Person matching driver (Red uniform & Cap) loading the package */}
+          <div className="courier-person" ref={courierPersonRef}>
+            <svg viewBox="0 0 36 54" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]" fill="none">
+              {/* Courier Cap */}
+              <ellipse cx="18" cy="8" rx="7" ry="3" fill="#DC2626" stroke="#FECACA" strokeWidth="0.6" />
+              <path d="M12 8 C12 4, 24 4, 24 8 Z" fill="#B91C1C" />
+              <path d="M20 8 L29 10 L26 12 L19 10 Z" fill="#991B1B" />
+              {/* Head / Face */}
+              <circle cx="18" cy="14" r="5" fill="#FED7AA" />
+              <circle cx="20" cy="13" r="0.8" fill="#1F2937" />
+              <path d="M 18 16 Q 20 18 22 16" stroke="#9A3412" strokeWidth="0.7" fill="none" />
+              {/* Uniform / Jacket (Red) */}
+              <path d="M12 19 L24 19 L26 36 L10 36 Z" fill="#DC2626" stroke="#B91C1C" strokeWidth="0.75" />
+              {/* White Collar / Badge */}
+              <polygon points="18,19 16.5,23 18,25 19.5,23" fill="#FFFFFF" />
+              {/* Arms reaching forward carrying product box */}
+              <path d="M12 21 C8 24, 10 30, 24 29" stroke="#B91C1C" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="25" cy="29" r="2" fill="#FED7AA" />
+              {/* Pants (Dark Gray/Navy) */}
+              <rect x="12" y="36" width="5" height="13" rx="1.5" fill="#1F2937" />
+              <rect x="19" y="36" width="5" height="13" rx="1.5" fill="#1F2937" />
+              {/* Shoes */}
+              <ellipse cx="14" cy="50" rx="3.5" ry="2" fill="#09090B" />
+              <ellipse cx="22" cy="50" rx="3.5" ry="2" fill="#09090B" />
+            </svg>
+          </div>
+
           <div className="cargo-package" ref={packageRef}>
             <div className="cargo-geometry">
               <span className="cargo-brand">SX</span>

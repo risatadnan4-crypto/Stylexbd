@@ -5,7 +5,8 @@ import {
   MapPin, Clock, Star, Landmark, HelpCircle, Lock, EyeOff,
   Sparkles, ClipboardList, ShoppingBag, X, Percent, Receipt,
   SlidersHorizontal, RotateCcw, Bell, Gift, Ticket, MessageSquare, ArrowRight, Plus,
-  Facebook, Instagram, MessageCircle, Copy, Check, User, LayoutGrid, List
+  Facebook, Instagram, MessageCircle, Copy, Check, User, LayoutGrid, List,
+  Upload, Image as ImageIcon, Trash2
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
 import Navbar from './components/Navbar';
@@ -2353,6 +2354,183 @@ export default function App() {
       return a.title.localeCompare(b.title);
     });
 
+  // Custom Form Multi-Image & File Upload Widget
+  const FormMediaUploadWidget = ({
+    value,
+    onChange,
+    required,
+    label
+  }: {
+    value: any;
+    onChange: (val: any) => void;
+    required?: boolean;
+    label: string;
+  }) => {
+    const images: string[] = Array.isArray(value) 
+      ? value 
+      : typeof value === 'string' && value.trim() 
+        ? [value] 
+        : [];
+    
+    const [urlInput, setUrlInput] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFiles = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setIsUploading(true);
+      const newImgs: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
+          continue;
+        }
+        
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxDim = 1200;
+                let width = img.width;
+                let height = img.height;
+                if (width > maxDim || height > maxDim) {
+                  if (width > height) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                  } else {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                  }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  ctx.drawImage(img, 0, 0, width, height);
+                  resolve(canvas.toDataURL('image/jpeg', 0.85));
+                } else {
+                  resolve(result);
+                }
+              };
+              img.onerror = () => resolve(result);
+              img.src = result;
+            };
+            reader.onerror = () => reject();
+            reader.readAsDataURL(file);
+          });
+          newImgs.push(dataUrl);
+        } catch (err) {
+          console.error("Image read error:", err);
+        }
+      }
+
+      const updated = [...images, ...newImgs];
+      onChange(updated);
+      setIsUploading(false);
+    };
+
+    const handleAddUrl = () => {
+      if (!urlInput.trim()) return;
+      onChange([...images, urlInput.trim()]);
+      setUrlInput('');
+    };
+
+    const handleRemove = (index: number) => {
+      const updated = images.filter((_, i) => i !== index);
+      onChange(updated.length > 0 ? updated : '');
+    };
+
+    return (
+      <div className="space-y-2.5">
+        {/* Upload Zone */}
+        <div 
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed border-white/15 hover:border-luxury-gold/50 bg-[#12121A] hover:bg-[#181824] rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+        >
+          <input 
+            ref={fileInputRef}
+            type="file" 
+            accept="image/*" 
+            multiple 
+            className="hidden" 
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-luxury-gold/10 flex items-center justify-center text-luxury-gold transition-colors">
+            <Upload size={18} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-white group-hover:text-luxury-gold transition-colors">
+              {isUploading ? "Processing product images..." : "Click to Browse or Drag & Drop Product Images"}
+            </p>
+            <p className="text-[10px] text-white/40 mt-0.5">Supports uploading multiple images (JPG, PNG, WebP)</p>
+          </div>
+        </div>
+
+        {/* Or Paste URL */}
+        <div className="flex gap-2">
+          <input 
+            type="url"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="Or enter image URL (https://...)"
+            className="flex-1 bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:border-luxury-gold"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddUrl();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAddUrl}
+            className="bg-white/10 hover:bg-luxury-gold hover:text-black text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer"
+          >
+            Add URL
+          </button>
+        </div>
+
+        {/* Rendered Uploaded Images */}
+        {images.length > 0 && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold font-bold">
+                {images.length} {images.length === 1 ? 'Image' : 'Images'} Attached
+              </span>
+              <span className="text-[10px] text-white/40">Click × to remove</span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+              {images.map((imgSrc, idx) => (
+                <div key={idx} className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-luxury-gold/30 bg-black/50 shadow-md">
+                  <img src={imgSrc} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                  <div className="absolute top-1 left-1 bg-black/80 text-luxury-gold text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow">
+                    #{idx + 1}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemove(idx);
+                    }}
+                    className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition-all hover:scale-110"
+                    title="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeForm) return;
@@ -2361,7 +2539,7 @@ export default function App() {
     const structuredAnswers: Record<string, any> = {};
     for (const field of (activeForm.fields || [])) {
       const val = formResponses[field.id];
-      const isEmpty = val === undefined || val === null || (typeof val === 'string' && val.trim() === '') || (typeof val === 'boolean' && !val);
+      const isEmpty = val === undefined || val === null || (typeof val === 'string' && val.trim() === '') || (typeof val === 'boolean' && !val) || (Array.isArray(val) && val.length === 0);
       if (field.required && isEmpty) {
         alert(`Please fill in the required field: ${field.label || 'Required field'}`);
         return;
@@ -2464,6 +2642,12 @@ export default function App() {
                   {activeForm.fields.map((field: any) => {
                     const isRequired = field.required;
                     const fieldVal = formResponses[field.id] !== undefined && formResponses[field.id] !== null ? formResponses[field.id] : '';
+                    const isImageField = field.type === 'image' || 
+                                         field.type === 'file' || 
+                                         field.type === 'image_multiple' || 
+                                         /(image|photo|picture|file|chobi|ছবি|রশিদ|upload|product\s*image)/i.test(field.label || '') ||
+                                         /(image|photo|picture|file|chobi|ছবি|রশিদ|upload)/i.test(field.placeholder || '');
+
                     return (
                       <div key={field.id} className="space-y-1.5">
                         <label className="block text-xs text-white/70 font-medium">
@@ -2471,7 +2655,14 @@ export default function App() {
                           {isRequired && <span className="text-red-400 ml-1 font-bold">*</span>}
                         </label>
 
-                        {field.type === 'textarea' ? (
+                        {isImageField ? (
+                          <FormMediaUploadWidget
+                            value={fieldVal}
+                            onChange={(val) => setFormResponses(prev => ({ ...prev, [field.id]: val }))}
+                            required={isRequired}
+                            label={field.label}
+                          />
+                        ) : field.type === 'textarea' ? (
                           <textarea
                             required={isRequired}
                             placeholder={field.placeholder || "Enter your reply..."}
