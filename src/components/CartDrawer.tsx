@@ -1238,15 +1238,15 @@ export default function CartDrawer({
                     </div>
 
                     {/* Cart Footer */}
-                    <div className="bg-black/60 border-t border-white/5 p-5 space-y-4 shrink-0">
+                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/25 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3.5 shrink-0 shadow-[0_-10px_35px_rgba(0,0,0,0.8)] z-20">
                       <div className="space-y-2 text-xs">
                         <div className="flex justify-between text-zinc-400"><span>Segment Subtotal</span><span className="font-mono">{formatPrice(itemsTotal)}</span></div>
                         {appliedCoupon && (
                           <div className="flex justify-between text-emerald-400"><span>✓ Coupon Applied</span><span className="font-mono">-{formatPrice(discountAmount)}</span></div>
                         )}
-                        <div className="flex justify-between text-white font-bold border-t border-white/5 pt-3.5">
+                        <div className="flex justify-between text-white font-bold border-t border-white/10 pt-3">
                           <span className="tracking-wider">GRAND TOTAL</span>
-                          <span className="text-luxury-gold font-mono text-sm font-black">{formatPrice(itemsTotal - discountAmount)}</span>
+                          <span className="text-luxury-gold font-mono text-sm sm:text-base font-black drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]">{formatPrice(itemsTotal - discountAmount)}</span>
                         </div>
                       </div>
                       <LuxuryCheckoutButton
@@ -1901,20 +1901,20 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 1 Footer */}
-                    <div className="bg-[#0b0413] border-t border-white/5 p-2 sm:p-2.5 flex flex-col gap-1.5 sm:gap-2 shrink-0">
-                      <div className="flex justify-between items-center text-xs">
+                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/30 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(0,0,0,0.85)] z-20">
+                      <div className="flex justify-between items-center text-xs px-0.5">
                         <button type="button" onClick={() => setCheckoutStep('cart')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
                           <ArrowLeft size={13} /> Back to selection
                         </button>
-                        <div className="text-right">
-                          <span className="text-[10px] text-white/40 font-mono uppercase block">Estimated total</span>
-                          <span className="text-[#d4af37] font-mono font-black text-sm">{formatPrice(itemsTotal - discountAmount)}</span>
+                        <div className="text-right flex items-center gap-2">
+                          <span className="text-[10px] text-white/40 font-mono uppercase">Estimated:</span>
+                          <span className="text-[#d4af37] font-mono font-black text-sm drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">{formatPrice(itemsTotal - discountAmount)}</span>
                         </div>
                       </div>
                       <LuxuryCheckoutButton
                         isCheckingOut={isTransitioningStep}
                         disabled={isTransitioningStep}
-                        label="CONTINUE TO PREMIUM SECURE CHECKOUT"
+                        label="CONTINUE TO SECURE CHECKOUT"
                         vesselType="CART"
                       />
                     </div>
@@ -2309,7 +2309,7 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 2 Sticky Mobile Footer */}
-                    <div className="bg-[#0b0413] border-t-2 border-luxury-gold/40 p-2.5 sm:p-3.5 flex flex-col gap-2 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.9)] z-20">
+                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/40 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(0,0,0,0.9)] z-20">
                       <div className="flex justify-between items-center text-xs px-1">
                         <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
                           <ArrowLeft size={13} /> Edit Information

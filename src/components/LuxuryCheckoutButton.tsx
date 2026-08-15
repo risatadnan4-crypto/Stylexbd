@@ -359,39 +359,20 @@ export default function LuxuryCheckoutButton({
           z-index: 10;
           perspective: 2000px;
           transform-style: preserve-3d;
-          max-width: 440px;
+          max-width: 480px;
           margin: 0 auto;
           width: 100%;
-        }
-
-        @media (max-height: 850px) {
-          .viewport-3d {
-            padding: 2px 0 !important;
-          }
-          .luxury-btn {
-            height: 52px !important;
-            border-radius: 26px !important;
-          }
-          .delivery-vessel {
-            transform: scale(0.48) !important;
-            height: 52px !important;
-            top: -2px !important;
-          }
-          .label-text {
-            font-size: 10.5px !important;
-            letter-spacing: 2px !important;
-          }
         }
 
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 60px;
-          background: linear-gradient(135deg, rgba(20, 6, 38, 0.18) 0%, rgba(139, 92, 246, 0.22) 50%, rgba(20, 6, 38, 0.18) 100%);
-          backdrop-filter: blur(16px) saturate(140%);
-          -webkit-backdrop-filter: blur(16px) saturate(140%);
-          border: 1.2px solid rgba(192, 132, 252, 0.4);
-          border-radius: 30px;
+          height: 58px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(147, 51, 234, 0.28) 45%, rgba(212, 175, 55, 0.2) 80%, rgba(255, 255, 255, 0.08) 100%);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
+          border: 1.5px solid rgba(233, 213, 255, 0.55);
+          border-radius: 9999px;
           cursor: pointer;
           outline: none;
           overflow: hidden;
@@ -402,139 +383,151 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 10px 30px rgba(0, 0, 0, 0.75), 
-              0 0 25px rgba(154, 77, 255, 0.2),
-              inset 0 1.5px 3px rgba(255, 255, 255, 0.35),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
+              0 14px 35px rgba(0, 0, 0, 0.75), 
+              0 0 30px rgba(168, 85, 247, 0.35),
+              0 0 15px rgba(212, 175, 55, 0.2),
+              inset 0 2px 4px rgba(255, 255, 255, 0.7),
+              inset 0 -2px 6px rgba(0, 0, 0, 0.5);
           
           transform-style: preserve-3d;
           backface-visibility: hidden;
           will-change: transform, box-shadow, border-color;
-          transition: border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: rgba(233, 213, 255, 0.7);
-          background: linear-gradient(135deg, rgba(20, 6, 38, 0.22) 0%, rgba(139, 92, 246, 0.3) 50%, rgba(20, 6, 38, 0.22) 100%);
+          border-color: rgba(255, 255, 255, 0.85);
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(168, 85, 247, 0.38) 45%, rgba(212, 175, 55, 0.28) 80%, rgba(255, 255, 255, 0.12) 100%);
           box-shadow: 
-              0 18px 40px rgba(0, 0, 0, 0.8), 
-              0 0 35px rgba(192, 132, 252, 0.5),
-              inset 0 1.5px 3px rgba(255, 255, 255, 0.45),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
+              0 20px 45px rgba(0, 0, 0, 0.85), 
+              0 0 40px rgba(192, 132, 252, 0.6),
+              0 0 20px rgba(212, 175, 55, 0.35),
+              inset 0 2px 5px rgba(255, 255, 255, 0.85),
+              inset 0 -2px 6px rgba(0, 0, 0, 0.5);
+          transform: translateY(-1px) scale(1.01);
         }
 
         .luxury-btn:active {
-          border-color: rgba(192, 132, 252, 0.8);
-          background: linear-gradient(135deg, rgba(20, 6, 38, 0.26) 0%, rgba(139, 92, 246, 0.35) 50%, rgba(20, 6, 38, 0.26) 100%);
+          border-color: rgba(233, 213, 255, 0.95);
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(168, 85, 247, 0.45) 50%, rgba(20, 6, 38, 0.3) 100%);
           box-shadow: 
-              0 10px 20px rgba(0, 0, 0, 0.8), 
+              0 8px 25px rgba(0, 0, 0, 0.8), 
               0 0 35px rgba(192, 132, 252, 0.5),
-              inset 0 1.5px 3px rgba(255, 255, 255, 0.45),
+              inset 0 1.5px 3px rgba(255, 255, 255, 0.6),
               inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
-          transform: scale(0.985);
+          transform: scale(0.98);
         }
 
         @media (max-width: 640px) {
           .viewport-3d {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 4px 0 !important;
+            padding: 2px 0 !important;
           }
           .luxury-btn {
-            height: 54px !important;
-            border-radius: 27px !important;
-            background: linear-gradient(135deg, rgba(20, 6, 38, 0.2) 0%, rgba(139, 92, 246, 0.25) 50%, rgba(20, 6, 38, 0.2) 100%) !important;
-            backdrop-filter: blur(12px) saturate(140%) !important;
-            -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
-            border: 1.2px solid rgba(192, 132, 252, 0.45) !important;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 20px rgba(154, 77, 255, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.35) !important;
+            height: 52px !important;
+            border-radius: 9999px !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(147, 51, 234, 0.32) 45%, rgba(212, 175, 55, 0.22) 80%, rgba(255, 255, 255, 0.1) 100%) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1.5px solid rgba(233, 213, 255, 0.65) !important;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), 0 0 25px rgba(168, 85, 247, 0.35), inset 0 1.5px 3px rgba(255, 255, 255, 0.65) !important;
             touch-action: manipulation;
           }
           .label-text {
-            font-size: 11px !important;
+            font-size: 11.5px !important;
             font-weight: 800 !important;
-            letter-spacing: 1px !important;
-            color: #E9D5FF !important;
-            background: none !important;
-            -webkit-text-fill-color: #E9D5FF !important;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
+            letter-spacing: 1.5px !important;
+            color: #FFFFFF !important;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F5F3FF 50%, #E9D5FF 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
             white-space: normal !important;
             text-align: center !important;
-            line-height: 1.25 !important;
-            display: inline-block !important;
-            max-width: 82% !important;
+            line-height: 1.2 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            max-width: 88% !important;
           }
           .content-plate {
-            padding: 0 16px !important;
+            padding: 0 14px !important;
             left: 0 !important;
             top: 0 !important;
             box-sizing: border-box !important;
           }
+          .icon-arrow svg {
+            width: 15px !important;
+            height: 15px !important;
+            stroke-width: 2.8 !important;
+            stroke: #F3E8FF !important;
+          }
           .delivery-vessel {
-            transform: scale(0.5);
+            transform: scale(0.48);
             transform-origin: bottom center;
-            height: 50px !important;
+            height: 48px !important;
             top: -2px !important;
           }
           .success-row {
-            gap: 6px !important;
+            gap: 8px !important;
           }
           .headline-success {
-            font-size: 12px !important;
-            letter-spacing: 1.5px !important;
+            font-size: 12.5px !important;
+            letter-spacing: 2px !important;
             white-space: nowrap !important;
           }
           .subtext-success {
-            font-size: 8.5px !important;
+            font-size: 9px !important;
             letter-spacing: 1px !important;
             white-space: nowrap !important;
           }
           .vector-checkmark {
-            width: 16px !important;
-            height: 16px !important;
+            width: 17px !important;
+            height: 17px !important;
           }
         }
 
         @media (max-width: 380px) {
           .luxury-btn {
-            height: 52px !important;
-            border-radius: 26px !important;
-            border: 1.5px solid #C084FC !important;
+            height: 48px !important;
+            border-radius: 9999px !important;
+            border: 1.5px solid rgba(233, 213, 255, 0.7) !important;
           }
           .label-text {
-            font-size: 10px !important;
-            letter-spacing: 0.5px !important;
-            max-width: 80% !important;
+            font-size: 10.5px !important;
+            letter-spacing: 0.8px !important;
+            max-width: 84% !important;
           }
           .delivery-vessel {
-            transform: scale(0.44);
+            transform: scale(0.42);
             transform-origin: bottom center;
-            height: 46px !important;
+            height: 44px !important;
             top: -3px !important;
           }
         }
 
         .luxury-btn.idle {
-          animation: absolute-luxury-cycle 4s infinite ease-in-out;
+          animation: absolute-luxury-cycle 3.5s infinite ease-in-out;
         }
 
         @keyframes absolute-luxury-cycle {
           0%, 100% { 
             transform: translateZ(0) scale(1); 
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), 0 0 25px rgba(192, 132, 252, 0.45); 
-            border-color: rgba(192, 132, 252, 0.9); 
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 25px rgba(168, 85, 247, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.7); 
+            border-color: rgba(233, 213, 255, 0.6); 
           }
           50% { 
-            transform: translateZ(8px) scale(1.01); 
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 1), 0 0 45px rgba(192, 132, 252, 0.8); 
-            border-color: rgba(233, 213, 255, 1); 
+            transform: translateZ(6px) scale(1.008); 
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 38px rgba(192, 132, 252, 0.65), 0 0 15px rgba(212, 175, 55, 0.3), inset 0 2px 5px rgba(255, 255, 255, 0.85); 
+            border-color: rgba(255, 255, 255, 0.85); 
           }
         }
 
         .lens-sapphire {
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(192, 132, 252, 0.05) 50%, rgba(0, 0, 0, 0.25) 100%);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(192, 132, 252, 0.08) 40%, rgba(0, 0, 0, 0.3) 100%);
           border-radius: inherit;
           pointer-events: none;
           z-index: 2;
@@ -544,9 +537,9 @@ export default function LuxuryCheckoutButton({
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          background: radial-gradient(circle at var(--ray-x, 50%) var(--ray-y, 50%), rgba(233, 213, 255, 0.25) 0%, transparent 45%);
+          background: radial-gradient(circle at var(--ray-x, 50%) var(--ray-y, 50%), rgba(255, 255, 255, 0.35) 0%, rgba(192, 132, 252, 0.2) 35%, transparent 60%);
           opacity: 0;
-          transition: opacity 0.4s cubic-bezier(0.1, 0.9, 0.1, 1);
+          transition: opacity 0.3s cubic-bezier(0.1, 0.9, 0.1, 1);
           z-index: 1;
         }
         .luxury-btn:hover .raycast-glow { opacity: 1; }
@@ -555,14 +548,14 @@ export default function LuxuryCheckoutButton({
           position: absolute;
           top: 0;
           left: -160%;
-          width: 130%;
+          width: 140%;
           height: 100%;
           background: linear-gradient(90deg, 
-              transparent 15%, 
-              rgba(192, 132, 252, 0.1) 35%, 
-              rgba(255, 255, 255, 0.4) 50%, 
-              rgba(192, 132, 252, 0.25) 65%, 
-              transparent 85%);
+              transparent 10%, 
+              rgba(192, 132, 252, 0.15) 30%, 
+              rgba(255, 255, 255, 0.55) 50%, 
+              rgba(212, 175, 55, 0.3) 65%, 
+              transparent 90%);
           transform: skewX(-25deg);
           z-index: 3;
         }

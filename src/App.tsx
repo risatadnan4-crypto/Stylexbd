@@ -2357,14 +2357,17 @@ export default function App() {
     e.preventDefault();
     if (!activeForm) return;
 
-    // Validate required fields
-    for (const field of activeForm.fields) {
-      const val = formResponses[field.label] !== undefined ? formResponses[field.label] : formResponses[field.id];
+    // Validate required fields and map answers cleanly by field label
+    const structuredAnswers: Record<string, any> = {};
+    for (const field of (activeForm.fields || [])) {
+      const val = formResponses[field.id];
       const isEmpty = val === undefined || val === null || (typeof val === 'string' && val.trim() === '') || (typeof val === 'boolean' && !val);
       if (field.required && isEmpty) {
-        alert(`Please fill in the required field: ${field.label}`);
+        alert(`Please fill in the required field: ${field.label || 'Required field'}`);
         return;
       }
+      const labelKey = field.label && field.label.trim() ? field.label.trim() : `Field_${field.id}`;
+      structuredAnswers[labelKey] = val !== undefined ? val : '';
     }
 
     setSubmittingForm(true);
@@ -2372,7 +2375,7 @@ export default function App() {
       const res = await fetch(`/api/forms/${activeForm.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: formResponses })
+        body: JSON.stringify({ answers: structuredAnswers })
       });
       if (res.ok) {
         setFormSubmittedSuccessfully(true);
@@ -2460,6 +2463,7 @@ export default function App() {
                 <div className="space-y-4">
                   {activeForm.fields.map((field: any) => {
                     const isRequired = field.required;
+                    const fieldVal = formResponses[field.id] !== undefined && formResponses[field.id] !== null ? formResponses[field.id] : '';
                     return (
                       <div key={field.id} className="space-y-1.5">
                         <label className="block text-xs text-white/70 font-medium">
@@ -2471,10 +2475,10 @@ export default function App() {
                           <textarea
                             required={isRequired}
                             placeholder={field.placeholder || "Enter your reply..."}
-                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            value={fieldVal}
                             onChange={(e) => {
                               const val = e.target.value;
-                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                              setFormResponses(prev => ({ ...prev, [field.id]: val }));
                             }}
                             rows={4}
                             className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold resize-none"
@@ -2482,12 +2486,12 @@ export default function App() {
                         ) : field.type === 'select' ? (
                           <select
                             required={isRequired}
-                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            value={fieldVal}
                             onChange={(e) => {
                               const val = e.target.value;
-                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                              setFormResponses(prev => ({ ...prev, [field.id]: val }));
                             }}
-                            className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
+                            className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold cursor-pointer"
                           >
                             <option value="">-- Choose an option --</option>
                             {(field.options || []).map((opt: string) => (
@@ -2502,9 +2506,9 @@ export default function App() {
                                   type="radio"
                                   name={field.id}
                                   required={isRequired}
-                                  checked={(formResponses[field.label] ?? formResponses[field.id]) === opt}
+                                  checked={fieldVal === opt}
                                   onChange={() => {
-                                    setFormResponses(prev => ({ ...prev, [field.label]: opt, [field.id]: opt }));
+                                    setFormResponses(prev => ({ ...prev, [field.id]: opt }));
                                   }}
                                   className="border-white/10 text-purple-600 bg-luxury-charcoal"
                                 />
@@ -2517,10 +2521,10 @@ export default function App() {
                             <input
                               type="checkbox"
                               required={isRequired}
-                              checked={!!(formResponses[field.label] ?? formResponses[field.id])}
+                              checked={!!fieldVal}
                               onChange={(e) => {
                                 const checked = e.target.checked;
-                                setFormResponses(prev => ({ ...prev, [field.label]: checked, [field.id]: checked }));
+                                setFormResponses(prev => ({ ...prev, [field.id]: checked }));
                               }}
                               className="rounded border-white/10 text-purple-600 bg-luxury-charcoal"
                             />
@@ -2530,11 +2534,11 @@ export default function App() {
                           <input
                             type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
                             required={isRequired}
-                            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
-                            value={formResponses[field.label] ?? formResponses[field.id] ?? ''}
+                            placeholder={field.placeholder || `Enter ${field.label ? field.label.toLowerCase() : 'value'}...`}
+                            value={fieldVal}
                             onChange={(e) => {
                               const val = e.target.value;
-                              setFormResponses(prev => ({ ...prev, [field.label]: val, [field.id]: val }));
+                              setFormResponses(prev => ({ ...prev, [field.id]: val }));
                             }}
                             className="w-full bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2.5 px-3.5 focus:outline-none focus:border-luxury-gold"
                           />
