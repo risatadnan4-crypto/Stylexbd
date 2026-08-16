@@ -113,14 +113,21 @@ export default function App() {
   const [activeForm, setActiveForm] = useState<any | null>(null);
   const [currentPath, setCurrentPath] = useState<string>('/');
   const [fetchingActiveForm, setFetchingActiveForm] = useState(false);
-  const [formResponses, setFormResponses] = useState<Record<string, any>>({});
+  const [formResponses, setFormResponses] = useState<Record<string, any>>(() => {
+    try {
+      const saved = localStorage.getItem('stylex_active_form_responses');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [formSubmittedSuccessfully, setFormSubmittedSuccessfully] = useState(false);
   const [submittingForm, setSubmittingForm] = useState(false);
   
   // Authenticated staff details
   const [isAuthAdmin, setIsAuthAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState(() => localStorage.getItem('stylex_login_email') || '');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
@@ -133,23 +140,36 @@ export default function App() {
   
   // Public reviews state (only approved ones are shown on front page)
   const [publicReviews, setPublicReviews] = useState<Review[]>([]);
-  const [newReviewName, setNewReviewName] = useState('');
-  const [newReviewComment, setNewReviewComment] = useState('');
-  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewName, setNewReviewName] = useState(() => localStorage.getItem('stylex_review_name') || '');
+  const [newReviewComment, setNewReviewComment] = useState(() => localStorage.getItem('stylex_review_comment') || '');
+  const [newReviewRating, setNewReviewRating] = useState<number>(() => {
+    const saved = localStorage.getItem('stylex_review_rating');
+    return saved ? Number(saved) : 5;
+  });
   const [newReviewProdId, setNewReviewProdId] = useState('');
   const [revMessage, setRevMessage] = useState('');
 
-  // Search & Filtering
-  const [searchQuery, setSearchQuery] = useState('');
+  // Search & Filtering with automatic localStorage persistence
+  const [searchQuery, setSearchQuery] = useState(() => localStorage.getItem('stylex_search_query') || '');
   
-  const [activeCategory, setActiveCategory] = useState<string>('ALL');
-  const [minPrice, setMinPrice] = useState<number | ''>('');
-  const [maxPrice, setMaxPrice] = useState<number | ''>('');
-  const [selectedSize, setSelectedSize] = useState<string>('ALL');
-  const [showInStockOnly, setShowInStockOnly] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC' | 'TOP_RATED'>('RELEVANCE');
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+  const [activeCategory, setActiveCategory] = useState<string>(() => localStorage.getItem('stylex_active_category') || 'ALL');
+  const [minPrice, setMinPrice] = useState<number | ''>(() => {
+    const saved = localStorage.getItem('stylex_min_price');
+    return saved !== null && saved !== '' && !isNaN(Number(saved)) ? Number(saved) : '';
+  });
+  const [maxPrice, setMaxPrice] = useState<number | ''>(() => {
+    const saved = localStorage.getItem('stylex_max_price');
+    return saved !== null && saved !== '' && !isNaN(Number(saved)) ? Number(saved) : '';
+  });
+  const [selectedSize, setSelectedSize] = useState<string>(() => localStorage.getItem('stylex_selected_size') || 'ALL');
+  const [showInStockOnly, setShowInStockOnly] = useState<boolean>(() => localStorage.getItem('stylex_in_stock_only') === 'true');
+  const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_ASC' | 'PRICE_DESC' | 'STOCK_DESC' | 'TOP_RATED'>(() => {
+    return (localStorage.getItem('stylex_sort_by') as any) || 'RELEVANCE';
+  });
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState<boolean>(() => localStorage.getItem('stylex_filters_expanded') === 'true');
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>(() => {
+    return (localStorage.getItem('stylex_view_mode') as any) || 'GRID';
+  });
 
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -311,14 +331,86 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isRadialMenuOpen, setIsRadialMenuOpen] = useState(false);
   const [initialShowCheckout, setInitialShowCheckout] = useState(false);
-  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('stylex_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isLotteryOpen, setIsLotteryOpen] = useState(false);
   const [showSourceProtectionModal, setShowSourceProtectionModal] = useState(false);
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
-  const [discountPhone, setDiscountPhone] = useState('');
+  const [discountPhone, setDiscountPhone] = useState(() => localStorage.getItem('stylex_discount_phone') || '');
   const [isSubmittingDiscount, setIsSubmittingDiscount] = useState(false);
   const [discountStatus, setDiscountStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Automatic sync effects to keep form inputs, search queries, and filter states saved in localStorage
+  useEffect(() => {
+    try { localStorage.setItem('stylex_search_query', searchQuery); } catch (e) {}
+  }, [searchQuery]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_active_category', activeCategory); } catch (e) {}
+  }, [activeCategory]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_min_price', minPrice === '' ? '' : String(minPrice)); } catch (e) {}
+  }, [minPrice]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_max_price', maxPrice === '' ? '' : String(maxPrice)); } catch (e) {}
+  }, [maxPrice]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_selected_size', selectedSize); } catch (e) {}
+  }, [selectedSize]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_in_stock_only', String(showInStockOnly)); } catch (e) {}
+  }, [showInStockOnly]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_sort_by', sortBy); } catch (e) {}
+  }, [sortBy]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_filters_expanded', String(isFiltersExpanded)); } catch (e) {}
+  }, [isFiltersExpanded]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_view_mode', viewMode); } catch (e) {}
+  }, [viewMode]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_discount_phone', discountPhone); } catch (e) {}
+  }, [discountPhone]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_active_form_responses', JSON.stringify(formResponses)); } catch (e) {}
+  }, [formResponses]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_review_name', newReviewName); } catch (e) {}
+  }, [newReviewName]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_review_comment', newReviewComment); } catch (e) {}
+  }, [newReviewComment]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_review_rating', String(newReviewRating)); } catch (e) {}
+  }, [newReviewRating]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_wishlist', JSON.stringify(wishlist)); } catch (e) {}
+  }, [wishlist]);
+
+  useEffect(() => {
+    try { localStorage.setItem('stylex_login_email', loginEmail); } catch (e) {}
+  }, [loginEmail]);
 
   // Successful checkout modal information
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
@@ -1209,8 +1301,17 @@ export default function App() {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
-        setSettings(data);
-        localStorage.setItem('stylex_settings', JSON.stringify(data));
+        setSettings(prev => ({
+          ...prev,
+          ...data
+        }));
+        try {
+          const current = localStorage.getItem('stylex_settings');
+          const parsed = current ? JSON.parse(current) : {};
+          localStorage.setItem('stylex_settings', JSON.stringify({ ...parsed, ...data }));
+        } catch (e) {
+          localStorage.setItem('stylex_settings', JSON.stringify(data));
+        }
         if (data.csrfToken) {
           sessionStorage.setItem('stylex_csrf_token', data.csrfToken);
         }

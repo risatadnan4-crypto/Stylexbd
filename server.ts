@@ -1044,8 +1044,29 @@ function formatSupabaseError(err: any): string {
 async function syncSettingsToCloud() {
   saveDB();
   
-  let settingsTableSuccess = !isSettingsTableAvailable;
-  if (isSettingsTableAvailable) {
+  if (isSettingsTableAvailable && supabase) {
+    // 1. Always attempt JSONB format upsert (supports both id 'app_settings' and id '1')
+    try {
+      await supabase.from("settings").upsert({
+        id: "app_settings",
+        data: db.settings,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+    } catch (jErr: any) {
+      // ignore
+    }
+
+    try {
+      await supabase.from("settings").upsert({
+        id: "1",
+        data: db.settings,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+    } catch (jErr: any) {
+      // ignore
+    }
+
+    // 2. Also attempt column-based schema upsert
     try {
       const { data: testResult, error: testError } = await supabase.from("settings").select("*").limit(1);
       const isOldKeyValue = !testError && testResult && testResult.length > 0 && testResult[0].key !== undefined && testResult[0].value !== undefined;
@@ -1055,7 +1076,6 @@ async function syncSettingsToCloud() {
           await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
         };
         await saveSetting("productPayments", JSON.stringify(db.settings.productPayments || {}));
-        settingsTableSuccess = true;
       } else {
         const upsertPayload: any = {
           id: 1,
@@ -1107,7 +1127,6 @@ async function syncSettingsToCloud() {
 
         let { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
         if (upsertError) {
-          console.log("[SETTINGS_SYNC] Initial settings upsert noted schema mismatch (attempting dynamic pruning):", upsertError.message);
           let retries = 0;
           let currentPayload = { ...upsertPayload };
           while (upsertError && (upsertError.message.includes("column") || upsertError.message.includes("does not exist") || upsertError.code === "42703") && retries < 15) {
@@ -1126,10 +1145,8 @@ async function syncSettingsToCloud() {
             }
 
             if (colName) {
-              console.log(`[SETTINGS_SYNC] Pruning missing column from settings table payload: "${colName}"`);
               delete currentPayload[colName];
             } else {
-              console.log("[SETTINGS_SYNC] Unable to parse column name. Pruning all non-core columns.");
               const coreKeys = ["id", "whatsappNumber", "adminEmail", "adminPassword"];
               for (const key of Object.keys(currentPayload)) {
                 if (!coreKeys.includes(key)) {
@@ -1140,14 +1157,6 @@ async function syncSettingsToCloud() {
             const retryRes = await supabase.from("settings").upsert(currentPayload, { onConflict: "id" });
             upsertError = retryRes.error;
           }
-          if (upsertError) {
-            console.error("❌ All retries failed for settings table upsert:", upsertError.message);
-          } else {
-            console.log("✅ Settings upsert succeeded after dynamic column pruning.");
-            settingsTableSuccess = true;
-          }
-        } else {
-          settingsTableSuccess = true;
         }
       }
     } catch (dbErr: any) {
@@ -2242,16 +2251,33 @@ app.post("/api/admin/clear-dashboard", xoroAdminAuthMiddleware, async (req, res)
 // App Settings (Dynamic WhatsApp etc.)
 app.get("/api/settings", async (req, res) => {
   try {
-    if (isSettingsTableAvailable) {
+    if (isSettingsTableAvailable && supabase) {
       const { data: settingsResult, error } = await supabase.from("settings").select("*");
       if (!error && settingsResult && settingsResult.length > 0) {
-        const configRow = settingsResult.find((r: any) => r.id === 1 || r.id === "1") || settingsResult[0];
-        if (configRow) {
+        // Scan all rows (e.g. id 'app_settings', '1', 1)
+        for (const configRow of settingsResult) {
+          if (!configRow) continue;
+
+          // 1. JSONB payload inside data column
+          let nestedData = configRow.data;
+          if (typeof nestedData === "string") {
+            try { nestedData = JSON.parse(nestedData); } catch (e) {}
+          }
+          if (nestedData && typeof nestedData === "object") {
+            Object.assign(db.settings, nestedData);
+          }
+
+          // 2. Direct columns (both camelCase and snake_case)
           if (configRow.whatsappNumber !== undefined && configRow.whatsappNumber !== null) db.settings.whatsappNumber = configRow.whatsappNumber;
+          if (configRow.whatsapp_number !== undefined && configRow.whatsapp_number !== null) db.settings.whatsappNumber = configRow.whatsapp_number;
           if (configRow.adminEmail !== undefined && configRow.adminEmail !== null) db.settings.adminEmail = configRow.adminEmail;
+          if (configRow.admin_email !== undefined && configRow.admin_email !== null) db.settings.adminEmail = configRow.admin_email;
           if (configRow.adminPassword !== undefined && configRow.adminPassword !== null) db.settings.adminPassword = configRow.adminPassword;
+          if (configRow.admin_password !== undefined && configRow.admin_password !== null) db.settings.adminPassword = configRow.admin_password;
           if (configRow.appsScriptUrl !== undefined && configRow.appsScriptUrl !== null) db.settings.appsScriptUrl = configRow.appsScriptUrl;
+          if (configRow.apps_script_url !== undefined && configRow.apps_script_url !== null) db.settings.appsScriptUrl = configRow.apps_script_url;
           if (configRow.logoUrl !== undefined && configRow.logoUrl !== null) db.settings.logoUrl = configRow.logoUrl;
+          if (configRow.logo_url !== undefined && configRow.logo_url !== null) db.settings.logoUrl = configRow.logo_url;
           if (configRow.xoroAvatarUrl !== undefined && configRow.xoroAvatarUrl !== null) db.settings.xoroAvatarUrl = configRow.xoroAvatarUrl;
           if (configRow.bkashLogoUrl !== undefined && configRow.bkashLogoUrl !== null) db.settings.bkashLogoUrl = configRow.bkashLogoUrl;
           if (configRow.nagadLogoUrl !== undefined && configRow.nagadLogoUrl !== null) db.settings.nagadLogoUrl = configRow.nagadLogoUrl;
@@ -2300,6 +2326,12 @@ app.get("/api/settings", async (req, res) => {
           if (configRow.siteTitle !== undefined && configRow.siteTitle !== null) db.settings.siteTitle = configRow.siteTitle;
           if (configRow.siteMetaDesc !== undefined && configRow.siteMetaDesc !== null) db.settings.siteMetaDesc = configRow.siteMetaDesc;
           
+          if (configRow.productPayments) {
+            try {
+              db.settings.productPayments = typeof configRow.productPayments === "string" ? JSON.parse(configRow.productPayments) : configRow.productPayments;
+            } catch (err) {}
+          }
+
           if (configRow.productSeo) {
             try {
               (db.settings as any).productSeo = typeof configRow.productSeo === "string" ? JSON.parse(configRow.productSeo) : configRow.productSeo;

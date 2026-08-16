@@ -93,10 +93,11 @@ export default function LuxuryCheckoutButton({
     window.addEventListener('resize', handleResize);
 
     const colors = [
-      '#C084FC', // purple-royal
-      '#E9D5FF', // purple-pure
-      '#A855F7', // bright purple
-      '#F472B6', // pink-purple highlight
+      '#D4AF37', // luxury gold
+      '#F3E8FF', // purple pure highlight
+      '#A855F7', // vivid royal purple
+      '#EC4899', // rose sheen
+      '#FDE047', // warm gold spark
     ];
 
     const createParticle = (x: number, y: number, count = 1) => {
@@ -409,11 +410,11 @@ export default function LuxuryCheckoutButton({
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 58px;
-          background: linear-gradient(135deg, rgba(147, 51, 234, 0.4) 0%, rgba(107, 33, 168, 0.5) 50%, rgba(20, 6, 38, 0.6) 100%);
-          backdrop-filter: blur(20px) saturate(160%);
-          -webkit-backdrop-filter: blur(20px) saturate(160%);
-          border: 1.5px solid rgba(216, 180, 254, 0.6);
+          height: 60px;
+          background: linear-gradient(135deg, rgba(168, 85, 247, 0.45) 0%, rgba(126, 34, 206, 0.55) 45%, rgba(88, 28, 135, 0.65) 75%, rgba(15, 5, 29, 0.85) 100%);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
+          border: 1.5px solid rgba(233, 213, 255, 0.75);
           border-radius: 9999px;
           cursor: pointer;
           outline: none;
@@ -425,35 +426,37 @@ export default function LuxuryCheckoutButton({
           user-select: none;
           
           box-shadow: 
-              0 12px 30px rgba(0, 0, 0, 0.7), 
-              0 0 25px rgba(168, 85, 247, 0.35),
-              inset 0 1.5px 2px rgba(255, 255, 255, 0.6),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.4);
+              0 14px 34px rgba(0, 0, 0, 0.75), 
+              0 0 28px rgba(168, 85, 247, 0.42),
+              0 0 14px rgba(212, 175, 55, 0.25),
+              inset 0 1.5px 2px rgba(255, 255, 255, 0.8),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
           
           transform-style: preserve-3d;
           backface-visibility: hidden;
           will-change: transform, box-shadow, border-color;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .luxury-btn:hover, .luxury-btn:focus-visible, .luxury-btn.selected {
-          border-color: rgba(233, 213, 255, 0.9);
-          background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(126, 34, 206, 0.6) 50%, rgba(30, 10, 55, 0.7) 100%);
+          border-color: rgba(250, 232, 255, 0.95);
+          background: linear-gradient(135deg, rgba(192, 132, 252, 0.55) 0%, rgba(147, 51, 234, 0.65) 45%, rgba(107, 33, 168, 0.75) 75%, rgba(24, 8, 46, 0.9) 100%);
           box-shadow: 
-              0 16px 38px rgba(0, 0, 0, 0.8), 
-              0 0 35px rgba(192, 132, 252, 0.55),
-              inset 0 2px 4px rgba(255, 255, 255, 0.75),
-              inset 0 -1.5px 3px rgba(0, 0, 0, 0.4);
-          transform: translateY(-1px) scale(1.01);
+              0 18px 42px rgba(0, 0, 0, 0.85), 
+              0 0 40px rgba(192, 132, 252, 0.65),
+              0 0 20px rgba(212, 175, 55, 0.4),
+              inset 0 2px 4px rgba(255, 255, 255, 0.9),
+              inset 0 -1.5px 3px rgba(0, 0, 0, 0.5);
+          transform: translateY(-1.5px) scale(1.012);
         }
 
         .luxury-btn:active {
           border-color: rgba(233, 213, 255, 0.95);
-          background: linear-gradient(135deg, rgba(147, 51, 234, 0.55) 0%, rgba(107, 33, 168, 0.65) 50%, rgba(20, 6, 38, 0.75) 100%);
+          background: linear-gradient(135deg, rgba(147, 51, 234, 0.6) 0%, rgba(107, 33, 168, 0.7) 50%, rgba(15, 5, 29, 0.85) 100%);
           box-shadow: 
-              0 6px 18px rgba(0, 0, 0, 0.8), 
-              0 0 25px rgba(192, 132, 252, 0.45),
-              inset 0 1px 2px rgba(255, 255, 255, 0.5);
+              0 8px 20px rgba(0, 0, 0, 0.8), 
+              0 0 28px rgba(192, 132, 252, 0.5),
+              inset 0 1px 2px rgba(255, 255, 255, 0.6);
           transform: scale(0.985);
         }
 
@@ -464,23 +467,23 @@ export default function LuxuryCheckoutButton({
             padding: 2px 0 !important;
           }
           .luxury-btn {
-            height: 52px !important;
+            height: 54px !important;
             border-radius: 9999px !important;
-            background: linear-gradient(135deg, rgba(147, 51, 234, 0.45) 0%, rgba(107, 33, 168, 0.55) 50%, rgba(20, 6, 38, 0.65) 100%) !important;
-            backdrop-filter: blur(16px) saturate(160%) !important;
-            -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
-            border: 1.5px solid rgba(216, 180, 254, 0.65) !important;
-            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.7), 0 0 20px rgba(168, 85, 247, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 0.6) !important;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(126, 34, 206, 0.6) 45%, rgba(88, 28, 135, 0.7) 75%, rgba(15, 5, 29, 0.9) 100%) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1.5px solid rgba(233, 213, 255, 0.8) !important;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.75), 0 0 24px rgba(168, 85, 247, 0.38), inset 0 1.5px 2px rgba(255, 255, 255, 0.75) !important;
             touch-action: manipulation;
           }
           .label-text {
-            font-size: 12px !important;
+            font-size: 12.5px !important;
             font-weight: 800 !important;
-            letter-spacing: 1.8px !important;
+            letter-spacing: 2px !important;
             color: #FFFFFF !important;
             -webkit-text-fill-color: #FFFFFF !important;
             background: none !important;
-            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8) !important;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9) !important;
             white-space: normal !important;
             text-align: center !important;
             line-height: 1.2 !important;
@@ -496,10 +499,10 @@ export default function LuxuryCheckoutButton({
             box-sizing: border-box !important;
           }
           .icon-arrow svg {
-            width: 15px !important;
-            height: 15px !important;
+            width: 16px !important;
+            height: 16px !important;
             stroke-width: 2.8 !important;
-            stroke: #F3E8FF !important;
+            stroke: #FAF5FF !important;
           }
           .delivery-vessel {
             transform: scale(0.48);
@@ -511,18 +514,18 @@ export default function LuxuryCheckoutButton({
             gap: 8px !important;
           }
           .headline-success {
-            font-size: 12.5px !important;
-            letter-spacing: 2px !important;
+            font-size: 13px !important;
+            letter-spacing: 2.2px !important;
             white-space: nowrap !important;
           }
           .subtext-success {
-            font-size: 9px !important;
-            letter-spacing: 1px !important;
+            font-size: 9.5px !important;
+            letter-spacing: 1.2px !important;
             white-space: nowrap !important;
           }
           .vector-checkmark {
-            width: 17px !important;
-            height: 17px !important;
+            width: 18px !important;
+            height: 18px !important;
           }
         }
 

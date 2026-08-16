@@ -955,18 +955,59 @@ export default function AdminPanel({
         })
       });
       if (res.ok) {
+        const savedSettingsData = await res.json().catch(() => null);
         document.title = siteTitle;
         const metaDescEl = document.querySelector('meta[name="description"]');
         if (metaDescEl) metaDescEl.setAttribute('content', siteMetaDesc);
 
+        const newSettingsPayload = savedSettingsData || {
+          ...settings,
+          whatsappNumber: whatsappNumberInput,
+          adminEmail: adminEmailInput,
+          adminPassword: adminPasswordInput,
+          appsScriptUrl: appsScriptUrlInput,
+          logoUrl: logoUrlInput,
+          xoroAvatarUrl: xoroAvatarUrlInput,
+          bkashLogoUrl: bkashLogoUrlInput,
+          nagadLogoUrl: nagadLogoUrlInput,
+          lotteryPrizes: lotteryPrizesInput,
+          lotteryDiscountPercentage: lotteryDiscountPercentageInput,
+          lotteryCouponPrefix: lotteryCouponPrefixInput,
+          facebookUrl: facebookUrlInput,
+          instagramUrl: instagramUrlInput,
+          paymentBadgeTitle: paymentBadgeTitleInput,
+          paymentBadgeDescription: paymentBadgeDescriptionInput,
+          isCatalogDeactivated: isCatalogDeactivatedInput,
+          isXoroVoiceDisabled: isXoroVoiceDisabledInput,
+          isXoroVoiceAndAnswerDisabled: isXoroVoiceAndAnswerDisabledInput,
+          isXoroTextOnly: isXoroTextOnlyInput,
+          sourceProtectionTitle: sourceProtectionTitleInput,
+          sourceProtectionDescription: sourceProtectionDescriptionInput,
+          sourceProtectionImageUrl: sourceProtectionImageUrlInput,
+          smsProvider: smsProviderInput,
+          twilioAccountSid: twilioAccountSidInput,
+          twilioAuthToken: twilioAuthTokenInput,
+          twilioFromNumber: twilioFromNumberInput,
+          greenwebToken: greenwebTokenInput,
+          deactivatedMessage: deactivatedMessageInput,
+          isLotteryDeactivated: isLotteryDeactivatedInput,
+          isNotifyMeDeactivated: isNotifyMeDeactivatedInput,
+          globalTimerEndTime: globalTimerEndTimeInput,
+          globalTimerMessage: globalTimerMessageInput,
+          globalTimerActive: globalTimerActiveInput,
+          globalPaymentSystem: globalPaymentSystemInput,
+          globalPaymentMethod: globalPaymentMethodInput,
+          globalDeliveryDays: globalDeliveryDaysInput,
+          accentColor: accentColorInput,
+          siteTitle: siteTitle,
+          siteMetaDesc: siteMetaDesc
+        };
+
         try {
-          const current = localStorage.getItem('stylex_settings');
-          const parsed = current ? JSON.parse(current) : {};
-          parsed.siteTitle = siteTitle;
-          parsed.siteMetaDesc = siteMetaDesc;
-          localStorage.setItem('stylex_settings', JSON.stringify(parsed));
+          localStorage.setItem('stylex_settings', JSON.stringify(newSettingsPayload));
         } catch (err) {}
 
+        lastLoadedSettingsRef.current = newSettingsPayload;
         setSettingsSuccess(true);
         if (onRefreshSettings) {
           onRefreshSettings();
