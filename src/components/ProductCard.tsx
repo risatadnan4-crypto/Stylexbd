@@ -38,13 +38,34 @@ export default function ProductCard({
   viewMode = 'GRID',
   index,
 }: ProductCardProps) {
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
+  const isMobileListMode = viewMode === 'LIST';
+
+  const availableSizes = React.useMemo(() => {
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes.filter(Boolean);
+    }
+    if (typeof product.sizes === 'string' && (product.sizes as string).trim()) {
+      try {
+        const parsed = JSON.parse(product.sizes);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+      } catch (e) {}
+      return (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
+  }, [product.sizes]);
+
+  const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || 'Standard');
+
+  useEffect(() => {
+    if (availableSizes.length > 0 && !availableSizes.includes(selectedSize)) {
+      setSelectedSize(availableSizes[0]);
+    }
+  }, [availableSizes]);
+
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeImage, setActiveImage] = useState(product.imageUrl);
-
-  const isMobileListMode = viewMode === 'LIST';
 
   // Out of stock notify states
   const [showNotifyForm, setShowNotifyForm] = useState(false);
@@ -631,6 +652,41 @@ export default function ProductCard({
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* Interactive Available Sizes Selection Chips */}
+          {availableSizes.length > 0 && (
+            <div className="border-t border-white/5 mt-1.5 pt-1.5 flex items-center justify-between gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></span>
+                <span className="text-[8.5px] uppercase font-mono tracking-wider text-white/50 font-bold">
+                  Size:
+                </span>
+              </div>
+              <div className="flex items-center gap-1 flex-wrap">
+                {availableSizes.map((sz: string) => {
+                  const isSelected = selectedSize.toUpperCase() === sz.toUpperCase();
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSize(sz);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[9px] sm:text-[9.5px] font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-luxury-gold text-black border border-luxury-gold shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
+                          : 'bg-black/60 text-white/70 border border-white/10 hover:border-luxury-gold/40 hover:text-white'
+                      }`}
+                      title={`Select size ${sz}`}
+                    >
+                      {sz}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

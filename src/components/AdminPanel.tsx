@@ -1488,7 +1488,7 @@ export default function AdminPanel({
   const [formCode, setFormCode] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formPrice, setFormPrice] = useState(100);
+  const [formPrice, setFormPrice] = useState<number | ''>('');
   const [formDeliveryPrice, setFormDeliveryPrice] = useState<number>(100);
   const [formDeliveryPriceDhaka, setFormDeliveryPriceDhaka] = useState<number>(100);
   const [formDeliveryPriceChattogram, setFormDeliveryPriceChattogram] = useState<number>(150);
@@ -1501,6 +1501,7 @@ export default function AdminPanel({
   const [formStock, setFormStock] = useState(10);
   const [formCategory, setFormCategory] = useState<'MEN' | 'WOMEN' | 'UNISEX' | 'ACCESSORIES'>('MEN');
   const [formSizes, setFormSizes] = useState<string>('S, M, L');
+  const [newSizeInput, setNewSizeInput] = useState<string>('');
   const [formDimensions, setFormDimensions] = useState('Bespoke Fit');
   const [formWhyBuy, setFormWhyBuy] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
@@ -1643,13 +1644,6 @@ export default function AdminPanel({
       fetchForms();
     }
   }, [activeTab]);
-
-  useEffect(() => {
-    if (formPrice > 0 && formOfferDiscountPercent !== '') {
-      const calculatedPrice = Math.round(formPrice * (1 - Number(formOfferDiscountPercent) / 100));
-      setFormOfferPrice(calculatedPrice);
-    }
-  }, [formPrice]);
 
   const fetchAnalytics = async () => {
     try {
@@ -3592,7 +3586,7 @@ export default function AdminPanel({
                   setFormCode('');
                   setFormTitle('');
                   setFormDescription('');
-                  setFormPrice(100);
+                  setFormPrice('');
                   setFormStock(30);
                   setFormSizes('S, M, L, XL');
                   setFormImageUrl('');
@@ -4183,13 +4177,10 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       <input 
                         type="number" required value={formPrice} 
                         onChange={(e) => {
-                          const valNum = Number(e.target.value);
-                          setFormPrice(valNum);
-                          if (formOfferPrice !== '' && valNum > 0) {
-                            const pct = Math.round(((valNum - Number(formOfferPrice)) / valNum) * 100);
-                            setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
-                          }
+                          const val = e.target.value;
+                          setFormPrice(val === '' ? '' : Number(val));
                         }}
+                        placeholder="e.g. 2000"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                       />
                     </div>
@@ -4206,8 +4197,9 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           } else {
                             const valNum = Number(valStr);
                             setFormOfferPrice(valNum);
-                            if (formPrice > 0) {
-                              const pct = Math.round(((formPrice - valNum) / formPrice) * 100);
+                            const numPrice = Number(formPrice);
+                            if (numPrice > 0 && valNum < numPrice) {
+                              const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
                               setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
                             }
                           }
@@ -4531,14 +4523,182 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                     </select>
                   </div>
 
-                  {/* Sizes */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Sizes fitting (Separated by commas)</label>
-                    <input 
-                      type="text" value={formSizes} onChange={(e) => setFormSizes(e.target.value)}
-                      placeholder="e.g. S, XS, M, L"
-                      className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold"
-                    />
+                  {/* Sizes Management (Interactive Quick-Add + Custom Sizes) */}
+                  <div className="md:col-span-2 bg-[#171422]/90 border border-white/10 p-4 sm:p-5 rounded-xl space-y-3.5 shadow-md">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-luxury-gold shadow-[0_0_8px_#d4af37]"></span>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold">
+                          Available Sizes & Fitting (সাইজ যোগ ও ব্যবস্থাপনা)
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setFormSizes('S, M, L, XL')}
+                          className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
+                        >
+                          + Standard (S-XL)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormSizes('M, L, XL, XXL')}
+                          className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
+                        >
+                          + M-XXL
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormSizes('28, 30, 32, 34, 36')}
+                          className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
+                        >
+                          + Pants (28-36)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormSizes('Free Size')}
+                          className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
+                        >
+                          + Free Size
+                        </button>
+                        {formSizes.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => setFormSizes('')}
+                            className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 transition-all cursor-pointer"
+                            title="Clear all sizes"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Active Selected Size Badges */}
+                    <div>
+                      <span className="block text-[9px] uppercase font-mono tracking-wider text-white/50 mb-1.5 font-medium">
+                        Active Selected Sizes ({formSizes.split(',').map(s => s.trim()).filter(Boolean).length}):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-black/40 rounded-lg border border-white/5 items-center">
+                        {formSizes.split(',').map(s => s.trim()).filter(Boolean).length === 0 ? (
+                          <span className="text-[10px] font-mono text-white/40 italic">
+                            কোনো সাইজ যোগ করা হয়নি। নিচে ক্লিক করে অথবা লিখে সাইজ যোগ করুন।
+                          </span>
+                        ) : (
+                          formSizes.split(',').map(s => s.trim()).filter(Boolean).map((sz) => (
+                            <span 
+                              key={sz}
+                              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-luxury-gold/20 to-luxury-gold/10 text-luxury-gold border border-luxury-gold/40 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold tracking-wider shadow-[0_0_8px_rgba(212,175,55,0.15)] group"
+                            >
+                              <span>{sz}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                                  const updated = current.filter(s => s.toUpperCase() !== sz.toUpperCase());
+                                  setFormSizes(updated.join(', '));
+                                }}
+                                className="text-luxury-gold/60 hover:text-red-400 transition-colors p-0.5 rounded cursor-pointer"
+                                title={`Remove size ${sz}`}
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Add Custom Size Input & Button */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                      <div className="sm:col-span-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={newSizeInput}
+                          onChange={(e) => setNewSizeInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const clean = newSizeInput.trim().toUpperCase();
+                              if (clean) {
+                                const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+                                if (!current.includes(clean)) {
+                                  setFormSizes([...current, clean].join(', '));
+                                }
+                                setNewSizeInput('');
+                              }
+                            }
+                          }}
+                          placeholder="Type custom size (e.g. 3XL, 42, 38, Free Size)"
+                          className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono uppercase"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const clean = newSizeInput.trim().toUpperCase();
+                            if (clean) {
+                              const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+                              if (!current.includes(clean)) {
+                                setFormSizes([...current, clean].join(', '));
+                              }
+                              setNewSizeInput('');
+                            }
+                          }}
+                          disabled={!newSizeInput.trim()}
+                          className="px-3.5 py-2 rounded bg-gradient-to-r from-luxury-gold/20 via-luxury-gold/30 to-luxury-gold/20 hover:from-luxury-gold/30 hover:to-luxury-gold/40 disabled:opacity-40 text-luxury-gold text-[10px] font-mono uppercase tracking-wider font-bold border border-luxury-gold/40 hover:border-luxury-gold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          + Add Size
+                        </button>
+                      </div>
+
+                      {/* Manual Raw String Editor */}
+                      <div className="sm:col-span-1">
+                        <input 
+                          type="text" 
+                          value={formSizes} 
+                          onChange={(e) => setFormSizes(e.target.value)}
+                          placeholder="Raw: S, M, L, XL"
+                          title="Comma-separated raw values"
+                          className="w-full bg-luxury-charcoal/80 text-white/80 text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Preset Buttons */}
+                    <div className="space-y-1.5 pt-1">
+                      <span className="block text-[8.5px] uppercase font-mono tracking-widest text-white/40">
+                        ⚡ Quick Add Presets (ক্লিক করে সাইজ যোগ/বাদ দিন):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', 'Free Size', '28', '30', '32', '34', '36', '38', '40', '42'].map((preset) => {
+                          const isSelected = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean).includes(preset.toUpperCase());
+                          return (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => {
+                                const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+                                if (isSelected) {
+                                  const updated = current.filter(s => s !== preset.toUpperCase());
+                                  setFormSizes(updated.join(', '));
+                                } else {
+                                  const updated = [...current, preset.toUpperCase()];
+                                  setFormSizes(updated.join(', '));
+                                }
+                              }}
+                              className={`text-[9.5px] font-mono px-2.5 py-1 rounded border transition-all cursor-pointer flex items-center gap-1 ${
+                                isSelected 
+                                  ? 'bg-luxury-gold text-black border-luxury-gold font-bold shadow-[0_0_8px_rgba(212,175,55,0.4)]'
+                                  : 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10 hover:border-white/20'
+                              }`}
+                            >
+                              <span>{preset}</span>
+                              {isSelected && <Check size={10} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Dimensions specs text */}
@@ -4703,9 +4863,12 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 } else {
                                   const valNum = Number(valStr);
                                   setFormOfferPrice(valNum);
-                                  if (formPrice > 0) {
-                                    const pct = Math.round(((formPrice - valNum) / formPrice) * 100);
+                                  const numPrice = Number(formPrice);
+                                  if (numPrice > 0 && valNum < numPrice) {
+                                    const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
                                     setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                                  } else {
+                                    setFormOfferDiscountPercent('');
                                   }
                                 }
                               }}
@@ -4726,8 +4889,9 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 } else {
                                   const valNum = Number(valStr);
                                   setFormOfferDiscountPercent(valNum);
-                                  if (formPrice > 0) {
-                                    const calculatedPrice = Math.round(formPrice * (1 - valNum / 100));
+                                  const numPrice = Number(formPrice);
+                                  if (numPrice > 0 && valNum > 0 && valNum < 100) {
+                                    const calculatedPrice = Math.round(numPrice * (1 - valNum / 100));
                                     setFormOfferPrice(calculatedPrice);
                                   }
                                 }

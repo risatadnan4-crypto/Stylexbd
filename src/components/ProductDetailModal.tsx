@@ -32,7 +32,22 @@ export default function ProductDetailModal({
   isNotifyMeDeactivated = false,
   globalDeliveryDays
 }: ProductDetailModalProps) {
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] || 'Standard');
+  const availableSizes = React.useMemo(() => {
+    if (!product) return [];
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes.filter(Boolean);
+    }
+    if (typeof product.sizes === 'string' && (product.sizes as string).trim()) {
+      try {
+        const parsed = JSON.parse(product.sizes);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+      } catch (e) {}
+      return (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [];
+  }, [product?.sizes]);
+
+  const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || product?.sizes?.[0] || 'Standard');
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(product.colors?.[0] || null);
   const [activeImgUrl, setActiveImgUrl] = useState<string | null>(null);
   const [prevProductId, setPrevProductId] = useState<string | null>(null);
@@ -381,7 +396,7 @@ export default function ProductDetailModal({
   if (product && product.id !== prevProductId) {
     setPrevProductId(product.id);
     setActiveImgUrl(product.imageUrl);
-    setSelectedSize(product.sizes?.[0] || 'Standard');
+    setSelectedSize(availableSizes[0] || product.sizes?.[0] || 'Standard');
     setSelectedColor(product.colors?.[0] || null);
   }
 
@@ -921,11 +936,11 @@ export default function ProductDetailModal({
             )}
 
             {/* Sizes selector box */}
-            {product.sizes && product.sizes.length > 0 && (
+            {availableSizes.length > 0 && (
               <div className="space-y-2.5 border-t border-white/5 pt-4">
                 <p className="text-[9px] text-white/40 uppercase font-mono tracking-[0.25em] font-semibold">CHOOSE DIMENSIONS FIT</p>
                 <div className="flex flex-wrap gap-2.5">
-                  {product.sizes.map((size) => (
+                  {availableSizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}

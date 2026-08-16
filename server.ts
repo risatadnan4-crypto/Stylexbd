@@ -1043,25 +1043,32 @@ function formatSupabaseError(err: any): string {
 // Function to synchronize settings to Supabase cloud as a bulletproof failsafe
 async function syncSettingsToCloud() {
   saveDB();
+  let settingsTableSuccess = false;
   
   if (isSettingsTableAvailable && supabase) {
     // 1. Always attempt JSONB format upsert (supports both id 'app_settings' and id '1')
     try {
-      await supabase.from("settings").upsert({
+      const { error: jsonErr1 } = await supabase.from("settings").upsert({
         id: "app_settings",
         data: db.settings,
         updated_at: new Date().toISOString()
       }, { onConflict: "id" });
+      if (!jsonErr1) {
+        settingsTableSuccess = true;
+      }
     } catch (jErr: any) {
       // ignore
     }
 
     try {
-      await supabase.from("settings").upsert({
+      const { error: jsonErr2 } = await supabase.from("settings").upsert({
         id: "1",
         data: db.settings,
         updated_at: new Date().toISOString()
       }, { onConflict: "id" });
+      if (!jsonErr2) {
+        settingsTableSuccess = true;
+      }
     } catch (jErr: any) {
       // ignore
     }
@@ -1076,6 +1083,7 @@ async function syncSettingsToCloud() {
           await supabase.from("settings").upsert({ key, value }, { onConflict: "key" });
         };
         await saveSetting("productPayments", JSON.stringify(db.settings.productPayments || {}));
+        settingsTableSuccess = true;
       } else {
         const upsertPayload: any = {
           id: 1,
@@ -1126,7 +1134,9 @@ async function syncSettingsToCloud() {
         } catch (e) {}
 
         let { error: upsertError } = await supabase.from("settings").upsert(upsertPayload, { onConflict: "id" });
-        if (upsertError) {
+        if (!upsertError) {
+          settingsTableSuccess = true;
+        } else {
           let retries = 0;
           let currentPayload = { ...upsertPayload };
           while (upsertError && (upsertError.message.includes("column") || upsertError.message.includes("does not exist") || upsertError.code === "42703") && retries < 15) {
@@ -1156,6 +1166,9 @@ async function syncSettingsToCloud() {
             }
             const retryRes = await supabase.from("settings").upsert(currentPayload, { onConflict: "id" });
             upsertError = retryRes.error;
+            if (!upsertError) {
+              settingsTableSuccess = true;
+            }
           }
         }
       }
@@ -7934,8 +7947,11 @@ Sitemap: https://stylexbd.vercel.app/api/sitemap`;
 let viteInstance: any = null;
 
 if (!isProduction) {
-  // Register Vite middleware synchronously via lazy proxy
+  // Register Vite middleware synchronously via lazy proxy, strictly bypassing any /api routes
   app.use((req, res, next) => {
+    if (req.path.startsWith("/api") || req.url.startsWith("/api") || (req.originalUrl && req.originalUrl.startsWith("/api"))) {
+      return next();
+    }
     if (viteInstance) {
       return viteInstance.middlewares(req, res, next);
     }
@@ -7953,7 +7969,7 @@ if (!isProduction) {
           middlewareMode: true,
           hmr: false
         },
-        appType: "spa"
+        appType: "custom"
       });
       console.log("Vite dev server created and mounted to proxy.");
     } catch (err) {
@@ -7962,10 +7978,15 @@ if (!isProduction) {
   };
   initDevServer();
 
+  // Explicit JSON 404 handler for API routes so HTML is never sent for API endpoints
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: "API endpoint not found", path: req.path });
+  });
+
   // Support SPA wildcard fallback synchronously in development so refreshes on subpaths work instantly
   app.get("*", async (req, res, next) => {
     // Avoid intercepting API paths or files with extensions
-    if (req.path.startsWith("/api") || req.path.includes(".")) {
+    if (req.path.startsWith("/api") || req.url.startsWith("/api") || (req.originalUrl && req.originalUrl.startsWith("/api")) || req.path.includes(".")) {
       return next();
     }
     try {

@@ -132,7 +132,14 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
 
   // Store data list states
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('stylex_cached_products');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -1618,26 +1625,23 @@ export default function App() {
       console.log(`[loadStoreCollections] [RESPONSE_STATUS] Received response status: ${res.status} (${res.statusText}) in ${duration}ms`);
       
       if (res.ok) {
-        let prodList;
-        try {
-          prodList = await res.json();
-        } catch (jsonErr: any) {
-          console.error(`[loadStoreCollections] [DATA_INTEGRITY] Failed to parse JSON response:`, jsonErr);
-          throw new Error(`JSON parsing failure: ${jsonErr.message}`);
+        const contentType = res.headers.get("content-type") || "";
+        let prodList: any = null;
+        if (contentType.includes("application/json")) {
+          try {
+            prodList = await res.json();
+          } catch (jsonErr: any) {
+            console.error(`[loadStoreCollections] [DATA_INTEGRITY] Failed to parse JSON response:`, jsonErr);
+          }
+        } else {
+          console.warn("[loadStoreCollections] Response was not JSON, content-type:", contentType);
         }
 
-        console.log(`[loadStoreCollections] [DATA_INTEGRITY] Successfully loaded products. Count: ${Array.isArray(prodList) ? prodList.length : 'Not an Array'}`);
-        
-        if (!prodList) {
-          console.warn("[loadStoreCollections] [DATA_INTEGRITY] Warning: Received null/undefined product list from API.");
-          setFetchError("API returned a null or undefined dataset.");
-        } else if (Array.isArray(prodList)) {
-          if (prodList.length === 0) {
-            console.warn("[loadStoreCollections] [DATA_INTEGRITY] WARNING: The product dataset is completely EMPTY.");
-          } else {
-            console.log("[loadStoreCollections] [DATA_INTEGRITY] Sample product loaded:", prodList[0]);
-          }
+        if (Array.isArray(prodList) && prodList.length > 0) {
           setProducts(prodList);
+          try {
+            localStorage.setItem('stylex_cached_products', JSON.stringify(prodList));
+          } catch (e) {}
           setFetchError(null);
 
           // Preload product images for buttery-smooth slider navigation
@@ -1655,9 +1659,21 @@ export default function App() {
               });
             }
           });
+        } else if (Array.isArray(prodList)) {
+          setProducts(prodList);
+          setFetchError(null);
         } else {
-          console.error("[loadStoreCollections] [DATA_INTEGRITY] ERROR: Returned products data is not an array:", prodList);
-          setFetchError("Data format error: Returned products catalog is not in list format.");
+          // Fallback to locally cached products if present
+          try {
+            const cached = localStorage.getItem('stylex_cached_products');
+            if (cached) {
+              const parsedCached = JSON.parse(cached);
+              if (Array.isArray(parsedCached) && parsedCached.length > 0) {
+                setProducts(parsedCached);
+                setFetchError(null);
+              }
+            }
+          } catch (e) {}
         }
       } else {
         // Read response body to extract any DB or Supabase connection errors
@@ -1669,44 +1685,43 @@ export default function App() {
         }
         
         console.error(`[loadStoreCollections] [SERVER_ERROR] Failed response with status ${res.status}. Response Body:`, errorDetails);
-        
-        // Analyze if body contains Supabase / database issues
-        if (errorDetails.toLowerCase().includes("supabase") || errorDetails.toLowerCase().includes("database") || errorDetails.toLowerCase().includes("connection")) {
-          console.error("[loadStoreCollections] [SUPABASE_REFUSAL_CHECK] DETECTED DATABASE/SUPABASE CONNECTIVITY ERROR. Backend is likely refusing connections or is offline.");
-        }
 
         if (retries > 0) {
-          console.warn(`[loadStoreCollections] [RETRY] Retrying fetch in 1.5s... (${retries} retries left)`);
           setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
         } else {
-          setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections. Details: ${errorDetails.substring(0, 100)}`);
+          try {
+            const cached = localStorage.getItem('stylex_cached_products');
+            if (cached) {
+              const parsedCached = JSON.parse(cached);
+              if (Array.isArray(parsedCached) && parsedCached.length > 0) {
+                setProducts(parsedCached);
+                setFetchError(null);
+                return;
+              }
+            }
+          } catch (e) {}
+          setFetchError(`Server error (${res.status}): Failed to retrieve catalog collections.`);
         }
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTimestamp;
       
-      console.group("[loadStoreCollections] [EXCEPTION_ANALYSIS]");
-      console.error(`Error occurred after ${duration}ms:`, err);
-      
-      let customizedErrorMsg = "";
-      if (err.name === 'AbortError') {
-        console.error(`[DIAGNOSTIC] Category: NETWORK_TIMEOUT. The connection timed out after ${timeoutMs}ms.`);
-        customizedErrorMsg = `Network Timeout: Connection to server timed out after ${timeoutMs / 1000}s.`;
-      } else if (err instanceof TypeError) {
-        console.error(`[DIAGNOSTIC] Category: CONNECTION_REFUSED_OR_DNS_FAIL. Check if dev server is running, or if request was blocked (CORS/SSL/offline).`);
-        customizedErrorMsg = "Connection Refused: Failed to establish handshake with backend.";
-      } else {
-        console.error(`[DIAGNOSTIC] Category: GENERIC_FETCH_EXCEPTION. Message: ${err.message}`);
-        customizedErrorMsg = `Fetch failure: ${err.message || err}`;
-      }
-      console.groupEnd();
+      console.warn(`Error occurred after ${duration}ms in loadStoreCollections:`, err.message || err);
+
+      try {
+        const cached = localStorage.getItem('stylex_cached_products');
+        if (cached) {
+          const parsedCached = JSON.parse(cached);
+          if (Array.isArray(parsedCached) && parsedCached.length > 0) {
+            setProducts(parsedCached);
+            setFetchError(null);
+          }
+        }
+      } catch (e) {}
 
       if (retries > 0) {
-        console.warn(`[loadStoreCollections] [RETRY] Retrying fetch in 1.5s... (${retries} retries left)`);
         setTimeout(() => { loadStoreCollections(retries - 1); }, 1500);
-      } else {
-        setFetchError(`${customizedErrorMsg}. Check console logs for deep diagnostics.`);
       }
     }
   };
@@ -1714,7 +1729,7 @@ export default function App() {
   const loadBanners = async () => {
     try {
       const res = await fetch('/api/banners');
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const bannerList = await res.json();
         setBanners(bannerList);
         if (Array.isArray(bannerList)) {
@@ -1732,14 +1747,17 @@ export default function App() {
   const loadCoupons = async () => {
     try {
       const res = await fetch('/api/coupons');
-      if (res.ok) setCoupons(await res.json());
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json();
+        setCoupons(data);
+      }
     } catch (err) {}
   };
 
   const loadCampaigns = async () => {
     try {
       const res = await fetch('/api/campaigns');
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const list = await res.json();
         const active = list.find((c: any) => c.active);
         if (active) setActiveCampaign(active);
@@ -1750,7 +1768,7 @@ export default function App() {
   const loadReviews = async () => {
     try {
       const res = await fetch('/api/reviews');
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const list: Review[] = await res.json();
         // Return onlyApproved reviews for guest visitors
         setPublicReviews(list.filter(r => r.isApproved));
@@ -1761,7 +1779,7 @@ export default function App() {
   const loadNotifications = async () => {
     try {
       const res = await fetch('/api/notifications');
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data: any[] = await res.json();
         
         // Match notifications based on logged-in customer or guest-checkout order IDs/phone number
