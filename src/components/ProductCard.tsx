@@ -53,14 +53,25 @@ export default function ProductCard({
         list = (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
       }
     }
-    return list.filter(s => String(s).trim().toLowerCase() !== 'standard');
-  }, [product.sizes]);
+    // Also check product.dimensions if it contains JSON payload with sizes
+    if (list.length === 0 && product.dimensions && typeof product.dimensions === 'string' && product.dimensions.startsWith('{')) {
+      try {
+        const dimObj = JSON.parse(product.dimensions);
+        if (Array.isArray(dimObj.sizes) && dimObj.sizes.length > 0) {
+          list = dimObj.sizes.filter(Boolean);
+        } else if (typeof dimObj.sizes === 'string' && dimObj.sizes.trim()) {
+          list = dimObj.sizes.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      } catch (e) {}
+    }
+    return list.map(s => String(s).trim()).filter(s => s.length > 0 && s.toLowerCase() !== 'standard');
+  }, [product.sizes, product.dimensions]);
 
   const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || '');
 
   useEffect(() => {
     if (availableSizes.length > 0) {
-      if (!selectedSize || !availableSizes.includes(selectedSize)) {
+      if (!selectedSize || !availableSizes.some(s => s.toUpperCase() === selectedSize.toUpperCase())) {
         setSelectedSize(availableSizes[0]);
       }
     } else {
@@ -663,16 +674,16 @@ export default function ProductCard({
 
           {/* Interactive Available Sizes Selection Chips */}
           {availableSizes.length > 0 && (
-            <div className="border-t border-white/5 mt-1.5 pt-1.5 flex items-center justify-between gap-1.5 flex-wrap">
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse"></span>
-                <span className="text-[8.5px] uppercase font-mono tracking-wider text-white/50 font-bold">
+            <div className="border-t border-purple-500/20 mt-2 pt-2 flex items-center justify-between gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-400 via-fuchsia-400 to-indigo-400 animate-ping shadow-[0_0_8px_#c084fc]"></span>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-purple-300 font-bold">
                   Size:
                 </span>
               </div>
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {availableSizes.map((sz: string) => {
-                  const isSelected = selectedSize.toUpperCase() === sz.toUpperCase();
+                  const isSelected = selectedSize.trim().toUpperCase() === sz.trim().toUpperCase();
                   return (
                     <button
                       key={sz}
@@ -681,14 +692,14 @@ export default function ProductCard({
                         e.stopPropagation();
                         setSelectedSize(sz);
                       }}
-                      className={`px-2 py-0.5 rounded text-[9px] sm:text-[9.5px] font-mono font-bold tracking-wider uppercase transition-all cursor-pointer ${
+                      className={`relative px-2.5 py-1 rounded-md text-[9.5px] sm:text-[10px] font-mono uppercase tracking-wider transition-all duration-300 transform active:scale-90 cursor-pointer overflow-hidden ${
                         isSelected
-                          ? 'bg-luxury-gold text-black border border-luxury-gold shadow-[0_0_8px_rgba(212,175,55,0.5)] scale-105'
-                          : 'bg-black/60 text-white/70 border border-white/10 hover:border-luxury-gold/40 hover:text-white'
+                          ? 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-indigo-600 text-white font-black border border-fuchsia-300/80 shadow-[0_0_15px_rgba(192,132,252,0.85)] scale-110 ring-2 ring-purple-400/60'
+                          : 'bg-purple-950/40 text-purple-200/80 border border-purple-500/25 hover:border-purple-400/80 hover:text-white hover:bg-purple-900/50 hover:shadow-[0_0_10px_rgba(168,85,247,0.4)] hover:scale-105 font-medium'
                       }`}
                       title={`Select size ${sz}`}
                     >
-                      {sz}
+                      <span className="relative z-10">{sz}</span>
                     </button>
                   );
                 })}

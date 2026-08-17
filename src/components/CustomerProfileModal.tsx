@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Mail, Phone, Lock, History, X, ChevronRight, 
@@ -856,7 +856,23 @@ function WishlistItemCard({
   onToggleWishlist: (p: Product) => void;
   onAddToCart: (p: Product, size: string) => void;
 }) {
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || 'Default');
+  const availableSizes = useMemo(() => {
+    let list: string[] = [];
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      list = product.sizes.filter(Boolean);
+    } else if (typeof product.sizes === 'string' && (product.sizes as string).trim()) {
+      try {
+        const parsed = JSON.parse(product.sizes);
+        if (Array.isArray(parsed) && parsed.length > 0) list = parsed.filter(Boolean);
+      } catch (e) {}
+      if (list.length === 0) {
+        list = (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
+    return list.map(s => String(s).trim()).filter(s => s.length > 0 && s.toLowerCase() !== 'standard');
+  }, [product.sizes]);
+
+  const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || '');
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleMoveToCart = () => {
@@ -938,11 +954,11 @@ function WishlistItemCard({
       })()}
 
       {/* Sizes selector inside card */}
-      {product.sizes && product.sizes.length > 0 && (
+      {availableSizes.length > 0 && (
         <div className="mb-3 text-left">
           <p className="text-[8px] text-white/40 uppercase font-mono tracking-wider mb-1">SELECT SIZE</p>
           <div className="flex flex-wrap gap-1">
-            {product.sizes.map((size) => (
+            {availableSizes.map((size) => (
               <button
                 key={size}
                 onClick={() => setSelectedSize(size)}

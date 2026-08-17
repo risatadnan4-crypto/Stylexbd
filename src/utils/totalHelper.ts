@@ -60,22 +60,27 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer is active if a valid offer price is defined.
-  // We keep it active always if a valid offer price exists to prevent stale timer dates from breaking the discount.
+  // Offer is active if a valid offer price strictly less than originalPrice is defined
   let hasActiveOffer = false;
   if (hasValidOfferPrice) {
-    hasActiveOffer = true;
+    if (isTimerActive && endTimeVal) {
+      hasActiveOffer = !timerExpired;
+    } else {
+      hasActiveOffer = true;
+    }
   }
 
-  const currentPrice = hasActiveOffer ? rawOfferPrice! : originalPrice;
-  const discountPercent = hasActiveOffer && originalPrice > 0
+  const currentPrice = (hasActiveOffer && rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice) 
+    ? rawOfferPrice 
+    : originalPrice;
+  const discountPercent = hasActiveOffer && originalPrice > 0 && currentPrice < originalPrice
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;
 
   return {
     currentPrice: currentPrice > 0 ? currentPrice : originalPrice,
     originalPrice,
-    hasActiveOffer,
+    hasActiveOffer: hasActiveOffer && currentPrice < originalPrice,
     discountPercent,
     timerExpired,
     timerActive: isTimerActive,

@@ -2635,19 +2635,24 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 
   // Sizes
   let parsedSizes: string[] = [];
-  const rawSizes = p?.sizes ?? local.sizes ?? dimObj?.sizes ?? paymentMeta?.sizes;
-  if (rawSizes !== undefined && rawSizes !== null) {
+  const candidateSizes = [p?.sizes, local?.sizes, dimObj?.sizes, paymentMeta?.sizes];
+  for (const rawSizes of candidateSizes) {
+    if (rawSizes === undefined || rawSizes === null || rawSizes === "") continue;
+    let list: string[] = [];
     const res = tryJsonParse(rawSizes);
     if (Array.isArray(res)) {
-      parsedSizes = res.map((s: any) => String(s).trim()).filter(Boolean);
+      list = res.map((s: any) => String(s).trim()).filter(Boolean);
     } else if (typeof rawSizes === "string") {
-      parsedSizes = rawSizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+      list = rawSizes.split(",").map((s: string) => s.trim()).filter(Boolean);
     } else if (Array.isArray(rawSizes)) {
-      parsedSizes = rawSizes.map((s: any) => String(s).trim()).filter(Boolean);
+      list = rawSizes.map((s: any) => String(s).trim()).filter(Boolean);
+    }
+    list = list.filter((s: string) => s.toLowerCase() !== "standard");
+    if (list.length > 0) {
+      parsedSizes = list;
+      break;
     }
   }
-  // Filter out any legacy 'Standard' placeholder entries so selected sizes (e.g. M, XL) are clean
-  parsedSizes = parsedSizes.filter((s: string) => s.toLowerCase() !== "standard");
 
   // Images
   let parsedImages: string[] = [];
@@ -2716,23 +2721,35 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return "Standard Fitting";
   })();
 
+  const resolvedPrice = getNum(local.price, p?.price, 0) ?? 0;
+
   const resolvedOfferPrice = (() => {
     if (local.offerPrice !== undefined) {
-      return local.offerPrice !== null && local.offerPrice !== "" && !isNaN(Number(local.offerPrice)) ? Number(local.offerPrice) : undefined;
+      if (local.offerPrice === null || local.offerPrice === "" || isNaN(Number(local.offerPrice))) return null;
+      const val = Number(local.offerPrice);
+      return val > 0 && val < resolvedPrice ? val : null;
     }
     if (p?.offerPrice !== undefined) {
-      return p.offerPrice !== null && p.offerPrice !== "" && !isNaN(Number(p.offerPrice)) ? Number(p.offerPrice) : undefined;
+      if (p.offerPrice === null || p.offerPrice === "" || isNaN(Number(p.offerPrice))) return null;
+      const val = Number(p.offerPrice);
+      return val > 0 && val < resolvedPrice ? val : null;
     }
     if (p?.offer_price !== undefined) {
-      return p.offer_price !== null && p.offer_price !== "" && !isNaN(Number(p.offer_price)) ? Number(p.offer_price) : undefined;
+      if (p.offer_price === null || p.offer_price === "" || isNaN(Number(p.offer_price))) return null;
+      const val = Number(p.offer_price);
+      return val > 0 && val < resolvedPrice ? val : null;
     }
     if (dimObj?.offerPrice !== undefined) {
-      return dimObj.offerPrice !== null && dimObj.offerPrice !== "" && !isNaN(Number(dimObj.offerPrice)) ? Number(dimObj.offerPrice) : undefined;
+      if (dimObj.offerPrice === null || dimObj.offerPrice === "" || isNaN(Number(dimObj.offerPrice))) return null;
+      const val = Number(dimObj.offerPrice);
+      return val > 0 && val < resolvedPrice ? val : null;
     }
     if (paymentMeta?.offerPrice !== undefined) {
-      return paymentMeta.offerPrice !== null && paymentMeta.offerPrice !== "" && !isNaN(Number(paymentMeta.offerPrice)) ? Number(paymentMeta.offerPrice) : undefined;
+      if (paymentMeta.offerPrice === null || paymentMeta.offerPrice === "" || isNaN(Number(paymentMeta.offerPrice))) return null;
+      const val = Number(paymentMeta.offerPrice);
+      return val > 0 && val < resolvedPrice ? val : null;
     }
-    return undefined;
+    return null;
   })();
 
   const resolvedSeoKeywords = getStr(local.seoKeywords, local.seo_keywords, local.metaKeywords, p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, dimObj?.seoKeywords, seoMeta.seoKeywords, "");
@@ -3230,6 +3247,7 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       sizes: typeof newProduct.sizes === "string" ? newProduct.sizes : JSON.stringify(newProduct.sizes),
       colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
       dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors, {
+        sizes: newProduct.sizes,
         deliveryPrice: newProduct.deliveryPrice,
         deliveryPriceDhaka: newProduct.deliveryPriceDhaka,
         deliveryPriceChattogram: newProduct.deliveryPriceChattogram,
@@ -3343,9 +3361,14 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
     const existingProd = db.products[idx];
     const b = req.body;
 
-    const resolvedOfferPrice = b.offerPrice !== undefined
+    const resolvedPrice = b.price !== undefined ? Number(b.price) : existingProd.price;
+    let resolvedOfferPrice = b.offerPrice !== undefined
       ? (b.offerPrice === null || b.offerPrice === "" || isNaN(Number(b.offerPrice)) ? null : Number(b.offerPrice))
       : existingProd.offerPrice;
+
+    if (resolvedOfferPrice !== null && (resolvedOfferPrice >= resolvedPrice || resolvedOfferPrice <= 0)) {
+      resolvedOfferPrice = null;
+    }
 
     const updatedProd: Product = {
       ...existingProd,
@@ -3354,7 +3377,7 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
       code: b.code !== undefined ? b.code : existingProd.code,
       title: b.title !== undefined ? b.title : existingProd.title,
       description: b.description !== undefined ? b.description : existingProd.description,
-      price: b.price !== undefined ? Number(b.price) : existingProd.price,
+      price: resolvedPrice,
       stock: b.stock !== undefined ? Number(b.stock) : existingProd.stock,
       category: b.category !== undefined ? b.category : existingProd.category,
       imageUrl: b.imageUrl !== undefined ? b.imageUrl : existingProd.imageUrl,
@@ -3476,6 +3499,7 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
         colors: Array.isArray(target.colors) ? JSON.stringify(target.colors) : JSON.stringify([]),
         dimensions: serializeDimensions(target.dimensions, target.colors, {
+          sizes: target.sizes,
           deliveryPrice: Number(target.deliveryPrice || 100),
           deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
           deliveryPriceChattogram: Number(target.deliveryPriceChattogram || 150),
@@ -7172,7 +7196,7 @@ app.post("/api/xoro-admin/execute", xoroAdminRateLimitMiddleware, xoroAdminAuthM
           category: data.category || "UNISEX",
           stock: Number(data.stock) || 10,
           imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600&auto=format&fit=crop",
-          sizes: data.sizes || ["S", "M", "L", "XL"],
+          sizes: Array.isArray(data.sizes) ? data.sizes : (typeof data.sizes === 'string' && data.sizes.trim() ? data.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
           dimensions: data.dimensions || "Regular Fit",
           whyBuy: data.whyBuy || "এটি প্রিমিয়াম ফেব্রিক দিয়ে তৈরি একটি রাজকীয় কালেকশন যা আপনার স্টাইলকে চমৎকারভাবে ফুটিয়ে তুলবে।",
           featured: !!data.featured,

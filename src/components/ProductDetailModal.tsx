@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Product, ProductColor } from '../types';
@@ -32,7 +32,7 @@ export default function ProductDetailModal({
   isNotifyMeDeactivated = false,
   globalDeliveryDays
 }: ProductDetailModalProps) {
-  const availableSizes = React.useMemo(() => {
+  const availableSizes = useMemo(() => {
     if (!product) return [];
     let list: string[] = [];
     if (Array.isArray(product.sizes) && product.sizes.length > 0) {
@@ -46,8 +46,19 @@ export default function ProductDetailModal({
         list = (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
       }
     }
-    return list.filter(s => String(s).trim().toLowerCase() !== 'standard');
-  }, [product?.sizes]);
+    // Also check if sizes are stored in product.dimensions JSON
+    if (list.length === 0 && product.dimensions && typeof product.dimensions === 'string' && product.dimensions.startsWith('{')) {
+      try {
+        const dimObj = JSON.parse(product.dimensions);
+        if (Array.isArray(dimObj.sizes) && dimObj.sizes.length > 0) {
+          list = dimObj.sizes.filter(Boolean);
+        } else if (typeof dimObj.sizes === 'string' && dimObj.sizes.trim()) {
+          list = dimObj.sizes.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      } catch (e) {}
+    }
+    return list.map(s => String(s).trim()).filter(s => s.length > 0 && s.toLowerCase() !== 'standard');
+  }, [product?.sizes, product?.dimensions]);
 
   const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || '');
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(product.colors?.[0] || null);
@@ -398,11 +409,11 @@ export default function ProductDetailModal({
   useEffect(() => {
     if (product) {
       if (availableSizes.length > 0) {
-        if (!selectedSize || !availableSizes.includes(selectedSize)) {
+        if (!selectedSize || !availableSizes.some(s => s.toUpperCase() === selectedSize.toUpperCase())) {
           setSelectedSize(availableSizes[0]);
         }
       } else {
-        setSelectedSize('Standard');
+        setSelectedSize('');
       }
     }
   }, [product?.id, availableSizes]);
@@ -410,7 +421,7 @@ export default function ProductDetailModal({
   if (product && product.id !== prevProductId) {
     setPrevProductId(product.id);
     setActiveImgUrl(product.imageUrl);
-    setSelectedSize(availableSizes[0] || 'Standard');
+    setSelectedSize(availableSizes[0] || '');
     setSelectedColor(product.colors?.[0] || null);
   }
 
@@ -951,22 +962,38 @@ export default function ProductDetailModal({
 
             {/* Sizes selector box */}
             {availableSizes.length > 0 && (
-              <div className="space-y-2.5 border-t border-white/5 pt-4">
-                <p className="text-[9px] text-white/40 uppercase font-mono tracking-[0.25em] font-semibold">CHOOSE DIMENSIONS FIT</p>
+              <div className="space-y-3 border-t border-purple-500/20 pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 via-fuchsia-400 to-indigo-400 animate-ping shadow-[0_0_10px_#c084fc]"></span>
+                    <p className="text-[10px] text-purple-300 uppercase font-mono tracking-[0.2em] font-bold">
+                      AVAILABLE SIZES (সাইজ নির্বাচন করুন)
+                    </p>
+                  </div>
+                  {selectedSize && (
+                    <span className="text-[11px] font-mono text-white font-black px-2.5 py-0.5 rounded-md bg-gradient-to-r from-purple-600 via-fuchsia-500 to-indigo-600 border border-fuchsia-300/80 shadow-[0_0_12px_rgba(192,132,252,0.6)]">
+                      Selected: {selectedSize}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2.5">
-                  {availableSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`h-9 min-w-10 px-4 rounded-xl text-xs font-display border uppercase tracking-[0.2em] flex items-center justify-center cursor-pointer transition-all ${
-                        selectedSize === size
-                          ? 'luxury-size-btn-active scale-105 shadow-[0_0_20px_rgba(154,77,255,0.75)]'
-                          : 'luxury-size-btn-inactive'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {availableSizes.map((size) => {
+                    const isSelected = selectedSize.trim().toUpperCase() === size.trim().toUpperCase();
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={`relative h-10 min-w-12 px-4 rounded-xl text-xs sm:text-sm font-mono uppercase tracking-wider flex items-center justify-center cursor-pointer transition-all duration-300 transform active:scale-95 border overflow-hidden ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-indigo-600 text-white font-black border-fuchsia-300/90 shadow-[0_0_20px_rgba(192,132,252,0.85)] scale-110 ring-2 ring-purple-400/60'
+                            : 'bg-purple-950/40 border-purple-500/25 text-purple-200/80 hover:border-purple-400/80 hover:bg-purple-900/50 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.4)] hover:scale-105 font-medium'
+                        }`}
+                      >
+                        <span className="relative z-10">{size}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

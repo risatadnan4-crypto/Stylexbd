@@ -857,7 +857,11 @@
       "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg",
       "images": [],
       "colors": [],
-      "sizes": [],
+      "sizes": [
+        "3XL",
+        "4XL",
+        "28"
+      ],
       "dimensions": "Standard Fitting",
       "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।",
       "trending": true,
@@ -6583,6 +6587,24 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-17T09:28:18.221Z",
       "created_at": "2026-08-17T09:28:18.297654+00:00"
+    },
+    {
+      "id": "room-yvmbh0x4",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-17T09:43:29.720Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-17T09:43:29.720Z",
+      "created_at": "2026-08-17T09:43:30.434917+00:00"
     }
   ],
   "carts": {

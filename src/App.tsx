@@ -2463,9 +2463,9 @@ export default function App() {
       
       const matchPriceMin = minPrice === '' || p.price >= minPrice;
       const matchPriceMax = maxPrice === '' || p.price <= maxPrice;
-      const pSizesList = Array.isArray(p.sizes) 
-        ? p.sizes.map((s: string) => String(s).trim().toUpperCase()) 
-        : (typeof p.sizes === 'string' ? p.sizes.split(',').map((s: string) => s.trim().toUpperCase()) : []);
+      const pSizesList: string[] = Array.isArray(p.sizes) 
+        ? (p.sizes as any[]).map(s => String(s).trim().toUpperCase()) 
+        : (typeof (p as any).sizes === 'string' ? ((p as any).sizes as string).split(',').map((s: string) => s.trim().toUpperCase()) : []);
       const matchSize = selectedSize === 'ALL' || pSizesList.includes(selectedSize.toUpperCase());
       const matchStock = !showInStockOnly || p.stock > 0;
 

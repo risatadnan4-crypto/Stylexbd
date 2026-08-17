@@ -2396,11 +2396,12 @@ export default function AdminPanel({
     setLoading(true);
     const parsedSizes = formSizes
       .split(',')
-      .map(s => s.trim().toUpperCase())
-      .filter(s => Boolean(s) && s !== 'STANDARD');
+      .map(s => s.trim())
+      .filter(s => Boolean(s) && s.toUpperCase() !== 'STANDARD');
 
     const finalPrice = Number(formPrice);
-    const finalOfferPrice = formOfferPrice !== '' ? Number(formOfferPrice) : null;
+    const rawOffer = formOfferPrice !== '' && !isNaN(Number(formOfferPrice)) ? Number(formOfferPrice) : null;
+    const finalOfferPrice = (rawOffer !== null && rawOffer > 0 && rawOffer < finalPrice) ? rawOffer : null;
 
     const productPayload = {
       code: formCode || undefined,
@@ -2512,16 +2513,17 @@ export default function AdminPanel({
     
     setFormPrice(prod.price);
     setFormOldPriceField('');
-    const offerVal = (prod.offerPrice !== undefined && prod.offerPrice !== null && (prod.offerPrice as any) !== '')
+    const rawOffer = (prod.offerPrice !== undefined && prod.offerPrice !== null && (prod.offerPrice as any) !== '')
       ? prod.offerPrice
       : ((prod.timerOfferPrice !== undefined && prod.timerOfferPrice !== null && (prod.timerOfferPrice as any) !== '')
         ? prod.timerOfferPrice
         : null);
-    const hasOffer = offerVal !== null && !isNaN(Number(offerVal)) && Number(offerVal) > 0;
-    if (hasOffer) {
-      setFormOfferPrice(Number(offerVal));
-      const calculatedPercent = prod.price > 0 ? Math.round(((prod.price - Number(offerVal)) / prod.price) * 100) : 0;
-      setFormOfferDiscountPercent(calculatedPercent > 0 && calculatedPercent <= 100 ? calculatedPercent : '');
+    const offerNum = rawOffer !== null && !isNaN(Number(rawOffer)) ? Number(rawOffer) : null;
+    const hasOffer = offerNum !== null && offerNum > 0 && prod.price > 0 && offerNum < prod.price;
+    if (hasOffer && offerNum !== null) {
+      setFormOfferPrice(offerNum);
+      const calculatedPercent = Math.round(((prod.price - offerNum) / prod.price) * 100);
+      setFormOfferDiscountPercent(calculatedPercent > 0 && calculatedPercent < 100 ? calculatedPercent : '');
     } else {
       setFormOfferPrice('');
       setFormOfferDiscountPercent('');
@@ -2538,22 +2540,31 @@ export default function AdminPanel({
     setFormDeliveryPriceMymensingh(prod.deliveryPriceMymensingh !== undefined ? prod.deliveryPriceMymensingh : 150);
     setFormStock(prod.stock);
     setFormCategory(prod.category);
-    if (Array.isArray(prod.sizes)) {
-      setFormSizes(prod.sizes.join(', '));
-    } else if (typeof prod.sizes === 'string') {
+    let initialSizes = '';
+    const rawProdSizes = (prod as any).sizes;
+    if (Array.isArray(rawProdSizes) && rawProdSizes.length > 0) {
+      initialSizes = rawProdSizes.filter((s: any) => String(s).trim().toUpperCase() !== 'STANDARD').join(', ');
+    } else if (typeof rawProdSizes === 'string' && rawProdSizes.trim()) {
       try {
-        const parsed = JSON.parse(prod.sizes);
+        const parsed = JSON.parse(rawProdSizes);
         if (Array.isArray(parsed)) {
-          setFormSizes(parsed.join(', '));
+          initialSizes = parsed.filter((s: any) => String(s).trim().toUpperCase() !== 'STANDARD').join(', ');
         } else {
-          setFormSizes(prod.sizes);
+          initialSizes = rawProdSizes;
         }
       } catch (e) {
-        setFormSizes(prod.sizes);
+        initialSizes = rawProdSizes;
       }
-    } else {
-      setFormSizes('');
     }
+    if (!initialSizes && prod.dimensions && typeof prod.dimensions === 'string' && prod.dimensions.startsWith('{')) {
+      try {
+        const dimObj = JSON.parse(prod.dimensions);
+        if (Array.isArray(dimObj.sizes)) {
+          initialSizes = dimObj.sizes.filter((s: string) => String(s).trim().toUpperCase() !== 'STANDARD').join(', ');
+        }
+      } catch (e) {}
+    }
+    setFormSizes(initialSizes);
     setFormDimensions(prod.dimensions);
     setFormWhyBuy(prod.whyBuy);
     setFormImageUrl(prod.imageUrl);
@@ -4191,40 +4202,74 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   {/* Price */}
                   <div className="flex flex-col gap-2">
                     <div>
-                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Price / Regular Price (৳ BD Taka)</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Price / Regular Price (৳ BD Taka)</label>
+                        {formPrice !== '' && (
+                          <span className="text-[10px] font-mono text-luxury-gold font-bold">
+                            ৳{formPrice}
+                          </span>
+                        )}
+                      </div>
                       <input 
                         type="number" required value={formPrice} 
                         onChange={(e) => {
                           const val = e.target.value;
-                          setFormPrice(val === '' ? '' : Number(val));
+                          const newPrice = val === '' ? '' : Number(val);
+                          setFormPrice(newPrice);
+                          if (newPrice !== '' && formOfferDiscountPercent !== '' && Number(formOfferDiscountPercent) > 0) {
+                            const calculated = Math.round(Number(newPrice) * (1 - Number(formOfferDiscountPercent) / 100));
+                            setFormOfferPrice(calculated > 0 && calculated < Number(newPrice) ? calculated : '');
+                          } else if (newPrice !== '' && formOfferPrice !== '' && Number(formOfferPrice) >= Number(newPrice)) {
+                            setFormOfferPrice('');
+                            setFormOfferDiscountPercent('');
+                          }
                         }}
-                        placeholder="e.g. 2000"
+                        placeholder="e.g. 449"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50 mb-1">Offer / Discount Price (৳) (Optional)</label>
-                      <input 
-                        type="number" 
-                        value={formOfferPrice} 
-                        onChange={(e) => {
-                          const valStr = e.target.value;
-                          if (valStr === '') {
-                            setFormOfferPrice('');
-                            setFormOfferDiscountPercent('');
-                          } else {
-                            const valNum = Number(valStr);
-                            setFormOfferPrice(valNum);
-                            const numPrice = Number(formPrice);
-                            if (numPrice > 0 && valNum < numPrice) {
-                              const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
-                              setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Offer / Discount Price (৳) (Optional)</label>
+                        {formOfferPrice !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormOfferPrice('');
+                              setFormOfferDiscountPercent('');
+                            }}
+                            className="text-[9px] font-mono text-red-400 hover:text-red-300 underline cursor-pointer"
+                          >
+                            Clear Discount
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input 
+                          type="number" 
+                          value={formOfferPrice} 
+                          onChange={(e) => {
+                            const valStr = e.target.value;
+                            if (valStr === '') {
+                              setFormOfferPrice('');
+                              setFormOfferDiscountPercent('');
+                            } else {
+                              const valNum = Number(valStr);
+                              const numPrice = Number(formPrice);
+                              if (numPrice > 0 && valNum < numPrice) {
+                                setFormOfferPrice(valNum);
+                                const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
+                                setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
+                              } else {
+                                setFormOfferPrice(valNum);
+                                setFormOfferDiscountPercent('');
+                              }
                             }
-                          }
-                        }}
-                        placeholder="e.g. 1500"
-                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
-                      />
+                          }}
+                          placeholder="Leave empty for regular price"
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -4637,10 +4682,10 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              const clean = newSizeInput.trim().toUpperCase();
+                              const clean = newSizeInput.trim();
                               if (clean) {
-                                const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-                                if (!current.includes(clean)) {
+                                const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                                if (!current.some(s => s.toUpperCase() === clean.toUpperCase())) {
                                   setFormSizes([...current, clean].join(', '));
                                 }
                                 setNewSizeInput('');
@@ -4648,15 +4693,15 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                             }
                           }}
                           placeholder="Type custom size (e.g. 3XL, 42, 38, Free Size)"
-                          className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono uppercase"
+                          className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                         />
                         <button
                           type="button"
                           onClick={() => {
-                            const clean = newSizeInput.trim().toUpperCase();
+                            const clean = newSizeInput.trim();
                             if (clean) {
-                              const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-                              if (!current.includes(clean)) {
+                              const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                              if (!current.some(s => s.toUpperCase() === clean.toUpperCase())) {
                                 setFormSizes([...current, clean].join(', '));
                               }
                               setNewSizeInput('');
@@ -4695,12 +4740,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               key={preset}
                               type="button"
                               onClick={() => {
-                                const current = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-                                if (isSelected) {
-                                  const updated = current.filter(s => s !== preset.toUpperCase());
+                                const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                                const foundIndex = current.findIndex(s => s.toUpperCase() === preset.toUpperCase());
+                                if (foundIndex !== -1) {
+                                  const updated = current.filter((_, i) => i !== foundIndex);
                                   setFormSizes(updated.join(', '));
                                 } else {
-                                  const updated = [...current, preset.toUpperCase()];
+                                  const updated = [...current, preset];
                                   setFormSizes(updated.join(', '));
                                 }
                               }}
@@ -5657,9 +5703,35 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         </td>
 
                         <td>
-                          <span className="bg-luxury-charcoal border border-white/5 text-white/70 px-2.5 py-0.5 rounded text-[9.5px] font-mono font-bold">
-                            {p.category}
-                          </span>
+                          <div className="space-y-1">
+                            <span className="bg-luxury-charcoal border border-white/5 text-white/70 px-2.5 py-0.5 rounded text-[9.5px] font-mono font-bold block w-fit">
+                              {p.category}
+                            </span>
+                            {(() => {
+                              let rowSizes: string[] = [];
+                              const rawRowSizes = (p as any).sizes;
+                              if (Array.isArray(rawRowSizes) && rawRowSizes.length > 0) {
+                                rowSizes = rawRowSizes.map((s: any) => String(s));
+                              } else if (typeof rawRowSizes === 'string' && rawRowSizes.trim()) {
+                                try {
+                                  const parsed = JSON.parse(rawRowSizes);
+                                  if (Array.isArray(parsed)) rowSizes = parsed.map((s: any) => String(s));
+                                } catch(e) {}
+                                if (rowSizes.length === 0) rowSizes = rawRowSizes.split(',').map((s: string) => s.trim());
+                              }
+                              rowSizes = rowSizes.filter(s => Boolean(s) && String(s).trim().toUpperCase() !== 'STANDARD');
+                              if (rowSizes.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 items-center max-w-[130px]">
+                                  {rowSizes.map((sz, sIdx) => (
+                                    <span key={sIdx} className="px-1.5 py-0.2 text-[8.5px] font-mono bg-luxury-gold/10 text-luxury-gold border border-luxury-gold/20 rounded font-bold">
+                                      {sz}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </td>
 
                         <td>
