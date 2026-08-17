@@ -41,24 +41,30 @@ export default function ProductCard({
   const isMobileListMode = viewMode === 'LIST';
 
   const availableSizes = React.useMemo(() => {
+    let list: string[] = [];
     if (Array.isArray(product.sizes) && product.sizes.length > 0) {
-      return product.sizes.filter(Boolean);
-    }
-    if (typeof product.sizes === 'string' && (product.sizes as string).trim()) {
+      list = product.sizes.filter(Boolean);
+    } else if (typeof product.sizes === 'string' && (product.sizes as string).trim()) {
       try {
         const parsed = JSON.parse(product.sizes);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+        if (Array.isArray(parsed) && parsed.length > 0) list = parsed.filter(Boolean);
       } catch (e) {}
-      return (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (list.length === 0) {
+        list = (product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
     }
-    return [];
+    return list.filter(s => String(s).trim().toLowerCase() !== 'standard');
   }, [product.sizes]);
 
-  const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || 'Standard');
+  const [selectedSize, setSelectedSize] = useState<string>(() => availableSizes[0] || '');
 
   useEffect(() => {
-    if (availableSizes.length > 0 && !availableSizes.includes(selectedSize)) {
-      setSelectedSize(availableSizes[0]);
+    if (availableSizes.length > 0) {
+      if (!selectedSize || !availableSizes.includes(selectedSize)) {
+        setSelectedSize(availableSizes[0]);
+      }
+    } else {
+      setSelectedSize('');
     }
   }, [availableSizes]);
 

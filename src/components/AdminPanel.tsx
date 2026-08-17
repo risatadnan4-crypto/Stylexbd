@@ -2394,7 +2394,10 @@ export default function AdminPanel({
     }
 
     setLoading(true);
-    const parsedSizes = formSizes.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const parsedSizes = formSizes
+      .split(',')
+      .map(s => s.trim().toUpperCase())
+      .filter(s => Boolean(s) && s !== 'STANDARD');
 
     const finalPrice = Number(formPrice);
     const finalOfferPrice = formOfferPrice !== '' ? Number(formOfferPrice) : null;
@@ -2535,7 +2538,22 @@ export default function AdminPanel({
     setFormDeliveryPriceMymensingh(prod.deliveryPriceMymensingh !== undefined ? prod.deliveryPriceMymensingh : 150);
     setFormStock(prod.stock);
     setFormCategory(prod.category);
-    setFormSizes(prod.sizes.join(', '));
+    if (Array.isArray(prod.sizes)) {
+      setFormSizes(prod.sizes.join(', '));
+    } else if (typeof prod.sizes === 'string') {
+      try {
+        const parsed = JSON.parse(prod.sizes);
+        if (Array.isArray(parsed)) {
+          setFormSizes(parsed.join(', '));
+        } else {
+          setFormSizes(prod.sizes);
+        }
+      } catch (e) {
+        setFormSizes(prod.sizes);
+      }
+    } else {
+      setFormSizes('');
+    }
     setFormDimensions(prod.dimensions);
     setFormWhyBuy(prod.whyBuy);
     setFormImageUrl(prod.imageUrl);
@@ -4538,7 +4556,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           onClick={() => setFormSizes('S, M, L, XL')}
                           className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
                         >
-                          + Standard (S-XL)
+                          + S, M, L, XL
                         </button>
                         <button
                           type="button"

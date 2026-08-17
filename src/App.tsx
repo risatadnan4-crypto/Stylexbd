@@ -248,8 +248,30 @@ export default function App() {
   const uniqueSizes = useMemo(() => {
     const sizesSet = new Set<string>();
     products.forEach(p => {
-      if (p.sizes && Array.isArray(p.sizes)) {
-        p.sizes.forEach(sz => sizesSet.add(sz));
+      if (Array.isArray(p.sizes)) {
+        p.sizes.forEach(sz => {
+          if (sz && typeof sz === 'string' && sz.trim()) {
+            const clean = sz.trim().toUpperCase();
+            if (clean && clean !== 'STANDARD') sizesSet.add(clean);
+          }
+        });
+      } else if (typeof p.sizes === 'string' && (p.sizes as string).trim()) {
+        try {
+          const parsed = JSON.parse(p.sizes);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(sz => {
+              if (sz && typeof sz === 'string' && sz.trim()) {
+                const clean = sz.trim().toUpperCase();
+                if (clean && clean !== 'STANDARD') sizesSet.add(clean);
+              }
+            });
+          }
+        } catch(e) {
+          (p.sizes as string).split(',').forEach(sz => {
+            const clean = sz.trim().toUpperCase();
+            if (clean && clean !== 'STANDARD') sizesSet.add(clean);
+          });
+        }
       }
     });
     return Array.from(sizesSet).sort();
@@ -2441,7 +2463,10 @@ export default function App() {
       
       const matchPriceMin = minPrice === '' || p.price >= minPrice;
       const matchPriceMax = maxPrice === '' || p.price <= maxPrice;
-      const matchSize = selectedSize === 'ALL' || (p.sizes && p.sizes.includes(selectedSize));
+      const pSizesList = Array.isArray(p.sizes) 
+        ? p.sizes.map((s: string) => String(s).trim().toUpperCase()) 
+        : (typeof p.sizes === 'string' ? p.sizes.split(',').map((s: string) => s.trim().toUpperCase()) : []);
+      const matchSize = selectedSize === 'ALL' || pSizesList.includes(selectedSize.toUpperCase());
       const matchStock = !showInStockOnly || p.stock > 0;
 
       return matchCategory && matchSearch && matchPriceMin && matchPriceMax && matchSize && matchStock;

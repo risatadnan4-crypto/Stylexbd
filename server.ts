@@ -2603,7 +2603,7 @@ function serializeDimensions(dimensionsVal: any, colorsVal: any, extraMeta?: any
   if (typeof dimensionsVal === "string" && dimensionsVal.trim().startsWith("{")) {
     baseObj = tryJsonParse(dimensionsVal) || {};
   } else {
-    baseObj = { dimensions: dimensionsVal || "Standard Fitting" };
+    baseObj = { dimensions: dimensionsVal || "Custom Fit" };
   }
   baseObj.colors = colorsVal || [];
   if (extraMeta && typeof extraMeta === "object") {
@@ -2624,19 +2624,30 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     : (((db.settings as any)?.productPayments && id && (db.settings as any).productPayments[id]) || {});
   const seoMeta = ((db.settings as any)?.productSeo && id && (db.settings as any).productSeo[id]) || {};
 
+  // Colors & dimensions JSON metadata
+  let parsedColors: any[] = [];
+  let rawColors = (p?.colors !== undefined && p?.colors !== null) ? p.colors : local.colors;
+  let dimObj: any = {};
+  const dimStr = p?.dimensions || local.dimensions;
+  if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
+    dimObj = tryJsonParse(dimStr) || {};
+  }
+
   // Sizes
   let parsedSizes: string[] = [];
-  const rawSizes = p?.sizes ?? local.sizes;
+  const rawSizes = p?.sizes ?? local.sizes ?? dimObj?.sizes ?? paymentMeta?.sizes;
   if (rawSizes !== undefined && rawSizes !== null) {
     const res = tryJsonParse(rawSizes);
     if (Array.isArray(res)) {
-      parsedSizes = res;
+      parsedSizes = res.map((s: any) => String(s).trim()).filter(Boolean);
     } else if (typeof rawSizes === "string") {
       parsedSizes = rawSizes.split(",").map((s: string) => s.trim()).filter(Boolean);
     } else if (Array.isArray(rawSizes)) {
-      parsedSizes = rawSizes;
+      parsedSizes = rawSizes.map((s: any) => String(s).trim()).filter(Boolean);
     }
   }
+  // Filter out any legacy 'Standard' placeholder entries so selected sizes (e.g. M, XL) are clean
+  parsedSizes = parsedSizes.filter((s: string) => s.toLowerCase() !== "standard");
 
   // Images
   let parsedImages: string[] = [];
@@ -2648,15 +2659,6 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     } else if (Array.isArray(rawImages)) {
       parsedImages = rawImages;
     }
-  }
-
-  // Colors & dimensions JSON metadata
-  let parsedColors: any[] = [];
-  let rawColors = (p?.colors !== undefined && p?.colors !== null) ? p.colors : local.colors;
-  let dimObj: any = {};
-  const dimStr = p?.dimensions || local.dimensions;
-  if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
-    dimObj = tryJsonParse(dimStr) || {};
   }
 
   if (rawColors === undefined || rawColors === null || (Array.isArray(rawColors) && rawColors.length === 0)) {

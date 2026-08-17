@@ -1476,9 +1476,21 @@ export default function CartDrawer({
                                     </label>
 
                                     {enrichedCartItems.map((item, idx) => {
-                                      const availableSizes = item.product.sizes && item.product.sizes.length > 0 
-                                        ? item.product.sizes 
-                                        : ["S", "M", "L", "XL", "XXL"];
+                                      const availableSizes = (() => {
+                                        if (Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+                                          return item.product.sizes.filter(Boolean);
+                                        }
+                                        if (typeof item.product.sizes === 'string' && (item.product.sizes as string).trim()) {
+                                          try {
+                                            const parsed = JSON.parse(item.product.sizes);
+                                            if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+                                          } catch (e) {}
+                                          return (item.product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+                                        }
+                                        return [];
+                                      })();
+
+                                      if (availableSizes.length === 0) return null;
 
                                       return (
                                         <div key={idx} className="space-y-1">
@@ -1771,9 +1783,19 @@ export default function CartDrawer({
                             
                             <div className="space-y-2 bg-[#0f0a1c] border border-white/10 rounded-xl p-2 sm:p-2.5 md:p-3.5 shadow-xl">
                               {enrichedCartItems.map((item, idx) => {
-                                const availableSizes = item.product.sizes && item.product.sizes.length > 0 
-                                  ? item.product.sizes 
-                                  : ['S', 'M', 'L', 'XL', 'XXL'];
+                                const availableSizes = (() => {
+                                  if (Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+                                    return item.product.sizes.filter(Boolean);
+                                  }
+                                  if (typeof item.product.sizes === 'string' && (item.product.sizes as string).trim()) {
+                                    try {
+                                      const parsed = JSON.parse(item.product.sizes);
+                                      if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter(Boolean);
+                                    } catch (e) {}
+                                    return (item.product.sizes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+                                  }
+                                  return [];
+                                })();
                                 
                                 const itemDisplayImage = item.selectedColorImage || item.product.imageUrl;
                                 const productImagesList = [item.product.imageUrl, ...(item.product.images || [])].filter(Boolean);
