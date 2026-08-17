@@ -1238,15 +1238,17 @@ export default function CartDrawer({
                     </div>
 
                     {/* Cart Footer */}
-                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/25 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3.5 shrink-0 shadow-[0_-10px_35px_rgba(0,0,0,0.8)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3.5 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="space-y-2 text-xs">
-                        <div className="flex justify-between text-zinc-400"><span>Segment Subtotal</span><span className="font-mono">{formatPrice(itemsTotal)}</span></div>
+                        <div className="flex justify-between text-purple-200/70"><span>Segment Subtotal</span><span className="font-mono text-purple-100">{formatPrice(itemsTotal)}</span></div>
                         {appliedCoupon && (
                           <div className="flex justify-between text-emerald-400"><span>✓ Coupon Applied</span><span className="font-mono">-{formatPrice(discountAmount)}</span></div>
                         )}
-                        <div className="flex justify-between text-white font-bold border-t border-white/10 pt-3">
-                          <span className="tracking-wider">GRAND TOTAL</span>
-                          <span className="text-luxury-gold font-mono text-sm sm:text-base font-black drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]">{formatPrice(itemsTotal - discountAmount)}</span>
+                        <div className="flex justify-between text-white font-bold border-t border-purple-500/20 pt-3">
+                          <span className="tracking-wider text-purple-200 uppercase font-mono text-[11px]">GRAND TOTAL</span>
+                          <span className="font-mono text-sm sm:text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 via-purple-200 to-amber-300 drop-shadow-[0_0_12px_rgba(192,132,252,0.6)]">
+                            {formatPrice(itemsTotal - discountAmount)}
+                          </span>
                         </div>
                       </div>
                       <LuxuryCheckoutButton
@@ -1628,62 +1630,29 @@ export default function CartDrawer({
                               </div>
 
                               <div className="space-y-3 relative z-10">
-                                {/* Division/District Stacked Dropdowns */}
-                                <div className="grid grid-cols-1 gap-3">
-                                  {/* Division Select */}
-                                  <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-4 h-4 md:w-5 md:h-5" />
-                                    </div>
-                                    <select
-                                      value={getDivisionForCity(customerCity)}
-                                      onChange={(e) => {
-                                        const selectedDiv = e.target.value;
-                                        const districtsInDiv = DIVISION_MAPS[selectedDiv] || [];
-                                        if (districtsInDiv.length > 0) {
-                                          setCustomerCity(districtsInDiv[0]);
-                                        }
-                                      }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[14px] md:text-[15.5px] text-white font-bold h-[52px] md:h-[56px] pl-9 md:pl-10 pr-9 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
-                                    >
-                                      {Object.keys(DIVISION_MAPS).map((div) => (
-                                        <option key={div} value={div} className="bg-[#0c0617] text-white">
-                                          {div} Division
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <label className="absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      Division *
-                                    </label>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                      <ChevronDown size={16} />
-                                    </div>
+                                {/* District/City Select */}
+                                <div className="relative group/input">
+                                  <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
+                                    <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                                   </div>
-
-                                  {/* District Select */}
-                                  <div className="relative group/input">
-                                    <div className="absolute top-1/2 -translate-y-1/2 left-3 md:left-4 text-zinc-400 group-focus-within/input:text-luxury-gold transition-colors duration-300">
-                                      <MapPin className="w-4 h-4 md:w-5 md:h-5" />
-                                    </div>
-                                    <select
-                                      value={customerCity}
-                                      onChange={(e) => {
-                                        setCustomerCity(e.target.value);
-                                      }}
-                                      className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[14px] md:text-[15.5px] text-white font-bold h-[52px] md:h-[56px] pl-9 md:pl-10 pr-9 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
-                                    >
-                                      {(DIVISION_MAPS[getDivisionForCity(customerCity)] || ALL_DISTRICTS_LIST).map((district) => (
-                                        <option key={district} value={district} className="bg-[#0c0617] text-white">
-                                          {district}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <label className="absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
-                                      District/City *
-                                    </label>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                      <ChevronDown size={15} />
-                                    </div>
+                                  <select
+                                    value={customerCity}
+                                    onChange={(e) => {
+                                      setCustomerCity(e.target.value);
+                                    }}
+                                    className="peer block w-full rounded-xl border border-white/10 bg-[#0d071a] hover:border-white/20 focus:border-luxury-gold focus:ring-2 focus:ring-luxury-gold/25 focus:shadow-[0_0_15px_rgba(212,175,55,0.25)] text-[14px] md:text-[15.5px] text-white font-bold h-[52px] md:h-[56px] pl-9 md:pl-10 pr-9 transition-all duration-300 appearance-none focus:outline-none cursor-pointer pt-2"
+                                  >
+                                    {ALL_DISTRICTS_LIST.map((district) => (
+                                      <option key={district} value={district} className="bg-[#0c0617] text-white">
+                                        {district}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <label className="absolute left-9 md:left-10 top-1 md:top-1.5 text-[8.5px] md:text-[9.5px] font-bold text-luxury-gold uppercase font-mono tracking-[0.15em] pointer-events-none">
+                                    District / City *
+                                  </label>
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                    <ChevronDown size={15} />
                                   </div>
                                 </div>
 
@@ -1923,14 +1892,20 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 1 Footer */}
-                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/30 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(0,0,0,0.85)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="flex justify-between items-center text-xs px-0.5">
-                        <button type="button" onClick={() => setCheckoutStep('cart')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
-                          <ArrowLeft size={13} /> Back to selection
+                        <button 
+                          type="button" 
+                          onClick={() => setCheckoutStep('cart')} 
+                          className="flex items-center gap-1.5 text-purple-200/80 hover:text-white hover:bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/20 hover:border-purple-400/50 transition-all text-[10px] uppercase font-mono tracking-wider cursor-pointer"
+                        >
+                          <ArrowLeft size={13} className="text-purple-400" /> Back to selection
                         </button>
                         <div className="text-right flex items-center gap-2">
-                          <span className="text-[10px] text-white/40 font-mono uppercase">Estimated:</span>
-                          <span className="text-[#d4af37] font-mono font-black text-sm drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">{formatPrice(itemsTotal - discountAmount)}</span>
+                          <span className="text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">Estimated:</span>
+                          <span className="font-mono font-black text-sm sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 via-purple-200 to-amber-300 drop-shadow-[0_0_12px_rgba(192,132,252,0.6)]">
+                            {formatPrice(itemsTotal - discountAmount)}
+                          </span>
                         </div>
                       </div>
                       <LuxuryCheckoutButton
@@ -2331,14 +2306,20 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 2 Sticky Mobile Footer */}
-                    <div className="bg-[#0c051a]/95 backdrop-blur-xl border-t border-luxury-gold/40 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(0,0,0,0.9)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="flex justify-between items-center text-xs px-1">
-                        <button type="button" onClick={() => setCheckoutStep('step1')} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-all text-[10px] uppercase font-mono">
-                          <ArrowLeft size={13} /> Edit Information
+                        <button 
+                          type="button" 
+                          onClick={() => setCheckoutStep('step1')} 
+                          className="flex items-center gap-1.5 text-purple-200/80 hover:text-white hover:bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/20 hover:border-purple-400/50 transition-all text-[10px] uppercase font-mono tracking-wider cursor-pointer"
+                        >
+                          <ArrowLeft size={13} className="text-purple-400" /> Edit Information
                         </button>
                         <div className="text-right flex items-center gap-2">
-                          <span className="text-[10px] text-white/50 font-mono uppercase">Total Due:</span>
-                          <span className="text-[#d4af37] font-mono font-black text-sm sm:text-base drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]">{formatPrice(grandTotal)}</span>
+                          <span className="text-[10px] text-purple-300/60 font-mono uppercase tracking-widest">Total Due:</span>
+                          <span className="font-mono font-black text-sm sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-300 via-purple-200 to-amber-300 drop-shadow-[0_0_12px_rgba(192,132,252,0.6)]">
+                            {formatPrice(grandTotal)}
+                          </span>
                         </div>
                       </div>
                       <LuxuryCheckoutButton
