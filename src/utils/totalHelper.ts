@@ -82,15 +82,13 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer is active only if valid offer price exists AND:
-  // 1) If it's a timer/flash-sale offer: timer must be active, not expired, and started
-  // 2) If it's a regular permanent discount (no timer date configured): only active if not explicitly turned off
+  // Offer is active if valid offer price exists:
+  // 1) If an active countdown timer is configured: offer is active while timer is running (not expired and started)
+  // 2) If no countdown timer is active: standard product offer/discount price applies directly
   let hasActiveOffer = false;
   if (hasValidOfferPrice) {
-    if (hasTimerConfig) {
-      hasActiveOffer = isTimerActive && !timerExpired && !isPendingStart;
-    } else if (hasExplicitTimerFlag && !isTimerActive) {
-      hasActiveOffer = false;
+    if (hasTimerConfig && isTimerActive) {
+      hasActiveOffer = !timerExpired && !isPendingStart;
     } else {
       hasActiveOffer = true;
     }

@@ -2618,7 +2618,7 @@ function serializeDimensions(dimensionsVal: any, colorsVal: any, extraMeta?: any
 
 function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
   const local = localProduct || {};
-  const id = String(p?.id || local.id || `prod_${Date.now()}`);
+  const id = String(local.id || p?.id || `prod_${Date.now()}`);
   const paymentMeta = pm && Object.keys(pm).length > 0 
     ? pm 
     : (((db.settings as any)?.productPayments && id && (db.settings as any).productPayments[id]) || {});
@@ -2627,15 +2627,17 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
   // Colors & dimensions JSON metadata
   let parsedColors: any[] = [];
   let dimObj: any = {};
-  const dimStr = p?.dimensions || local.dimensions;
+  const dimStr = local.dimensions || p?.dimensions;
   if (dimStr && typeof dimStr === "string" && dimStr.trim().startsWith("{")) {
     dimObj = tryJsonParse(dimStr) || {};
   }
-  let rawColors = (p?.colors !== undefined && p?.colors !== null) ? p.colors : (dimObj?.colors || local.colors);
+  let rawColors = (local.colors !== undefined && local.colors !== null && (!Array.isArray(local.colors) || local.colors.length > 0))
+    ? local.colors 
+    : ((p?.colors !== undefined && p?.colors !== null) ? p.colors : (dimObj?.colors || []));
 
-  // Sizes
+  // Sizes - prioritizing local product first
   let parsedSizes: string[] = [];
-  const candidateSizes = [p?.sizes, dimObj?.sizes, paymentMeta?.sizes, local?.sizes];
+  const candidateSizes = [local?.sizes, paymentMeta?.sizes, dimObj?.sizes, p?.sizes];
   for (const rawSizes of candidateSizes) {
     if (rawSizes === undefined || rawSizes === null || rawSizes === "") continue;
     let list: string[] = [];
@@ -2654,21 +2656,17 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     }
   }
 
-  // Images
+  // Images - prioritize local images first
   let parsedImages: string[] = [];
-  const rawImages = p?.images ?? dimObj?.images ?? local.images;
+  const rawImages = (Array.isArray(local.images) && local.images.length > 0)
+    ? local.images
+    : (local.images ?? dimObj?.images ?? p?.images);
   if (rawImages !== undefined && rawImages !== null) {
     const res = tryJsonParse(rawImages);
     if (Array.isArray(res)) {
       parsedImages = res;
     } else if (Array.isArray(rawImages)) {
       parsedImages = rawImages;
-    }
-  }
-
-  if (rawColors === undefined || rawColors === null || (Array.isArray(rawColors) && rawColors.length === 0)) {
-    if (dimObj && Array.isArray(dimObj.colors) && dimObj.colors.length > 0) {
-      rawColors = dimObj.colors;
     }
   }
 
@@ -2712,31 +2710,32 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
   };
 
   const resolvedDimensionsText = (() => {
+    if (typeof local.dimensions === "string" && !local.dimensions.trim().startsWith("{") && local.dimensions.trim() !== "") {
+      return local.dimensions;
+    }
     if (typeof p?.dimensions === "string" && !p.dimensions.trim().startsWith("{") && p.dimensions.trim() !== "") {
       return p.dimensions;
     }
     if (typeof dimObj?.dimensions === "string" && dimObj.dimensions.trim() !== "") {
       return dimObj.dimensions;
     }
-    if (typeof local.dimensions === "string" && !local.dimensions.trim().startsWith("{") && local.dimensions.trim() !== "") {
-      return local.dimensions;
-    }
     return "Standard Fitting";
   })();
 
-  const resolvedPrice = getNum(p?.price, dimObj?.price, local.price, 0) ?? 0;
+  const resolvedPrice = getNum(local.price, dimObj?.price, p?.price, 0) ?? 0;
 
   const resolvedOfferPrice = (() => {
     const candidateOffers = [
+      local.offerPrice,
+      local.timerOfferPrice,
+      paymentMeta?.offerPrice,
+      paymentMeta?.timerOfferPrice,
+      dimObj?.offerPrice,
+      dimObj?.timerOfferPrice,
       p?.offerPrice,
       p?.offer_price,
       p?.timerOfferPrice,
       p?.timer_offer_price,
-      dimObj?.offerPrice,
-      dimObj?.timerOfferPrice,
-      paymentMeta?.offerPrice,
-      local.offerPrice,
-      local.timerOfferPrice,
     ];
     for (const off of candidateOffers) {
       if (off !== undefined && off !== null && off !== "" && !isNaN(Number(off))) {
@@ -2747,62 +2746,62 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return null;
   })();
 
-  const resolvedSeoKeywords = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, dimObj?.seoKeywords, seoMeta.seoKeywords, local.seoKeywords, local.seo_keywords, local.metaKeywords, "");
-  const resolvedSeoTitle = getStr(p?.seoTitle, p?.seo_title, dimObj?.seoTitle, seoMeta.seoTitle, local.seoTitle, "");
-  const resolvedSeoDesc = getStr(p?.seoDescription, p?.seo_description, dimObj?.seoDescription, seoMeta.seoDescription, local.seoDescription, "");
-  const resolvedSeoSlug = getStr(p?.seoSlug, p?.seo_slug, dimObj?.seoSlug, seoMeta.seoSlug, local.seoSlug, "");
-  const resolvedCanonical = getStr(p?.canonicalUrl, p?.canonical_url, dimObj?.canonicalUrl, seoMeta.canonicalUrl, local.canonicalUrl, "");
-  const resolvedOgTitle = getStr(p?.ogTitle, p?.og_title, dimObj?.ogTitle, seoMeta.ogTitle, local.ogTitle, "");
-  const resolvedOgDesc = getStr(p?.ogDescription, p?.og_description, dimObj?.ogDescription, seoMeta.ogDescription, local.ogDescription, "");
-  const resolvedOgImage = getStr(p?.ogImage, p?.og_image, dimObj?.ogImage, seoMeta.ogImage, local.ogImage, "");
-  const resolvedRobots = getStr(p?.robots, dimObj?.robots, seoMeta.robots, local.robots, "index, follow");
+  const resolvedSeoKeywords = getStr(local.seoKeywords, local.seo_keywords, local.metaKeywords, seoMeta.seoKeywords, dimObj?.seoKeywords, p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, "");
+  const resolvedSeoTitle = getStr(local.seoTitle, seoMeta.seoTitle, dimObj?.seoTitle, p?.seoTitle, p?.seo_title, "");
+  const resolvedSeoDesc = getStr(local.seoDescription, seoMeta.seoDescription, dimObj?.seoDescription, p?.seoDescription, p?.seo_description, "");
+  const resolvedSeoSlug = getStr(local.seoSlug, seoMeta.seoSlug, dimObj?.seoSlug, p?.seoSlug, p?.seo_slug, "");
+  const resolvedCanonical = getStr(local.canonicalUrl, seoMeta.canonicalUrl, dimObj?.canonicalUrl, p?.canonicalUrl, p?.canonical_url, "");
+  const resolvedOgTitle = getStr(local.ogTitle, seoMeta.ogTitle, dimObj?.ogTitle, p?.ogTitle, p?.og_title, "");
+  const resolvedOgDesc = getStr(local.ogDescription, seoMeta.ogDescription, dimObj?.ogDescription, p?.ogDescription, p?.og_description, "");
+  const resolvedOgImage = getStr(local.ogImage, seoMeta.ogImage, dimObj?.ogImage, p?.ogImage, p?.og_image, "");
+  const resolvedRobots = getStr(local.robots, seoMeta.robots, dimObj?.robots, p?.robots, "index, follow");
 
   return {
     id,
-    code: getStr(p?.code, p?.product_code, dimObj?.code, paymentMeta.code, local.code, `XP-101`),
-    title: getStr(p?.title, p?.product_title, dimObj?.title, local.title, "Untitled Creation"),
-    description: getStr(p?.description, p?.product_description, dimObj?.description, local.description, ""),
+    code: getStr(local.code, paymentMeta.code, dimObj?.code, p?.code, p?.product_code, `XP-101`),
+    title: getStr(local.title, dimObj?.title, p?.title, p?.product_title, "Untitled Creation"),
+    description: getStr(local.description, dimObj?.description, p?.description, p?.product_description, ""),
     price: resolvedPrice,
-    category: (getStr(p?.category, dimObj?.category, local.category, "UNISEX") as any),
-    stock: getNum(p?.stock, dimObj?.stock, local.stock, 0) ?? 0,
-    imageUrl: getStr(p?.imageUrl, p?.image_url, dimObj?.imageUrl, local.imageUrl, ""),
+    category: (getStr(local.category, dimObj?.category, p?.category, "UNISEX") as any),
+    stock: getNum(local.stock, dimObj?.stock, p?.stock, 0) ?? 0,
+    imageUrl: getStr(local.imageUrl, dimObj?.imageUrl, p?.imageUrl, p?.image_url, ""),
     images: parsedImages,
     colors: parsedColors,
     sizes: parsedSizes,
     dimensions: resolvedDimensionsText,
-    whyBuy: getStr(p?.whyBuy, p?.why_buy, dimObj?.whyBuy, local.whyBuy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
-    trending: getBool(p?.trending, dimObj?.trending, local.trending, true),
-    featured: getBool(p?.featured, dimObj?.featured, local.featured, true),
-    isPinned: getBool(p?.isPinned, p?.is_pinned, dimObj?.isPinned, paymentMeta.isPinned, local.isPinned, false),
-    deliveryPrice: getNum(p?.deliveryPrice, p?.delivery_price, dimObj?.deliveryPrice, paymentMeta.deliveryPrice, local.deliveryPrice, 100) ?? 100,
-    deliveryPriceDhaka: getNum(p?.deliveryPriceDhaka, p?.delivery_price_dhaka, dimObj?.deliveryPriceDhaka, paymentMeta.deliveryPriceDhaka, local.deliveryPriceDhaka, 100) ?? 100,
-    deliveryPriceChattogram: getNum(p?.deliveryPriceChattogram, p?.delivery_price_chattogram, dimObj?.deliveryPriceChattogram, paymentMeta.deliveryPriceChattogram, local.deliveryPriceChattogram, 150) ?? 150,
-    deliveryPriceRajshahi: getNum(p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, dimObj?.deliveryPriceRajshahi, paymentMeta.deliveryPriceRajshahi, local.deliveryPriceRajshahi, 150) ?? 150,
-    deliveryPriceKhulna: getNum(p?.deliveryPriceKhulna, p?.delivery_price_khulna, dimObj?.deliveryPriceKhulna, paymentMeta.deliveryPriceKhulna, local.deliveryPriceKhulna, 150) ?? 150,
-    deliveryPriceBarishal: getNum(p?.deliveryPriceBarishal, p?.delivery_price_barishal, dimObj?.deliveryPriceBarishal, paymentMeta.deliveryPriceBarishal, local.deliveryPriceBarishal, 150) ?? 150,
-    deliveryPriceSylhet: getNum(p?.deliveryPriceSylhet, p?.delivery_price_sylhet, dimObj?.deliveryPriceSylhet, paymentMeta.deliveryPriceSylhet, local.deliveryPriceSylhet, 150) ?? 150,
-    deliveryPriceRangpur: getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, dimObj?.deliveryPriceRangpur, paymentMeta.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150,
-    deliveryPriceMymensingh: getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, dimObj?.deliveryPriceMymensingh, paymentMeta.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150,
-    lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, local.lotteryEligible, true),
-    couponCode: getStr(p?.couponCode, p?.coupon_code, dimObj?.couponCode, local.couponCode, ""),
-    couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
+    whyBuy: getStr(local.whyBuy, dimObj?.whyBuy, p?.whyBuy, p?.why_buy, "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।"),
+    trending: getBool(local.trending, dimObj?.trending, p?.trending, true),
+    featured: getBool(local.featured, dimObj?.featured, p?.featured, true),
+    isPinned: getBool(local.isPinned, paymentMeta.isPinned, dimObj?.isPinned, p?.isPinned, p?.is_pinned, false),
+    deliveryPrice: getNum(local.deliveryPrice, paymentMeta.deliveryPrice, dimObj?.deliveryPrice, p?.deliveryPrice, p?.delivery_price, 100) ?? 100,
+    deliveryPriceDhaka: getNum(local.deliveryPriceDhaka, paymentMeta.deliveryPriceDhaka, dimObj?.deliveryPriceDhaka, p?.deliveryPriceDhaka, p?.delivery_price_dhaka, 100) ?? 100,
+    deliveryPriceChattogram: getNum(local.deliveryPriceChattogram, paymentMeta.deliveryPriceChattogram, dimObj?.deliveryPriceChattogram, p?.deliveryPriceChattogram, p?.delivery_price_chattogram, 150) ?? 150,
+    deliveryPriceRajshahi: getNum(local.deliveryPriceRajshahi, paymentMeta.deliveryPriceRajshahi, dimObj?.deliveryPriceRajshahi, p?.deliveryPriceRajshahi, p?.delivery_price_rajshahi, 150) ?? 150,
+    deliveryPriceKhulna: getNum(local.deliveryPriceKhulna, paymentMeta.deliveryPriceKhulna, dimObj?.deliveryPriceKhulna, p?.deliveryPriceKhulna, p?.delivery_price_khulna, 150) ?? 150,
+    deliveryPriceBarishal: getNum(local.deliveryPriceBarishal, paymentMeta.deliveryPriceBarishal, dimObj?.deliveryPriceBarishal, p?.deliveryPriceBarishal, p?.delivery_price_barishal, 150) ?? 150,
+    deliveryPriceSylhet: getNum(local.deliveryPriceSylhet, paymentMeta.deliveryPriceSylhet, dimObj?.deliveryPriceSylhet, p?.deliveryPriceSylhet, p?.delivery_price_sylhet, 150) ?? 150,
+    deliveryPriceRangpur: getNum(local.deliveryPriceRangpur, paymentMeta.deliveryPriceRangpur, dimObj?.deliveryPriceRangpur, p?.deliveryPriceRangpur, p?.delivery_price_rangpur, 150) ?? 150,
+    deliveryPriceMymensingh: getNum(local.deliveryPriceMymensingh, paymentMeta.deliveryPriceMymensingh, dimObj?.deliveryPriceMymensingh, p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, 150) ?? 150,
+    lotteryEligible: getBool(local.lotteryEligible, dimObj?.lotteryEligible, p?.lotteryEligible, p?.lottery_eligible, true),
+    couponCode: getStr(local.couponCode, dimObj?.couponCode, p?.couponCode, p?.coupon_code, ""),
+    couponDiscountPercent: getNum(local.couponDiscountPercent, dimObj?.couponDiscountPercent, p?.couponDiscountPercent, p?.coupon_discount_percent) ?? undefined,
     offerPrice: resolvedOfferPrice,
     timerOfferPrice: resolvedOfferPrice,
-    timerStartTime: getStr(p?.timerStartTime, p?.timer_start_time, dimObj?.timerStartTime, paymentMeta.timerStartTime, local.timerStartTime, local.timerStartDate, ""),
-    timerStartDate: getStr(p?.timerStartDate, p?.timer_start_date, dimObj?.timerStartDate, paymentMeta.timerStartDate, local.timerStartDate, local.timerStartTime, ""),
-    timerEndTime: getStr(p?.timerEndTime, p?.timer_end_time, dimObj?.timerEndTime, paymentMeta.timerEndTime, local.timerEndTime, local.timerEndDate, ""),
-    timerEndDate: getStr(p?.timerEndDate, p?.timer_end_date, dimObj?.timerEndDate, paymentMeta.timerEndDate, local.timerEndDate, local.timerEndTime, ""),
-    timerMessage: getStr(p?.timerMessage, p?.timer_message, dimObj?.timerMessage, paymentMeta.timerMessage, local.timerMessage, ""),
-    timerActive: getBool(p?.timerActive, p?.timer_active, dimObj?.timerActive, paymentMeta.timerActive, local.timerActive, true),
-    timerEnabled: getBool(p?.timerEnabled, p?.timer_enabled, dimObj?.timerEnabled, paymentMeta.timerEnabled, local.timerEnabled, true),
-    bkashNumber: getStr(p?.bkashNumber, p?.bkash_number, dimObj?.bkashNumber, paymentMeta.bkashNumber, local.bkashNumber, ""),
-    nagadNumber: getStr(p?.nagadNumber, p?.nagad_number, dimObj?.nagadNumber, paymentMeta.nagadNumber, local.nagadNumber, ""),
-    paymentType: (getStr(p?.paymentType, p?.payment_type, dimObj?.paymentType, paymentMeta.paymentType, local.paymentType, "cod") as any),
-    paymentPercentage: getNum(p?.paymentPercentage, p?.payment_percentage, dimObj?.paymentPercentage, paymentMeta.paymentPercentage, local.paymentPercentage, 10) ?? 10,
-    deliveryCharge: getNum(p?.deliveryCharge, p?.delivery_charge, dimObj?.deliveryCharge, paymentMeta.deliveryCharge, local.deliveryCharge, 100) ?? 100,
-    deliveryDays: getStr(p?.deliveryDays, p?.delivery_days, dimObj?.deliveryDays, paymentMeta.deliveryDays, local.deliveryDays, "3-5"),
-    freeDelivery: getBool(p?.freeDelivery, p?.free_delivery, dimObj?.freeDelivery, paymentMeta.freeDelivery, local.freeDelivery, false),
-    likes: getNum(p?.likes, dimObj?.likes, paymentMeta.likes, local.likes, 0) ?? 0,
+    timerStartTime: local.timerStartTime !== undefined ? (local.timerStartTime || null) : (getStr(paymentMeta.timerStartTime, dimObj?.timerStartTime, p?.timerStartTime, p?.timer_start_time, "") || null),
+    timerStartDate: local.timerStartDate !== undefined ? (local.timerStartDate || null) : (getStr(local.timerStartTime, paymentMeta.timerStartDate, dimObj?.timerStartDate, p?.timerStartDate, p?.timer_start_date, "") || null),
+    timerEndTime: local.timerEndTime !== undefined ? (local.timerEndTime || null) : (getStr(paymentMeta.timerEndTime, dimObj?.timerEndTime, p?.timerEndTime, p?.timer_end_time, "") || null),
+    timerEndDate: local.timerEndDate !== undefined ? (local.timerEndDate || null) : (getStr(local.timerEndTime, paymentMeta.timerEndDate, dimObj?.timerEndDate, p?.timerEndDate, p?.timer_end_date, "") || null),
+    timerMessage: local.timerMessage !== undefined ? (local.timerMessage || null) : (getStr(paymentMeta.timerMessage, dimObj?.timerMessage, p?.timerMessage, p?.timer_message, "") || null),
+    timerActive: local.timerActive !== undefined ? !!local.timerActive : getBool(paymentMeta.timerActive, dimObj?.timerActive, p?.timerActive, false),
+    timerEnabled: local.timerEnabled !== undefined ? !!local.timerEnabled : (local.timerActive !== undefined ? !!local.timerActive : getBool(paymentMeta.timerEnabled, dimObj?.timerEnabled, p?.timerEnabled, false)),
+    bkashNumber: getStr(local.bkashNumber, paymentMeta.bkashNumber, dimObj?.bkashNumber, p?.bkashNumber, p?.bkash_number, ""),
+    nagadNumber: getStr(local.nagadNumber, paymentMeta.nagadNumber, dimObj?.nagadNumber, p?.nagadNumber, p?.nagad_number, ""),
+    paymentType: (getStr(local.paymentType, paymentMeta.paymentType, dimObj?.paymentType, p?.paymentType, p?.payment_type, "cod") as any),
+    paymentPercentage: getNum(local.paymentPercentage, paymentMeta.paymentPercentage, dimObj?.paymentPercentage, p?.paymentPercentage, p?.payment_percentage, 10) ?? 10,
+    deliveryCharge: getNum(local.deliveryCharge, paymentMeta.deliveryCharge, dimObj?.deliveryCharge, p?.deliveryCharge, p?.delivery_charge, 100) ?? 100,
+    deliveryDays: getStr(local.deliveryDays, paymentMeta.deliveryDays, dimObj?.deliveryDays, p?.deliveryDays, p?.delivery_days, "3-5"),
+    freeDelivery: getBool(local.freeDelivery, paymentMeta.freeDelivery, dimObj?.freeDelivery, p?.freeDelivery, p?.free_delivery, false),
+    likes: getNum(local.likes, dimObj?.likes, paymentMeta.likes, p?.likes, 0) ?? 0,
     seoTitle: resolvedSeoTitle,
     seoDescription: resolvedSeoDesc,
     seoKeywords: resolvedSeoKeywords,
