@@ -2346,6 +2346,30 @@ export default function AdminPanel({
     });
   };
 
+  const handleMoveSecondaryImage = (index: number, direction: 'left' | 'right') => {
+    setFormImages((prev) => {
+      const targetIndex = direction === 'left' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIndex];
+      copy[targetIndex] = temp;
+      return copy;
+    });
+  };
+
+  const handleSwapWithPrimary = (index: number) => {
+    const chosenSecondary = formImages[index];
+    if (!chosenSecondary) return;
+    const oldPrimary = formImageUrl;
+    setFormImageUrl(chosenSecondary);
+    setFormImages((prev) => {
+      const copy = [...prev];
+      copy[index] = oldPrimary;
+      return copy;
+    });
+  };
+
   const handleRemoveSecondaryImage = (index: number) => {
     setFormImages((prev) => prev.filter((_, i) => i !== index));
   };
@@ -5124,61 +5148,175 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   </div>
 
                   {/* Image link & local storage uploader (Supreme replicas) */}
-                  <div className="md:col-span-2 border border-dashed border-luxury-gold/20 p-4 rounded-xl bg-luxury-black/45 space-y-4 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-2.5">
+                  <div className="md:col-span-2 border-2 border-luxury-gold/30 p-5 rounded-2xl bg-gradient-to-br from-[#130b1e]/90 via-[#0e0717]/95 to-[#08040d] space-y-5 shadow-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-b border-luxury-gold/20 pb-3">
                       <div>
-                        <h4 className="text-[11px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5">
-                          <span>📸</span> Product Photos & Multi-Angle Gallery
+                        <h4 className="text-xs uppercase font-serif tracking-widest text-luxury-gold font-bold flex items-center gap-2">
+                          <span className="text-base">📸</span> 
+                          <span>Product Photos & Multi-Angle Gallery (একাধিক ছবি ও মেইন কভার ফটো)</span>
                         </h4>
-                        <p className="text-[9.5px] text-zinc-400">Upload 1, 2, 3 or more photos (Primary cover photo + multi-angle shots). All photos will show on product card and modal.</p>
+                        <p className="text-[10px] text-zinc-300 mt-0.5 leading-relaxed font-sans">
+                          একাধিক ছবি আপলোড করুন। <strong className="text-luxury-gold">"Main Photo"</strong> ওয়েবসাইটে সবার আগে প্রথম প্রদর্শিত হবে। যেকোনো ছবিতে ক্লিক করে মেইন ফটো পরিবর্তন ও সাজাতে পারবেন।
+                        </p>
                       </div>
                       {(formImageUrl || formImages.length > 0) && (
-                        <div className="flex items-center gap-2">
-                          <span className="bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="bg-luxury-gold/20 text-luxury-gold border border-luxury-gold/40 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider shadow-[0_0_10px_rgba(212,175,55,0.2)]">
                             {(formImageUrl ? 1 : 0) + formImages.length} Photos Selected
                           </span>
                         </div>
                       )}
                     </div>
 
+                    {/* Spotlight: Active Main Photo (Shows First on Website) */}
+                    <div className="bg-black/50 border border-luxury-gold/40 rounded-xl p-3.5 space-y-2.5 relative overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-luxury-gold shadow-[0_0_8px_#d4af37] animate-pulse" />
+                          <span className="text-[10px] uppercase font-mono font-bold text-luxury-gold tracking-wider">
+                            🌟 Main Photo (Shows First on Website / ওয়েবসাইটে সবার আগে দেখাবে)
+                          </span>
+                        </div>
+                        {formImageUrl && (
+                          <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                            ✓ ACTIVE COVER
+                          </span>
+                        )}
+                      </div>
+
+                      {formImageUrl ? (
+                        <div className="flex items-center gap-4 bg-[#181124] border border-luxury-gold/30 rounded-lg p-2.5">
+                          <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-black/90 border-2 border-luxury-gold rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-[0_0_15px_rgba(212,175,55,0.25)]">
+                            <img
+                              src={formImageUrl}
+                              alt="Main Website Cover"
+                              className="max-w-full max-h-full w-auto h-auto object-contain"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute top-1 left-1 bg-luxury-gold text-black font-mono font-black text-[7.5px] px-1.5 py-0.5 rounded shadow">
+                              #1 MAIN
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-white font-sans truncate">Primary Website Cover Photo</span>
+                            </div>
+                            <p className="text-[9.5px] text-zinc-400 font-mono truncate break-all">
+                              {formImageUrl}
+                            </p>
+                            <div className="flex items-center gap-2 pt-1 flex-wrap">
+                              {formImages.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (formImages.length > 0) {
+                                      setFormImageUrl(formImages[0]);
+                                      setFormImages(prev => [formImageUrl, ...prev.slice(1)]);
+                                    }
+                                  }}
+                                  className="text-[9.5px] font-mono font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 px-2.5 py-1 rounded transition-all cursor-pointer"
+                                  title="Rotate next photo to main cover"
+                                >
+                                  🔄 Rotate to Next Photo
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (formImages.length > 0) {
+                                    setFormImageUrl(formImages[0]);
+                                    setFormImages(prev => prev.slice(1));
+                                  } else {
+                                    setFormImageUrl('');
+                                  }
+                                }}
+                                className="text-[9.5px] font-mono font-bold bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-500/30 px-2.5 py-1 rounded transition-all cursor-pointer"
+                              >
+                                ✕ Remove Main Photo
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-luxury-gold/30 rounded-lg p-4 text-center space-y-1.5 bg-luxury-gold/5">
+                          <p className="text-xs text-luxury-gold font-mono font-bold">
+                            ⚠️ কোনো মেইন ছবি সিলেক্ট করা হয়নি (No Main Photo Set)
+                          </p>
+                          <p className="text-[10px] text-zinc-400">
+                            নিচের বাটন থেকে এক বা একাধিক ছবি আপলোড করুন অথবা সরাসরি ইমেজ লিঙ্ক পেস্ট করুন।
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Quick Multi-Photo File Uploader */}
-                    <div className="bg-white/[0.02] border border-white/10 rounded-lg p-3 space-y-2">
-                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/70 font-semibold">
-                        ⚡ Select & Upload Product Photos (Select 2, 3 or more files at once)
-                      </label>
-                      <input 
-                        type="file" 
-                        multiple 
-                        accept="image/*" 
-                        onChange={handleFileChange}
-                        className="w-full text-xs text-white/60 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border file:border-luxury-gold/40 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-gold hover:file:text-black cursor-pointer transition-all"
-                      />
-                      <span className="text-[9px] text-zinc-400 block font-mono">
-                        Tip: You can select all 3 photos at once. The 1st photo becomes the Primary Cover and the others are added to the gallery.
-                      </span>
+                    <div className="bg-white/[0.03] border border-white/15 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10.5px] uppercase font-mono tracking-wider text-white font-bold flex items-center gap-1.5">
+                          <span>⚡</span>
+                          <span>Upload Multiple Photos at Once (একাধিক ছবি এক সাথে সিলেক্ট করুন)</span>
+                        </label>
+                        <span className="text-[9px] font-mono text-luxury-gold/80 bg-luxury-gold/10 px-2 py-0.5 rounded border border-luxury-gold/20">
+                          JPG, PNG, WEBP Supported
+                        </span>
+                      </div>
+
+                      <div className="relative border-2 border-dashed border-luxury-gold/40 hover:border-luxury-gold rounded-xl p-4 text-center bg-black/40 hover:bg-luxury-gold/[0.04] transition-all group">
+                        <input 
+                          type="file" 
+                          multiple 
+                          accept="image/*" 
+                          onChange={handleFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          title="Click or drag photos here to upload"
+                        />
+                        <div className="flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-luxury-gold/10 border border-luxury-gold/30 flex items-center justify-center text-luxury-gold group-hover:scale-110 transition-transform">
+                            <span className="text-xl">📁</span>
+                          </div>
+                          <span className="text-xs text-white font-bold tracking-wide">
+                            Click to Browse or Drag & Drop Multiple Photos
+                          </span>
+                          <span className="text-[9.5px] text-zinc-400 font-mono">
+                            টিপস: এক সাথে ২, ৩ বা তার বেশি ছবি সিলেক্ট করুন। ১ম ছবিটি স্বয়ংক্রিয়ভাবে Main Cover হবে।
+                          </span>
+                        </div>
+                      </div>
+
+                      {uploadProgress && (
+                        <div className="bg-luxury-gold/10 border border-luxury-gold/30 p-2.5 rounded-lg flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-luxury-gold animate-ping" />
+                          <p className="text-[10px] text-luxury-gold font-mono font-bold tracking-wide">{uploadProgress}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Direct URL Inputs */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                       <div>
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/50 mb-1">Primary Cover Image URL</label>
+                        <label className="block text-[9.5px] uppercase font-mono tracking-wider text-white/70 mb-1 font-semibold">
+                          Main Photo Direct URL (মেইন কভার ফটো লিঙ্ক)
+                        </label>
                         <input 
                           type="text" 
                           value={formImageUrl} 
                           onChange={(e) => setFormImageUrl(e.target.value)}
-                          placeholder="Paste primary cover image URL..."
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                          placeholder="Paste primary main cover image URL..."
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/15 rounded-lg py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/50 mb-1">Add Secondary Image by Direct URL</label>
+                        <label className="block text-[9.5px] uppercase font-mono tracking-wider text-white/70 mb-1 font-semibold">
+                          Add Secondary Gallery Photo by URL (অতিরিক্ত ছবি লিঙ্ক)
+                        </label>
                         <div className="flex gap-2">
                           <input 
                             type="text" 
                             value={secondaryUrlInput} 
                             onChange={(e) => setSecondaryUrlInput(e.target.value)}
-                            placeholder="Paste extra image URL..."
-                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                            placeholder="Paste extra gallery photo URL..."
+                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/15 rounded-lg py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                           />
                           <button
                             type="button"
@@ -5192,88 +5330,130 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 setSecondaryUrlInput('');
                               }
                             }}
-                            className="bg-[#121212] hover:bg-luxury-gold hover:text-luxury-black text-luxury-gold border border-luxury-gold/30 font-mono text-[9px] px-3.5 rounded transition-all duration-300 font-bold cursor-pointer"
+                            className="bg-luxury-gold hover:bg-white text-black font-mono text-[10px] px-4 rounded-lg transition-all duration-300 font-bold cursor-pointer shadow hover:scale-105 active:scale-95 shrink-0"
                           >
-                            ADD
+                            + ADD
                           </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Active Uploaded Photos Gallery Preview */}
+                    {/* Active Uploaded Photos Gallery Preview & Reorder Cards */}
                     {(formImageUrl || formImages.length > 0) && (
-                      <div className="space-y-2 pt-3 border-t border-white/10">
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-luxury-gold font-bold">
-                          Current Catalog Images ({(formImageUrl ? 1 : 0) + formImages.length} Active)
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                          {/* Primary Cover Image Preview */}
+                      <div className="space-y-3 pt-4 border-t border-luxury-gold/20">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10.5px] uppercase font-mono tracking-wider text-luxury-gold font-bold">
+                            Gallery & Display Order ({(formImageUrl ? 1 : 0) + formImages.length} Photos in Storefront)
+                          </label>
+                          <span className="text-[9px] text-zinc-400 font-mono">
+                            Click "★ Set as Main" to make any photo show first
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                          {/* Slot #1: Main Cover Photo */}
                           {formImageUrl && (
-                            <div className="relative group/cover aspect-square bg-black/80 border-2 border-luxury-gold rounded-xl overflow-hidden flex flex-col items-center justify-center p-1 shadow-lg">
-                              <img 
-                                src={formImageUrl} 
-                                alt="Primary Cover" 
-                                className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/cover:scale-105" 
-                                referrerPolicy="no-referrer" 
-                              />
-                              <div className="absolute top-1.5 left-1.5 bg-luxury-gold text-black font-mono font-bold text-[8px] px-1.5 py-0.5 rounded shadow">
-                                ★ COVER #1
+                            <div className="relative group/cover bg-[#130b1c] border-2 border-luxury-gold rounded-xl overflow-hidden flex flex-col p-1.5 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+                              <div className="relative aspect-square bg-black/90 rounded-lg overflow-hidden flex items-center justify-center">
+                                <img 
+                                  src={formImageUrl} 
+                                  alt="Main Website Cover Photo" 
+                                  className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/cover:scale-105" 
+                                  referrerPolicy="no-referrer" 
+                                />
+                                <div className="absolute top-1.5 left-1.5 bg-luxury-gold text-black font-mono font-black text-[8px] px-2 py-0.5 rounded shadow">
+                                  ★ #1 MAIN (FIRST)
+                                </div>
                               </div>
-                              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity duration-200 gap-1.5 p-2">
-                                <span className="text-[9px] text-luxury-gold font-mono font-bold">PRIMARY COVER</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (formImages.length > 0) {
-                                      setFormImageUrl(formImages[0]);
-                                      setFormImages(prev => prev.slice(1));
-                                    } else {
-                                      setFormImageUrl('');
-                                    }
-                                  }}
-                                  className="bg-red-950/90 hover:bg-red-900 border border-red-500/40 text-red-300 text-[9px] font-bold py-1 px-2.5 rounded transition-colors"
-                                >
-                                  Remove Cover
-                                </button>
+
+                              <div className="p-2 space-y-1.5 text-center">
+                                <span className="block text-[9px] text-luxury-gold font-mono font-black tracking-wider uppercase">
+                                  🌟 SHOWS FIRST
+                                </span>
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (formImages.length > 0) {
+                                        setFormImageUrl(formImages[0]);
+                                        setFormImages(prev => prev.slice(1));
+                                      } else {
+                                        setFormImageUrl('');
+                                      }
+                                    }}
+                                    className="w-full bg-red-950/90 hover:bg-red-900 border border-red-500/40 text-red-300 text-[8.5px] font-bold py-1 px-2 rounded transition-colors cursor-pointer"
+                                    title="Remove this photo"
+                                  >
+                                    🗑️ Remove
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
 
-                          {/* Secondary Images Previews */}
+                          {/* Secondary Gallery Images */}
                           {formImages.map((imgUrl, index) => (
-                            <div key={index} className="relative group/img aspect-square bg-black/60 border border-white/20 hover:border-luxury-gold/50 rounded-xl overflow-hidden flex flex-col items-center justify-center p-1 shadow-sm transition-all">
-                              <img 
-                                src={imgUrl} 
-                                alt={`Gallery index ${index}`} 
-                                className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/img:scale-105" 
-                                referrerPolicy="no-referrer" 
-                              />
-                              <div className="absolute top-1.5 left-1.5 bg-black/80 border border-white/20 text-white font-mono text-[8px] px-1.5 py-0.5 rounded">
-                                #{index + 2}
+                            <div key={index} className="relative group/img bg-black/70 border border-white/20 hover:border-luxury-gold/60 rounded-xl overflow-hidden flex flex-col p-1.5 shadow-sm transition-all">
+                              <div className="relative aspect-square bg-black/90 rounded-lg overflow-hidden flex items-center justify-center">
+                                <img 
+                                  src={imgUrl} 
+                                  alt={`Gallery photo index ${index + 2}`} 
+                                  className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/img:scale-105" 
+                                  referrerPolicy="no-referrer" 
+                                />
+                                <div className="absolute top-1.5 left-1.5 bg-black/85 border border-white/20 text-white font-mono text-[8px] px-1.5 py-0.5 rounded font-bold">
+                                  #{index + 2}
+                                </div>
                               </div>
-                              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 gap-1.5 p-1.5 text-center">
+
+                              <div className="p-2 space-y-1.5">
                                 <button
                                   type="button"
                                   onClick={() => handleSetAsPrimaryCover(index)}
-                                  className="bg-luxury-gold hover:bg-white text-black font-mono font-bold text-[8.5px] py-1 px-2 rounded shadow transition-all cursor-pointer"
-                                  title="Make this photo the primary cover image"
+                                  className="w-full bg-luxury-gold/90 hover:bg-luxury-gold text-black font-mono font-black text-[8.5px] py-1 px-1.5 rounded shadow transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center gap-1"
+                                  title="Make this photo show first on the website"
                                 >
-                                  ★ Make Cover
+                                  <span>★ Set as Main</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveSecondaryImage(index)}
-                                  className="bg-red-950/90 hover:bg-red-900 border border-red-500/30 text-red-300 hover:text-white text-[8.5px] font-bold py-0.5 px-2 rounded transition-colors cursor-pointer"
-                                >
-                                  Remove
-                                </button>
+
+                                <div className="flex items-center justify-between gap-1 pt-0.5">
+                                  <div className="flex items-center gap-1">
+                                    {index > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveSecondaryImage(index, 'left')}
+                                        className="bg-white/10 hover:bg-white/20 text-white text-[8px] font-mono px-1.5 py-0.5 rounded transition-all cursor-pointer"
+                                        title="Move earlier"
+                                      >
+                                        ◀
+                                      </button>
+                                    )}
+                                    {index < formImages.length - 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveSecondaryImage(index, 'right')}
+                                        className="bg-white/10 hover:bg-white/20 text-white text-[8px] font-mono px-1.5 py-0.5 rounded transition-all cursor-pointer"
+                                        title="Move later"
+                                      >
+                                        ▶
+                                      </button>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSecondaryImage(index)}
+                                    className="bg-red-950/80 hover:bg-red-900 border border-red-500/30 text-red-300 hover:text-white text-[8px] font-bold py-0.5 px-1.5 rounded transition-colors cursor-pointer"
+                                    title="Delete photo"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    {uploadProgress && <p className="text-[10px] text-luxury-gold font-mono tracking-wide animate-pulse">{uploadProgress}</p>}
                   </div>
 
                   {/* PRODUCT COLORS / VARIANTS SETTINGS */}
