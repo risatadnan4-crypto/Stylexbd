@@ -585,9 +585,9 @@ export default function ProductDetailModal({
             </div>
 
             {/* Direct ordering actions (DESKTOP ONLY - placed underneath image on the left) */}
-            <div className="hidden md:block w-full border-t border-white/10 pt-2.5 md:pt-3 mt-2 md:mt-2.5">
+            <div className="hidden md:block w-full border-t border-luxury-gold/20 pt-5 md:pt-6 mt-6 md:mt-8">
               {product.stock === 0 ? (
-                <div className="space-y-2 w-full">
+                <div className="space-y-3 w-full">
                   {isNotifyMeDeactivated ? (
                     <button
                       disabled
@@ -661,8 +661,8 @@ export default function ProductDetailModal({
                   )}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-2.5 items-center">
+                <div className="space-y-3 pt-1">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
                     <AnimatedAddToCartButton
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
