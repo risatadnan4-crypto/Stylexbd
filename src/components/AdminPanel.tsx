@@ -2253,21 +2253,44 @@ export default function AdminPanel({
     }
   };
 
-  // Primary image file change uploader
+  // Primary & multi-image file uploader (supports selecting 1, 2, 3 or multiple photos at once)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setFormError('');
-    setUploadProgress("Optimizing primary image and preparing upload...");
+    setUploadProgress(`Optimizing and uploading ${files.length} product ${files.length === 1 ? 'photo' : 'photos'}...`);
 
+    const uploadedUrls: string[] = [];
     try {
-      const url = await uploadSingleFile(file);
-      setFormImageUrl(url);
-      setUploadProgress("Primary catalog image uploaded successfully!");
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(`Uploading photo ${i + 1} of ${files.length}...`);
+        const url = await uploadSingleFile(files[i]);
+        if (url) {
+          uploadedUrls.push(url);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        // If no primary image set yet, set the 1st one as primary cover
+        if (!formImageUrl) {
+          setFormImageUrl(uploadedUrls[0]);
+          if (uploadedUrls.length > 1) {
+            setFormImages((prev) => [...prev, ...uploadedUrls.slice(1)]);
+          }
+        } else {
+          // If primary image already exists, replace primary if only 1 file chosen, or append to gallery
+          if (uploadedUrls.length === 1 && formImages.length === 0) {
+            setFormImageUrl(uploadedUrls[0]);
+          } else {
+            setFormImages((prev) => [...prev, ...uploadedUrls]);
+          }
+        }
+        setUploadProgress(`Successfully uploaded ${uploadedUrls.length} product ${uploadedUrls.length === 1 ? 'photo' : 'photos'}!`);
+      }
     } catch (err: any) {
       console.error("Upload process encountered error:", err);
-      setUploadProgress(`Base64/API Upload fallback status: ${err.message || "Unable to contact asset storage server."}`);
+      setUploadProgress(`Upload fallback status: ${err.message || "Unable to contact asset storage server."}`);
     }
   };
 
@@ -2277,7 +2300,7 @@ export default function AdminPanel({
     if (!files || files.length === 0) return;
 
     setFormError('');
-    setUploadProgress("Optimizing and uploading multiple secondary files...");
+    setUploadProgress(`Optimizing and uploading ${files.length} gallery files...`);
 
     let uploadedCount = 0;
     const newUploads: string[] = [];
@@ -2285,10 +2308,12 @@ export default function AdminPanel({
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        setUploadProgress(`Uploading secondary image ${i + 1} of ${files.length}...`);
+        setUploadProgress(`Uploading gallery image ${i + 1} of ${files.length}...`);
         const url = await uploadSingleFile(file);
-        newUploads.push(url);
-        uploadedCount++;
+        if (url) {
+          newUploads.push(url);
+          uploadedCount++;
+        }
       } catch (err: any) {
         console.error("Error uploading secondary file:", file.name, err);
         setFormError(`Failed to upload secondary ${file.name}: ${err.message || "Error"}`);
@@ -2296,11 +2321,29 @@ export default function AdminPanel({
     }
 
     if (newUploads.length > 0) {
-      setFormImages((prev) => [...prev, ...newUploads]);
-      setUploadProgress(`Successfully uploaded ${uploadedCount} secondary brand images!`);
+      if (!formImageUrl) {
+        setFormImageUrl(newUploads[0]);
+        if (newUploads.length > 1) {
+          setFormImages((prev) => [...prev, ...newUploads.slice(1)]);
+        }
+      } else {
+        setFormImages((prev) => [...prev, ...newUploads]);
+      }
+      setUploadProgress(`Successfully uploaded ${uploadedCount} gallery photos!`);
     } else {
       setUploadProgress("");
     }
+  };
+
+  const handleSetAsPrimaryCover = (index: number) => {
+    const chosenSecondary = formImages[index];
+    if (!chosenSecondary) return;
+    const oldPrimary = formImageUrl;
+    setFormImageUrl(chosenSecondary);
+    setFormImages((prev) => {
+      const filtered = prev.filter((_, i) => i !== index);
+      return oldPrimary ? [oldPrimary, ...filtered] : filtered;
+    });
   };
 
   const handleRemoveSecondaryImage = (index: number) => {
@@ -5081,105 +5124,146 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                   </div>
 
                   {/* Image link & local storage uploader (Supreme replicas) */}
-                  <div className="md:col-span-2 border border-dashed border-white/10 p-4 rounded bg-luxury-black/35 space-y-3.5">
-                    <div>
-                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-white/60 mb-2">Configure Digital Image File (Primary Cover)</h4>
-                      <input 
-                        type="text" value={formImageUrl} onChange={(e) => setFormImageUrl(e.target.value)}
-                        placeholder="Or input direct splash image URL..."
-                        className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold mb-3"
-                      />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                      <div className="flex-1 w-full">
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Upload Primary Cover File (Simulated Cloud Replica)</label>
-                        <input 
-                          type="file" accept="image/*" onChange={handleFileChange}
-                          className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
-                        />
+                  <div className="md:col-span-2 border border-dashed border-luxury-gold/20 p-4 rounded-xl bg-luxury-black/45 space-y-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-2.5">
+                      <div>
+                        <h4 className="text-[11px] uppercase font-mono tracking-widest text-luxury-gold font-bold flex items-center gap-1.5">
+                          <span>📸</span> Product Photos & Multi-Angle Gallery
+                        </h4>
+                        <p className="text-[9.5px] text-zinc-400">Upload 1, 2, 3 or more photos (Primary cover photo + multi-angle shots). All photos will show on product card and modal.</p>
                       </div>
-                      
-                      {/* Image preview frame */}
-                      {formImageUrl && (
-                        <div className="w-20 h-20 bg-black/60 rounded-xl overflow-hidden border border-luxury-gold/40 flex-shrink-0 flex items-center justify-center p-1 shadow-inner relative group">
-                          <img 
-                            src={formImageUrl} 
-                            alt="Product Preview" 
-                            className="max-w-full max-h-full w-auto h-auto object-contain rounded transition-transform group-hover:scale-105" 
-                            referrerPolicy="no-referrer"
-                          />
+                      {(formImageUrl || formImages.length > 0) && (
+                        <div className="flex items-center gap-2">
+                          <span className="bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider">
+                            {(formImageUrl ? 1 : 0) + formImages.length} Photos Selected
+                          </span>
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Multiple Secondary Images Configuration */}
-                  <div className="md:col-span-2 border border-dashed border-luxury-gold/15 p-4 rounded bg-luxury-black/35 space-y-4">
-                    <div>
-                      <h4 className="text-[10px] uppercase font-mono tracking-widest text-luxury-gold font-bold mb-1 flex items-center gap-1.5">
-                        <span>⚜️</span> Secondary Product Images (Upload 2, 3 or more than image)
-                      </h4>
-                      <p className="text-[9px] text-zinc-400">Specify multiple product angles, variants, styles, or detailed macro shots of the materials.</p>
-                    </div>
-
-                    {/* Add Secondary Image by direct URL */}
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Add Image by Direct URL</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          value={secondaryUrlInput} 
-                          onChange={(e) => setSecondaryUrlInput(e.target.value)}
-                          placeholder="Paste direct secondary image URL (e.g. from Unsplash)..."
-                          className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (secondaryUrlInput.trim()) {
-                              setFormImages(prev => [...prev, secondaryUrlInput.trim()]);
-                              setSecondaryUrlInput('');
-                            }
-                          }}
-                          className="bg-[#121212] hover:bg-luxury-gold hover:text-luxury-black text-luxury-gold border border-luxury-gold/30 font-mono text-[9px] px-4 rounded transition-all duration-300"
-                        >
-                          ADD URL
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Upload Multiple Files */}
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Upload Multiple Brand Photos (Select 2, 3 or more files at once)</label>
+                    {/* Quick Multi-Photo File Uploader */}
+                    <div className="bg-white/[0.02] border border-white/10 rounded-lg p-3 space-y-2">
+                      <label className="block text-[10px] uppercase font-mono tracking-wider text-white/70 font-semibold">
+                        ⚡ Select & Upload Product Photos (Select 2, 3 or more files at once)
+                      </label>
                       <input 
                         type="file" 
                         multiple 
                         accept="image/*" 
-                        onChange={handleMultiFileChange}
-                        className="w-full text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-luxury-gold/30 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-black cursor-pointer"
+                        onChange={handleFileChange}
+                        className="w-full text-xs text-white/60 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border file:border-luxury-gold/40 file:bg-luxury-charcoal file:text-luxury-gold hover:file:bg-luxury-gold hover:file:text-black cursor-pointer transition-all"
                       />
+                      <span className="text-[9px] text-zinc-400 block font-mono">
+                        Tip: You can select all 3 photos at once. The 1st photo becomes the Primary Cover and the others are added to the gallery.
+                      </span>
                     </div>
 
-                    {/* Image Gallery Lists */}
-                    {formImages.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-white/5">
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-[#d4af37] font-semibold">Active Secondary Gallery ({formImages.length} images)</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {/* Direct URL Inputs */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/50 mb-1">Primary Cover Image URL</label>
+                        <input 
+                          type="text" 
+                          value={formImageUrl} 
+                          onChange={(e) => setFormImageUrl(e.target.value)}
+                          placeholder="Paste primary cover image URL..."
+                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/50 mb-1">Add Secondary Image by Direct URL</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={secondaryUrlInput} 
+                            onChange={(e) => setSecondaryUrlInput(e.target.value)}
+                            placeholder="Paste extra image URL..."
+                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (secondaryUrlInput.trim()) {
+                                if (!formImageUrl) {
+                                  setFormImageUrl(secondaryUrlInput.trim());
+                                } else {
+                                  setFormImages(prev => [...prev, secondaryUrlInput.trim()]);
+                                }
+                                setSecondaryUrlInput('');
+                              }
+                            }}
+                            className="bg-[#121212] hover:bg-luxury-gold hover:text-luxury-black text-luxury-gold border border-luxury-gold/30 font-mono text-[9px] px-3.5 rounded transition-all duration-300 font-bold cursor-pointer"
+                          >
+                            ADD
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Uploaded Photos Gallery Preview */}
+                    {(formImageUrl || formImages.length > 0) && (
+                      <div className="space-y-2 pt-3 border-t border-white/10">
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-luxury-gold font-bold">
+                          Current Catalog Images ({(formImageUrl ? 1 : 0) + formImages.length} Active)
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                          {/* Primary Cover Image Preview */}
+                          {formImageUrl && (
+                            <div className="relative group/cover aspect-square bg-black/80 border-2 border-luxury-gold rounded-xl overflow-hidden flex flex-col items-center justify-center p-1 shadow-lg">
+                              <img 
+                                src={formImageUrl} 
+                                alt="Primary Cover" 
+                                className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/cover:scale-105" 
+                                referrerPolicy="no-referrer" 
+                              />
+                              <div className="absolute top-1.5 left-1.5 bg-luxury-gold text-black font-mono font-bold text-[8px] px-1.5 py-0.5 rounded shadow">
+                                ★ COVER #1
+                              </div>
+                              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity duration-200 gap-1.5 p-2">
+                                <span className="text-[9px] text-luxury-gold font-mono font-bold">PRIMARY COVER</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (formImages.length > 0) {
+                                      setFormImageUrl(formImages[0]);
+                                      setFormImages(prev => prev.slice(1));
+                                    } else {
+                                      setFormImageUrl('');
+                                    }
+                                  }}
+                                  className="bg-red-950/90 hover:bg-red-900 border border-red-500/40 text-red-300 text-[9px] font-bold py-1 px-2.5 rounded transition-colors"
+                                >
+                                  Remove Cover
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Secondary Images Previews */}
                           {formImages.map((imgUrl, index) => (
-                            <div key={index} className="relative group/img aspect-square bg-black/60 border border-white/15 rounded-lg overflow-hidden flex items-center justify-center p-1 shadow-sm">
+                            <div key={index} className="relative group/img aspect-square bg-black/60 border border-white/20 hover:border-luxury-gold/50 rounded-xl overflow-hidden flex flex-col items-center justify-center p-1 shadow-sm transition-all">
                               <img 
                                 src={imgUrl} 
                                 alt={`Gallery index ${index}`} 
                                 className="max-w-full max-h-full w-auto h-auto object-contain transition-transform group-hover/img:scale-105" 
                                 referrerPolicy="no-referrer" 
                               />
-                              <div className="absolute inset-0 bg-black/75 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 gap-2">
-                                <span className="text-[10px] text-white/80 font-mono">#{index + 1}</span>
+                              <div className="absolute top-1.5 left-1.5 bg-black/80 border border-white/20 text-white font-mono text-[8px] px-1.5 py-0.5 rounded">
+                                #{index + 2}
+                              </div>
+                              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 gap-1.5 p-1.5 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetAsPrimaryCover(index)}
+                                  className="bg-luxury-gold hover:bg-white text-black font-mono font-bold text-[8.5px] py-1 px-2 rounded shadow transition-all cursor-pointer"
+                                  title="Make this photo the primary cover image"
+                                >
+                                  ★ Make Cover
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveSecondaryImage(index)}
-                                  className="bg-red-950/85 hover:bg-red-900 border border-red-500/30 text-red-300 hover:text-white text-[10px] font-bold py-0.5 px-2 rounded transition-colors"
+                                  className="bg-red-950/90 hover:bg-red-900 border border-red-500/30 text-red-300 hover:text-white text-[8.5px] font-bold py-0.5 px-2 rounded transition-colors cursor-pointer"
                                 >
                                   Remove
                                 </button>
@@ -5189,7 +5273,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         </div>
                       </div>
                     )}
-                    {uploadProgress && <p className="text-[10px] text-luxury-gold font-mono tracking-wide">{uploadProgress}</p>}
+                    {uploadProgress && <p className="text-[10px] text-luxury-gold font-mono tracking-wide animate-pulse">{uploadProgress}</p>}
                   </div>
 
                   {/* PRODUCT COLORS / VARIANTS SETTINGS */}

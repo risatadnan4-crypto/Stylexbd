@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram } from 'lucide-react';
+import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Product, ProductColor } from '../types';
 import { formatPrice } from '../utils';
@@ -443,8 +443,26 @@ export default function ProductDetailModal({
 
   if (!isOpen) return null;
 
-  const displayImage = activeImgUrl || product.imageUrl;
-  const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+  const allImages = useMemo(() => {
+    return Array.from(new Set([product.imageUrl, ...(product.images || [])].filter(Boolean) as string[]));
+  }, [product.imageUrl, product.images]);
+
+  const displayImage = activeImgUrl || (allImages[0] || product.imageUrl);
+  const currentIdx = Math.max(0, allImages.indexOf(displayImage));
+
+  const handlePrevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (allImages.length <= 1) return;
+    const prevIndex = (currentIdx - 1 + allImages.length) % allImages.length;
+    setActiveImgUrl(allImages[prevIndex]);
+  };
+
+  const handleNextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (allImages.length <= 1) return;
+    const nextIndex = (currentIdx + 1) % allImages.length;
+    setActiveImgUrl(allImages[nextIndex]);
+  };
 
   const handleWhatsAppDirect = () => {
     const activePrice = sellingPrice;
@@ -509,6 +527,32 @@ export default function ProductDetailModal({
                     transition: isZooming ? 'transform 0.08s ease-out' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'
                   }}
                 />
+                {/* Multi-Image Navigation Controls */}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrevImg}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/80 hover:bg-luxury-gold text-white hover:text-black border border-luxury-gold/40 flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-90"
+                      title="Previous photo"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextImg}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/80 hover:bg-luxury-gold text-white hover:text-black border border-luxury-gold/40 flex items-center justify-center transition-all shadow-lg cursor-pointer active:scale-90"
+                      title="Next photo"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                    <div className="absolute top-2 left-2 z-20 bg-black/85 backdrop-blur-md text-luxury-gold border border-luxury-gold/40 text-[8px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
+                      <Images size={10} className="text-luxury-gold" />
+                      <span>{currentIdx + 1} / {allImages.length}</span>
+                    </div>
+                  </>
+                )}
+
                 {/* Visual gradient filter */}
                 <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent pointer-events-none z-0"></div>
 

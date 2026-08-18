@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp, ChevronLeft, ChevronRight, Images } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 import { getProductPriceDetails } from '../utils/totalHelper';
@@ -304,7 +304,28 @@ function ProductCard({
     }
   };
 
-  const allImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+  const allImages = useMemo(() => {
+    return Array.from(new Set([product.imageUrl, ...(product.images || [])].filter(Boolean) as string[]));
+  }, [product.imageUrl, product.images]);
+
+  const currentImageIndex = Math.max(0, allImages.indexOf(activeImage));
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (allImages.length <= 1) return;
+    const prevIdx = (currentImageIndex - 1 + allImages.length) % allImages.length;
+    setActiveImage(allImages[prevIdx]);
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (allImages.length <= 1) return;
+    const nextIdx = (currentImageIndex + 1) % allImages.length;
+    setActiveImage(allImages[nextIdx]);
+  };
+
   const shareUrl = `${window.location.origin}/?productCode=${product.code}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(shareUrl)}`;
 
@@ -425,6 +446,58 @@ function ProductCard({
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 z-10 pointer-events-none" />
 
+        {/* Multi-Image Counter Badge (Top-left or beside free delivery) */}
+        {allImages.length > 1 && (
+          <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-black/85 backdrop-blur-md text-luxury-gold text-[7.5px] sm:text-[8.5px] font-mono font-bold px-2 py-0.5 rounded-full border border-luxury-gold/40 shadow-md">
+            <Images size={10} className="text-luxury-gold" />
+            <span>{currentImageIndex + 1}/{allImages.length}</span>
+          </div>
+        )}
+
+        {/* Multi-Image Left/Right Arrow Navigation Buttons */}
+        {allImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevImage}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/80 hover:bg-luxury-gold text-white hover:text-black border border-luxury-gold/40 flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer active:scale-90"
+              title="Previous photo"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextImage}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/80 hover:bg-luxury-gold text-white hover:text-black border border-luxury-gold/40 flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer active:scale-90"
+              title="Next photo"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </>
+        )}
+
+        {/* Thumbnail Dots Navigation for Multiple Images */}
+        {allImages.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-full border border-white/10 shadow-md">
+            {allImages.map((img, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveImage(img);
+                }}
+                className={`transition-all rounded-full cursor-pointer ${
+                  activeImage === img
+                    ? 'w-3 h-1.5 bg-luxury-gold shadow-[0_0_6px_#d4af37]'
+                    : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/80'
+                }`}
+                title={`View photo ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Floating Quick View (Eye icon) */}
         <div className={`absolute bottom-3 right-3 z-20 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
           <button
@@ -457,24 +530,6 @@ function ProductCard({
           <Sparkles size={10} className="text-luxury-gold" />
           <span>ASK XORO</span>
         </button>
-
-        {/* Thumbnail overlays on Hover (if multiple images exist) */}
-        {allImages.length > 1 && (
-          <div className={`absolute bottom-8 left-2 z-20 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isMobileListMode ? 'hidden sm:flex' : 'flex'}`}>
-            {allImages.slice(0, 3).map((img, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onMouseEnter={() => setActiveImage(img)}
-                className={`w-5 h-5 rounded-sm overflow-hidden border bg-black/50 p-0.5 transition-all ${
-                  activeImage === img ? 'border-luxury-gold scale-110' : 'border-white/10 hover:border-white/40'
-                }`}
-              >
-                <img src={img} alt={`${product.title} view ${idx + 1}`} loading="lazy" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* QR Code Popover Overlay */}
         <AnimatePresence>

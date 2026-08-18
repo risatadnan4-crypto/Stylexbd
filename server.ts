@@ -2658,15 +2658,27 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 
   // Images - prioritize local images first
   let parsedImages: string[] = [];
-  const rawImages = (Array.isArray(local.images) && local.images.length > 0)
-    ? local.images
-    : (local.images ?? dimObj?.images ?? p?.images);
-  if (rawImages !== undefined && rawImages !== null) {
-    const res = tryJsonParse(rawImages);
-    if (Array.isArray(res)) {
-      parsedImages = res;
-    } else if (Array.isArray(rawImages)) {
-      parsedImages = rawImages;
+  const candidateImages = [local?.images, paymentMeta?.images, dimObj?.images, p?.images];
+  for (const rawImgs of candidateImages) {
+    if (rawImgs === undefined || rawImgs === null) continue;
+    let list: string[] = [];
+    if (Array.isArray(rawImgs)) {
+      list = rawImgs;
+    } else if (typeof rawImgs === "string" && rawImgs.trim() !== "") {
+      const parsed = tryJsonParse(rawImgs);
+      if (Array.isArray(parsed)) {
+        list = parsed;
+      } else if (rawImgs.trim().startsWith("[")) {
+        try { list = JSON.parse(rawImgs); } catch {}
+      } else if (rawImgs.includes(",")) {
+        list = rawImgs.split(",").map((s: string) => s.trim()).filter(Boolean);
+      } else if (rawImgs.trim().startsWith("http") || rawImgs.trim().startsWith("/")) {
+        list = [rawImgs.trim()];
+      }
+    }
+    if (list.length > 0) {
+      parsedImages = list.filter((x: any) => typeof x === "string" && x.trim().length > 0);
+      break;
     }
   }
 
@@ -2970,7 +2982,7 @@ async function upsertProductToSupabase(productPayload: any) {
   let currentPayload = { ...payloadSnake };
   let result: any;
   try {
-    result = await supabase.from("products").upsert(currentPayload);
+    result = await supabase.from("products").upsert(currentPayload, { onConflict: "id" });
   } catch (err: any) {
     console.warn("[PRODUCTS_SYNC] Supabase upsert network exception:", formatSupabaseError(err));
     return { data: null, error: null };
@@ -3002,7 +3014,7 @@ async function upsertProductToSupabase(productPayload: any) {
       }
     }
     try {
-      result = await supabase.from("products").upsert(currentPayload);
+      result = await supabase.from("products").upsert(currentPayload, { onConflict: "id" });
     } catch (err: any) {
       console.warn("[PRODUCTS_SYNC] Retry upsert caught exception:", formatSupabaseError(err));
       break;
@@ -3241,6 +3253,7 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
       sizes: typeof newProduct.sizes === "string" ? newProduct.sizes : JSON.stringify(newProduct.sizes),
       colors: Array.isArray(newProduct.colors) ? JSON.stringify(newProduct.colors) : JSON.stringify([]),
       dimensions: serializeDimensions(newProduct.dimensions, newProduct.colors, {
+        images: Array.isArray(newProduct.images) ? newProduct.images : [],
         sizes: newProduct.sizes,
         deliveryPrice: newProduct.deliveryPrice,
         deliveryPriceDhaka: newProduct.deliveryPriceDhaka,
@@ -3493,6 +3506,7 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
         sizes: typeof target.sizes === "string" ? target.sizes : JSON.stringify(target.sizes),
         colors: Array.isArray(target.colors) ? JSON.stringify(target.colors) : JSON.stringify([]),
         dimensions: serializeDimensions(target.dimensions, target.colors, {
+          images: Array.isArray(target.images) ? target.images : [],
           sizes: target.sizes,
           deliveryPrice: Number(target.deliveryPrice || 100),
           deliveryPriceDhaka: Number(target.deliveryPriceDhaka || 100),
