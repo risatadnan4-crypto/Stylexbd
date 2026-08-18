@@ -33,17 +33,21 @@ export function getProductPriceDetails(product?: Product | null) {
   const hasValidOfferPrice = rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice;
 
   // Support both timerActive and timerEnabled
+  const hasExplicitTimerFlag = product.timerActive !== undefined || product.timerEnabled !== undefined;
   const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false' &&
                         product.timerEnabled !== false && String(product.timerEnabled) !== 'false';
 
   let timerExpired = false;
+  let hasTimerConfig = false;
 
   // Support both timerEndTime and timerEndDate
   const endTimeVal = product.timerEndTime || product.timerEndDate;
+  const startTimeVal = product.timerStartTime || product.timerStartDate;
 
   if (endTimeVal) {
     const rawStr = String(endTimeVal).trim();
     if (rawStr) {
+      hasTimerConfig = true;
       let endMs = NaN;
       if (/^\d{12,}$/.test(rawStr)) {
         endMs = Number(rawStr);
@@ -60,11 +64,33 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer is active if a valid offer price strictly less than originalPrice is defined
+  // Check if start time is in the future
+  let isPendingStart = false;
+  if (startTimeVal) {
+    const rawStartStr = String(startTimeVal).trim();
+    if (rawStartStr) {
+      let startMs = NaN;
+      if (/^\d{12,}$/.test(rawStartStr)) {
+        startMs = Number(rawStartStr);
+      } else {
+        startMs = new Date(rawStartStr.replace(' ', 'T')).getTime();
+        if (isNaN(startMs)) startMs = new Date(rawStartStr).getTime();
+      }
+      if (!isNaN(startMs) && Date.now() < startMs) {
+        isPendingStart = true;
+      }
+    }
+  }
+
+  // Offer is active only if valid offer price exists AND:
+  // 1) If it's a timer/flash-sale offer: timer must be active, not expired, and started
+  // 2) If it's a regular permanent discount (no timer date configured): only active if not explicitly turned off
   let hasActiveOffer = false;
   if (hasValidOfferPrice) {
-    if (isTimerActive && endTimeVal) {
-      hasActiveOffer = !timerExpired;
+    if (hasTimerConfig) {
+      hasActiveOffer = isTimerActive && !timerExpired && !isPendingStart;
+    } else if (hasExplicitTimerFlag && !isTimerActive) {
+      hasActiveOffer = false;
     } else {
       hasActiveOffer = true;
     }
@@ -82,8 +108,8 @@ export function getProductPriceDetails(product?: Product | null) {
     originalPrice,
     hasActiveOffer: hasActiveOffer && currentPrice < originalPrice,
     discountPercent,
-    timerExpired,
-    timerActive: isTimerActive,
+    timerExpired: hasTimerConfig ? timerExpired : false,
+    timerActive: isTimerActive && hasTimerConfig && !timerExpired,
   };
 }
 

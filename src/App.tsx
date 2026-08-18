@@ -99,6 +99,183 @@ try {
   }
 }
 
+// Custom Form Multi-Image & File Upload Widget (Declared top-level to preserve focus & state across renders)
+const FormMediaUploadWidget = React.memo(({
+  value,
+  onChange,
+  required,
+  label
+}: {
+  value: any;
+  onChange: (val: any) => void;
+  required?: boolean;
+  label: string;
+}) => {
+  const images: string[] = Array.isArray(value) 
+    ? value 
+    : typeof value === 'string' && value.trim() 
+      ? [value] 
+      : [];
+  
+  const [urlInput, setUrlInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const newImgs: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
+        continue;
+      }
+      
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const maxDim = 1200;
+              let width = img.width;
+              let height = img.height;
+              if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                  height = Math.round((height * maxDim) / width);
+                  width = maxDim;
+                } else {
+                  width = Math.round((width * maxDim) / height);
+                  height = maxDim;
+                }
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+              } else {
+                resolve(result);
+              }
+            };
+            img.onerror = () => resolve(result);
+            img.src = result;
+          };
+          reader.onerror = () => reject();
+          reader.readAsDataURL(file);
+        });
+        newImgs.push(dataUrl);
+      } catch (err) {
+        console.error("Image read error:", err);
+      }
+    }
+
+    const updated = [...images, ...newImgs];
+    onChange(updated);
+    setIsUploading(false);
+  };
+
+  const handleAddUrl = () => {
+    if (!urlInput.trim()) return;
+    onChange([...images, urlInput.trim()]);
+    setUrlInput('');
+  };
+
+  const handleRemove = (index: number) => {
+    const updated = images.filter((_, i) => i !== index);
+    onChange(updated.length > 0 ? updated : '');
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {/* Upload Zone */}
+      <div 
+        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-white/15 hover:border-luxury-gold/50 bg-[#12121A] hover:bg-[#181824] rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+      >
+        <input 
+          ref={fileInputRef}
+          type="file" 
+          accept="image/*" 
+          multiple 
+          className="hidden" 
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+        <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-luxury-gold/10 flex items-center justify-center text-luxury-gold transition-colors">
+          <Upload size={18} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-white group-hover:text-luxury-gold transition-colors">
+            {isUploading ? "Processing product images..." : "Click to Browse or Drag & Drop Product Images"}
+          </p>
+          <p className="text-[10px] text-white/40 mt-0.5">Supports uploading multiple images (JPG, PNG, WebP)</p>
+        </div>
+      </div>
+
+      {/* Or Paste URL */}
+      <div className="flex gap-2">
+        <input 
+          type="url"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="Or enter image URL (https://...)"
+          className="flex-1 bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:border-luxury-gold"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddUrl();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleAddUrl}
+          className="bg-white/10 hover:bg-luxury-gold hover:text-black text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer"
+        >
+          Add URL
+        </button>
+      </div>
+
+      {/* Rendered Uploaded Images */}
+      {images.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold font-bold">
+              {images.length} {images.length === 1 ? 'Image' : 'Images'} Attached
+            </span>
+            <span className="text-[10px] text-white/40">Click × to remove</span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+            {images.map((imgSrc, idx) => (
+              <div key={idx} className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-luxury-gold/30 bg-black/50 shadow-md">
+                <img src={imgSrc} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                <div className="absolute top-1 left-1 bg-black/80 text-luxury-gold text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow">
+                  #{idx + 1}
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(idx);
+                  }}
+                  className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition-all hover:scale-110"
+                  title="Remove image"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function App() {
   // Premium entry loading screen states
   const [isSiteLoading, setIsSiteLoading] = useState(true);
@@ -1609,7 +1786,9 @@ export default function App() {
   }, []);
 
   // Automatically open product if deep-linked via QR Code on load
+  const hasProcessedDeepLinkRef = React.useRef(false);
   useEffect(() => {
+    if (hasProcessedDeepLinkRef.current) return;
     if (products && products.length > 0) {
       let searchStr = window.location.search;
       if (window.location.hash && window.location.hash.includes('?')) {
@@ -1624,10 +1803,64 @@ export default function App() {
         );
         if (found) {
           setSelectedProduct(found);
+          hasProcessedDeepLinkRef.current = true;
         }
       }
     }
   }, [products]);
+
+  // Robust synchronization helper with structural sharing to prevent unwanted state resets
+  const syncCatalogWithStableRefs = (incomingList: Product[]) => {
+    if (!Array.isArray(incomingList) || incomingList.length === 0) return;
+
+    setProducts(prevProducts => {
+      if (!prevProducts || prevProducts.length === 0) {
+        return incomingList;
+      }
+
+      // Check if the dataset is completely identical to avoid state churn
+      if (prevProducts.length === incomingList.length) {
+        let isIdentical = true;
+        for (let i = 0; i < incomingList.length; i++) {
+          if (JSON.stringify(prevProducts[i]) !== JSON.stringify(incomingList[i])) {
+            isIdentical = false;
+            break;
+          }
+        }
+        if (isIdentical) {
+          return prevProducts;
+        }
+      }
+
+      // Structural sharing: keep unchanged object references to preserve child component states
+      const prevMap = new Map<string, Product>();
+      prevProducts.forEach(p => {
+        if (p && p.id) prevMap.set(String(p.id), p);
+      });
+
+      return incomingList.map(newP => {
+        if (!newP || !newP.id) return newP;
+        const prevP = prevMap.get(String(newP.id));
+        if (prevP && JSON.stringify(prevP) === JSON.stringify(newP)) {
+          return prevP;
+        }
+        return newP;
+      });
+    });
+
+    // Keep selected product reference updated without closing the modal
+    setSelectedProduct(prev => {
+      if (!prev) return null;
+      const updated = incomingList.find(p => String(p.id) === String(prev.id));
+      if (!updated) return prev;
+      if (JSON.stringify(prev) === JSON.stringify(updated)) return prev;
+      return updated;
+    });
+
+    try {
+      localStorage.setItem('stylex_cached_products', JSON.stringify(incomingList));
+    } catch (e) {}
+  };
 
   const loadStoreCollections = async (retries = 4): Promise<void> => {
     const startTimestamp = Date.now();
@@ -1660,10 +1893,7 @@ export default function App() {
         }
 
         if (Array.isArray(prodList) && prodList.length > 0) {
-          setProducts(prodList);
-          try {
-            localStorage.setItem('stylex_cached_products', JSON.stringify(prodList));
-          } catch (e) {}
+          syncCatalogWithStableRefs(prodList);
           setFetchError(null);
 
           // Preload product images for buttery-smooth slider navigation
@@ -1691,7 +1921,7 @@ export default function App() {
             if (cached) {
               const parsedCached = JSON.parse(cached);
               if (Array.isArray(parsedCached) && parsedCached.length > 0) {
-                setProducts(parsedCached);
+                syncCatalogWithStableRefs(parsedCached);
                 setFetchError(null);
               }
             }
@@ -1716,7 +1946,7 @@ export default function App() {
             if (cached) {
               const parsedCached = JSON.parse(cached);
               if (Array.isArray(parsedCached) && parsedCached.length > 0) {
-                setProducts(parsedCached);
+                syncCatalogWithStableRefs(parsedCached);
                 setFetchError(null);
                 return;
               }
@@ -1736,7 +1966,7 @@ export default function App() {
         if (cached) {
           const parsedCached = JSON.parse(cached);
           if (Array.isArray(parsedCached) && parsedCached.length > 0) {
-            setProducts(parsedCached);
+            syncCatalogWithStableRefs(parsedCached);
             setFetchError(null);
           }
         }
@@ -2453,227 +2683,52 @@ export default function App() {
     return ratingsMap;
   }, [publicReviews]);
 
-  // Filter and sort products based on search, category, and advanced selectors
-  const filteredProducts = products
-    .filter(p => {
-      const matchCategory = activeCategory === 'ALL' || p.category === activeCategory;
-      const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchPriceMin = minPrice === '' || p.price >= minPrice;
-      const matchPriceMax = maxPrice === '' || p.price <= maxPrice;
-      const pSizesList: string[] = Array.isArray(p.sizes) 
-        ? (p.sizes as any[]).map(s => String(s).trim().toUpperCase()) 
-        : (typeof (p as any).sizes === 'string' ? ((p as any).sizes as string).split(',').map((s: string) => s.trim().toUpperCase()) : []);
-      const matchSize = selectedSize === 'ALL' || pSizesList.includes(selectedSize.toUpperCase());
-      const matchStock = !showInStockOnly || p.stock > 0;
-
-      return matchCategory && matchSearch && matchPriceMin && matchPriceMax && matchSize && matchStock;
-    })
-    .sort((a, b) => {
-      // 1. Pinned products always come first
-      const aPinned = a.isPinned ? 1 : 0;
-      const bPinned = b.isPinned ? 1 : 0;
-      if (bPinned !== aPinned) return bPinned - aPinned;
-
-      if (sortBy === 'PRICE_ASC') return a.price - b.price;
-      if (sortBy === 'PRICE_DESC') return b.price - a.price;
-      if (sortBy === 'STOCK_DESC') return b.stock - a.stock;
-      if (sortBy === 'TOP_RATED') {
-        const aAvg = productAvgRatings[a.id]?.avg || 0;
-        const bAvg = productAvgRatings[b.id]?.avg || 0;
-        if (bAvg !== aAvg) return bAvg - aAvg;
+  // Filter and sort products based on search, category, and advanced selectors (Memoized for high performance & stability)
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(p => {
+        const matchCategory = activeCategory === 'ALL' || p.category === activeCategory;
+        const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            p.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            p.description.toLowerCase().includes(searchQuery.toLowerCase());
         
-        // Secondary sort: number of reviews
-        const aCount = productAvgRatings[a.id]?.count || 0;
-        const bCount = productAvgRatings[b.id]?.count || 0;
-        if (bCount !== aCount) return bCount - aCount;
-      }
-      
-      // Default Relevance (Featured first, then trending, then by title)
-      const aScore = (a.featured ? 3 : 0) + (a.trending ? 1 : 0);
-      const bScore = (b.featured ? 3 : 0) + (b.trending ? 1 : 0);
-      if (bScore !== aScore) return bScore - aScore;
-      return a.title.localeCompare(b.title);
-    });
+        const matchPriceMin = minPrice === '' || p.price >= minPrice;
+        const matchPriceMax = maxPrice === '' || p.price <= maxPrice;
+        const pSizesList: string[] = Array.isArray(p.sizes) 
+          ? (p.sizes as any[]).map(s => String(s).trim().toUpperCase()) 
+          : (typeof (p as any).sizes === 'string' ? ((p as any).sizes as string).split(',').map((s: string) => s.trim().toUpperCase()) : []);
+        const matchSize = selectedSize === 'ALL' || pSizesList.includes(selectedSize.toUpperCase());
+        const matchStock = !showInStockOnly || p.stock > 0;
 
-  // Custom Form Multi-Image & File Upload Widget
-  const FormMediaUploadWidget = ({
-    value,
-    onChange,
-    required,
-    label
-  }: {
-    value: any;
-    onChange: (val: any) => void;
-    required?: boolean;
-    label: string;
-  }) => {
-    const images: string[] = Array.isArray(value) 
-      ? value 
-      : typeof value === 'string' && value.trim() 
-        ? [value] 
-        : [];
-    
-    const [urlInput, setUrlInput] = useState('');
-    const [isUploading, setIsUploading] = useState(false);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
+        return matchCategory && matchSearch && matchPriceMin && matchPriceMax && matchSize && matchStock;
+      })
+      .sort((a, b) => {
+        // 1. Pinned products always come first
+        const aPinned = a.isPinned ? 1 : 0;
+        const bPinned = b.isPinned ? 1 : 0;
+        if (bPinned !== aPinned) return bPinned - aPinned;
 
-    const handleFiles = async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      setIsUploading(true);
-      const newImgs: string[] = [];
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
-          continue;
+        if (sortBy === 'PRICE_ASC') return a.price - b.price;
+        if (sortBy === 'PRICE_DESC') return b.price - a.price;
+        if (sortBy === 'STOCK_DESC') return b.stock - a.stock;
+        if (sortBy === 'TOP_RATED') {
+          const aAvg = productAvgRatings[a.id]?.avg || 0;
+          const bAvg = productAvgRatings[b.id]?.avg || 0;
+          if (bAvg !== aAvg) return bAvg - aAvg;
+          
+          // Secondary sort: number of reviews
+          const aCount = productAvgRatings[a.id]?.count || 0;
+          const bCount = productAvgRatings[b.id]?.count || 0;
+          if (bCount !== aCount) return bCount - aCount;
         }
         
-        try {
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const result = e.target?.result as string;
-              const img = new Image();
-              img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const maxDim = 1200;
-                let width = img.width;
-                let height = img.height;
-                if (width > maxDim || height > maxDim) {
-                  if (width > height) {
-                    height = Math.round((height * maxDim) / width);
-                    width = maxDim;
-                  } else {
-                    width = Math.round((width * maxDim) / height);
-                    height = maxDim;
-                  }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                  ctx.drawImage(img, 0, 0, width, height);
-                  resolve(canvas.toDataURL('image/jpeg', 0.85));
-                } else {
-                  resolve(result);
-                }
-              };
-              img.onerror = () => resolve(result);
-              img.src = result;
-            };
-            reader.onerror = () => reject();
-            reader.readAsDataURL(file);
-          });
-          newImgs.push(dataUrl);
-        } catch (err) {
-          console.error("Image read error:", err);
-        }
-      }
-
-      const updated = [...images, ...newImgs];
-      onChange(updated);
-      setIsUploading(false);
-    };
-
-    const handleAddUrl = () => {
-      if (!urlInput.trim()) return;
-      onChange([...images, urlInput.trim()]);
-      setUrlInput('');
-    };
-
-    const handleRemove = (index: number) => {
-      const updated = images.filter((_, i) => i !== index);
-      onChange(updated.length > 0 ? updated : '');
-    };
-
-    return (
-      <div className="space-y-2.5">
-        {/* Upload Zone */}
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-white/15 hover:border-luxury-gold/50 bg-[#12121A] hover:bg-[#181824] rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
-        >
-          <input 
-            ref={fileInputRef}
-            type="file" 
-            accept="image/*" 
-            multiple 
-            className="hidden" 
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-          <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-luxury-gold/10 flex items-center justify-center text-luxury-gold transition-colors">
-            <Upload size={18} />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-white group-hover:text-luxury-gold transition-colors">
-              {isUploading ? "Processing product images..." : "Click to Browse or Drag & Drop Product Images"}
-            </p>
-            <p className="text-[10px] text-white/40 mt-0.5">Supports uploading multiple images (JPG, PNG, WebP)</p>
-          </div>
-        </div>
-
-        {/* Or Paste URL */}
-        <div className="flex gap-2">
-          <input 
-            type="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="Or enter image URL (https://...)"
-            className="flex-1 bg-[#15151D] text-white text-xs border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:border-luxury-gold"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddUrl();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleAddUrl}
-            className="bg-white/10 hover:bg-luxury-gold hover:text-black text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer"
-          >
-            Add URL
-          </button>
-        </div>
-
-        {/* Rendered Uploaded Images */}
-        {images.length > 0 && (
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold font-bold">
-                {images.length} {images.length === 1 ? 'Image' : 'Images'} Attached
-              </span>
-              <span className="text-[10px] text-white/40">Click × to remove</span>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
-              {images.map((imgSrc, idx) => (
-                <div key={idx} className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-luxury-gold/30 bg-black/50 shadow-md">
-                  <img src={imgSrc} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-                  <div className="absolute top-1 left-1 bg-black/80 text-luxury-gold text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow">
-                    #{idx + 1}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemove(idx);
-                    }}
-                    className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition-all hover:scale-110"
-                    title="Remove image"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+        // Default Relevance (Featured first, then trending, then by title)
+        const aScore = (a.featured ? 3 : 0) + (a.trending ? 1 : 0);
+        const bScore = (b.featured ? 3 : 0) + (b.trending ? 1 : 0);
+        if (bScore !== aScore) return bScore - aScore;
+        return a.title.localeCompare(b.title);
+      });
+  }, [products, activeCategory, searchQuery, minPrice, maxPrice, selectedSize, showInStockOnly, sortBy, productAvgRatings]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -3189,7 +3244,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.filter(p => wishlist.includes(p.id)).map((product, idx) => (
                   <ProductCard 	
-                    key={product.id}
+                    key={`wishlist-product-${product.id || product.code || idx}`}
                     product={product}
                     index={idx}
                     onAddToCart={handleAddToCart}
@@ -3341,7 +3396,7 @@ export default function App() {
                 >
                   {filteredProducts.map((product, idx) => (
                     <ProductCard 	
-                      key={product.id}
+                      key={`catalog-product-${product.id || product.code || idx}`}
                       product={product}
                       index={idx}
                       onAddToCart={handleAddToCart}
@@ -3716,7 +3771,7 @@ export default function App() {
                 >
                   {filteredProducts.map((prod, idx) => (
                     <ProductCard 	
-                      key={prod.id}
+                      key={`showcase-product-${prod.id || prod.code || idx}`}
                       product={prod}
                       index={idx}
                       onAddToCart={handleAddToCart}

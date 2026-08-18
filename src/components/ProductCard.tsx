@@ -23,7 +23,7 @@ interface ProductCardProps {
   index?: number;
 }
 
-export default function ProductCard({
+function ProductCard({
   product,
   onAddToCart,
   onOrderNow,
@@ -555,14 +555,14 @@ export default function ProductCard({
               )}
             </div>
             
-            {(!hasActiveOffer && !(product.timerEndTime || product.timerEndDate)) ? (
-              <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0 self-center">
-                ⚜️ EXCLUSIVE
-              </div>
-            ) : (
+            {hasActiveOffer ? (
               <div className="bg-red-950/85 border border-red-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 text-[8px] sm:text-[9px] text-red-400 font-mono font-bold shrink-0 self-center uppercase">
                 <span className="w-1 h-1 rounded-full bg-red-500 animate-ping shadow-[0_0_4px_#ef4444]" />
                 <span>{product.timerMessage || "FLASH SALE"}</span>
+              </div>
+            ) : (
+              <div className="bg-zinc-900/60 border border-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] text-zinc-400 font-mono uppercase tracking-wider shrink-0 self-center">
+                {product.stock <= 5 && product.stock > 0 ? "🔥 LIMITED STOCK" : "⚜️ EXCLUSIVE"}
               </div>
             )}
           </div>
@@ -812,3 +812,5 @@ export default function ProductCard({
     </motion.div>
   );
 }
+
+export default React.memo(ProductCard);

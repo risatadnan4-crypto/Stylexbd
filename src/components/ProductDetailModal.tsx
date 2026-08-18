@@ -454,7 +454,7 @@ export default function ProductDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto overscroll-contain">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-y-auto overscroll-contain">
       {/* Absolute gray backing dim */}
       <div 
         onClick={onClose}
@@ -462,12 +462,12 @@ export default function ProductDetailModal({
       ></div>
 
       {/* Detail panel card */}
-      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl my-auto bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-3 sm:p-5 md:p-6 text-left shadow-2xl z-10 flex flex-col max-h-[90vh] sm:max-h-[88vh] animate-fade-in gold-glow-border transition-all">
+      <div className="relative w-full max-w-3xl lg:max-w-4xl xl:max-w-5xl my-auto bg-[#0f0822] bg-gradient-to-b from-[#160a33] via-[#0f0822] to-[#0a0418] border border-luxury-gold/20 rounded-2xl p-3 sm:p-4 md:p-5 text-left shadow-2xl z-10 flex flex-col max-h-[95vh] sm:max-h-[92vh] md:max-h-[90vh] animate-fade-in gold-glow-border transition-all">
         
         {/* Close Button top-right */}
         <button 
           onClick={onClose}
-          className="absolute right-4 top-4 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-10"
+          className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 text-white/50 hover:text-luxury-gold hover:rotate-90 hover:scale-110 active:scale-95 transition-all duration-300 p-1.5 rounded-full hover:bg-white/5 border border-transparent hover:border-luxury-gold/30 hover:shadow-[0_0_15px_rgba(212,175,55,0.25)] cursor-pointer z-10"
           title="Close Details"
         >
           <X size={18} />
@@ -479,12 +479,12 @@ export default function ProductDetailModal({
           id="product-modal-scroll-body"
           className="overflow-y-auto flex-1 min-h-0 pr-1 md:pr-2 scrollbar-thin scrollbar-thumb-white/10 overscroll-contain"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mt-1 md:mt-2 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 lg:gap-5 mt-1 items-start">
           
           {/* Left Column Wrapper (Sticky on desktop) */}
-          <div className="md:sticky md:top-2 h-fit w-full space-y-3.5">
+          <div className="md:sticky md:top-0 h-fit w-full space-y-2 sm:space-y-2.5">
             {/* Left Column: Premium Zoom Image with Multi-image Thumbnails */}
-            <div className="flex flex-col md:flex-row-reverse gap-4 items-start w-full">
+            <div className="flex flex-col md:flex-row-reverse gap-2.5 sm:gap-3 items-start w-full">
               <div 
                 onMouseEnter={() => setIsZooming(true)}
                 onMouseLeave={() => setIsZooming(false)}
@@ -494,7 +494,7 @@ export default function ProductDetailModal({
                   const y = ((e.clientY - top) / height) * 100;
                   setZoomPos({ x, y });
                 }}
-                className="w-full max-w-[230px] sm:max-w-[280px] md:max-w-[325px] lg:max-w-[365px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2.5 shadow-xl"
+                className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[250px] lg:max-w-[290px] xl:max-w-[320px] max-h-[210px] sm:max-h-[230px] md:max-h-[240px] lg:max-h-[280px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2 shadow-xl"
               >
                 <img 
                   src={displayImage} 
@@ -513,7 +513,7 @@ export default function ProductDetailModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent pointer-events-none z-0"></div>
 
                 {/* Indicator badge */}
-                <div className={`absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[9px] font-mono uppercase tracking-[0.2em] px-2.5 py-1 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none z-10 ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
+                <div className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/85 backdrop-blur-md border border-luxury-purple-glowing/30 text-[8.5px] font-mono uppercase tracking-[0.2em] px-2 py-0.5 rounded-full flex items-center gap-1.5 transition-all duration-300 pointer-events-none z-10 ${isZooming ? 'opacity-0 scale-95' : 'opacity-100'}`}>
                   <span className="w-1.5 h-1.5 rounded-full bg-luxury-purple-glowing animate-ping"></span>
                   <span className="text-white/80 font-bold">Hover to Zoom Fabric</span>
                 </div>
@@ -521,13 +521,13 @@ export default function ProductDetailModal({
 
               {/* Thumbnails of secondary images (Upload 2, 3 or more than image) */}
               {allImages.length > 1 && (
-                <div className="flex flex-row md:flex-col gap-2 p-1 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1 md:pb-0 w-full md:w-auto md:max-h-[365px]">
+                <div className="flex flex-row md:flex-col gap-1.5 p-0.5 overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 select-none pb-1 md:pb-0 w-full md:w-auto md:max-h-[240px] lg:max-h-[280px]">
                   {allImages.map((img, i) => (
                     <button
                       key={img + i}
                       type="button"
                       onClick={() => setActiveImgUrl(img)}
-                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
+                      className={`w-10 h-10 sm:w-11 sm:h-11 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-lg overflow-hidden border transition-all duration-300 flex-shrink-0 relative cursor-pointer active:scale-95 ${
                         img === displayImage 
                           ? 'border-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105' 
                           : 'border-white/5 hover:border-white/20 hover:scale-105'
@@ -541,18 +541,18 @@ export default function ProductDetailModal({
             </div>
 
             {/* Direct ordering actions (DESKTOP ONLY - placed underneath image on the left) */}
-            <div className="hidden md:block w-full border-t border-white/10 pt-5 mt-4">
+            <div className="hidden md:block w-full border-t border-white/10 pt-2.5 md:pt-3 mt-2 md:mt-2.5">
               {product.stock === 0 ? (
                 <div className="space-y-2 w-full">
                   {isNotifyMeDeactivated ? (
                     <button
                       disabled
-                      className="w-full bg-neutral-950 border border-neutral-800/60 text-neutral-500 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-50 animate-fade-in"
+                      className="w-full bg-neutral-950 border border-neutral-800/60 text-neutral-500 text-[11px] font-display font-black uppercase tracking-[0.2em] py-3.5 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-50 animate-fade-in"
                     >
                       👑 Sold Out / Unavailable
                     </button>
                   ) : showNotifyForm ? (
-                    <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-5 rounded-[24px] space-y-4 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
+                    <div className="bg-white/[0.08] backdrop-blur-[20px] border border-white/15 p-4 rounded-[20px] space-y-3 shadow-[0_25px_60px_rgba(0,0,0,0.35)] animate-fade-in">
                       <div className="flex items-center justify-between border-b border-white/10 pb-2">
                         <div className="flex items-center gap-1.5 text-[#FFD700] font-mono text-[10px] uppercase tracking-wider font-extrabold">
                           <span>Restock Intel Alert</span>
@@ -566,21 +566,21 @@ export default function ProductDetailModal({
                       </div>
 
                       {notifySuccess ? (
-                        <div className="flex flex-col items-center justify-center py-4 text-center space-y-2.5">
-                          <div className="w-10 h-10 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
-                            <Check size={20} />
+                        <div className="flex flex-col items-center justify-center py-3 text-center space-y-2">
+                          <div className="w-9 h-9 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-400 animate-pulse">
+                            <Check size={18} />
                           </div>
                           <p className="text-xs text-emerald-300 font-mono font-bold uppercase tracking-wider">ALERT LOCKED IN!</p>
-                          <p className="text-[11px] text-white/70 leading-relaxed px-4">We'll alert your secure private email channel the second restock lands.</p>
+                          <p className="text-[10.5px] text-white/70 leading-relaxed px-2">We'll alert your secure private email channel the second restock lands.</p>
                         </div>
                       ) : (
-                        <form onSubmit={handleNotifySubmit} className="space-y-4">
-                          <p className="text-[11px] text-white/60 leading-relaxed font-sans">
+                        <form onSubmit={handleNotifySubmit} className="space-y-3">
+                          <p className="text-[10.5px] text-white/60 leading-relaxed font-sans">
                             Save your email below. We'll automatically ping you when <strong className="text-white font-semibold">{product.title}</strong> is restocked.
                           </p>
                           
                           <div className="relative text-left">
-                            <label className="block text-xs font-semibold text-white pl-0.5 mb-1.5">
+                            <label className="block text-xs font-semibold text-white pl-0.5 mb-1">
                               VIP Email Address
                             </label>
                             <input
@@ -589,7 +589,7 @@ export default function ProductDetailModal({
                               placeholder="Enter your VIP email address"
                               value={notifyEmail}
                               onChange={(e) => setNotifyEmail(e.target.value)}
-                              className="w-full h-[56px] bg-white/[0.08] text-white text-[16px] border-2 border-white/15 rounded-[16px] py-[16px] px-[18px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
+                              className="w-full h-[48px] bg-white/[0.08] text-white text-[15px] border-2 border-white/15 rounded-[14px] py-[12px] px-[16px] transition-all duration-300 ease-out focus:bg-white/[0.12] focus:scale-[1.01] hover:scale-[1.01] focus:border-[#FFD700] focus:shadow-[0_0_15px_rgba(255,215,0,0.3)] focus:outline-none placeholder-white/60 font-sans font-medium"
                             />
                           </div>
 
@@ -600,7 +600,7 @@ export default function ProductDetailModal({
                           <button
                             type="submit"
                             disabled={submittingNotify}
-                            className="w-full h-[56px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-sm uppercase tracking-widest rounded-[18px] hover:scale-[1.01] hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
+                            className="w-full h-[48px] bg-gradient-to-r from-[#FFD700] to-[#FFB700] text-black font-bold text-xs uppercase tracking-widest rounded-[16px] hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer disabled:opacity-50"
                           >
                             {submittingNotify ? "Processing..." : "Notify When Back in Stock"}
                           </button>
@@ -610,15 +610,15 @@ export default function ProductDetailModal({
                   ) : (
                     <button
                       onClick={() => { setShowNotifyForm(true); setNotifySuccess(false); setNotifyError(''); }}
-                      className="w-full bg-gradient-to-r from-[#241245] via-[#3a1a6f] to-[#241245] border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.35)] cursor-pointer animate-fade-in"
+                      className="w-full bg-gradient-to-r from-[#241245] via-[#3a1a6f] to-[#241245] border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white text-[11px] font-display font-black uppercase tracking-[0.2em] py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(154,77,255,0.35)] cursor-pointer animate-fade-in"
                     >
                       🔔 Notify Me When Available
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 items-center">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-2.5 items-center">
                     <AnimatedAddToCartButton
                       onClick={() => {
                         onAddToCart(product, selectedSize, selectedColor?.name, selectedColor?.imageUrl);
@@ -647,10 +647,10 @@ export default function ProductDetailModal({
 
                   <button
                     onClick={handleWhatsAppDirect}
-                    className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[11px] font-display font-black uppercase tracking-[0.2em] py-4 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.02] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
+                    className="w-full border border-emerald-500/40 hover:border-emerald-400 bg-gradient-to-r from-[#03140b] via-[#062414] to-[#03140b] text-emerald-400 hover:text-emerald-300 text-[10.5px] font-display font-black uppercase tracking-[0.18em] py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:shadow-[0_4px_30px_rgba(16,185,129,0.45)] hover:scale-[1.01] active:scale-95 cursor-pointer relative overflow-hidden group/wa"
                   >
                     <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover/wa:opacity-100 transition-opacity duration-300" />
-                    <Send size={14} className="text-emerald-400 group-hover/wa:animate-bounce" />
+                    <Send size={13} className="text-emerald-400 group-hover/wa:animate-bounce" />
                     <span>Order Via WhatsApp</span>
                   </button>
                 </div>

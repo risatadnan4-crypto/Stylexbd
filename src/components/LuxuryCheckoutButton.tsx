@@ -410,7 +410,7 @@ export default function LuxuryCheckoutButton({
         .luxury-btn {
           position: relative;
           width: 100%;
-          height: 60px;
+          height: 52px;
           background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(147, 51, 234, 0.45) 25%, rgba(88, 28, 135, 0.6) 50%, rgba(30, 10, 50, 0.88) 75%, rgba(6, 2, 12, 0.98) 100%);
           backdrop-filter: blur(28px) saturate(210%) brightness(110%);
           -webkit-backdrop-filter: blur(28px) saturate(210%) brightness(110%);

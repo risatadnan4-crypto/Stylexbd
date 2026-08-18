@@ -4214,15 +4214,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         type="number" required value={formPrice} 
                         onChange={(e) => {
                           const val = e.target.value;
-                          const newPrice = val === '' ? '' : Number(val);
-                          setFormPrice(newPrice);
-                          if (newPrice !== '' && formOfferDiscountPercent !== '' && Number(formOfferDiscountPercent) > 0) {
-                            const calculated = Math.round(Number(newPrice) * (1 - Number(formOfferDiscountPercent) / 100));
-                            setFormOfferPrice(calculated > 0 && calculated < Number(newPrice) ? calculated : '');
-                          } else if (newPrice !== '' && formOfferPrice !== '' && Number(formOfferPrice) >= Number(newPrice)) {
-                            setFormOfferPrice('');
-                            setFormOfferDiscountPercent('');
-                          }
+                          setFormPrice(val === '' ? '' : Number(val));
                         }}
                         placeholder="e.g. 449"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
@@ -4249,22 +4241,8 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           type="number" 
                           value={formOfferPrice} 
                           onChange={(e) => {
-                            const valStr = e.target.value;
-                            if (valStr === '') {
-                              setFormOfferPrice('');
-                              setFormOfferDiscountPercent('');
-                            } else {
-                              const valNum = Number(valStr);
-                              const numPrice = Number(formPrice);
-                              if (numPrice > 0 && valNum < numPrice) {
-                                setFormOfferPrice(valNum);
-                                const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
-                                setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
-                              } else {
-                                setFormOfferPrice(valNum);
-                                setFormOfferDiscountPercent('');
-                              }
-                            }
+                            const val = e.target.value;
+                            setFormOfferPrice(val === '' ? '' : Number(val));
                           }}
                           placeholder="Leave empty for regular price"
                           className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
@@ -4598,28 +4576,47 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <button
                           type="button"
-                          onClick={() => setFormSizes('S, M, L, XL')}
+                          onClick={() => {
+                            const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                            const toAdd = ['S', 'M', 'L', 'XL'];
+                            const merged = Array.from(new Set([...current, ...toAdd]));
+                            setFormSizes(merged.join(', '));
+                          }}
                           className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
                         >
                           + S, M, L, XL
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFormSizes('M, L, XL, XXL')}
+                          onClick={() => {
+                            const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                            const toAdd = ['M', 'L', 'XL', 'XXL'];
+                            const merged = Array.from(new Set([...current, ...toAdd]));
+                            setFormSizes(merged.join(', '));
+                          }}
                           className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
                         >
                           + M-XXL
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFormSizes('28, 30, 32, 34, 36')}
+                          onClick={() => {
+                            const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                            const toAdd = ['28', '30', '32', '34', '36'];
+                            const merged = Array.from(new Set([...current, ...toAdd]));
+                            setFormSizes(merged.join(', '));
+                          }}
                           className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
                         >
                           + Pants (28-36)
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFormSizes('Free Size')}
+                          onClick={() => {
+                            const current = formSizes.split(',').map(s => s.trim()).filter(Boolean);
+                            const merged = Array.from(new Set([...current, 'Free Size']));
+                            setFormSizes(merged.join(', '));
+                          }}
                           className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 hover:border-luxury-gold/40 transition-all cursor-pointer"
                         >
                           + Free Size
@@ -4920,21 +4917,8 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               type="number" 
                               value={formOfferPrice} 
                               onChange={(e) => {
-                                const valStr = e.target.value;
-                                if (valStr === '') {
-                                  setFormOfferPrice('');
-                                  setFormOfferDiscountPercent('');
-                                } else {
-                                  const valNum = Number(valStr);
-                                  setFormOfferPrice(valNum);
-                                  const numPrice = Number(formPrice);
-                                  if (numPrice > 0 && valNum < numPrice) {
-                                    const pct = Math.round(((numPrice - valNum) / numPrice) * 100);
-                                    setFormOfferDiscountPercent(pct > 0 && pct <= 100 ? pct : '');
-                                  } else {
-                                    setFormOfferDiscountPercent('');
-                                  }
-                                }
+                                const val = e.target.value;
+                                setFormOfferPrice(val === '' ? '' : Number(val));
                               }}
                               placeholder="e.g. 850"
                               className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
@@ -4946,19 +4930,8 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               type="number" 
                               value={formOfferDiscountPercent} 
                               onChange={(e) => {
-                                const valStr = e.target.value;
-                                if (valStr === '') {
-                                  setFormOfferDiscountPercent('');
-                                  setFormOfferPrice('');
-                                } else {
-                                  const valNum = Number(valStr);
-                                  setFormOfferDiscountPercent(valNum);
-                                  const numPrice = Number(formPrice);
-                                  if (numPrice > 0 && valNum > 0 && valNum < 100) {
-                                    const calculatedPrice = Math.round(numPrice * (1 - valNum / 100));
-                                    setFormOfferPrice(calculatedPrice);
-                                  }
-                                }
+                                const val = e.target.value;
+                                setFormOfferDiscountPercent(val === '' ? '' : Number(val));
                               }}
                               placeholder="e.g. 15"
                               min={1}
