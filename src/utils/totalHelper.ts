@@ -82,20 +82,13 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer is active if valid offer price exists:
-  // 1) If an active countdown timer is configured: offer is active while timer is running (not expired and started)
-  // 2) If no countdown timer is active: standard product offer/discount price applies directly
-  let hasActiveOffer = false;
-  if (hasValidOfferPrice) {
-    if (hasTimerConfig && isTimerActive) {
-      hasActiveOffer = !timerExpired && !isPendingStart;
-    } else {
-      hasActiveOffer = true;
-    }
-  }
+  // Offer price is active whenever a valid discounted offer price is configured:
+  // If a start time is in the future, it is pending start.
+  // Otherwise, if rawOfferPrice is less than originalPrice, show the discount and old price!
+  const hasActiveOffer = hasValidOfferPrice && !isPendingStart;
 
-  const currentPrice = (hasActiveOffer && rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice) 
-    ? rawOfferPrice 
+  const currentPrice = hasActiveOffer && rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice
+    ? rawOfferPrice
     : originalPrice;
   const discountPercent = hasActiveOffer && originalPrice > 0 && currentPrice < originalPrice
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
@@ -107,7 +100,7 @@ export function getProductPriceDetails(product?: Product | null) {
     hasActiveOffer: hasActiveOffer && currentPrice < originalPrice,
     discountPercent,
     timerExpired: hasTimerConfig ? timerExpired : false,
-    timerActive: isTimerActive && hasTimerConfig && !timerExpired,
+    timerActive: isTimerActive && hasTimerConfig && !timerExpired && !isPendingStart,
   };
 }
 
