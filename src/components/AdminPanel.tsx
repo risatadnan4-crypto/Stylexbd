@@ -2239,6 +2239,52 @@ export default function AdminPanel({
     }
   };
 
+  // Dedicated single file uploader for replacing the primary cover photo directly
+  const handleReplacePrimaryImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setFormError('');
+    setUploadProgress(`Optimizing and setting new primary cover photo...`);
+
+    try {
+      const url = await uploadSingleFile(files[0]);
+      if (url) {
+        const oldPrimary = formImageUrl;
+        setFormImageUrl(url);
+        if (oldPrimary && !formImages.includes(oldPrimary)) {
+          setFormImages(prev => [oldPrimary, ...prev]);
+        }
+        setUploadProgress(`Successfully replaced primary cover photo!`);
+        setAdminToast({ message: 'Primary cover photo updated successfully!', type: 'success' });
+      }
+    } catch (err: any) {
+      console.error("Error replacing primary cover photo:", err);
+      setFormError(`Failed to upload cover photo: ${err.message || 'Error'}`);
+    }
+  };
+
+  // Dedicated file uploader for color variant photo
+  const handleUploadColorVariantImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setFormError('');
+    setUploadProgress(`Uploading color variant photo...`);
+
+    try {
+      const url = await uploadSingleFile(files[0]);
+      if (url) {
+        setColorImageInput(url);
+        setUploadProgress(`Variant photo uploaded! Click "ADD COLOR" to save.`);
+        setAdminToast({ message: 'Color variant photo uploaded!', type: 'success' });
+      }
+    } catch (err: any) {
+      console.error("Error uploading color variant photo:", err);
+      setFormError(`Failed to upload color variant photo: ${err.message || 'Error'}`);
+    }
+  };
+
   // Primary & multi-image file uploader (supports selecting 1, 2, 3 or multiple photos at once)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -2258,19 +2304,23 @@ export default function AdminPanel({
       }
 
       if (uploadedUrls.length > 0) {
-        // If no primary image set yet, set the 1st one as primary cover
+        // If 1 image uploaded or no primary image exists, prioritize setting as primary cover
         if (!formImageUrl) {
           setFormImageUrl(uploadedUrls[0]);
           if (uploadedUrls.length > 1) {
             setFormImages((prev) => [...prev, ...uploadedUrls.slice(1)]);
           }
+        } else if (uploadedUrls.length === 1) {
+          // When 1 new photo is uploaded, make it the primary cover and preserve previous cover in gallery
+          const oldPrimary = formImageUrl;
+          setFormImageUrl(uploadedUrls[0]);
+          setFormImages((prev) => {
+            const filtered = prev.filter(img => img !== uploadedUrls[0]);
+            return oldPrimary && oldPrimary !== uploadedUrls[0] ? [oldPrimary, ...filtered] : filtered;
+          });
         } else {
-          // If primary image already exists, replace primary if only 1 file chosen, or append to gallery
-          if (uploadedUrls.length === 1 && formImages.length === 0) {
-            setFormImageUrl(uploadedUrls[0]);
-          } else {
-            setFormImages((prev) => [...prev, ...uploadedUrls]);
-          }
+          // When multiple photos are uploaded, set 1st as primary (if preferred) or append to gallery
+          setFormImages((prev) => [...prev, ...uploadedUrls]);
         }
         setUploadProgress(`Successfully uploaded ${uploadedUrls.length} product ${uploadedUrls.length === 1 ? 'photo' : 'photos'}!`);
       }
@@ -5342,13 +5392,24 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               {formImageUrl}
                             </p>
                             <div className="flex items-center gap-2 pt-1 flex-wrap">
+                              <label className="relative inline-flex items-center gap-1 text-[9.5px] font-mono font-bold bg-luxury-gold hover:bg-white text-black border border-luxury-gold px-3 py-1 rounded transition-all cursor-pointer shadow">
+                                <span>📁 Replace Main Photo</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleReplacePrimaryImage}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                  title="Upload and replace main cover photo"
+                                />
+                              </label>
                               {formImages.length > 0 && (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     if (formImages.length > 0) {
+                                      const oldPrimary = formImageUrl;
                                       setFormImageUrl(formImages[0]);
-                                      setFormImages(prev => [formImageUrl, ...prev.slice(1)]);
+                                      setFormImages(prev => [oldPrimary, ...prev.slice(1)]);
                                     }
                                   }}
                                   className="text-[9.5px] font-mono font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 px-2.5 py-1 rounded transition-all cursor-pointer"
@@ -5624,14 +5685,26 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40 mb-1">Variant Image URL (Optional)</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[9px] uppercase font-mono tracking-wider text-white/40">Variant Photo (Optional)</label>
+                          <label className="relative inline-flex items-center gap-1 text-[8.5px] font-mono text-luxury-gold hover:text-white bg-luxury-gold/10 hover:bg-luxury-gold/20 border border-luxury-gold/30 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
+                            <span>📷 Upload Photo</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadColorVariantImage}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              title="Upload color photo"
+                            />
+                          </label>
+                        </div>
                         <div className="flex gap-2">
                           <input 
                             type="text" 
                             value={colorImageInput} 
                             onChange={(e) => setColorImageInput(e.target.value)}
-                            placeholder="Variant image link..."
-                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold"
+                            placeholder="Image link or upload photo above..."
+                            className="flex-1 bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                           />
                           <button
                             type="button"
@@ -5650,7 +5723,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 alert("Please enter at least a Color Name.");
                               }
                             }}
-                            className="bg-luxury-gold hover:bg-white text-luxury-black font-mono text-[9px] font-bold px-3 rounded transition-all duration-300"
+                            className="bg-luxury-gold hover:bg-white text-luxury-black font-mono text-[9px] font-bold px-3 rounded transition-all duration-300 shrink-0 cursor-pointer"
                           >
                             ADD COLOR
                           </button>
