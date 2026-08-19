@@ -2193,48 +2193,34 @@ export default function AdminPanel({
     });
 
     const fileNameClean = `uploaded_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+    const candidateBuckets = ['media', 'products', 'banners', 'gallery', 'uploads', 'assets', 'images'];
 
-    // ATTEMPT 1: Try direct upload to Supabase bucket 'media' (falls back to 'products' if missing)
-    try {
-      let activeBucket = 'media';
-      let { data: uploadData, error: uploadError } = await supabase.storage
-        .from(activeBucket)
-        .upload(fileNameClean, compressed.blob, {
-          contentType: file.type || (isVideoFile ? 'video/mp4' : 'image/jpeg'),
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.warn(`Direct storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, uploadError.message);
-        activeBucket = 'products';
-        const fallbackRes = await supabase.storage
+    // ATTEMPT 1: Try direct upload to Supabase across cascading buckets (media, products, banners, gallery, uploads, assets)
+    for (const activeBucket of candidateBuckets) {
+      try {
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from(activeBucket)
           .upload(fileNameClean, compressed.blob, {
             contentType: file.type || (isVideoFile ? 'video/mp4' : 'image/jpeg'),
             cacheControl: '3600',
             upsert: true
           });
-        uploadData = fallbackRes.data;
-        uploadError = fallbackRes.error;
-      }
 
-      if (!uploadError && uploadData) {
-        const { data: publicUrlData } = supabase.storage
-          .from(activeBucket)
-          .getPublicUrl(fileNameClean);
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabase.storage
+            .from(activeBucket)
+            .getPublicUrl(fileNameClean);
 
-        if (publicUrlData?.publicUrl) {
-          return publicUrlData.publicUrl;
+          if (publicUrlData?.publicUrl) {
+            return publicUrlData.publicUrl;
+          }
         }
-      } else {
-        console.warn("Direct storage upload failed, cascading to server-side endpoint:", uploadError?.message);
+      } catch (directErr) {
+        // Try next bucket
       }
-    } catch (directErr: any) {
-      console.warn("Direct storage connection error, cascading to server-side:", directErr.message);
     }
 
-    // ATTEMPT 2: Fallback to server-side /api/upload endpoint
+    // ATTEMPT 2: Fallback to server-side /api/upload endpoint (also tests all buckets)
     if (!compressed.base64) {
       throw new Error("Could not prepare image binary data.");
     }
@@ -2430,33 +2416,71 @@ export default function AdminPanel({
     e.preventDefault();
     setFormError('');
 
-    if (!formTitle.trim()) {
-      setFormError('Product Title is required.');
-      return;
-    }
-    if (!formImageUrl.trim()) {
-      setFormError('Product Image source is required. Please upload an image first or insert a direct URL in the configuration field below.');
+    const trimmedTitle = formTitle.trim();
+    if (!trimmedTitle) {
+      const msg = 'Product Title is required (পণ্যের নাম আবশ্যক).';
+      setFormError(msg);
+      setAdminToast({ message: msg, type: 'error' });
       return;
     }
 
-    // Validate URL formats for canonicalUrl and ogImage using validateUrl helper
+    const finalPrice = Number(formPrice);
+    if (formPrice === '' || isNaN(finalPrice) || finalPrice <= 0) {
+      const msg = 'Please enter a valid regular price greater than 0 (সঠিক মূল্য দিন).';
+      setFormError(msg);
+      setAdminToast({ message: msg, type: 'error' });
+      return;
+    }
+
+    // Resolve Main & Gallery Images
+    let finalImageUrl = formImageUrl ? formImageUrl.trim() : '';
+    let finalImages = formImages.map(img => typeof img === 'string' ? img.trim() : '').filter(Boolean);
+
+    if (!finalImageUrl && finalImages.length > 0) {
+      finalImageUrl = finalImages[0];
+      finalImages = finalImages.slice(1);
+    }
+
+    if (!finalImageUrl) {
+      const msg = 'Product image is required. Please upload at least one photo or paste an image URL (পণ্যের ছবি আবশ্যক).';
+      setFormError(msg);
+      setAdminToast({ message: msg, type: 'error' });
+      return;
+    }
+
+    // Offer Price Validation & Synchronization
+    const rawOffer = (formOfferPrice !== '' && formOfferPrice !== null && !isNaN(Number(formOfferPrice))) 
+      ? Number(formOfferPrice) 
+      : null;
+
+    if (rawOffer !== null) {
+      if (rawOffer <= 0) {
+        const msg = 'Offer price must be greater than 0 (অফার মূল্য ০ এর বেশি হতে হবে).';
+        setFormError(msg);
+        setAdminToast({ message: msg, type: 'error' });
+        return;
+      }
+      if (rawOffer >= finalPrice) {
+        const msg = `Offer price (৳${rawOffer}) must be lower than regular price (৳${finalPrice}).`;
+        setFormError(msg);
+        setAdminToast({ message: msg, type: 'error' });
+        return;
+      }
+    }
+    const finalOfferPrice = (rawOffer !== null && rawOffer > 0 && rawOffer < finalPrice) ? rawOffer : null;
+
+    // Validate URL formats for canonicalUrl and ogImage
     if (formCanonicalUrl && formCanonicalUrl.trim() !== '' && !validateUrl(formCanonicalUrl)) {
       const errorMsg = 'Invalid Canonical URL format. Please enter a valid HTTP or HTTPS URL (e.g. https://example.com/product).';
       setFormError(errorMsg);
-      setAdminToast({
-        message: errorMsg,
-        type: 'error'
-      });
+      setAdminToast({ message: errorMsg, type: 'error' });
       return;
     }
 
     if (formOgImage && formOgImage.trim() !== '' && !validateUrl(formOgImage)) {
       const errorMsg = 'Invalid OG Image URL format. Please enter a valid HTTP or HTTPS image URL.';
       setFormError(errorMsg);
-      setAdminToast({
-        message: errorMsg,
-        type: 'error'
-      });
+      setAdminToast({ message: errorMsg, type: 'error' });
       return;
     }
 
@@ -2466,14 +2490,14 @@ export default function AdminPanel({
       .map(s => s.trim())
       .filter(s => Boolean(s) && s.toUpperCase() !== 'STANDARD');
 
-    const finalPrice = Number(formPrice);
-    const rawOffer = formOfferPrice !== '' && !isNaN(Number(formOfferPrice)) ? Number(formOfferPrice) : null;
-    const finalOfferPrice = (rawOffer !== null && rawOffer > 0 && rawOffer < finalPrice) ? rawOffer : null;
+    const finalCode = (formCode && formCode.trim()) 
+      ? formCode.trim().toUpperCase() 
+      : `XP-${Math.floor(100 + Math.random() * 900)}`;
 
     const productPayload = {
-      code: formCode || undefined,
-      title: formTitle,
-      description: formDescription,
+      code: finalCode,
+      title: trimmedTitle,
+      description: formDescription || '',
       price: finalPrice,
       deliveryPrice: Number(formDeliveryPrice || formDeliveryPriceDhaka || formDeliveryCharge || 100),
       deliveryPriceDhaka: formDeliveryPriceDhaka !== undefined && formDeliveryPriceDhaka !== null && !isNaN(Number(formDeliveryPriceDhaka)) ? Number(formDeliveryPriceDhaka) : 100,
@@ -2484,32 +2508,32 @@ export default function AdminPanel({
       deliveryPriceSylhet: formDeliveryPriceSylhet !== undefined && formDeliveryPriceSylhet !== null && !isNaN(Number(formDeliveryPriceSylhet)) ? Number(formDeliveryPriceSylhet) : 150,
       deliveryPriceRangpur: formDeliveryPriceRangpur !== undefined && formDeliveryPriceRangpur !== null && !isNaN(Number(formDeliveryPriceRangpur)) ? Number(formDeliveryPriceRangpur) : 150,
       deliveryPriceMymensingh: formDeliveryPriceMymensingh !== undefined && formDeliveryPriceMymensingh !== null && !isNaN(Number(formDeliveryPriceMymensingh)) ? Number(formDeliveryPriceMymensingh) : 150,
-      stock: Number(formStock),
-      category: formCategory,
+      stock: Math.max(0, isNaN(Number(formStock)) ? 0 : Number(formStock)),
+      category: formCategory || 'PREMIUM MEN',
       sizes: parsedSizes,
-      dimensions: formDimensions,
+      dimensions: formDimensions || '',
       whyBuy: formWhyBuy || "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
-      imageUrl: formImageUrl,
-      images: formImages,
-      colors: formColors,
+      imageUrl: finalImageUrl,
+      images: finalImages,
+      colors: formColors || [],
       trending: true,
       featured: true,
-      isPinned: formIsPinned,
-      freeDelivery: formFreeDelivery,
-      lotteryEligible: formLotteryEligible,
-      couponCode: formCouponCode,
-      couponDiscountPercent: Number(formCouponDiscountPercent),
+      isPinned: Boolean(formIsPinned),
+      freeDelivery: Boolean(formFreeDelivery),
+      lotteryEligible: Boolean(formLotteryEligible),
+      couponCode: formCouponCode || '',
+      couponDiscountPercent: Number(formCouponDiscountPercent || 0),
       offerPrice: finalOfferPrice,
       timerOfferPrice: finalOfferPrice,
       timerStartTime: formTimerStartTime || null,
       timerEndTime: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
-      timerActive: formTimerActive,
-      bkashNumber: formBkashNumber,
-      nagadNumber: formNagadNumber,
-      paymentType: formPaymentType,
+      timerActive: Boolean(formTimerActive),
+      bkashNumber: formBkashNumber || '',
+      nagadNumber: formNagadNumber || '',
+      paymentType: formPaymentType || 'cod',
       paymentPercentage: Number(formPaymentPercentage || 10),
-      deliveryCharge: Number(formDeliveryCharge || 100),
+      deliveryCharge: Number(formDeliveryCharge || formDeliveryPriceDhaka || 100),
       deliveryDays: formDeliveryDays || '3-5',
       likes: Number(formLikes || 0),
       seoTitle: formSeoTitle || null,
@@ -4021,21 +4045,28 @@ CREATE POLICY insert_all_orders ON public.orders FOR ALL USING (true) WITH CHECK
 CREATE POLICY insert_all_chats ON public.chats FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY insert_all_settings ON public.settings FOR ALL USING (true) WITH CHECK (true);
 
--- 8. Create and Configure 'media' & 'products' Storage Buckets (if they don't exist yet)
+-- 8. Create and Configure 'media', 'products', 'banners', 'gallery', 'uploads', 'assets' Storage Buckets
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('media', 'media', true), ('products', 'products', true)
+VALUES 
+    ('media', 'media', true),
+    ('products', 'products', true),
+    ('banners', 'banners', true),
+    ('gallery', 'gallery', true),
+    ('uploads', 'uploads', true),
+    ('assets', 'assets', true),
+    ('images', 'images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Allows open read/write access to storage.objects in the buckets for seamless anonymous uploads
+-- Allows open read/write access to storage.objects in all buckets for seamless uploads
 DROP POLICY IF EXISTS "Allow public select on buckets" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public insert on buckets" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public update on buckets" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public delete on buckets" ON storage.objects;
 
-CREATE POLICY "Allow public select on buckets" ON storage.objects FOR SELECT TO public USING (bucket_id IN ('media', 'products'));
-CREATE POLICY "Allow public insert on buckets" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id IN ('media', 'products'));
-CREATE POLICY "Allow public update on buckets" ON storage.objects FOR UPDATE TO public USING (bucket_id IN ('media', 'products'));
-CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO public USING (bucket_id IN ('media', 'products'));
+CREATE POLICY "Allow public select on buckets" ON storage.objects FOR SELECT TO public USING (bucket_id IN ('media', 'products', 'banners', 'gallery', 'uploads', 'assets', 'images'));
+CREATE POLICY "Allow public insert on buckets" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id IN ('media', 'products', 'banners', 'gallery', 'uploads', 'assets', 'images'));
+CREATE POLICY "Allow public update on buckets" ON storage.objects FOR UPDATE TO public USING (bucket_id IN ('media', 'products', 'banners', 'gallery', 'uploads', 'assets', 'images'));
+CREATE POLICY "Allow public delete on buckets" ON storage.objects FOR DELETE TO public USING (bucket_id IN ('media', 'products', 'banners', 'gallery', 'uploads', 'assets', 'images'));
 
 -- 9. Create Carts Table & Policies for Persistent Shopping Carts
 CREATE TABLE IF NOT EXISTS public.carts (
@@ -4281,7 +4312,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         type="number" required value={formPrice} 
                         onChange={(e) => {
                           const val = e.target.value;
-                          setFormPrice(val === '' ? '' : Number(val));
+                          const newP = val === '' ? '' : Number(val);
+                          setFormPrice(newP);
+                          if (typeof newP === 'number' && newP > 0 && typeof formOfferDiscountPercent === 'number' && formOfferDiscountPercent > 0 && formOfferDiscountPercent < 100) {
+                            setFormOfferPrice(Math.round(newP * (1 - formOfferDiscountPercent / 100)));
+                          } else if (typeof newP === 'number' && newP > 0 && typeof formOfferPrice === 'number' && formOfferPrice < newP) {
+                            setFormOfferDiscountPercent(Math.round(((newP - formOfferPrice) / newP) * 100));
+                          }
                         }}
                         placeholder="e.g. 449"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
@@ -4303,17 +4340,45 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           </button>
                         )}
                       </div>
-                      <div className="relative">
-                        <input 
-                          type="number" 
-                          value={formOfferPrice} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setFormOfferPrice(val === '' ? '' : Number(val));
-                          }}
-                          placeholder="Leave empty for regular price"
-                          className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            value={formOfferPrice} 
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const newOffer = val === '' ? '' : Number(val);
+                              setFormOfferPrice(newOffer);
+                              if (typeof newOffer === 'number' && typeof formPrice === 'number' && formPrice > 0 && newOffer < formPrice) {
+                                setFormOfferDiscountPercent(Math.round(((formPrice - newOffer) / formPrice) * 100));
+                              } else if (newOffer === '') {
+                                setFormOfferDiscountPercent('');
+                              }
+                            }}
+                            placeholder="Offer Price (৳)"
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                          />
+                        </div>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            value={formOfferDiscountPercent} 
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const newPercent = val === '' ? '' : Number(val);
+                              setFormOfferDiscountPercent(newPercent);
+                              if (typeof newPercent === 'number' && newPercent > 0 && newPercent < 100 && typeof formPrice === 'number' && formPrice > 0) {
+                                setFormOfferPrice(Math.round(formPrice * (1 - newPercent / 100)));
+                              } else if (newPercent === '') {
+                                setFormOfferPrice('');
+                              }
+                            }}
+                            placeholder="Discount (%)"
+                            min={1}
+                            max={99}
+                            className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -4985,7 +5050,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               value={formOfferPrice} 
                               onChange={(e) => {
                                 const val = e.target.value;
-                                setFormOfferPrice(val === '' ? '' : Number(val));
+                                const newOffer = val === '' ? '' : Number(val);
+                                setFormOfferPrice(newOffer);
+                                if (typeof newOffer === 'number' && typeof formPrice === 'number' && formPrice > 0 && newOffer < formPrice) {
+                                  setFormOfferDiscountPercent(Math.round(((formPrice - newOffer) / formPrice) * 100));
+                                } else if (newOffer === '') {
+                                  setFormOfferDiscountPercent('');
+                                }
                               }}
                               placeholder="e.g. 850"
                               className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
@@ -4998,11 +5069,17 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                               value={formOfferDiscountPercent} 
                               onChange={(e) => {
                                 const val = e.target.value;
-                                setFormOfferDiscountPercent(val === '' ? '' : Number(val));
+                                const newPercent = val === '' ? '' : Number(val);
+                                setFormOfferDiscountPercent(newPercent);
+                                if (typeof newPercent === 'number' && newPercent > 0 && newPercent < 100 && typeof formPrice === 'number' && formPrice > 0) {
+                                  setFormOfferPrice(Math.round(formPrice * (1 - newPercent / 100)));
+                                } else if (newPercent === '') {
+                                  setFormOfferPrice('');
+                                }
                               }}
                               placeholder="e.g. 15"
                               min={1}
-                              max={100}
+                              max={99}
                               className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2 px-2.5 focus:outline-none focus:border-luxury-gold font-mono"
                             />
                           </div>

@@ -3601,7 +3601,67 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
 
     res.json(target);
   } else {
-    res.status(404).json({ message: "Product not found" });
+    // If not found in memory array, create as new product with requested ID
+    const b = req.body;
+    const newProd: Product = {
+      ...b,
+      id: targetId,
+      code: b.code || `XP-${Math.floor(100 + Math.random() * 900)}`,
+      title: b.title || 'Custom Product',
+      description: b.description || '',
+      price: Number(b.price || 0),
+      stock: Number(b.stock || 0),
+      category: b.category || 'PREMIUM MEN',
+      imageUrl: b.imageUrl || '',
+      images: Array.isArray(b.images) ? b.images : [],
+      colors: Array.isArray(b.colors) ? b.colors : [],
+      sizes: Array.isArray(b.sizes) ? b.sizes : (typeof b.sizes === 'string' ? b.sizes.split(',').map((s: string) => s.trim()) : []),
+      dimensions: b.dimensions || '',
+      whyBuy: b.whyBuy || '',
+      trending: b.trending !== undefined ? !!b.trending : true,
+      featured: b.featured !== undefined ? !!b.featured : true,
+      isPinned: !!b.isPinned,
+      deliveryPrice: Number(b.deliveryPrice || 100),
+      deliveryPriceDhaka: Number(b.deliveryPriceDhaka || 100),
+      deliveryPriceChattogram: Number(b.deliveryPriceChattogram || 150),
+      deliveryPriceRajshahi: Number(b.deliveryPriceRajshahi || 150),
+      deliveryPriceKhulna: Number(b.deliveryPriceKhulna || 150),
+      deliveryPriceBarishal: Number(b.deliveryPriceBarishal || 150),
+      deliveryPriceSylhet: Number(b.deliveryPriceSylhet || 150),
+      deliveryPriceRangpur: Number(b.deliveryPriceRangpur || 150),
+      deliveryPriceMymensingh: Number(b.deliveryPriceMymensingh || 150),
+      offerPrice: b.offerPrice !== undefined && b.offerPrice !== null ? Number(b.offerPrice) : null,
+      timerOfferPrice: b.timerOfferPrice !== undefined && b.timerOfferPrice !== null ? Number(b.timerOfferPrice) : (b.offerPrice !== undefined && b.offerPrice !== null ? Number(b.offerPrice) : null),
+      timerStartTime: b.timerStartTime || null,
+      timerEndTime: b.timerEndTime || null,
+      timerMessage: b.timerMessage || null,
+      timerActive: !!b.timerActive,
+      bkashNumber: b.bkashNumber || '',
+      nagadNumber: b.nagadNumber || '',
+      paymentType: b.paymentType || 'cod',
+      paymentPercentage: Number(b.paymentPercentage || 10),
+      deliveryCharge: Number(b.deliveryCharge || 100),
+      deliveryDays: b.deliveryDays || '3-5',
+      freeDelivery: !!b.freeDelivery,
+      likes: Number(b.likes || 0)
+    };
+
+    db.products.push(newProd);
+    saveDB();
+
+    try {
+      const payload: any = {
+        ...newProd,
+        images: JSON.stringify(newProd.images || []),
+        sizes: JSON.stringify(newProd.sizes || []),
+        colors: JSON.stringify(newProd.colors || [])
+      };
+      await upsertProductToSupabase(payload);
+    } catch (e: any) {
+      console.warn("⚠️ Upserting created product error:", e.message);
+    }
+
+    res.json(newProd);
   }
 });
 
@@ -6373,7 +6433,9 @@ app.post("/api/chat/:id/message", async (req, res) => {
   }
 });
 
-// Image Upload API (stores image in Supabase Bucket 'products' with local folder system fallback)
+// Image Upload API (stores image across cascading Supabase Buckets: media, products, banners, gallery, uploads, assets with local fallback)
+const CANDIDATE_STORAGE_BUCKETS = ["media", "products", "banners", "gallery", "uploads", "assets", "images"];
+
 app.post("/api/upload", async (req, res) => {
   const { filename, base64Data } = req.body;
   if (!filename || !base64Data) {
@@ -6434,56 +6496,48 @@ app.post("/api/upload", async (req, res) => {
     // Default fallback url if local backup works
     let fileUrl = `/uploads/${safeFilename}`;
 
-    // Attempt to store in Supabase Bucket 'media' with fallback to 'products'
+    // Attempt to store in Supabase Storage rotating across all 6 candidate buckets
     let supabaseUploadSucceeded = false;
-    try {
-      let activeBucket = "media";
-      let { data, error } = await supabase.storage
-        .from(activeBucket)
-        .upload(safeFilename, binaryBuffer, {
-          contentType: mimeType,
-          cacheControl: "3600",
-          upsert: true
-        });
+    let lastUploadError: any = null;
 
-      if (error) {
-        console.warn(`⚠️ Supabase Storage upload to '${activeBucket}' failed. Falling back to 'products' bucket:`, error.message);
-        activeBucket = "products";
-        const fallbackRes = await supabase.storage
-          .from(activeBucket)
+    for (const bucketName of CANDIDATE_STORAGE_BUCKETS) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucketName)
           .upload(safeFilename, binaryBuffer, {
             contentType: mimeType,
             cacheControl: "3600",
             upsert: true
           });
-        data = fallbackRes.data;
-        error = fallbackRes.error;
-      }
 
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage
-          .from(activeBucket)
-          .getPublicUrl(safeFilename);
-        if (publicUrlData && publicUrlData.publicUrl) {
-          fileUrl = publicUrlData.publicUrl;
-          supabaseUploadSucceeded = true;
-          console.log(`☁️ Stored file on Supabase Storage bucket '${activeBucket}':`, fileUrl);
+        if (!error && data) {
+          const { data: publicUrlData } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(safeFilename);
+          if (publicUrlData && publicUrlData.publicUrl) {
+            fileUrl = publicUrlData.publicUrl;
+            supabaseUploadSucceeded = true;
+            console.log(`☁️ Stored file on Supabase Storage bucket '${bucketName}':`, fileUrl);
+            break;
+          }
+        } else if (error) {
+          lastUploadError = error;
+          console.warn(`⚠️ Supabase Storage upload to '${bucketName}' failed: ${error.message}. Trying next candidate bucket...`);
         }
-      } else {
-        const errorMessage = error?.message || "Unknown Supabase Storage error";
-        console.warn("⚠️ Supabase Storage upload error:", errorMessage);
-        if (!localWriteSucceeded || process.env.VERCEL) {
-          throw new Error(`Supabase Storage upload error: ${errorMessage}. Please ensure a Public storage bucket named 'media' (or 'products') exists in your Supabase project with proper storage RLS policies.`);
-        }
-      }
-    } catch (sbErr: any) {
-      console.warn("⚠️ Supabase Storage connection or bucket error:", sbErr.message);
-      if (!localWriteSucceeded || process.env.VERCEL) {
-        throw new Error(`Unable to complete upload. Supabase storage error: ${sbErr.message}. Make sure your 'media' (or 'products') bucket exists, is set to 'Public', and that your Supabase credentials are valid.`);
+      } catch (err: any) {
+        lastUploadError = err;
       }
     }
 
-    res.status(201).json({ fileUrl });
+    if (!supabaseUploadSucceeded && !localWriteSucceeded) {
+      const errMsg = lastUploadError?.message || "Could not upload to any storage bucket";
+      console.warn("⚠️ All storage buckets failed and local disk write unavailable:", errMsg);
+      if (process.env.VERCEL) {
+        throw new Error(`Supabase Storage upload error: ${errMsg}. Please ensure at least one Public storage bucket (media, products, banners, gallery, uploads, assets) exists.`);
+      }
+    }
+
+    res.status(201).json({ fileUrl, success: true });
   } catch (err: any) {
     res.status(500).json({ message: "Upload failed: " + err.message });
   }
