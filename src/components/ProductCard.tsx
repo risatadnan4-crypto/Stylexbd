@@ -79,10 +79,30 @@ function ProductCard({
     }
   }, [availableSizes]);
 
+  const allImages = useMemo(() => {
+    const list: string[] = [];
+    if (product.imageUrl && typeof product.imageUrl === 'string' && product.imageUrl.trim()) {
+      list.push(product.imageUrl.trim());
+    }
+    if (Array.isArray(product.images)) {
+      list.push(...product.images.filter(x => typeof x === 'string' && x.trim()));
+    }
+    if (product.dimensions && typeof product.dimensions === 'string' && product.dimensions.startsWith('{')) {
+      try {
+        const dimObj = JSON.parse(product.dimensions);
+        if (Array.isArray(dimObj.images)) {
+          list.push(...dimObj.images.filter((x: any) => typeof x === 'string' && x.trim()));
+        }
+      } catch (e) {}
+    }
+    const filtered = Array.from(new Set(list.filter(Boolean)));
+    return filtered.length > 0 ? filtered : ['/stylex_logo.jpg'];
+  }, [product.imageUrl, product.images, product.dimensions]);
+
+  const [activeImage, setActiveImage] = useState<string>(() => allImages[0] || product.imageUrl || '/stylex_logo.jpg');
   const [showQRCode, setShowQRCode] = useState(false);
   const [showWhyBuy, setShowWhyBuy] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [activeImage, setActiveImage] = useState(product.imageUrl);
 
   // Out of stock notify states
   const [showNotifyForm, setShowNotifyForm] = useState(false);
@@ -91,10 +111,11 @@ function ProductCard({
   const [notifyError, setNotifyError] = useState('');
   const [submittingNotify, setSubmittingNotify] = useState(false);
 
-  // Sync active image with product url changes
+  // Sync active image with product changes
   useEffect(() => {
-    setActiveImage(product.imageUrl);
-  }, [product.imageUrl]);
+    setActiveImage(allImages[0] || product.imageUrl || '/stylex_logo.jpg');
+    setImageLoaded(false);
+  }, [product.imageUrl, product.images, product.id, allImages]);
 
   // Real-time flash sale countdown timer ticking logic
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; days: number } | null>(null);
@@ -304,10 +325,6 @@ function ProductCard({
     }
   };
 
-  const allImages = useMemo(() => {
-    return Array.from(new Set([product.imageUrl, ...(product.images || [])].filter(Boolean) as string[]));
-  }, [product.imageUrl, product.images]);
-
   const currentImageIndex = Math.max(0, allImages.indexOf(activeImage));
 
   const handlePrevImage = (e: React.MouseEvent) => {
@@ -435,11 +452,18 @@ function ProductCard({
           </div>
         )}
         <img 
-          src={activeImage} 
+          src={activeImage || product.imageUrl || '/stylex_logo.jpg'} 
           alt={(product as any).seoAltText || `${product.title} - Authentic Luxury ${product.category || 'Apparel'} | STYLE X BD`} 
           loading={product.isPinned || (index !== undefined && index < 6) ? "eager" : "lazy"}
           {...((product.isPinned || (index !== undefined && index < 6)) ? { fetchPriority: "high" } : {})}
           onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            setImageLoaded(true);
+            const target = e.currentTarget;
+            if (!target.src.endsWith('/stylex_logo.jpg')) {
+              target.src = '/stylex_logo.jpg';
+            }
+          }}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 z-10 pointer-events-none"
           referrerPolicy="no-referrer"
         />

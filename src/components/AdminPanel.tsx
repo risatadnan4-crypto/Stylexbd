@@ -2424,7 +2424,7 @@ export default function AdminPanel({
       return;
     }
 
-    const finalPrice = Number(formPrice);
+    let finalPrice = Number(formPrice);
     if (formPrice === '' || isNaN(finalPrice) || finalPrice <= 0) {
       const msg = 'Please enter a valid regular price greater than 0 (সঠিক মূল্য দিন).';
       setFormError(msg);
@@ -2438,7 +2438,10 @@ export default function AdminPanel({
 
     if (!finalImageUrl && finalImages.length > 0) {
       finalImageUrl = finalImages[0];
-      finalImages = finalImages.slice(1);
+    }
+
+    if (finalImageUrl && !finalImages.includes(finalImageUrl)) {
+      finalImages = [finalImageUrl, ...finalImages];
     }
 
     if (!finalImageUrl) {
@@ -2449,7 +2452,7 @@ export default function AdminPanel({
     }
 
     // Offer Price Validation & Synchronization
-    const rawOffer = (formOfferPrice !== '' && formOfferPrice !== null && !isNaN(Number(formOfferPrice))) 
+    let rawOffer = (formOfferPrice !== '' && formOfferPrice !== null && !isNaN(Number(formOfferPrice))) 
       ? Number(formOfferPrice) 
       : null;
 
@@ -2460,11 +2463,14 @@ export default function AdminPanel({
         setAdminToast({ message: msg, type: 'error' });
         return;
       }
-      if (rawOffer >= finalPrice) {
-        const msg = `Offer price (৳${rawOffer}) must be lower than regular price (৳${finalPrice}).`;
-        setFormError(msg);
-        setAdminToast({ message: msg, type: 'error' });
-        return;
+      if (rawOffer > finalPrice) {
+        // If user entered regular price in offer field, normalize gracefully
+        const higher = rawOffer;
+        const lower = finalPrice;
+        finalPrice = higher;
+        rawOffer = lower;
+      } else if (rawOffer === finalPrice) {
+        rawOffer = null;
       }
     }
     const finalOfferPrice = (rawOffer !== null && rawOffer > 0 && rawOffer < finalPrice) ? rawOffer : null;
@@ -2602,18 +2608,27 @@ export default function AdminPanel({
     setFormTitle(prod.title);
     setFormDescription(prod.description);
     
-    setFormPrice(prod.price);
+    let regPrice = prod.price;
     setFormOldPriceField('');
     const rawOffer = (prod.offerPrice !== undefined && prod.offerPrice !== null && (prod.offerPrice as any) !== '')
       ? prod.offerPrice
       : ((prod.timerOfferPrice !== undefined && prod.timerOfferPrice !== null && (prod.timerOfferPrice as any) !== '')
         ? prod.timerOfferPrice
         : null);
-    const offerNum = rawOffer !== null && !isNaN(Number(rawOffer)) ? Number(rawOffer) : null;
-    const hasOffer = offerNum !== null && offerNum > 0 && prod.price > 0 && offerNum < prod.price;
-    if (hasOffer && offerNum !== null) {
+    let offerNum = rawOffer !== null && !isNaN(Number(rawOffer)) ? Number(rawOffer) : null;
+    
+    if (offerNum !== null && offerNum > 0 && regPrice > 0 && offerNum > regPrice) {
+      const higher = offerNum;
+      const lower = regPrice;
+      regPrice = higher;
+      offerNum = lower;
+    }
+
+    setFormPrice(regPrice);
+
+    if (offerNum !== null && offerNum > 0 && offerNum < regPrice) {
       setFormOfferPrice(offerNum);
-      const calculatedPercent = Math.round(((prod.price - offerNum) / prod.price) * 100);
+      const calculatedPercent = Math.round(((regPrice - offerNum) / regPrice) * 100);
       setFormOfferDiscountPercent(calculatedPercent > 0 && calculatedPercent < 100 ? calculatedPercent : '');
     } else {
       setFormOfferPrice('');
@@ -3703,23 +3718,37 @@ export default function AdminPanel({
               <button
                 onClick={() => {
                   setEditingProduct(null);
+                  setFormError('');
+                  setFormSuccess('');
                   setFormCode('');
                   setFormTitle('');
                   setFormDescription('');
                   setFormPrice('');
                   setFormStock(30);
+                  setFormCategory('MEN');
                   setFormSizes('S, M, L, XL');
+                  setNewSizeInput('');
+                  setFormDimensions('');
                   setFormImageUrl('');
                   setFormImages([]);
                   setSecondaryUrlInput('');
+                  setFormColors([]);
+                  setColorNameInput('');
+                  setColorHexInput('');
+                  setColorImageInput('');
                   setFormWhyBuy('');
                   setFormOfferPrice('');
+                  setFormOfferDiscountPercent('');
                   setFormOldPriceField('');
                   setFormIsPinned(false);
                   setFormFreeDelivery(false);
+                  setFormLotteryEligible(true);
+                  setFormCouponCode('');
+                  setFormCouponDiscountPercent(15);
                   setFormTimerStartTime('');
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
+                  setFormTimerActive(true);
                   setFormSeoTitle('');
                   setFormSeoDescription('');
                   setFormSeoKeywords('');
@@ -3745,12 +3774,13 @@ export default function AdminPanel({
                   setFormDeliveryPriceMymensingh(150);
                   setFormDeliveryCharge(100);
                   setFormDeliveryDays('3-5');
+                  setFormLikes(0);
                   setFormPaymentType('cod');
                   setFormPaymentPercentage(10);
                   setFormBkashNumber('');
                   setFormNagadNumber('');
 
-                  setShowProductForm(!showProductForm);
+                  setShowProductForm(true);
                 }}
                 className="bg-gradient-to-r from-luxury-gold-dark to-luxury-gold text-luxury-black font-display font-semibold uppercase text-xs tracking-widest py-2.5 px-5 rounded hover:brightness-110 flex items-center gap-1.5 transition-all cursor-pointer"
               >
@@ -4297,11 +4327,13 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                     </div>
                   </div>
 
-                  {/* Price */}
+                  {/* Price & Offer Calculation Section */}
                   <div className="flex flex-col gap-2">
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Price / Regular Price (৳ BD Taka)</label>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">
+                          Regular Price / Strikethrough Price (কাটা মূল্য / আসল দাম ৳) <span className="text-red-400">*</span>
+                        </label>
                         {formPrice !== '' && (
                           <span className="text-[10px] font-mono text-luxury-gold font-bold">
                             ৳{formPrice}
@@ -4314,19 +4346,17 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                           const val = e.target.value;
                           const newP = val === '' ? '' : Number(val);
                           setFormPrice(newP);
-                          if (typeof newP === 'number' && newP > 0 && typeof formOfferDiscountPercent === 'number' && formOfferDiscountPercent > 0 && formOfferDiscountPercent < 100) {
-                            setFormOfferPrice(Math.round(newP * (1 - formOfferDiscountPercent / 100)));
-                          } else if (typeof newP === 'number' && newP > 0 && typeof formOfferPrice === 'number' && formOfferPrice < newP) {
-                            setFormOfferDiscountPercent(Math.round(((newP - formOfferPrice) / newP) * 100));
-                          }
                         }}
-                        placeholder="e.g. 449"
+                        placeholder="e.g. 950"
                         className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                       />
                     </div>
+
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">Offer / Discount Price (৳) (Optional)</label>
+                        <label className="block text-[10px] uppercase font-mono tracking-wider text-white/50">
+                          Special Offer / Selling Price (বর্তমান বিক্রয় মূল্য ৳) <span className="text-zinc-500 font-normal">(Optional)</span>
+                        </label>
                         {formOfferPrice !== '' && (
                           <button
                             type="button"
@@ -4355,7 +4385,7 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 setFormOfferDiscountPercent('');
                               }
                             }}
-                            placeholder="Offer Price (৳)"
+                            placeholder="Offer Price ৳ (e.g. 450)"
                             className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                           />
                         </div>
@@ -4373,13 +4403,42 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                 setFormOfferPrice('');
                               }
                             }}
-                            placeholder="Discount (%)"
+                            placeholder="Discount % (e.g. 50)"
                             min={1}
                             max={99}
                             className="w-full bg-luxury-charcoal text-white text-xs border border-white/10 rounded py-2.5 px-3 focus:outline-none focus:border-luxury-gold font-mono"
                           />
                         </div>
                       </div>
+
+                      {/* Live Price Summary Preview */}
+                      {(() => {
+                        const reg = Number(formPrice || 0);
+                        const off = formOfferPrice !== '' ? Number(formOfferPrice) : null;
+                        if (reg > 0 && off !== null && off > 0 && off < reg) {
+                          const pct = Math.round(((reg - off) / reg) * 100);
+                          const save = reg - off;
+                          return (
+                            <div className="mt-1.5 p-2 bg-luxury-gold/10 border border-luxury-gold/30 rounded text-[9.5px] font-mono text-white flex flex-wrap items-center justify-between gap-1">
+                              <div>
+                                <span className="text-zinc-400">Customer pays: </span>
+                                <strong className="text-emerald-400 font-bold text-xs">৳{off}</strong>
+                                <span className="text-zinc-500 line-through ml-1.5">৳{reg}</span>
+                              </div>
+                              <span className="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold border border-red-500/30">
+                                {pct}% OFF (Save ৳{save})
+                              </span>
+                            </div>
+                          );
+                        } else if (reg > 0) {
+                          return (
+                            <div className="mt-1 text-[9px] font-mono text-zinc-400">
+                              Customer pays regular price: <strong className="text-white">৳{reg}</strong> (No discount active)
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
 

@@ -20,7 +20,7 @@ export function getProductPriceDetails(product?: Product | null) {
     };
   }
 
-  const originalPrice = cleanNumber(product.price);
+  let originalPrice = cleanNumber(product.price);
   
   // Support both timerOfferPrice and offerPrice
   const timerOfferVal = product.timerOfferPrice !== undefined && product.timerOfferPrice !== null && String(product.timerOfferPrice).trim() !== ''
@@ -29,11 +29,19 @@ export function getProductPriceDetails(product?: Product | null) {
       ? product.offerPrice
       : null);
 
-  const rawOfferPrice = timerOfferVal !== null ? cleanNumber(timerOfferVal) : null;
+  let rawOfferPrice = timerOfferVal !== null ? cleanNumber(timerOfferVal) : null;
+
+  // Intelligently handle case where user swapped prices (entered lower selling price in price, and higher old price in offerPrice)
+  if (rawOfferPrice !== null && rawOfferPrice > 0 && originalPrice > 0 && rawOfferPrice > originalPrice) {
+    const higherPrice = rawOfferPrice;
+    const lowerPrice = originalPrice;
+    originalPrice = higherPrice;
+    rawOfferPrice = lowerPrice;
+  }
+
   const hasValidOfferPrice = rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice;
 
   // Support both timerActive and timerEnabled
-  const hasExplicitTimerFlag = product.timerActive !== undefined || product.timerEnabled !== undefined;
   const isTimerActive = product.timerActive !== false && String(product.timerActive) !== 'false' &&
                         product.timerEnabled !== false && String(product.timerEnabled) !== 'false';
 
@@ -83,8 +91,6 @@ export function getProductPriceDetails(product?: Product | null) {
   }
 
   // Offer price is active whenever a valid discounted offer price is configured:
-  // If a start time is in the future, it is pending start.
-  // Otherwise, if rawOfferPrice is less than originalPrice, show the discount and old price!
   const hasActiveOffer = hasValidOfferPrice && !isPendingStart;
 
   const currentPrice = hasActiveOffer && rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice

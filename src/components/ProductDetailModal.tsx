@@ -515,11 +515,17 @@ export default function ProductDetailModal({
                 className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[250px] lg:max-w-[290px] xl:max-w-[320px] max-h-[210px] sm:max-h-[230px] md:max-h-[240px] lg:max-h-[280px] mx-auto relative aspect-square bg-[#0c0c0c] rounded-xl overflow-hidden border border-white/5 flex items-center justify-center cursor-zoom-in group/zoom p-2 shadow-xl"
               >
                 <img 
-                  src={displayImage} 
+                  src={displayImage || product.imageUrl || '/stylex_logo.jpg'} 
                   alt={(product as any).seoAltText || `${product.title} - Close-up Premium view of ${product.category || 'luxury collection'} item | STYLE X BD`} 
                   referrerPolicy="no-referrer"
                   loading="eager"
                   {...({ fetchPriority: "high" })}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.endsWith('/stylex_logo.jpg')) {
+                      target.src = '/stylex_logo.jpg';
+                    }
+                  }}
                   className="w-full h-full object-contain animate-fade-in"
                   style={{
                     transformOrigin: isZooming ? `${zoomPos.x}% ${zoomPos.y}%` : 'center center',

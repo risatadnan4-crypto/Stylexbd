@@ -2734,9 +2734,9 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return "Standard Fitting";
   })();
 
-  const resolvedPrice = getNum(local.price, dimObj?.price, p?.price, 0) ?? 0;
+  let resolvedPrice = getNum(local.price, dimObj?.price, p?.price, 0) ?? 0;
 
-  const resolvedOfferPrice = (() => {
+  let resolvedOfferPrice = (() => {
     const candidateOffers = [
       local.offerPrice,
       local.timerOfferPrice,
@@ -2752,11 +2752,20 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     for (const off of candidateOffers) {
       if (off !== undefined && off !== null && off !== "" && !isNaN(Number(off))) {
         const val = Number(off);
-        return val > 0 && val < resolvedPrice ? val : null;
+        if (val > 0) return val;
       }
     }
     return null;
   })();
+
+  if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && resolvedPrice > 0 && resolvedOfferPrice > resolvedPrice) {
+    const higher = resolvedOfferPrice;
+    const lower = resolvedPrice;
+    resolvedPrice = higher;
+    resolvedOfferPrice = lower;
+  } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === resolvedPrice)) {
+    resolvedOfferPrice = null;
+  }
 
   const resolvedSeoKeywords = getStr(local.seoKeywords, local.seo_keywords, local.metaKeywords, seoMeta.seoKeywords, dimObj?.seoKeywords, p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, "");
   const resolvedSeoTitle = getStr(local.seoTitle, seoMeta.seoTitle, dimObj?.seoTitle, p?.seoTitle, p?.seo_title, "");
@@ -2768,7 +2777,25 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
   const resolvedOgImage = getStr(local.ogImage, seoMeta.ogImage, dimObj?.ogImage, p?.ogImage, p?.og_image, "");
   const resolvedRobots = getStr(local.robots, seoMeta.robots, dimObj?.robots, p?.robots, "index, follow");
 
-  return {
+  const resolvedImageUrl = (() => {
+    const direct = getStr(local.imageUrl, dimObj?.imageUrl, p?.imageUrl, p?.image_url, p?.image, dimObj?.image, "");
+    if (direct && direct.trim().length > 0) return direct.trim();
+    if (parsedImages && parsedImages.length > 0 && parsedImages[0]) return parsedImages[0].trim();
+    return "/stylex_logo.jpg";
+  })();
+
+  const consolidatedImages = Array.from(new Set([resolvedImageUrl, ...parsedImages].filter(Boolean)));
+
+    const resolvedTimerEndTime = local.timerEndTime !== undefined ? (local.timerEndTime || null) : (getStr(paymentMeta.timerEndTime, dimObj?.timerEndTime, p?.timerEndTime, p?.timer_end_time, "") || null);
+    const hasTimerConfig = !!resolvedTimerEndTime;
+    const resolvedTimerActive = local.timerActive !== undefined
+      ? (local.timerActive !== false && String(local.timerActive) !== 'false')
+      : (paymentMeta?.timerActive !== undefined ? (paymentMeta.timerActive !== false && String(paymentMeta.timerActive) !== 'false') : (p?.timerActive !== undefined ? (p.timerActive !== false && String(p.timerActive) !== 'false') : hasTimerConfig));
+    const resolvedTimerEnabled = local.timerEnabled !== undefined
+      ? (local.timerEnabled !== false && String(local.timerEnabled) !== 'false')
+      : resolvedTimerActive;
+
+    return {
     id,
     code: getStr(local.code, paymentMeta.code, dimObj?.code, p?.code, p?.product_code, `XP-101`),
     title: getStr(local.title, dimObj?.title, p?.title, p?.product_title, "Untitled Creation"),
@@ -2776,8 +2803,8 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     price: resolvedPrice,
     category: (getStr(local.category, dimObj?.category, p?.category, "UNISEX") as any),
     stock: getNum(local.stock, dimObj?.stock, p?.stock, 0) ?? 0,
-    imageUrl: getStr(local.imageUrl, dimObj?.imageUrl, p?.imageUrl, p?.image_url, ""),
-    images: parsedImages,
+    imageUrl: resolvedImageUrl,
+    images: consolidatedImages,
     colors: parsedColors,
     sizes: parsedSizes,
     dimensions: resolvedDimensionsText,
@@ -2801,11 +2828,11 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     timerOfferPrice: resolvedOfferPrice,
     timerStartTime: local.timerStartTime !== undefined ? (local.timerStartTime || null) : (getStr(paymentMeta.timerStartTime, dimObj?.timerStartTime, p?.timerStartTime, p?.timer_start_time, "") || null),
     timerStartDate: local.timerStartDate !== undefined ? (local.timerStartDate || null) : (getStr(local.timerStartTime, paymentMeta.timerStartDate, dimObj?.timerStartDate, p?.timerStartDate, p?.timer_start_date, "") || null),
-    timerEndTime: local.timerEndTime !== undefined ? (local.timerEndTime || null) : (getStr(paymentMeta.timerEndTime, dimObj?.timerEndTime, p?.timerEndTime, p?.timer_end_time, "") || null),
-    timerEndDate: local.timerEndDate !== undefined ? (local.timerEndDate || null) : (getStr(local.timerEndTime, paymentMeta.timerEndDate, dimObj?.timerEndDate, p?.timerEndDate, p?.timer_end_date, "") || null),
+    timerEndTime: resolvedTimerEndTime,
+    timerEndDate: resolvedTimerEndTime,
     timerMessage: local.timerMessage !== undefined ? (local.timerMessage || null) : (getStr(paymentMeta.timerMessage, dimObj?.timerMessage, p?.timerMessage, p?.timer_message, "") || null),
-    timerActive: local.timerActive !== undefined ? !!local.timerActive : getBool(paymentMeta.timerActive, dimObj?.timerActive, p?.timerActive, false),
-    timerEnabled: local.timerEnabled !== undefined ? !!local.timerEnabled : (local.timerActive !== undefined ? !!local.timerActive : getBool(paymentMeta.timerEnabled, dimObj?.timerEnabled, p?.timerEnabled, false)),
+    timerActive: resolvedTimerActive,
+    timerEnabled: resolvedTimerEnabled,
     bkashNumber: getStr(local.bkashNumber, paymentMeta.bkashNumber, dimObj?.bkashNumber, p?.bkashNumber, p?.bkash_number, ""),
     nagadNumber: getStr(local.nagadNumber, paymentMeta.nagadNumber, dimObj?.nagadNumber, p?.nagadNumber, p?.nagad_number, ""),
     paymentType: (getStr(local.paymentType, paymentMeta.paymentType, dimObj?.paymentType, p?.paymentType, p?.payment_type, "cod") as any),
@@ -3127,11 +3154,22 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     newProduct.metaKeywords = generatedKeywords;
   }
 
-  const resolvedOfferPrice = newProduct.offerPrice !== undefined && newProduct.offerPrice !== null && (newProduct.offerPrice as any) !== "" && !isNaN(Number(newProduct.offerPrice))
+  let resolvedOfferPrice = newProduct.offerPrice !== undefined && newProduct.offerPrice !== null && (newProduct.offerPrice as any) !== "" && !isNaN(Number(newProduct.offerPrice))
     ? Number(newProduct.offerPrice)
     : null;
 
-  newProduct.price = Number(newProduct.price || 0);
+  let finalPrice = Number(newProduct.price || 0);
+
+  if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && finalPrice > 0 && resolvedOfferPrice > finalPrice) {
+    const higher = resolvedOfferPrice;
+    const lower = finalPrice;
+    finalPrice = higher;
+    resolvedOfferPrice = lower;
+  } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === finalPrice)) {
+    resolvedOfferPrice = null;
+  }
+
+  newProduct.price = finalPrice;
   newProduct.stock = Number(newProduct.stock || 0);
   newProduct.offerPrice = resolvedOfferPrice;
   newProduct.timerOfferPrice = resolvedOfferPrice;
@@ -3149,7 +3187,8 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   newProduct.timerEndTime = newProduct.timerEndTime || null;
   newProduct.timerEndDate = newProduct.timerEndTime || null;
   newProduct.timerMessage = newProduct.timerMessage || null;
-  newProduct.timerActive = newProduct.timerActive !== undefined ? !!newProduct.timerActive : true;
+  const hasTimer = !!newProduct.timerEndTime;
+  newProduct.timerActive = newProduct.timerActive !== undefined ? (newProduct.timerActive !== false && String(newProduct.timerActive) !== 'false') : hasTimer;
   newProduct.timerEnabled = newProduct.timerActive;
   newProduct.couponCode = newProduct.couponCode ? String(newProduct.couponCode).trim() : "";
   newProduct.couponDiscountPercent = newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null && (newProduct.couponDiscountPercent as any) !== "" ? Number(newProduct.couponDiscountPercent) : null;
@@ -3368,14 +3407,25 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
     const existingProd = db.products[idx];
     const b = req.body;
 
-    const resolvedPrice = b.price !== undefined ? Number(b.price) : existingProd.price;
+    let resolvedPrice = b.price !== undefined ? Number(b.price) : existingProd.price;
     let resolvedOfferPrice = b.offerPrice !== undefined
       ? (b.offerPrice === null || b.offerPrice === "" || isNaN(Number(b.offerPrice)) ? null : Number(b.offerPrice))
       : existingProd.offerPrice;
 
-    if (resolvedOfferPrice !== null && (resolvedOfferPrice >= resolvedPrice || resolvedOfferPrice <= 0)) {
+    if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && resolvedPrice > 0 && resolvedOfferPrice > resolvedPrice) {
+      const higher = resolvedOfferPrice;
+      const lower = resolvedPrice;
+      resolvedPrice = higher;
+      resolvedOfferPrice = lower;
+    } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === resolvedPrice)) {
       resolvedOfferPrice = null;
     }
+
+    const resolvedTimerEndTime = b.timerEndTime !== undefined ? (b.timerEndTime || null) : (existingProd.timerEndTime || null);
+    const hasTimer = !!resolvedTimerEndTime;
+    const resolvedTimerActive = b.timerActive !== undefined
+      ? (b.timerActive !== false && String(b.timerActive) !== 'false')
+      : (existingProd.timerActive !== undefined ? (existingProd.timerActive !== false && String(existingProd.timerActive) !== 'false') : hasTimer);
 
     const updatedProd: Product = {
       ...existingProd,
@@ -3412,11 +3462,11 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
       timerOfferPrice: resolvedOfferPrice,
       timerStartTime: b.timerStartTime !== undefined ? (b.timerStartTime || null) : existingProd.timerStartTime,
       timerStartDate: b.timerStartTime !== undefined ? (b.timerStartTime || null) : existingProd.timerStartDate,
-      timerEndTime: b.timerEndTime !== undefined ? (b.timerEndTime || null) : existingProd.timerEndTime,
-      timerEndDate: b.timerEndTime !== undefined ? (b.timerEndTime || null) : existingProd.timerEndDate,
+      timerEndTime: resolvedTimerEndTime,
+      timerEndDate: resolvedTimerEndTime,
       timerMessage: b.timerMessage !== undefined ? (b.timerMessage || null) : existingProd.timerMessage,
-      timerActive: b.timerActive !== undefined ? !!b.timerActive : existingProd.timerActive,
-      timerEnabled: b.timerActive !== undefined ? !!b.timerActive : existingProd.timerEnabled,
+      timerActive: resolvedTimerActive,
+      timerEnabled: resolvedTimerActive,
       bkashNumber: b.bkashNumber !== undefined ? (b.bkashNumber || "") : existingProd.bkashNumber,
       nagadNumber: b.nagadNumber !== undefined ? (b.nagadNumber || "") : existingProd.nagadNumber,
       paymentType: b.paymentType !== undefined ? b.paymentType : existingProd.paymentType,
