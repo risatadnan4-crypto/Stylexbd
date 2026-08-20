@@ -1809,52 +1809,17 @@ export default function App() {
     }
   }, [products]);
 
-  // Robust synchronization helper with structural sharing to prevent unwanted state resets
+  // Authoritative catalog synchronization with server database
   const syncCatalogWithStableRefs = (incomingList: Product[]) => {
-    if (!Array.isArray(incomingList) || incomingList.length === 0) return;
+    if (!Array.isArray(incomingList)) return;
 
-    setProducts(prevProducts => {
-      if (!prevProducts || prevProducts.length === 0) {
-        return incomingList;
-      }
+    setProducts(incomingList);
 
-      // Check if the dataset is completely identical to avoid state churn
-      if (prevProducts.length === incomingList.length) {
-        let isIdentical = true;
-        for (let i = 0; i < incomingList.length; i++) {
-          if (JSON.stringify(prevProducts[i]) !== JSON.stringify(incomingList[i])) {
-            isIdentical = false;
-            break;
-          }
-        }
-        if (isIdentical) {
-          return prevProducts;
-        }
-      }
-
-      // Structural sharing: keep unchanged object references to preserve child component states
-      const prevMap = new Map<string, Product>();
-      prevProducts.forEach(p => {
-        if (p && p.id) prevMap.set(String(p.id), p);
-      });
-
-      return incomingList.map(newP => {
-        if (!newP || !newP.id) return newP;
-        const prevP = prevMap.get(String(newP.id));
-        if (prevP && JSON.stringify(prevP) === JSON.stringify(newP)) {
-          return prevP;
-        }
-        return newP;
-      });
-    });
-
-    // Keep selected product reference updated without closing the modal
+    // Keep selected product reference updated with fresh server record without closing modal
     setSelectedProduct(prev => {
       if (!prev) return null;
-      const updated = incomingList.find(p => String(p.id) === String(prev.id));
-      if (!updated) return prev;
-      if (JSON.stringify(prev) === JSON.stringify(updated)) return prev;
-      return updated;
+      const updated = incomingList.find(p => String(p.id) === String(prev.id) || (p.code && prev.code && p.code.toLowerCase() === prev.code.toLowerCase()));
+      return updated || prev;
     });
 
     try {
