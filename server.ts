@@ -2442,6 +2442,65 @@ app.get("/api/settings", async (req, res) => {
   res.json({ ...baseSettings, csrfToken: token });
 });
 
+// Unified media upload endpoint with disk persistence and Supabase storage bucket cascading sync
+app.post("/api/upload", xoroAdminAuthMiddleware, async (req, res) => {
+  try {
+    const { filename, base64Data } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ success: false, message: "No image or media binary data provided." });
+    }
+
+    // Extract base64 payload & content type
+    let cleanBase64 = base64Data;
+    let mimeType = "image/jpeg";
+    if (base64Data.includes(";base64,")) {
+      const parts = base64Data.split(";base64,");
+      const match = parts[0].match(/data:(.*?)$/);
+      if (match && match[1]) {
+        mimeType = match[1];
+      }
+      cleanBase64 = parts[1];
+    }
+
+    const buffer = Buffer.from(cleanBase64, "base64");
+    const sanitizedName = (filename || `upload_${Date.now()}.jpg`).replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uniqueFileName = `${Date.now()}_${sanitizedName}`;
+
+    // 1. Try Supabase storage cascading upload across candidate buckets
+    const candidateBuckets = ["media", "products", "banners", "gallery", "uploads", "assets", "images"];
+    if (supabase) {
+      for (const bucket of candidateBuckets) {
+        try {
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from(bucket)
+            .upload(uniqueFileName, buffer, {
+              contentType: mimeType,
+              cacheControl: "3600",
+              upsert: true
+            });
+          if (!uploadErr && uploadData) {
+            const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(uniqueFileName);
+            if (publicUrlData?.publicUrl) {
+              return res.json({ success: true, fileUrl: publicUrlData.publicUrl, bucket });
+            }
+          }
+        } catch (sErr) {
+          // Continue to next bucket
+        }
+      }
+    }
+
+    // 2. Local disk fallback
+    const targetFilePath = path.join(UPLOADS_DIR, uniqueFileName);
+    fs.writeFileSync(targetFilePath, buffer);
+    const localUrl = `/uploads/${uniqueFileName}`;
+    return res.json({ success: true, fileUrl: localUrl });
+  } catch (err: any) {
+    console.error("❌ /api/upload error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Save client discount request and send dynamic email dispatch
 app.post("/api/discount-request", async (req, res) => {
   const { whatsappNumber } = req.body;
@@ -2758,12 +2817,7 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return null;
   })();
 
-  if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && resolvedPrice > 0 && resolvedOfferPrice > resolvedPrice) {
-    const higher = resolvedOfferPrice;
-    const lower = resolvedPrice;
-    resolvedPrice = higher;
-    resolvedOfferPrice = lower;
-  } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === resolvedPrice)) {
+  if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice >= resolvedPrice)) {
     resolvedOfferPrice = null;
   }
 
@@ -3051,6 +3105,19 @@ async function upsertProductToSupabase(productPayload: any) {
   return result;
 }
 
+export async function pushAllLocalProductsToSupabase() {
+  if (!db.products || db.products.length === 0) return;
+  console.log(`🚀 [SUPABASE_SYNC] Pushing all ${db.products.length} local products to Supabase cloud table...`);
+  for (const prod of db.products) {
+    try {
+      await upsertProductToSupabase(prod);
+    } catch (e: any) {
+      console.warn(`⚠️ Failed pushing product ${prod.id} to Supabase:`, e.message);
+    }
+  }
+  console.log(`✅ [SUPABASE_SYNC] Finished synchronizing all local products to Supabase.`);
+}
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
@@ -3160,12 +3227,7 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
 
   let finalPrice = Number(newProduct.price || 0);
 
-  if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && finalPrice > 0 && resolvedOfferPrice > finalPrice) {
-    const higher = resolvedOfferPrice;
-    const lower = finalPrice;
-    finalPrice = higher;
-    resolvedOfferPrice = lower;
-  } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === finalPrice)) {
+  if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice >= finalPrice)) {
     resolvedOfferPrice = null;
   }
 
@@ -3412,12 +3474,7 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
       ? (b.offerPrice === null || b.offerPrice === "" || isNaN(Number(b.offerPrice)) ? null : Number(b.offerPrice))
       : existingProd.offerPrice;
 
-    if (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && resolvedPrice > 0 && resolvedOfferPrice > resolvedPrice) {
-      const higher = resolvedOfferPrice;
-      const lower = resolvedPrice;
-      resolvedPrice = higher;
-      resolvedOfferPrice = lower;
-    } else if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice === resolvedPrice)) {
+    if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice >= resolvedPrice)) {
       resolvedOfferPrice = null;
     }
 
@@ -4693,15 +4750,47 @@ app.post("/api/orders", async (req, res) => {
 
   function getProductActivePriceBackend(product: any): number {
     if (!product) return 0;
-    const originalPrice = Number(product.price || 0);
-    const rawOfferPrice = product.offerPrice !== undefined && product.offerPrice !== null
-      ? Number(product.offerPrice)
-      : (product.timerOfferPrice !== undefined && product.timerOfferPrice !== null
-        ? Number(product.timerOfferPrice)
-        : null);
+    const toNum = (val: any) => {
+      if (val === null || val === undefined) return 0;
+      const parsed = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    let originalPrice = toNum(product.oldPrice || product.regularPrice || product.originalPrice || product.price);
+    
+    const timerOfferVal = product.timerOfferPrice !== undefined && product.timerOfferPrice !== null && String(product.timerOfferPrice).trim() !== ''
+      ? product.timerOfferPrice
+      : (product.offerPrice !== undefined && product.offerPrice !== null && String(product.offerPrice).trim() !== ''
+        ? product.offerPrice
+        : (product.discountPrice !== undefined && product.discountPrice !== null && String(product.discountPrice).trim() !== '' ? product.discountPrice : null));
+
+    let rawOfferPrice = timerOfferVal !== null ? toNum(timerOfferVal) : null;
+
+    const explicitOld = toNum(product.oldPrice || product.regularPrice || product.originalPrice);
+    const basePrice = toNum(product.price);
+    if (explicitOld > 0 && basePrice > 0 && explicitOld > basePrice && rawOfferPrice === null) {
+      originalPrice = explicitOld;
+      rawOfferPrice = basePrice;
+    }
 
     if (rawOfferPrice === null || isNaN(rawOfferPrice) || rawOfferPrice <= 0 || rawOfferPrice >= originalPrice) {
-      return originalPrice;
+      return basePrice > 0 ? basePrice : originalPrice;
+    }
+
+    // Check if start time is in the future
+    const startTime = product.timerStartTime || product.timerStartDate;
+    if (startTime) {
+      const rawStartStr = String(startTime).trim();
+      let startMs = NaN;
+      if (/^\d{12,}$/.test(rawStartStr)) {
+        startMs = Number(rawStartStr);
+      } else {
+        startMs = new Date(rawStartStr.replace(' ', 'T')).getTime();
+        if (isNaN(startMs)) startMs = new Date(rawStartStr).getTime();
+      }
+      if (!isNaN(startMs) && Date.now() < startMs) {
+        return basePrice > 0 ? basePrice : originalPrice;
+      }
     }
 
     return rawOfferPrice;
@@ -8605,8 +8694,10 @@ if (!isProduction) {
 
 // Trigger initial database sync and AI key initialization in background
 syncFromSupabase()
-  .then(() => {
+  .then(async () => {
     initializeAiKeyPool();
+    // Ensure all local products with recent edits are properly saved into Supabase
+    await pushAllLocalProductsToSupabase();
     // Schedule periodic polling sync from Supabase
     const syncInterval = setInterval(syncFromSupabase, 45000);
     if (syncInterval.unref) syncInterval.unref();

@@ -2513,14 +2513,11 @@ export default function AdminPanel({
         setAdminToast({ message: msg, type: 'error' });
         return;
       }
-      if (rawOffer > finalPrice) {
-        // If user entered regular price in offer field, normalize gracefully
-        const higher = rawOffer;
-        const lower = finalPrice;
-        finalPrice = higher;
-        rawOffer = lower;
-      } else if (rawOffer === finalPrice) {
-        rawOffer = null;
+      if (rawOffer >= finalPrice) {
+        const msg = 'Offer price must be less than the regular price (অফার মূল্য রেগুলার মূল্যের চেয়ে কম হতে হবে).';
+        setFormError(msg);
+        setAdminToast({ message: msg, type: 'error' });
+        return;
       }
     }
     const finalOfferPrice = (rawOffer !== null && rawOffer > 0 && rawOffer < finalPrice) ? rawOffer : null;
@@ -2666,13 +2663,6 @@ export default function AdminPanel({
         ? prod.timerOfferPrice
         : null);
     let offerNum = rawOffer !== null && !isNaN(Number(rawOffer)) ? Number(rawOffer) : null;
-    
-    if (offerNum !== null && offerNum > 0 && regPrice > 0 && offerNum > regPrice) {
-      const higher = offerNum;
-      const lower = regPrice;
-      regPrice = higher;
-      offerNum = lower;
-    }
 
     setFormPrice(regPrice);
 

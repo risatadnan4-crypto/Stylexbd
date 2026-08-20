@@ -2,7 +2,7 @@ import { CartItem, Product } from '../types';
 
 function cleanNumber(val: any): number {
   if (val === undefined || val === null) return 0;
-  if (typeof val === 'number') return val;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   const cleaned = String(val).replace(/[৳,$\s]/g, '');
   const num = Number(cleaned);
   return isNaN(num) ? 0 : num;
@@ -20,23 +20,23 @@ export function getProductPriceDetails(product?: Product | null) {
     };
   }
 
-  let originalPrice = cleanNumber(product.price);
+  let originalPrice = cleanNumber((product as any).oldPrice || (product as any).regularPrice || (product as any).originalPrice || product.price);
   
-  // Support both timerOfferPrice and offerPrice
+  // Support both timerOfferPrice and offerPrice, or discountPrice
   const timerOfferVal = product.timerOfferPrice !== undefined && product.timerOfferPrice !== null && String(product.timerOfferPrice).trim() !== ''
     ? product.timerOfferPrice
     : (product.offerPrice !== undefined && product.offerPrice !== null && String(product.offerPrice).trim() !== ''
       ? product.offerPrice
-      : null);
+      : ((product as any).discountPrice !== undefined && (product as any).discountPrice !== null && String((product as any).discountPrice).trim() !== '' ? (product as any).discountPrice : null));
 
   let rawOfferPrice = timerOfferVal !== null ? cleanNumber(timerOfferVal) : null;
 
-  // Intelligently handle case where user swapped prices (entered lower selling price in price, and higher old price in offerPrice)
-  if (rawOfferPrice !== null && rawOfferPrice > 0 && originalPrice > 0 && rawOfferPrice > originalPrice) {
-    const higherPrice = rawOfferPrice;
-    const lowerPrice = originalPrice;
-    originalPrice = higherPrice;
-    rawOfferPrice = lowerPrice;
+  // If explicit oldPrice was given and base price is lower, treat base price as offer price and oldPrice as original price
+  const explicitOldPrice = cleanNumber((product as any).oldPrice || (product as any).regularPrice || (product as any).originalPrice);
+  const basePrice = cleanNumber(product.price);
+  if (explicitOldPrice > 0 && basePrice > 0 && explicitOldPrice > basePrice && rawOfferPrice === null) {
+    originalPrice = explicitOldPrice;
+    rawOfferPrice = basePrice;
   }
 
   const hasValidOfferPrice = rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice;
@@ -90,12 +90,13 @@ export function getProductPriceDetails(product?: Product | null) {
     }
   }
 
-  // Offer price is active whenever a valid discounted offer price is configured:
+  // Offer price / discount is active whenever a valid discounted offer price is configured and not pending start
   const hasActiveOffer = hasValidOfferPrice && !isPendingStart;
 
   const currentPrice = hasActiveOffer && rawOfferPrice !== null && rawOfferPrice > 0 && rawOfferPrice < originalPrice
     ? rawOfferPrice
-    : originalPrice;
+    : (basePrice > 0 ? basePrice : originalPrice);
+
   const discountPercent = hasActiveOffer && originalPrice > 0 && currentPrice < originalPrice
     ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
     : 0;

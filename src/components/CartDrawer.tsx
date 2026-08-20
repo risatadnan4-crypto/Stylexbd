@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { CartItem, Coupon, Customer, Product } from '../types';
 import { formatPrice, CITIES_LIST, getDivisionForCity, ALL_DISTRICTS_LIST, DIVISIONS, DIVISION_MAPS } from '../utils';
-import { getValidatedTotal, getProductActivePrice, getAdvancePaymentAmount } from '../utils/totalHelper';
+import { getValidatedTotal, getProductActivePrice, getProductPriceDetails, getAdvancePaymentAmount } from '../utils/totalHelper';
 import LuxuryCheckoutButton from './LuxuryCheckoutButton';
 
 interface CartDrawerProps {
@@ -1194,7 +1194,18 @@ export default function CartDrawer({
                                <div className="flex-1 flex flex-col justify-between min-w-0">
                                  <div className="flex justify-between items-start gap-2">
                                    <h4 className="font-serif text-[12px] text-white font-medium truncate">{item.product.title}</h4>
-                                   <span className="text-luxury-gold text-[12px] font-mono font-bold shrink-0">{formatPrice(getProductActivePrice(item.product) * item.quantity)}</span>
+                                   <div className="flex items-center gap-1.5 shrink-0">
+                                     <span className="text-luxury-gold text-[12px] font-mono font-bold">{formatPrice(getProductActivePrice(item.product) * item.quantity)}</span>
+                                     {(() => {
+                                       const pDetails = getProductPriceDetails(item.product);
+                                       if (pDetails.hasActiveOffer && pDetails.originalPrice > pDetails.currentPrice) {
+                                         return (
+                                           <span className="text-zinc-500 text-[10px] font-mono line-through decoration-red-500/70 decoration-1">৳{pDetails.originalPrice * item.quantity}</span>
+                                         );
+                                       }
+                                       return null;
+                                     })()}
+                                   </div>
                                  </div>
                                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                    <span className="text-[9px] bg-white/5 border border-white/5 text-white/40 px-1.5 py-0.5 rounded font-mono">SIZE: {item.selectedSize || 'STANDARD'}</span>

@@ -936,25 +936,358 @@
   ],
   "orders": [
     {
-      "id": "STX-970326",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": null,
-      "customerNotes": null,
+      "id": "STX-598783",
+      "customerName": "Risat Boss",
+      "customerPhone": "01816027852",
+      "customerAddress": "Chittagong",
+      "customerCity": "Chattogram",
+      "customerNotes": "",
       "items": [
         {
-          "productId": "1x8x67d5",
-          "title": "Premium Cotton Drop Shoulder Tshirt",
-          "price": 396,
+          "productId": "dmyy2t08",
+          "title": "Microfiber Coral Fleece Quick Dry Hair Towel",
+          "price": 270,
           "selectedSize": "Standard",
           "quantity": 1
         }
       ],
-      "totalAmount": 496,
+      "totalAmount": 340,
       "status": "PENDING",
-      "date": "2026-08-15T10:50:15.584Z",
-      "created_at": "2026-08-15T10:50:15.657014+00:00",
+      "date": "2026-07-17T10:02:44.357Z",
+      "created_at": "2026-07-17T10:02:44.752495+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-372687",
+      "customerName": "rist",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "hj",
+      "items": [
+        {
+          "productId": "4qoi3wk4",
+          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
+          "price": 5000,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 5140,
+      "status": "PENDING",
+      "date": "2026-07-06T06:26:55.112Z",
+      "created_at": "2026-07-06T06:26:55.171787+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-620216",
+      "customerName": "rist",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "hj",
+      "items": [
+        {
+          "productId": "4qoi3wk4",
+          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
+          "price": 5000,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 5140,
+      "status": "PENDING",
+      "date": "2026-07-06T06:28:00.827Z",
+      "created_at": "2026-07-06T06:28:00.910665+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-446334",
+      "customerName": "rist",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "80qm30vk",
+          "title": "Richard Mille",
+          "price": 4000,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 4100,
+      "status": "PENDING",
+      "date": "2026-07-06T07:18:37.890Z",
+      "created_at": "2026-07-06T07:18:37.908953+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-163879",
+      "customerName": "rist",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "r8vfkyzg",
+          "title": "Automatic Rebound Ab Roller",
+          "price": 1999,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2139,
+      "status": "PENDING",
+      "date": "2026-07-06T07:32:22.926Z",
+      "created_at": "2026-07-06T07:32:22.993874+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-933412",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "r9qm3w5m",
+          "title": "ACID WASH DROP SHOULDER",
+          "price": 570,
+          "selectedSize": "XL",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 670,
+      "status": "PENDING",
+      "date": "2026-07-08T10:58:02.496Z",
+      "created_at": "2026-07-08T10:58:02.556957+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-715426",
+      "customerName": "Rjsjsh",
+      "customerPhone": "01518848543458",
+      "customerAddress": "Hshshvs",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "bqjaeckq",
+          "title": "Stylish Drop Shoulder T-Shirt",
+          "price": 550,
+          "selectedSize": "M",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 690,
+      "status": "PENDING",
+      "date": "2026-06-26T17:18:32.712Z",
+      "created_at": "2026-06-26T17:18:32.743685+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-539382",
+      "customerName": "rist",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dmyy2t08",
+          "title": "Microfiber Coral Fleece Quick Dry Hair Towel",
+          "price": 270,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 410,
+      "status": "PENDING",
+      "date": "2026-07-06T07:30:03.394Z",
+      "created_at": "2026-07-06T07:30:03.407014+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-120014",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "4qoi3wk4",
+          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
+          "price": 5499,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 5639,
+      "status": "PENDING",
+      "date": "2026-07-12T06:13:04.901Z",
+      "created_at": "2026-07-12T06:13:04.944657+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-588222",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "4qoi3wk4",
+          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
+          "price": 3499,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 3639,
+      "status": "PENDING",
+      "date": "2026-07-15T10:56:13.204Z",
+      "created_at": "2026-07-15T10:56:13.262016+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-286980",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027852",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "r9qm3w5m",
+          "title": "ACID WASH DROP SHOULDER",
+          "price": 570,
+          "selectedSize": "M",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 710,
+      "status": "CONFIRMED",
+      "date": "2026-07-15T10:58:16.461Z",
+      "created_at": "2026-07-15T10:58:16.520414+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-109247",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "4qoi3wk4",
+          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
+          "price": 3499,
+          "selectedSize": "Standard",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 3639,
+      "status": "PENDING",
+      "date": "2026-07-17T08:24:41.681Z",
+      "created_at": "2026-07-17T08:24:41.718412+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-259385",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dyxngd1g",
+          "title": "Premium Gararah  |  Style X",
+          "price": 2489,
+          "selectedSize": "M",
+          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2619,
+      "status": "PENDING",
+      "date": "2026-07-18T09:04:08.892Z",
+      "created_at": "2026-07-18T09:04:08.943386+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-348557",
+      "customerName": "RRRRRRR",
+      "customerPhone": "01816027964",
+      "customerAddress": "hjhjghgk",
+      "customerCity": "Dhaka",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dyxngd1g",
+          "title": "Premium Gararah  |  Style X",
+          "price": 2489,
+          "selectedSize": "M",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2619,
+      "status": "PENDING",
+      "date": "2026-07-18T09:14:06.543Z",
+      "created_at": "2026-07-18T09:14:06.600145+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-788141",
+      "customerName": "risatadnan4",
+      "customerPhone": "01810934352",
+      "customerAddress": "asd sf sdfsd ",
+      "customerCity": "Chattogram",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dyxngd1g",
+          "title": "Premium Gararah  |  Style X",
+          "price": 2489,
+          "selectedSize": "M",
+          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2559,
+      "status": "PENDING",
+      "date": "2026-07-20T11:50:16.857Z",
+      "created_at": "2026-07-20T11:50:18.29175+00:00",
+      "userId": null
+    },
+    {
+      "id": "STX-879308",
+      "customerName": "risatadnan4",
+      "customerPhone": "01810934352",
+      "customerAddress": "asd sf sdfsd ",
+      "customerCity": "Chattogram",
+      "customerNotes": "",
+      "items": [
+        {
+          "productId": "dyxngd1g",
+          "title": "Premium Gararah  |  Style X",
+          "price": 2489,
+          "selectedSize": "M",
+          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
+          "quantity": 1
+        }
+      ],
+      "totalAmount": 2559,
+      "status": "PENDING",
+      "date": "2026-07-20T11:52:08.045Z",
+      "created_at": "2026-07-20T11:52:08.509834+00:00",
       "userId": null
     }
   ],
@@ -8322,6 +8655,168 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-19T12:03:55.207Z",
       "created_at": "2026-08-19T12:03:55.868549+00:00"
+    },
+    {
+      "id": "room-83da7f3i",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:21:03.813Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:21:03.813Z",
+      "created_at": "2026-08-19T12:21:03.859979+00:00"
+    },
+    {
+      "id": "room-n5fmpbsg",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:23:16.215Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:23:16.215Z",
+      "created_at": "2026-08-19T12:23:16.392041+00:00"
+    },
+    {
+      "id": "room-f82qpimt",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:23:18.201Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:23:18.201Z",
+      "created_at": "2026-08-19T12:23:18.879493+00:00"
+    },
+    {
+      "id": "room-8gaq36xq",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:23:19.341Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:23:19.341Z",
+      "created_at": "2026-08-19T12:23:19.497936+00:00"
+    },
+    {
+      "id": "room-xefyig43",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:24:46.015Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:24:46.015Z",
+      "created_at": "2026-08-19T12:24:46.165233+00:00"
+    },
+    {
+      "id": "room-8oqs5li3",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:25:18.550Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:25:18.550Z",
+      "created_at": "2026-08-19T12:25:18.731036+00:00"
+    },
+    {
+      "id": "room-u37tcw05",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:25:37.357Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:25:37.357Z",
+      "created_at": "2026-08-19T12:25:37.385578+00:00"
+    },
+    {
+      "id": "room-1fray7xw",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:25:39.000Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:25:39.000Z",
+      "created_at": "2026-08-19T12:25:39.154737+00:00"
+    },
+    {
+      "id": "room-n7a2qpxa",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:25:45.156Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:25:45.156Z",
+      "created_at": "2026-08-19T12:25:45.312845+00:00"
     }
   ],
   "carts": {
@@ -8394,7 +8889,7 @@
             "XL",
             "X"
           ],
-          "dimensions": "{\"slug\":\"\",\"brand\":\"\",\"sku\":\"\",\"shortDescription\":\"\",\"seoTitle\":\"\",\"seoDescription\":\"\",\"seoKeywords\":\"\",\"seoSlug\":\"\",\"canonicalUrl\":\"\",\"ogTitle\":\"\",\"ogDescription\":\"\",\"ogImage\":\"\",\"robots\":\"index, follow\",\"colors\":[],\"tags\":\"\",\"weight\":\"\",\"deliveryCharge\":100,\"paymentType\":\"delivery_charge\",\"bkashNumber\":\"01816027852\",\"nagadNumber\":\"01816027852\",\"status\":\"Active\",\"costPrice\":0,\"createdDate\":\"2026-08-03T08:25:32.586Z\",\"updatedDate\":\"2026-08-03T08:25:32.587Z\",\"dimensions\":\"Bespoke Fit\",\"isPinned\":true,\"timerOfferPrice\":1602,\"timerStartTime\":null,\"timerStartDate\":null,\"timerEndDate\":\"2026-08-03T06:32\",\"timerActive\":true,\"timerEnabled\":true,\"freeDelivery\":false,\"likes\":322}",
+          "dimensions": "Bespoke Fit",
           "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে। এর প্রিমিয়াম কোয়ালিটির ফাইবার চমৎকার অনুভূতি দেবে।",
           "trending": true,
           "featured": true,
@@ -8412,8 +8907,8 @@
           "couponCode": "",
           "offerPrice": 1602,
           "timerOfferPrice": 1602,
-          "timerStartTime": "",
-          "timerStartDate": "",
+          "timerStartTime": null,
+          "timerStartDate": null,
           "timerEndTime": "2026-08-03T06:32",
           "timerEndDate": "2026-08-03T06:32",
           "timerMessage": "Limited Stock",
@@ -8427,12 +8922,12 @@
           "deliveryDays": "3-5",
           "freeDelivery": false,
           "likes": 322,
-          "seoTitle": "",
-          "seoDescription": "",
+          "seoTitle": "Embroidery Three Piece | STYLE X BD",
+          "seoDescription": "Buy the official STYLE X Embroidery Three Piece in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Order now!",
           "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, embroidery three piece price in bangladesh, stylex embroidery three piece, buy embroidery three piece online bd, authentic style x embroidery three piece",
           "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, embroidery three piece price in bangladesh, stylex embroidery three piece, buy embroidery three piece online bd, authentic style x embroidery three piece",
           "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, embroidery three piece price in bangladesh, stylex embroidery three piece, buy embroidery three piece online bd, authentic style x embroidery three piece",
-          "seoSlug": "",
+          "seoSlug": "embroidery-three-piece-stylex-bd",
           "canonicalUrl": "",
           "ogTitle": "",
           "ogDescription": "",
@@ -8440,6 +8935,73 @@
           "robots": "index, follow"
         },
         "selectedSize": "S",
+        "quantity": 1
+      },
+      {
+        "product": {
+          "id": "1x8x67d5",
+          "code": "XP-628",
+          "title": "Premium Cotton Drop Shoulder Tshirt",
+          "description": "",
+          "price": 550,
+          "category": "MEN",
+          "stock": 7,
+          "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg",
+          "images": [],
+          "colors": [],
+          "sizes": [
+            "M",
+            "L",
+            "XL",
+            "XXL"
+          ],
+          "dimensions": "Standard Fitting",
+          "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।",
+          "trending": true,
+          "featured": true,
+          "isPinned": true,
+          "deliveryPrice": 120,
+          "deliveryPriceDhaka": 120,
+          "deliveryPriceChattogram": 120,
+          "deliveryPriceRajshahi": 100,
+          "deliveryPriceKhulna": 100,
+          "deliveryPriceBarishal": 100,
+          "deliveryPriceSylhet": 100,
+          "deliveryPriceRangpur": 150,
+          "deliveryPriceMymensingh": 100,
+          "lotteryEligible": true,
+          "couponCode": "",
+          "couponDiscountPercent": 15,
+          "offerPrice": 449,
+          "timerOfferPrice": 449,
+          "timerStartTime": null,
+          "timerStartDate": null,
+          "timerEndTime": null,
+          "timerEndDate": null,
+          "timerMessage": null,
+          "timerActive": false,
+          "timerEnabled": false,
+          "bkashNumber": "01816027852",
+          "nagadNumber": "01816027852",
+          "paymentType": "delivery_charge",
+          "paymentPercentage": 10,
+          "deliveryCharge": 100,
+          "deliveryDays": "3-5",
+          "freeDelivery": false,
+          "likes": 214,
+          "seoTitle": "Premium Cotton Drop Shoulder Tshirt | STYLE X BD",
+          "seoDescription": "Buy official STYLE X Premium Cotton Drop Shoulder Tshirt in Bangladesh. 100% authentic quality, secure Cash on Delivery (COD) & premium curation. Order today!",
+          "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+          "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+          "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+          "seoSlug": "premium-cotton-drop-shoulder-tshirt-stylex-bd",
+          "canonicalUrl": "",
+          "ogTitle": "",
+          "ogDescription": "",
+          "ogImage": "",
+          "robots": "index, follow"
+        },
+        "selectedSize": "M",
         "quantity": 1
       }
     ],
@@ -8581,7 +9143,7 @@
   },
   "forms": [],
   "formSubmissions": [],
-  "visits": 36,
+  "visits": 37,
   "liveViews": 1,
   "countedSessions": [
     "visitor_8fhjs41hqwm_1785575815595",
@@ -8619,7 +9181,8 @@
     "visitor_9nby915ujzg_1787051815108",
     "visitor_riyrvegpm3j_1787052703575",
     "visitor_t28kg111qji_1787122249264",
-    "visitor_69xc13nafa4_1787140883506"
+    "visitor_69xc13nafa4_1787140883506",
+    "visitor_i33gjeyhtxb_1787142445146"
   ],
   "notifications": [],
   "failed_notifications": [],

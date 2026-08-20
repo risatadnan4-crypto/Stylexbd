@@ -622,7 +622,7 @@ function ProductCard({
               {/* Old Price & Discount Badge (on the right of current price) */}
               {hasActiveOffer && (
                 <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
-                  <span className="text-luxury-gold font-sans font-black text-sm sm:text-base md:text-lg leading-none tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] select-all opacity-85 shrink-0">
+                  <span className="text-zinc-400 font-sans font-semibold text-xs sm:text-sm md:text-sm leading-none line-through decoration-[#FF2D55] decoration-[1.5px] select-all opacity-90 shrink-0">
                     ৳{originalPrice}
                   </span>
                   {discountPercent > 0 && (

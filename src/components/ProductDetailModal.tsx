@@ -784,7 +784,7 @@ export default function ProductDetailModal({
 
                     {/* Original Price */}
                     {hasDiscount && (
-                      <div className="text-sm md:text-base text-luxury-gold font-sans font-black tracking-wide bg-gradient-to-r from-luxury-gold to-[#facc15] bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(212,175,85,0.75)] line-through decoration-[#FF2D55] decoration-[1.5px] opacity-85 transition-all duration-300 hover:scale-105 shrink-0">
+                      <div className="text-base sm:text-lg md:text-xl text-zinc-400 font-sans font-semibold line-through decoration-[#FF2D55] decoration-[2px] opacity-90 transition-all duration-300 shrink-0 flex items-center gap-0.5">
                         <span>৳</span>
                         <span>{originalPrice.toLocaleString('en-US')}</span>
                       </div>
