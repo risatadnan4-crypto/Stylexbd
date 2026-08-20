@@ -309,14 +309,9 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
 
   // Store data list states
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('stylex_cached_products');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // We initialize as an empty array [] to ensure loadStoreCollections acts as the sole source of truth on mount
+  // and prevents any routing race conditions with stale cached values during initial page load.
+  const [products, setProducts] = useState<Product[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -1876,11 +1871,9 @@ export default function App() {
               });
             }
           });
-        } else if (Array.isArray(prodList)) {
-          setProducts(prodList);
-          setFetchError(null);
         } else {
-          // Fallback to locally cached products if present
+          // Fallback to locally cached products if present to prevent empty product list flashes
+          let fallbackedToCache = false;
           try {
             const cached = localStorage.getItem('stylex_cached_products');
             if (cached) {
@@ -1888,9 +1881,20 @@ export default function App() {
               if (Array.isArray(parsedCached) && parsedCached.length > 0) {
                 syncCatalogWithStableRefs(parsedCached);
                 setFetchError(null);
+                fallbackedToCache = true;
+                console.log("[loadStoreCollections] Successfully loaded fallback products from localStorage cache.");
               }
             }
           } catch (e) {}
+
+          if (!fallbackedToCache) {
+            if (Array.isArray(prodList)) {
+              setProducts(prodList);
+              setFetchError(null);
+            } else {
+              setFetchError("Invalid product data received from server.");
+            }
+          }
         }
       } else {
         // Read response body to extract any DB or Supabase connection errors
