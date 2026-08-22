@@ -1390,7 +1390,7 @@ async function syncFromSupabase() {
           saveDB();
           console.log(`✅ Synced ${db.products.length} products from Supabase.`);
         } else {
-          if (db.products && db.products.length > 0) {
+          if (db.products && db.products.length > 0 && !db.seededProducts) {
             console.log("🌱 Initial seeding Supabase 'products' table from local backup...");
             for (const prod of db.products) {
               await supabase.from("products").upsert({
@@ -1411,6 +1411,11 @@ async function syncFromSupabase() {
             }
             db.seededProducts = true;
             saveDB();
+          } else if (db.seededProducts) {
+            // User intentionally cleared all products from Supabase. Set local state to empty.
+            db.products = [];
+            saveDB();
+            console.log("✅ Synced empty products catalog from Supabase.");
           }
         }
       } else if (productsResult.error) {
@@ -1641,19 +1646,14 @@ async function syncFromSupabase() {
     try {
       if (!ordersResult.error && ordersResult.data) {
         const ordersData = ordersResult.data;
-        if (ordersData.length > 0) {
-          db.orders = ordersData.map((o: any) => ({
-            ...o,
-            items: typeof o.items === "string" ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []),
-            totalAmount: Number(o.totalAmount)
-          }));
-          console.log(`✅ Synced ${db.orders.length} orders from Supabase.`);
-        } else {
-          if (!db.orders) {
-            db.orders = [];
-            saveDB();
-          }
-        }
+        const mappedOrders = ordersData.map((o: any) => ({
+          ...o,
+          items: typeof o.items === "string" ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []),
+          totalAmount: Number(o.totalAmount)
+        }));
+        db.orders = mappedOrders;
+        saveDB();
+        console.log(`✅ Synced ${db.orders.length} orders from Supabase.`);
       }
     } catch (e: any) {}
 
@@ -3007,21 +3007,16 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 app.get("/api/products", async (req, res) => {
   try {
     const { data: productsData, error: pError } = await supabase.from("products").select("*");
-    if (!pError && productsData && productsData.length > 0) {
-      const fetchedIds = new Set(productsData.map((p: any) => String(p.id)));
+    if (!pError && productsData) {
       const supabaseProducts = productsData.map((p: any) => {
         const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(p.id)) : null;
         const pm = (db.settings?.productPayments && db.settings.productPayments[p.id]) || {};
         return buildProductObject(p, localProduct, pm);
       });
 
-      // Retain any local-only products not returned by Supabase
-      const localOnlyProducts = (db.products || []).filter((lp: any) => !fetchedIds.has(String(lp.id)));
-      const mergedProducts = [...supabaseProducts, ...localOnlyProducts];
-
-      db.products = mergedProducts;
+      db.products = supabaseProducts;
       saveDB();
-      return res.json(mergedProducts);
+      return res.json(supabaseProducts);
     }
   } catch (err: any) {
     console.warn("⚠️ Direct products fetch fallback to memory cache:", formatSupabaseError(err));
@@ -3939,7 +3934,28 @@ app.delete("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
 
   console.log(`[DELETE PRODUCT] Initiating delete for product ID/Code: "${targetId}"`);
 
-  // Remove matching products from memory db.products
+  // 1. Delete from Supabase first
+  try {
+    const { error: deleteError } = await supabase
+      .from("products")
+      .delete()
+      .or(`id.eq.${targetId},code.eq.${targetId}`);
+
+    if (deleteError) {
+      console.error("⚠️ Supabase product deletion error: ", deleteError.message);
+      return res.status(500).json({ 
+        message: `Database rejected product deletion: ${deleteError.message}` 
+      });
+    }
+    console.log(`✅ Product "${targetId}" deleted from Supabase successfully.`);
+  } catch (err: any) {
+    console.error("⚠️ Exception deleting product from Supabase: ", err?.message || err);
+    return res.status(500).json({ 
+      message: `Database connection error: ${err?.message || err}` 
+    });
+  }
+
+  // 2. Remove matching products from memory db.products
   const deletedProducts = db.products.filter(
     p => String(p.id).trim() === targetId || String(p.code || "").trim().toUpperCase() === targetId.toUpperCase()
   );
@@ -3957,23 +3973,7 @@ app.delete("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
   }
 
   saveDB();
-  await syncSettingsToCloud();
-
-  // Delete from Supabase cloud database
-  try {
-    const { error: deleteError } = await supabase
-      .from("products")
-      .delete()
-      .or(`id.eq.${targetId},code.eq.${targetId}`);
-
-    if (deleteError) {
-      console.error("⚠️ Supabase product deletion error: ", deleteError.message);
-    } else {
-      console.log(`✅ Product "${targetId}" deleted from Supabase successfully.`);
-    }
-  } catch (err: any) {
-    console.error("⚠️ Exception deleting product from Supabase: ", err?.message || err);
-  }
+  await syncSettingsToCloud().catch(() => {});
 
   lastSyncCompletedAt = 0;
 
@@ -4056,7 +4056,7 @@ app.delete("/api/banners/:id", async (req, res) => {
 app.get("/api/orders", async (req, res) => {
   try {
     const { data, error } = await supabase.from("orders").select("*");
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const orders = data.map((o: any) => ({
         ...o,
         items: typeof o.items === "string" ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []),
@@ -5727,18 +5727,42 @@ app.put("/api/orders/:id/status", xoroAdminAuthMiddleware, async (req, res) => {
 });
 
 app.delete("/api/orders/:id", xoroAdminAuthMiddleware, async (req, res) => {
-  const idx = db.orders.findIndex(o => o.id === req.params.id);
+  const targetId = String(req.params.id || "").trim();
+  if (!targetId) {
+    return res.status(400).json({ error: "Order ID is required" });
+  }
+
+  console.log(`[DELETE ORDER] Initiating delete for order ID: "${targetId}"`);
+
+  // 1. Delete from Supabase first
+  try {
+    const { error: deleteError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", targetId);
+
+    if (deleteError) {
+      console.error("⚠️ Failed to delete order from Supabase: ", deleteError.message);
+      return res.status(500).json({ 
+        message: `Database rejected order deletion: ${deleteError.message}` 
+      });
+    }
+    console.log(`✅ Order "${targetId}" deleted from Supabase successfully.`);
+  } catch (err: any) {
+    console.error("⚠️ Exception deleting order from Supabase: ", err?.message || err);
+    return res.status(500).json({ 
+      message: `Database connection error: ${err?.message || err}` 
+    });
+  }
+
+  // 2. Splice from memory db.orders
+  const idx = db.orders.findIndex(o => String(o.id).trim() === targetId);
   if (idx !== -1) {
     const deleted = db.orders.splice(idx, 1)[0];
     saveDB();
-    try {
-      await supabase.from("orders").delete().eq("id", req.params.id);
-    } catch (err: any) {
-      console.error("⚠️ Failed to mirror order deletion to Supabase: ", err.message);
-    }
     res.json(deleted);
   } else {
-    res.status(404).json({ message: "Order not found" });
+    res.json({ message: "Order removed from database", id: targetId });
   }
 });
 
@@ -8829,8 +8853,6 @@ if (!isProduction) {
 syncFromSupabase()
   .then(async () => {
     initializeAiKeyPool();
-    // Ensure all local products with recent edits are properly saved into Supabase
-    await pushAllLocalProductsToSupabase();
     // Schedule periodic polling sync from Supabase
     const syncInterval = setInterval(syncFromSupabase, 45000);
     if (syncInterval.unref) syncInterval.unref();
