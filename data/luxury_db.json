@@ -249,15 +249,17 @@
       "lotteryEligible": false,
       "couponCode": "",
       "couponDiscountPercent": 15,
-      "offerPrice": 572,
-      "timerOfferPrice": 572,
+      "offerPrice": 553,
+      "timerOfferPrice": 553,
       "timerStartTime": null,
       "timerStartDate": null,
-      "timerEndTime": "2026-07-11T16:45",
-      "timerEndDate": "2026-07-11T16:45",
+      "timerEndTime": "2026-08-01T15:38",
+      "timerEndDate": "2026-08-01T15:38",
+      "timer_end_at": "2026-08-01T15:38",
+      "timer_enabled": false,
       "timerMessage": " Limited",
-      "timerActive": true,
-      "timerEnabled": true,
+      "timerActive": false,
+      "timerEnabled": false,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
       "paymentType": "delivery_charge",
@@ -279,61 +281,61 @@
       "robots": "index, follow"
     },
     {
-      "id": "bzswb2tp",
-      "code": "XP-788",
-      "title": "Blaster Splatter Gel Gun AKM-47",
-      "description": "✨ ফিচারসমূহ:\n✅ Automatic Electric Shooting\n✅ Safe Soft Gel Balls\n✅ Rechargeable Battery\n✅ Realistic Action & Fun Play\n📦 প্যাকেজে থাকছে:\n• ১টি Gel Blaster Gun\n• ২ প্যাকেট Gel Ball (মোট ১,০০০টি)\n• Rechargeable Battery\n• Charging Cable",
-      "price": 2600,
-      "category": "ACCESSORIES",
-      "stock": 23,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571862593_Gemini_Generated_Image_v8h9av8h9av8h9av.png",
+      "id": "80qm30vk",
+      "code": "XP-155",
+      "title": "Richard Mille",
+      "description": "✨ Richard Mille — Where Innovation Meets Luxury.\nঅত্যাধুনিক প্রযুক্তি, অসাধারণ ডিজাইন এবং সীমিত সংস্করণের এক্সক্লুসিভ টাইমপিস। যারা সাধারণের বাইরে কিছু খোঁজেন, তাদের জন্য Richard Mille শুধুমাত্র একটি ঘড়ি নয়, বরং সাফল্য ও মর্যাদার প্রতীক। ⌚💎",
+      "price": 4499,
+      "category": "MEN",
+      "stock": 5,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1782468925734_d2b723cc9c857f9dac11a2d2506b71a0.jpg",
       "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571862593_Gemini_Generated_Image_v8h9av8h9av8h9av.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571874054_1784043502_L_2.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571874875_1784043502_L_1.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571875589_1784043502_L_3.png"
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1782468925734_d2b723cc9c857f9dac11a2d2506b71a0.jpg"
       ],
       "colors": [],
       "sizes": [],
       "dimensions": "Bespoke Fit",
-      "whyBuy": "• ১টি Gel Blaster Gun\n• ২ প্যাকেট Gel Ball (মোট ১,০০০টি)\n• Rechargeable Battery\n• Charging Cable",
+      "whyBuy": "✅ অত্যন্ত প্রিমিয়াম ও এক্সক্লুসিভ\nRichard Mille ঘড়ি সবার জন্য নয়। সীমিত সংখ্যক তৈরি হয়, তাই এটি আপনাকে আলাদা পরিচয় দেয়।\n\n✅ স্ট্যাটাস ও প্রেস্টিজ\nবিশ্বের ধনী ব্যবসায়ী, সেলিব্রিটি ও অ্যাথলেটদের পছন্দের ব্র্যান্ড। এটি সাফল্য ও মর্যাদার প্রতীক।\n\n✅ অসাধারণ প্রযুক্তি\nAerospace-grade titanium, carbon fiber এবং উন্নত Swiss engineering ব্যবহার করা হয়, যা ঘড়িটিকে অত্যন্ত হালকা ও টেকসই করে।",
       "trending": true,
       "featured": true,
       "isPinned": false,
       "deliveryPrice": 100,
-      "deliveryPriceDhaka": 100,
-      "deliveryPriceChattogram": 150,
-      "deliveryPriceRajshahi": 150,
-      "deliveryPriceKhulna": 150,
-      "deliveryPriceBarishal": 150,
-      "deliveryPriceSylhet": 150,
-      "deliveryPriceRangpur": 150,
-      "deliveryPriceMymensingh": 150,
+      "deliveryPriceDhaka": 120,
+      "deliveryPriceChattogram": 120,
+      "deliveryPriceRajshahi": 120,
+      "deliveryPriceKhulna": 120,
+      "deliveryPriceBarishal": 120,
+      "deliveryPriceSylhet": 120,
+      "deliveryPriceRangpur": 120,
+      "deliveryPriceMymensingh": 120,
       "lotteryEligible": true,
-      "couponCode": "",
-      "offerPrice": 2350,
-      "timerOfferPrice": 2350,
+      "couponCode": "RRR",
+      "couponDiscountPercent": 5,
+      "offerPrice": 3509,
+      "timerOfferPrice": 3509,
       "timerStartTime": null,
       "timerStartDate": null,
-      "timerEndTime": "2026-08-03T06:35",
-      "timerEndDate": "2026-08-03T06:35",
-      "timerMessage": null,
-      "timerActive": true,
-      "timerEnabled": true,
+      "timerEndTime": "2026-07-08T13:04",
+      "timerEndDate": "2026-07-08T13:04",
+      "timer_end_at": "2026-07-08T13:04",
+      "timer_enabled": false,
+      "timerMessage": "Welcome Offer",
+      "timerActive": false,
+      "timerEnabled": false,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
-      "paymentType": "delivery_charge",
+      "paymentType": "full_advance",
       "paymentPercentage": 10,
       "deliveryCharge": 100,
       "deliveryDays": "3-5",
       "freeDelivery": false,
       "likes": 0,
-      "seoTitle": "Blaster Splatter Gel Gun AKM-47 | STYLE X BD",
-      "seoDescription": "Buy the official STYLE X Blaster Gel Gun AKM-47 in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Shop now!",
-      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, blaster splatter gel gun akm-47 price in bangladesh, stylex blaster splatter gel gun akm-47, buy blaster splatter gel gun akm-47 online bd, authentic style x blaster splatter gel gun akm-47",
-      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, blaster splatter gel gun akm-47 price in bangladesh, stylex blaster splatter gel gun akm-47, buy blaster splatter gel gun akm-47 online bd, authentic style x blaster splatter gel gun akm-47",
-      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, blaster splatter gel gun akm-47 price in bangladesh, stylex blaster splatter gel gun akm-47, buy blaster splatter gel gun akm-47 online bd, authentic style x blaster splatter gel gun akm-47",
-      "seoSlug": "blaster-splatter-gel-gun-akm-47-stylex-bd",
+      "seoTitle": "Richard Mille Luxury Watch | STYLE X BD",
+      "seoDescription": "Buy the official STYLE X Richard Mille online in Bangladesh. Enjoy 100% authentic quality, nationwide Cash on Delivery (COD), and premium curation. Order now!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Richard Mille price in bangladesh, stylex Richard Mille, buy Richard Mille online bd, authentic style x Richard Mille",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Richard Mille price in bangladesh, stylex Richard Mille, buy Richard Mille online bd, authentic style x Richard Mille",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Richard Mille price in bangladesh, stylex Richard Mille, buy Richard Mille online bd, authentic style x Richard Mille",
+      "seoSlug": "richard-mille-watch-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
       "ogDescription": "",
@@ -367,14 +369,14 @@
       "featured": true,
       "isPinned": false,
       "deliveryPrice": 100,
-      "deliveryPriceDhaka": 140,
-      "deliveryPriceChattogram": 140,
-      "deliveryPriceRajshahi": 140,
-      "deliveryPriceKhulna": 140,
-      "deliveryPriceBarishal": 140,
-      "deliveryPriceSylhet": 140,
-      "deliveryPriceRangpur": 140,
-      "deliveryPriceMymensingh": 140,
+      "deliveryPriceDhaka": 120,
+      "deliveryPriceChattogram": 120,
+      "deliveryPriceRajshahi": 120,
+      "deliveryPriceKhulna": 120,
+      "deliveryPriceBarishal": 120,
+      "deliveryPriceSylhet": 120,
+      "deliveryPriceRangpur": 120,
+      "deliveryPriceMymensingh": 120,
       "lotteryEligible": false,
       "couponCode": "",
       "couponDiscountPercent": 15,
@@ -384,6 +386,8 @@
       "timerStartDate": null,
       "timerEndTime": null,
       "timerEndDate": null,
+      "timer_end_at": null,
+      "timer_enabled": true,
       "timerMessage": null,
       "timerActive": true,
       "timerEnabled": true,
@@ -451,6 +455,8 @@
       "timerStartDate": null,
       "timerEndTime": "2026-08-03T06:31",
       "timerEndDate": "2026-08-03T06:31",
+      "timer_end_at": "2026-08-03T06:31",
+      "timer_enabled": true,
       "timerMessage": null,
       "timerActive": true,
       "timerEnabled": true,
@@ -484,8 +490,7 @@
       "stock": 30,
       "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783683549559_ChatGPT_Image_Jul_10,_2026,_05_38_21_PM.png",
       "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783683549559_ChatGPT_Image_Jul_10,_2026,_05_38_21_PM.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783683380330_ChatGPT_Image_Jul_10,_2026,_05_36_03_PM.png"
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783683549559_ChatGPT_Image_Jul_10,_2026,_05_38_21_PM.png"
       ],
       "colors": [
         {
@@ -521,12 +526,14 @@
       "lotteryEligible": true,
       "couponCode": "",
       "couponDiscountPercent": 15,
-      "offerPrice": 450,
-      "timerOfferPrice": 450,
+      "offerPrice": 480,
+      "timerOfferPrice": 480,
       "timerStartTime": null,
       "timerStartDate": null,
-      "timerEndTime": "2026-07-22T01:13",
-      "timerEndDate": "2026-07-22T01:13",
+      "timerEndTime": "2026-08-03T06:36",
+      "timerEndDate": "2026-08-03T06:36",
+      "timer_end_at": "2026-08-03T06:36",
+      "timer_enabled": true,
       "timerMessage": "Stock Limited ",
       "timerActive": true,
       "timerEnabled": true,
@@ -540,9 +547,9 @@
       "likes": 321,
       "seoTitle": "Anime Legacy White Tee | STYLE X BD",
       "seoDescription": "Buy the official STYLE X Anime Legacy White Tee in Bangladesh. 100% authentic quality, nationwide secure Cash on Delivery (COD) and premium curation. Order now!",
-      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, anime legacy white tee price in bangladesh, stylex anime legacy white tee, buy anime legacy white tee online bd, authentic style x anime legacy white tee",
-      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, anime legacy white tee price in bangladesh, stylex anime legacy white tee, buy anime legacy white tee online bd, authentic style x anime legacy white tee",
-      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, anime legacy white tee price in bangladesh, stylex anime legacy white tee, buy anime legacy white tee online bd, authentic style x anime legacy white tee",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Anime Legacy White Tee price in bangladesh, stylex Anime Legacy White Tee, buy Anime Legacy White Tee online bd, authentic style x Anime Legacy White Tee",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Anime Legacy White Tee price in bangladesh, stylex Anime Legacy White Tee, buy Anime Legacy White Tee online bd, authentic style x Anime Legacy White Tee",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Anime Legacy White Tee price in bangladesh, stylex Anime Legacy White Tee, buy Anime Legacy White Tee online bd, authentic style x Anime Legacy White Tee",
       "seoSlug": "anime-legacy-white-tee-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
@@ -551,65 +558,60 @@
       "robots": "index, follow"
     },
     {
-      "id": "dyxngd1g",
-      "code": "XP-440",
-      "title": "Premium Gararah  |  Style X",
-      "description": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট।\nভারি এমব্রয়ডারি কাজ করা।\nফুল বডিতে রিপিট বসানো।\nকামিজ এন্ড প্যান্ট এর ইনসাইডে ইনার আছে।\nকামিজ লং ৩৬-৩৮ ইঞ্চি।\nপ্যান্টের লং ৪০ ইঞ্চি।\n৩৬-৪৬ বডি সাইজ পর্যন্ত পড়া যাবে।",
-      "price": 2999,
-      "category": "WOMEN",
-      "stock": 13,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
+      "id": "xtn76vd0",
+      "code": "XP-275",
+      "title": "BAGGY TROUSER",
+      "description": "",
+      "price": 799,
+      "category": "UNISEX",
+      "stock": 30,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1787377683933_1786952908_L_2.jpeg",
       "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png"
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1787377683933_1786952908_L_2.jpeg"
       ],
       "colors": [],
-      "sizes": [
-        "M",
-        "L",
-        "XL"
-      ],
-      "dimensions": "Bespoke Fit",
-      "whyBuy": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট",
+      "sizes": [],
+      "dimensions": "Standard Fitting",
+      "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।",
       "trending": true,
       "featured": true,
-      "isPinned": true,
-      "deliveryPrice": 120,
-      "deliveryPriceDhaka": 120,
-      "deliveryPriceChattogram": 120,
-      "deliveryPriceRajshahi": 130,
-      "deliveryPriceKhulna": 130,
-      "deliveryPriceBarishal": 130,
-      "deliveryPriceSylhet": 130,
-      "deliveryPriceRangpur": 130,
-      "deliveryPriceMymensingh": 130,
-      "lotteryEligible": false,
+      "isPinned": false,
+      "deliveryPrice": 100,
+      "deliveryPriceDhaka": 100,
+      "deliveryPriceChattogram": 150,
+      "deliveryPriceRajshahi": 150,
+      "deliveryPriceKhulna": 150,
+      "deliveryPriceBarishal": 150,
+      "deliveryPriceSylhet": 150,
+      "deliveryPriceRangpur": 150,
+      "deliveryPriceMymensingh": 150,
+      "lotteryEligible": true,
       "couponCode": "",
-      "couponDiscountPercent": 15,
-      "offerPrice": 2399,
-      "timerOfferPrice": 2399,
-      "timerStartTime": "2026-08-03T12:12",
-      "timerStartDate": "2026-08-03T12:12",
-      "timerEndTime": "2026-07-21T13:33",
-      "timerEndDate": "2026-07-21T13:33",
-      "timerMessage": "Limited",
-      "timerActive": true,
-      "timerEnabled": true,
+      "offerPrice": 599,
+      "timerOfferPrice": 599,
+      "timerStartTime": null,
+      "timerStartDate": null,
+      "timerEndTime": null,
+      "timerEndDate": null,
+      "timer_end_at": null,
+      "timer_enabled": false,
+      "timerMessage": null,
+      "timerActive": false,
+      "timerEnabled": false,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
       "paymentType": "delivery_charge",
-      "paymentPercentage": 50,
+      "paymentPercentage": 10,
       "deliveryCharge": 100,
       "deliveryDays": "3-5",
       "freeDelivery": false,
-      "likes": 324,
-      "seoTitle": "sfs  fs",
-      "seoDescription": "Buy the official STYLE X Premium Gararah online in Bangladesh. 100% authentic quality, nationwide secure Cash on Delivery (COD) & premium curation. Shop now!",
-      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah  |  style x price in bangladesh, stylex premium gararah  |  style x, buy premium gararah  |  style x online bd, authentic style x premium gararah  |  style x",
-      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah  |  style x price in bangladesh, stylex premium gararah  |  style x, buy premium gararah  |  style x online bd, authentic style x premium gararah  |  style x",
-      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah  |  style x price in bangladesh, stylex premium gararah  |  style x, buy premium gararah  |  style x online bd, authentic style x premium gararah  |  style x",
-      "seoSlug": "s",
+      "likes": 322,
+      "seoTitle": "100% Cotton Baggy Trouser | STYLE X BD",
+      "seoDescription": "Buy the official STYLE X Baggy Trouser online in Bangladesh. Enjoy 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Shop now!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, baggy trouser price in bangladesh, stylex baggy trouser, buy baggy trouser online bd, authentic style x baggy trouser",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, baggy trouser price in bangladesh, stylex baggy trouser, buy baggy trouser online bd, authentic style x baggy trouser",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, baggy trouser price in bangladesh, stylex baggy trouser, buy baggy trouser online bd, authentic style x baggy trouser",
+      "seoSlug": "baggy-trouser-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
       "ogDescription": "",
@@ -659,9 +661,11 @@
       "timerStartDate": null,
       "timerEndTime": "2026-08-03T06:32",
       "timerEndDate": "2026-08-03T06:32",
+      "timer_end_at": "2026-08-03T06:32",
+      "timer_enabled": false,
       "timerMessage": "Limited Stock",
-      "timerActive": true,
-      "timerEnabled": true,
+      "timerActive": false,
+      "timerEnabled": false,
       "bkashNumber": "01816027852",
       "nagadNumber": "01816027852",
       "paymentType": "delivery_charge",
@@ -718,12 +722,14 @@
       "lotteryEligible": false,
       "couponCode": "",
       "couponDiscountPercent": 15,
-      "offerPrice": 527,
-      "timerOfferPrice": 527,
+      "offerPrice": 546,
+      "timerOfferPrice": 546,
       "timerStartTime": null,
       "timerStartDate": null,
       "timerEndTime": "2026-07-21T12:22",
       "timerEndDate": "2026-07-21T12:22",
+      "timer_end_at": "2026-07-21T12:22",
+      "timer_enabled": true,
       "timerMessage": "Limitted",
       "timerActive": true,
       "timerEnabled": true,
@@ -741,6 +747,205 @@
       "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, stylish drop shoulder t-shirt price in bangladesh, stylex stylish drop shoulder t-shirt, buy stylish drop shoulder t-shirt online bd, authentic style x stylish drop shoulder t-shirt",
       "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, stylish drop shoulder t-shirt price in bangladesh, stylex stylish drop shoulder t-shirt, buy stylish drop shoulder t-shirt online bd, authentic style x stylish drop shoulder t-shirt",
       "seoSlug": "",
+      "canonicalUrl": "",
+      "ogTitle": "",
+      "ogDescription": "",
+      "ogImage": "",
+      "robots": "index, follow"
+    },
+    {
+      "id": "dyxngd1g",
+      "code": "XP-440",
+      "title": "Premium Gararah  |  Style X",
+      "description": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট।\nভারি এমব্রয়ডারি কাজ করা।\nফুল বডিতে রিপিট বসানো।\nকামিজ এন্ড প্যান্ট এর ইনসাইডে ইনার আছে।\nকামিজ লং ৩৬-৩৮ ইঞ্চি।\nপ্যান্টের লং ৪০ ইঞ্চি।\n৩৬-৪৬ বডি সাইজ পর্যন্ত পড়া যাবে।",
+      "price": 2999,
+      "category": "WOMEN",
+      "stock": 13,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
+      "images": [
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784282351086_Gemini_Generated_Image_cv1qvxcv1qvxcv1q.png",
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png"
+      ],
+      "colors": [],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "dimensions": "Bespoke Fit",
+      "whyBuy": "ফেব্রিকঃ ইন্ডিয়ান জর্জেট",
+      "trending": true,
+      "featured": true,
+      "isPinned": true,
+      "deliveryPrice": 120,
+      "deliveryPriceDhaka": 120,
+      "deliveryPriceChattogram": 120,
+      "deliveryPriceRajshahi": 120,
+      "deliveryPriceKhulna": 120,
+      "deliveryPriceBarishal": 120,
+      "deliveryPriceSylhet": 120,
+      "deliveryPriceRangpur": 120,
+      "deliveryPriceMymensingh": 120,
+      "lotteryEligible": false,
+      "couponCode": "",
+      "couponDiscountPercent": 15,
+      "offerPrice": 2399,
+      "timerOfferPrice": 2399,
+      "timerStartTime": "2026-08-03T12:12",
+      "timerStartDate": "2026-08-03T12:12",
+      "timerEndTime": "2026-07-21T13:33",
+      "timerEndDate": "2026-07-21T13:33",
+      "timer_end_at": "2026-07-21T13:33",
+      "timer_enabled": true,
+      "timerMessage": "Limited",
+      "timerActive": true,
+      "timerEnabled": true,
+      "bkashNumber": "01816027852",
+      "nagadNumber": "01816027852",
+      "paymentType": "delivery_charge",
+      "paymentPercentage": 50,
+      "deliveryCharge": 100,
+      "deliveryDays": "3-5",
+      "freeDelivery": false,
+      "likes": 324,
+      "seoTitle": "Premium Gararah | STYLE X BD",
+      "seoDescription": "Buy the official STYLE X Premium Gararah online in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Shop now!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah price in bangladesh, stylex premium gararah, buy premium gararah online bd, authentic style x premium gararah",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah price in bangladesh, stylex premium gararah, buy premium gararah online bd, authentic style x premium gararah",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium gararah price in bangladesh, stylex premium gararah, buy premium gararah online bd, authentic style x premium gararah",
+      "seoSlug": "premium-gararah-stylex-bd",
+      "canonicalUrl": "",
+      "ogTitle": "",
+      "ogDescription": "",
+      "ogImage": "",
+      "robots": "index, follow"
+    },
+    {
+      "id": "bzswb2tp",
+      "code": "XP-788",
+      "title": "Blaster Splatter Gel Gun AKM-47",
+      "description": "✨ ফিচারসমূহ:\n✅ Automatic Electric Shooting\n✅ Safe Soft Gel Balls\n✅ Rechargeable Battery\n✅ Realistic Action & Fun Play\n📦 প্যাকেজে থাকছে:\n• ১টি Gel Blaster Gun\n• ২ প্যাকেট Gel Ball (মোট ১,০০০টি)\n• Rechargeable Battery\n• Charging Cable",
+      "price": 2600,
+      "category": "ACCESSORIES",
+      "stock": 23,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571862593_Gemini_Generated_Image_v8h9av8h9av8h9av.png",
+      "images": [
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571862593_Gemini_Generated_Image_v8h9av8h9av8h9av.png",
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571874054_1784043502_L_2.png",
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571874875_1784043502_L_1.png",
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1785571875589_1784043502_L_3.png"
+      ],
+      "colors": [],
+      "sizes": [],
+      "dimensions": "Bespoke Fit",
+      "whyBuy": "• ১টি Gel Blaster Gun\n• ২ প্যাকেট Gel Ball (মোট ১,০০০টি)\n• Rechargeable Battery\n• Charging Cable",
+      "trending": true,
+      "featured": true,
+      "isPinned": false,
+      "deliveryPrice": 100,
+      "deliveryPriceDhaka": 100,
+      "deliveryPriceChattogram": 150,
+      "deliveryPriceRajshahi": 150,
+      "deliveryPriceKhulna": 150,
+      "deliveryPriceBarishal": 150,
+      "deliveryPriceSylhet": 150,
+      "deliveryPriceRangpur": 150,
+      "deliveryPriceMymensingh": 150,
+      "lotteryEligible": true,
+      "couponCode": "",
+      "offerPrice": 2350,
+      "timerOfferPrice": 2350,
+      "timerStartTime": null,
+      "timerStartDate": null,
+      "timerEndTime": "2026-08-03T06:35",
+      "timerEndDate": "2026-08-03T06:35",
+      "timer_end_at": "2026-08-03T06:35",
+      "timer_enabled": true,
+      "timerMessage": null,
+      "timerActive": true,
+      "timerEnabled": true,
+      "bkashNumber": "01816027852",
+      "nagadNumber": "01816027852",
+      "paymentType": "delivery_charge",
+      "paymentPercentage": 10,
+      "deliveryCharge": 100,
+      "deliveryDays": "3-5",
+      "freeDelivery": false,
+      "likes": 0,
+      "seoTitle": "Blaster Splatter Gel Gun AKM-47 | STYLE X BD",
+      "seoDescription": "Buy the official STYLE X Blaster Gel Gun AKM-47 in BD. 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Shop now!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Blaster Splatter Gel Gun AKM-47 price in bangladesh, stylex Blaster Splatter Gel Gun AKM-47, buy Blaster Splatter Gel Gun AKM-47 online bd, authentic style x Blaster Splatter Gel Gun AKM-47",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Blaster Splatter Gel Gun AKM-47 price in bangladesh, stylex Blaster Splatter Gel Gun AKM-47, buy Blaster Splatter Gel Gun AKM-47 online bd, authentic style x Blaster Splatter Gel Gun AKM-47",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Blaster Splatter Gel Gun AKM-47 price in bangladesh, stylex Blaster Splatter Gel Gun AKM-47, buy Blaster Splatter Gel Gun AKM-47 online bd, authentic style x Blaster Splatter Gel Gun AKM-47",
+      "seoSlug": "blaster-splatter-gel-gun-akm-47-stylex-bd",
+      "canonicalUrl": "",
+      "ogTitle": "",
+      "ogDescription": "",
+      "ogImage": "",
+      "robots": "index, follow"
+    },
+    {
+      "id": "1x8x67d5",
+      "code": "XP-628",
+      "title": "Premium Cotton Drop Shoulder Tshirt",
+      "description": "",
+      "price": 550,
+      "category": "MEN",
+      "stock": 7,
+      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg",
+      "images": [
+        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg"
+      ],
+      "colors": [],
+      "sizes": [
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "dimensions": "Standard Fitting",
+      "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।",
+      "trending": true,
+      "featured": true,
+      "isPinned": true,
+      "deliveryPrice": 120,
+      "deliveryPriceDhaka": 120,
+      "deliveryPriceChattogram": 120,
+      "deliveryPriceRajshahi": 120,
+      "deliveryPriceKhulna": 120,
+      "deliveryPriceBarishal": 120,
+      "deliveryPriceSylhet": 120,
+      "deliveryPriceRangpur": 120,
+      "deliveryPriceMymensingh": 120,
+      "lotteryEligible": true,
+      "couponCode": "",
+      "couponDiscountPercent": 15,
+      "offerPrice": 449,
+      "timerOfferPrice": 449,
+      "timerStartTime": null,
+      "timerStartDate": null,
+      "timerEndTime": "2026-08-22T14:27",
+      "timerEndDate": "2026-08-22T14:27",
+      "timer_end_at": "2026-08-22T14:27",
+      "timer_enabled": true,
+      "timerMessage": null,
+      "timerActive": true,
+      "timerEnabled": true,
+      "bkashNumber": "01816027852",
+      "nagadNumber": "01816027852",
+      "paymentType": "delivery_charge",
+      "paymentPercentage": 10,
+      "deliveryCharge": 100,
+      "deliveryDays": "3-5",
+      "freeDelivery": false,
+      "likes": 214,
+      "seoTitle": "Premium Cotton Drop Shoulder Tshirt | STYLE X BD",
+      "seoDescription": "Buy official STYLE X Premium Cotton Drop Shoulder Tshirt in Bangladesh. 100% authentic quality, secure Cash on Delivery (COD) & premium curation. Order today!",
+      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
+      "seoSlug": "premium-cotton-drop-shoulder-tshirt-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
       "ogDescription": "",
@@ -779,12 +984,14 @@
       "lotteryEligible": true,
       "couponCode": "RRR5",
       "couponDiscountPercent": 5,
-      "offerPrice": 3900,
-      "timerOfferPrice": 3900,
+      "offerPrice": 3480,
+      "timerOfferPrice": 3480,
       "timerStartTime": "2026-08-02T14:22",
       "timerStartDate": "2026-08-02T14:22",
-      "timerEndTime": "2026-07-21T19:21",
-      "timerEndDate": "2026-07-21T19:21",
+      "timerEndTime": "2026-08-01T15:47",
+      "timerEndDate": "2026-08-01T15:47",
+      "timer_end_at": "2026-08-01T15:47",
+      "timer_enabled": true,
       "timerMessage": "Limitted ",
       "timerActive": true,
       "timerEnabled": true,
@@ -802,131 +1009,6 @@
       "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, uthai bk134 personalized transparent hollow barrel quartz watch price in bangladesh, stylex uthai bk134 personalized transparent hollow barrel quartz watch, buy uthai bk134 personalized transparent hollow barrel quartz watch online bd, authentic style x uthai bk134 personalized transparent hollow barrel quartz watch",
       "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, uthai bk134 personalized transparent hollow barrel quartz watch price in bangladesh, stylex uthai bk134 personalized transparent hollow barrel quartz watch, buy uthai bk134 personalized transparent hollow barrel quartz watch online bd, authentic style x uthai bk134 personalized transparent hollow barrel quartz watch",
       "seoSlug": "",
-      "canonicalUrl": "",
-      "ogTitle": "",
-      "ogDescription": "",
-      "ogImage": "",
-      "robots": "index, follow"
-    },
-    {
-      "id": "80qm30vk",
-      "code": "XP-155",
-      "title": "Richard Mille",
-      "description": "✨ Richard Mille — Where Innovation Meets Luxury.\nঅত্যাধুনিক প্রযুক্তি, অসাধারণ ডিজাইন এবং সীমিত সংস্করণের এক্সক্লুসিভ টাইমপিস। যারা সাধারণের বাইরে কিছু খোঁজেন, তাদের জন্য Richard Mille শুধুমাত্র একটি ঘড়ি নয়, বরং সাফল্য ও মর্যাদার প্রতীক। ⌚💎",
-      "price": 4499,
-      "category": "MEN",
-      "stock": 5,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1782468925734_d2b723cc9c857f9dac11a2d2506b71a0.jpg",
-      "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1782468925734_d2b723cc9c857f9dac11a2d2506b71a0.jpg"
-      ],
-      "colors": [],
-      "sizes": [],
-      "dimensions": "Bespoke Fit",
-      "whyBuy": "✅ অত্যন্ত প্রিমিয়াম ও এক্সক্লুসিভ\nRichard Mille ঘড়ি সবার জন্য নয়। সীমিত সংখ্যক তৈরি হয়, তাই এটি আপনাকে আলাদা পরিচয় দেয়।\n\n✅ স্ট্যাটাস ও প্রেস্টিজ\nবিশ্বের ধনী ব্যবসায়ী, সেলিব্রিটি ও অ্যাথলেটদের পছন্দের ব্র্যান্ড। এটি সাফল্য ও মর্যাদার প্রতীক।\n\n✅ অসাধারণ প্রযুক্তি\nAerospace-grade titanium, carbon fiber এবং উন্নত Swiss engineering ব্যবহার করা হয়, যা ঘড়িটিকে অত্যন্ত হালকা ও টেকসই করে।",
-      "trending": true,
-      "featured": true,
-      "isPinned": false,
-      "deliveryPrice": 100,
-      "deliveryPriceDhaka": 140,
-      "deliveryPriceChattogram": 140,
-      "deliveryPriceRajshahi": 140,
-      "deliveryPriceKhulna": 140,
-      "deliveryPriceBarishal": 140,
-      "deliveryPriceSylhet": 140,
-      "deliveryPriceRangpur": 140,
-      "deliveryPriceMymensingh": 140,
-      "lotteryEligible": true,
-      "couponCode": "RRR",
-      "couponDiscountPercent": 5,
-      "offerPrice": 4000,
-      "timerOfferPrice": 4000,
-      "timerStartTime": null,
-      "timerStartDate": null,
-      "timerEndTime": "2026-07-08T13:04",
-      "timerEndDate": "2026-07-08T13:04",
-      "timerMessage": "Welcome Offer",
-      "timerActive": false,
-      "timerEnabled": false,
-      "bkashNumber": "01816027852",
-      "nagadNumber": "01816027852",
-      "paymentType": "full_advance",
-      "paymentPercentage": 10,
-      "deliveryCharge": 100,
-      "deliveryDays": "3-5",
-      "freeDelivery": false,
-      "likes": 0,
-      "seoTitle": "Richard Mille Luxury Watch | STYLE X BD",
-      "seoDescription": "Buy the official STYLE X Richard Mille online in Bangladesh. Enjoy 100% authentic quality, nationwide Cash on Delivery (COD), and premium curation. Order now!",
-      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, richard mille price in bangladesh, stylex richard mille, buy richard mille online bd, authentic style x richard mille",
-      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, richard mille price in bangladesh, stylex richard mille, buy richard mille online bd, authentic style x richard mille",
-      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, richard mille price in bangladesh, stylex richard mille, buy richard mille online bd, authentic style x richard mille",
-      "seoSlug": "richard-mille-watch-stylex-bd",
-      "canonicalUrl": "",
-      "ogTitle": "",
-      "ogDescription": "",
-      "ogImage": "",
-      "robots": "index, follow"
-    },
-    {
-      "id": "1x8x67d5",
-      "code": "XP-628",
-      "title": "Premium Cotton Drop Shoulder Tshirt",
-      "description": "",
-      "price": 550,
-      "category": "MEN",
-      "stock": 7,
-      "imageUrl": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg",
-      "images": [
-        "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1786613591204_1786428390_L_3.jpeg"
-      ],
-      "colors": [],
-      "sizes": [
-        "M",
-        "L",
-        "XL",
-        "XXL"
-      ],
-      "dimensions": "Standard Fitting",
-      "whyBuy": "এটি একটি অত্যন্ত প্রিমিয়াম ডিজাইন করা পিস, যা আপনার ফ্যাশনে এক অনন্য মাত্রা যোগ করবে।",
-      "trending": true,
-      "featured": true,
-      "isPinned": true,
-      "deliveryPrice": 120,
-      "deliveryPriceDhaka": 120,
-      "deliveryPriceChattogram": 120,
-      "deliveryPriceRajshahi": 100,
-      "deliveryPriceKhulna": 100,
-      "deliveryPriceBarishal": 100,
-      "deliveryPriceSylhet": 100,
-      "deliveryPriceRangpur": 150,
-      "deliveryPriceMymensingh": 100,
-      "lotteryEligible": true,
-      "couponCode": "",
-      "couponDiscountPercent": 15,
-      "offerPrice": 449,
-      "timerOfferPrice": 449,
-      "timerStartTime": null,
-      "timerStartDate": null,
-      "timerEndTime": null,
-      "timerEndDate": null,
-      "timerMessage": null,
-      "timerActive": false,
-      "timerEnabled": false,
-      "bkashNumber": "01816027852",
-      "nagadNumber": "01816027852",
-      "paymentType": "delivery_charge",
-      "paymentPercentage": 10,
-      "deliveryCharge": 100,
-      "deliveryDays": "3-5",
-      "freeDelivery": false,
-      "likes": 214,
-      "seoTitle": "Premium Cotton Drop Shoulder Tshirt | STYLE X BD",
-      "seoDescription": "Buy official STYLE X Premium Cotton Drop Shoulder Tshirt in Bangladesh. 100% authentic quality, secure Cash on Delivery (COD) & premium curation. Order today!",
-      "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
-      "seo_keywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
-      "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, premium cotton drop shoulder tshirt price in bangladesh, stylex premium cotton drop shoulder tshirt, buy premium cotton drop shoulder tshirt online bd, authentic style x premium cotton drop shoulder tshirt",
-      "seoSlug": "premium-cotton-drop-shoulder-tshirt-stylex-bd",
       "canonicalUrl": "",
       "ogTitle": "",
       "ogDescription": "",
@@ -977,317 +1059,6 @@
       "status": "PENDING",
       "date": "2026-07-06T06:26:55.112Z",
       "created_at": "2026-07-06T06:26:55.171787+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-620216",
-      "customerName": "rist",
-      "customerPhone": "01816027852",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "hj",
-      "items": [
-        {
-          "productId": "4qoi3wk4",
-          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
-          "price": 5000,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 5140,
-      "status": "PENDING",
-      "date": "2026-07-06T06:28:00.827Z",
-      "created_at": "2026-07-06T06:28:00.910665+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-446334",
-      "customerName": "rist",
-      "customerPhone": "01816027852",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "80qm30vk",
-          "title": "Richard Mille",
-          "price": 4000,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 4100,
-      "status": "PENDING",
-      "date": "2026-07-06T07:18:37.890Z",
-      "created_at": "2026-07-06T07:18:37.908953+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-163879",
-      "customerName": "rist",
-      "customerPhone": "01816027852",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "r8vfkyzg",
-          "title": "Automatic Rebound Ab Roller",
-          "price": 1999,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 2139,
-      "status": "PENDING",
-      "date": "2026-07-06T07:32:22.926Z",
-      "created_at": "2026-07-06T07:32:22.993874+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-933412",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "r9qm3w5m",
-          "title": "ACID WASH DROP SHOULDER",
-          "price": 570,
-          "selectedSize": "XL",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 670,
-      "status": "PENDING",
-      "date": "2026-07-08T10:58:02.496Z",
-      "created_at": "2026-07-08T10:58:02.556957+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-715426",
-      "customerName": "Rjsjsh",
-      "customerPhone": "01518848543458",
-      "customerAddress": "Hshshvs",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "bqjaeckq",
-          "title": "Stylish Drop Shoulder T-Shirt",
-          "price": 550,
-          "selectedSize": "M",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 690,
-      "status": "PENDING",
-      "date": "2026-06-26T17:18:32.712Z",
-      "created_at": "2026-06-26T17:18:32.743685+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-539382",
-      "customerName": "rist",
-      "customerPhone": "01816027852",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "dmyy2t08",
-          "title": "Microfiber Coral Fleece Quick Dry Hair Towel",
-          "price": 270,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 410,
-      "status": "PENDING",
-      "date": "2026-07-06T07:30:03.394Z",
-      "created_at": "2026-07-06T07:30:03.407014+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-120014",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "4qoi3wk4",
-          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
-          "price": 5499,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 5639,
-      "status": "PENDING",
-      "date": "2026-07-12T06:13:04.901Z",
-      "created_at": "2026-07-12T06:13:04.944657+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-588222",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "4qoi3wk4",
-          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
-          "price": 3499,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 3639,
-      "status": "PENDING",
-      "date": "2026-07-15T10:56:13.204Z",
-      "created_at": "2026-07-15T10:56:13.262016+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-286980",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027852",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "r9qm3w5m",
-          "title": "ACID WASH DROP SHOULDER",
-          "price": 570,
-          "selectedSize": "M",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 710,
-      "status": "CONFIRMED",
-      "date": "2026-07-15T10:58:16.461Z",
-      "created_at": "2026-07-15T10:58:16.520414+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-109247",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "4qoi3wk4",
-          "title": "UTHAI BK134 Personalized Transparent Hollow Barrel Quartz Watch",
-          "price": 3499,
-          "selectedSize": "Standard",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 3639,
-      "status": "PENDING",
-      "date": "2026-07-17T08:24:41.681Z",
-      "created_at": "2026-07-17T08:24:41.718412+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-259385",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "dyxngd1g",
-          "title": "Premium Gararah  |  Style X",
-          "price": 2489,
-          "selectedSize": "M",
-          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784283036495_Gemini_Generated_Image_73zaqm73zaqm73za.png",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 2619,
-      "status": "PENDING",
-      "date": "2026-07-18T09:04:08.892Z",
-      "created_at": "2026-07-18T09:04:08.943386+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-348557",
-      "customerName": "RRRRRRR",
-      "customerPhone": "01816027964",
-      "customerAddress": "hjhjghgk",
-      "customerCity": "Dhaka",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "dyxngd1g",
-          "title": "Premium Gararah  |  Style X",
-          "price": 2489,
-          "selectedSize": "M",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 2619,
-      "status": "PENDING",
-      "date": "2026-07-18T09:14:06.543Z",
-      "created_at": "2026-07-18T09:14:06.600145+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-788141",
-      "customerName": "risatadnan4",
-      "customerPhone": "01810934352",
-      "customerAddress": "asd sf sdfsd ",
-      "customerCity": "Chattogram",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "dyxngd1g",
-          "title": "Premium Gararah  |  Style X",
-          "price": 2489,
-          "selectedSize": "M",
-          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 2559,
-      "status": "PENDING",
-      "date": "2026-07-20T11:50:16.857Z",
-      "created_at": "2026-07-20T11:50:18.29175+00:00",
-      "userId": null
-    },
-    {
-      "id": "STX-879308",
-      "customerName": "risatadnan4",
-      "customerPhone": "01810934352",
-      "customerAddress": "asd sf sdfsd ",
-      "customerCity": "Chattogram",
-      "customerNotes": "",
-      "items": [
-        {
-          "productId": "dyxngd1g",
-          "title": "Premium Gararah  |  Style X",
-          "price": 2489,
-          "selectedSize": "M",
-          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1784281709646_Gemini_Generated_Image_.png",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 2559,
-      "status": "PENDING",
-      "date": "2026-07-20T11:52:08.045Z",
-      "created_at": "2026-07-20T11:52:08.509834+00:00",
       "userId": null
     }
   ],
@@ -8817,6 +8588,1032 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-19T12:25:45.156Z",
       "created_at": "2026-08-19T12:25:45.312845+00:00"
+    },
+    {
+      "id": "room-n9zga90b",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:31:28.381Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:31:28.381Z",
+      "created_at": "2026-08-19T12:31:28.552358+00:00"
+    },
+    {
+      "id": "room-6ut17hj1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T12:42:56.701Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T12:42:56.701Z",
+      "created_at": "2026-08-19T12:42:57.487872+00:00"
+    },
+    {
+      "id": "room-h58ey8l1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T13:23:50.026Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T13:23:50.026Z",
+      "created_at": "2026-08-19T13:23:50.727165+00:00"
+    },
+    {
+      "id": "room-kk8bl550",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T13:23:50.095Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T13:23:50.095Z",
+      "created_at": "2026-08-19T13:23:50.798934+00:00"
+    },
+    {
+      "id": "room-iauudrx6",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T15:33:39.478Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T15:33:39.478Z",
+      "created_at": "2026-08-19T15:33:40.082797+00:00"
+    },
+    {
+      "id": "room-vbko37ug",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T17:13:59.315Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T17:13:59.315Z",
+      "created_at": "2026-08-19T17:14:00.356127+00:00"
+    },
+    {
+      "id": "room-lc3uahqo",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-19T20:13:22.692Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-19T20:13:22.692Z",
+      "created_at": "2026-08-19T20:13:23.615143+00:00"
+    },
+    {
+      "id": "room-vivwmwiy",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T06:10:20.386Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T06:10:20.386Z",
+      "created_at": "2026-08-20T06:10:21.032436+00:00"
+    },
+    {
+      "id": "room-dm6zh4xe",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T06:19:39.753Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T06:19:39.753Z",
+      "created_at": "2026-08-20T06:19:40.480743+00:00"
+    },
+    {
+      "id": "room-x892mfj9",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T06:23:20.981Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T06:23:20.981Z",
+      "created_at": "2026-08-20T06:23:21.096789+00:00"
+    },
+    {
+      "id": "room-uxomhjxz",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T08:01:00.862Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T08:01:00.862Z",
+      "created_at": "2026-08-20T08:01:00.987237+00:00"
+    },
+    {
+      "id": "room-pri9j576",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T08:21:55.790Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T08:21:55.790Z",
+      "created_at": "2026-08-20T08:21:56.489867+00:00"
+    },
+    {
+      "id": "room-q3rskoyc",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T08:23:21.265Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T08:23:21.265Z",
+      "created_at": "2026-08-20T08:23:21.475431+00:00"
+    },
+    {
+      "id": "room-giou2krf",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T08:37:24.629Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T08:37:24.629Z",
+      "created_at": "2026-08-20T08:37:24.824003+00:00"
+    },
+    {
+      "id": "room-t26ftl31",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:17:25.841Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:17:25.841Z",
+      "created_at": "2026-08-20T11:17:26.014726+00:00"
+    },
+    {
+      "id": "room-570nld4v",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:20:17.796Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:20:17.796Z",
+      "created_at": "2026-08-20T11:20:18.437177+00:00"
+    },
+    {
+      "id": "room-vdu6livv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:20:18.872Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:20:18.872Z",
+      "created_at": "2026-08-20T11:20:19.55397+00:00"
+    },
+    {
+      "id": "room-f7hq8b9c",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:20:46.057Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:20:46.057Z",
+      "created_at": "2026-08-20T11:20:46.078753+00:00"
+    },
+    {
+      "id": "room-4hhvhina",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:22:44.440Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:22:44.440Z",
+      "created_at": "2026-08-20T11:22:45.151419+00:00"
+    },
+    {
+      "id": "room-2g9d40tk",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:22:45.487Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:22:45.487Z",
+      "created_at": "2026-08-20T11:22:46.147571+00:00"
+    },
+    {
+      "id": "room-xu43odcm",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:22:59.863Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:22:59.863Z",
+      "created_at": "2026-08-20T11:23:00.544107+00:00"
+    },
+    {
+      "id": "room-nyk0cxvo",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:24:13.136Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:24:13.136Z",
+      "created_at": "2026-08-20T11:24:13.271751+00:00"
+    },
+    {
+      "id": "room-e23kvb1m",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:24:29.680Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:24:29.680Z",
+      "created_at": "2026-08-20T11:24:29.819308+00:00"
+    },
+    {
+      "id": "room-dq1fx3t2",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:24:39.543Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:24:39.543Z",
+      "created_at": "2026-08-20T11:24:39.681378+00:00"
+    },
+    {
+      "id": "room-h0pflmmi",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:25:49.177Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:25:49.177Z",
+      "created_at": "2026-08-20T11:25:49.202615+00:00"
+    },
+    {
+      "id": "room-vrriw8qx",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:28:01.543Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:28:01.543Z",
+      "created_at": "2026-08-20T11:28:01.69288+00:00"
+    },
+    {
+      "id": "room-7hozmn1f",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:41:42.852Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:41:42.852Z",
+      "created_at": "2026-08-20T11:41:42.996101+00:00"
+    },
+    {
+      "id": "room-n3sus40j",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:41:44.512Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:41:44.512Z",
+      "created_at": "2026-08-20T11:41:45.219104+00:00"
+    },
+    {
+      "id": "room-ct9rk1t4",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:45:32.814Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:45:32.814Z",
+      "created_at": "2026-08-20T11:45:33.487594+00:00"
+    },
+    {
+      "id": "room-aaxysdo9",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T11:46:50.289Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T11:46:50.289Z",
+      "created_at": "2026-08-20T11:46:50.425451+00:00"
+    },
+    {
+      "id": "room-iygehdwf",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T14:43:50.962Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T14:43:50.962Z",
+      "created_at": "2026-08-20T14:43:51.143963+00:00"
+    },
+    {
+      "id": "room-4w4n7d1w",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T14:54:46.207Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T14:54:46.207Z",
+      "created_at": "2026-08-20T14:54:46.879013+00:00"
+    },
+    {
+      "id": "room-3jdlfzw9",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-20T14:54:50.190Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-20T14:54:50.190Z",
+      "created_at": "2026-08-20T14:54:50.881031+00:00"
+    },
+    {
+      "id": "room-zn927zaq",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T03:42:08.434Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T03:42:08.434Z",
+      "created_at": "2026-08-21T03:42:10.370853+00:00"
+    },
+    {
+      "id": "room-x31lz7xp",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T08:25:58.983Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T08:25:58.983Z",
+      "created_at": "2026-08-21T08:25:59.873489+00:00"
+    },
+    {
+      "id": "room-bjszpbzy",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T08:28:53.116Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T08:28:53.116Z",
+      "created_at": "2026-08-21T08:28:53.305527+00:00"
+    },
+    {
+      "id": "room-1mdwx2jr",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T08:31:35.756Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T08:31:35.756Z",
+      "created_at": "2026-08-21T08:31:36.02291+00:00"
+    },
+    {
+      "id": "room-pketiajs",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T08:32:39.456Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T08:32:39.456Z",
+      "created_at": "2026-08-21T08:32:39.636508+00:00"
+    },
+    {
+      "id": "room-fzn45v3k",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T08:43:10.278Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T08:43:10.278Z",
+      "created_at": "2026-08-21T08:43:10.479212+00:00"
+    },
+    {
+      "id": "room-0w2kvyim",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T10:17:27.013Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T10:17:27.013Z",
+      "created_at": "2026-08-21T10:17:27.963809+00:00"
+    },
+    {
+      "id": "room-q4om5gid",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T10:25:54.205Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T10:25:54.205Z",
+      "created_at": "2026-08-21T10:25:54.374604+00:00"
+    },
+    {
+      "id": "room-znm8mzb1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-21T17:02:47.104Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-21T17:02:47.105Z",
+      "created_at": "2026-08-21T17:02:48.066382+00:00"
+    },
+    {
+      "id": "room-qm791qzo",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T02:42:03.603Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T02:42:03.603Z",
+      "created_at": "2026-08-22T02:42:03.811252+00:00"
+    },
+    {
+      "id": "room-pp3f39ot",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T02:42:03.517Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T02:42:03.517Z",
+      "created_at": "2026-08-22T02:42:04.224362+00:00"
+    },
+    {
+      "id": "room-wvp60by4",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T02:43:47.794Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T02:43:47.794Z",
+      "created_at": "2026-08-22T02:43:47.986283+00:00"
+    },
+    {
+      "id": "room-4xctcz95",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T05:38:22.934Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T05:38:22.934Z",
+      "created_at": "2026-08-22T05:38:23.052514+00:00"
+    },
+    {
+      "id": "room-d7fuhgu0",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T05:38:32.512Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T05:38:32.512Z",
+      "created_at": "2026-08-22T05:38:32.667893+00:00"
+    },
+    {
+      "id": "room-nqumos19",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T05:38:46.670Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T05:38:46.670Z",
+      "created_at": "2026-08-22T05:38:46.836022+00:00"
+    },
+    {
+      "id": "room-q30s0cj5",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T05:46:35.970Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T05:46:35.970Z",
+      "created_at": "2026-08-22T05:46:36.129972+00:00"
+    },
+    {
+      "id": "room-jy1j4jys",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T05:47:52.060Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T05:47:52.060Z",
+      "created_at": "2026-08-22T05:47:52.211128+00:00"
+    },
+    {
+      "id": "room-q5gkxne3",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:21:22.965Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:21:22.965Z",
+      "created_at": "2026-08-22T06:21:23.145821+00:00"
+    },
+    {
+      "id": "room-ew1uaft0",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:21:23.503Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:21:23.503Z",
+      "created_at": "2026-08-22T06:21:24.249893+00:00"
+    },
+    {
+      "id": "room-5jkortqm",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:22:41.219Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:22:41.219Z",
+      "created_at": "2026-08-22T06:22:41.410663+00:00"
+    },
+    {
+      "id": "room-c6upztcg",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:28:48.639Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:28:48.639Z",
+      "created_at": "2026-08-22T06:28:49.333229+00:00"
+    },
+    {
+      "id": "room-apbdfumv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:30:31.640Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:30:31.640Z",
+      "created_at": "2026-08-22T06:30:31.84104+00:00"
+    },
+    {
+      "id": "room-92xfmi5l",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:31:50.905Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:31:50.905Z",
+      "created_at": "2026-08-22T06:31:50.959998+00:00"
+    },
+    {
+      "id": "room-x9wdf3ju",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-22T06:32:49.465Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-22T06:32:49.465Z",
+      "created_at": "2026-08-22T06:32:49.643998+00:00"
     }
   ],
   "carts": {
@@ -9143,7 +9940,7 @@
   },
   "forms": [],
   "formSubmissions": [],
-  "visits": 37,
+  "visits": 39,
   "liveViews": 1,
   "countedSessions": [
     "visitor_8fhjs41hqwm_1785575815595",
@@ -9182,7 +9979,9 @@
     "visitor_riyrvegpm3j_1787052703575",
     "visitor_t28kg111qji_1787122249264",
     "visitor_69xc13nafa4_1787140883506",
-    "visitor_i33gjeyhtxb_1787142445146"
+    "visitor_i33gjeyhtxb_1787142445146",
+    "visitor_azxtmntvzr9_1787366518048",
+    "visitor_nt3cp1i4k9o_1787377755890"
   ],
   "notifications": [],
   "failed_notifications": [],
@@ -9276,25 +10075,25 @@
         "deliveryCharge": 100,
         "deliveryDays": "3-5",
         "isPinned": false,
-        "offerPrice": 572,
-        "timerOfferPrice": 572,
+        "offerPrice": 549,
+        "timerOfferPrice": 549,
         "timerStartTime": null,
         "timerStartDate": null,
         "timerEndTime": "2026-07-11T16:45",
         "timerEndDate": "2026-07-11T16:45",
         "timerMessage": " Limited",
-        "timerActive": true,
-        "timerEnabled": true,
+        "timerActive": false,
+        "timerEnabled": false,
         "freeDelivery": false,
         "likes": 311,
-        "deliveryPriceDhaka": 120,
-        "deliveryPriceChattogram": 120,
-        "deliveryPriceRajshahi": 120,
-        "deliveryPriceKhulna": 120,
-        "deliveryPriceBarishal": 120,
-        "deliveryPriceSylhet": 120,
-        "deliveryPriceRangpur": 120,
-        "deliveryPriceMymensingh": 120
+        "deliveryPriceDhaka": 140,
+        "deliveryPriceChattogram": 140,
+        "deliveryPriceRajshahi": 140,
+        "deliveryPriceKhulna": 140,
+        "deliveryPriceBarishal": 140,
+        "deliveryPriceSylhet": 140,
+        "deliveryPriceRangpur": 140,
+        "deliveryPriceMymensingh": 140
       },
       "bqjaeckq": {
         "bkashNumber": "01816027852",
@@ -9439,14 +10238,14 @@
         "timerEnabled": false,
         "freeDelivery": false,
         "likes": 322,
-        "deliveryPriceDhaka": 120,
-        "deliveryPriceChattogram": 120,
-        "deliveryPriceRajshahi": 120,
-        "deliveryPriceKhulna": 120,
-        "deliveryPriceBarishal": 120,
-        "deliveryPriceSylhet": 120,
-        "deliveryPriceRangpur": 120,
-        "deliveryPriceMymensingh": 120
+        "deliveryPriceDhaka": 100,
+        "deliveryPriceChattogram": 150,
+        "deliveryPriceRajshahi": 150,
+        "deliveryPriceKhulna": 150,
+        "deliveryPriceBarishal": 150,
+        "deliveryPriceSylhet": 150,
+        "deliveryPriceRangpur": 150,
+        "deliveryPriceMymensingh": 150
       },
       "rr8wmwdg": {
         "bkashNumber": "01816027852",
@@ -9516,21 +10315,21 @@
         "timerOfferPrice": 449,
         "timerStartTime": null,
         "timerStartDate": null,
-        "timerEndTime": null,
-        "timerEndDate": null,
+        "timerEndTime": "2026-08-22T14:27",
+        "timerEndDate": "2026-08-22T14:27",
         "timerMessage": null,
-        "timerActive": false,
-        "timerEnabled": false,
+        "timerActive": true,
+        "timerEnabled": true,
         "freeDelivery": false,
         "likes": 214,
         "deliveryPriceDhaka": 120,
         "deliveryPriceChattogram": 120,
-        "deliveryPriceRajshahi": 100,
-        "deliveryPriceKhulna": 100,
-        "deliveryPriceBarishal": 100,
-        "deliveryPriceSylhet": 100,
-        "deliveryPriceRangpur": 120,
-        "deliveryPriceMymensingh": 100
+        "deliveryPriceRajshahi": 120,
+        "deliveryPriceKhulna": 120,
+        "deliveryPriceBarishal": 130,
+        "deliveryPriceSylhet": 120,
+        "deliveryPriceRangpur": 130,
+        "deliveryPriceMymensingh": 120
       },
       "80qm30vk": {
         "bkashNumber": "01816027852",
@@ -9559,6 +10358,34 @@
         "deliveryPriceSylhet": 120,
         "deliveryPriceRangpur": 120,
         "deliveryPriceMymensingh": 120
+      },
+      "xtn76vd0": {
+        "bkashNumber": "01816027852",
+        "nagadNumber": "01816027852",
+        "paymentType": "delivery_charge",
+        "paymentPercentage": 10,
+        "deliveryCharge": 100,
+        "deliveryDays": "3-5",
+        "isPinned": false,
+        "offerPrice": 599,
+        "timerOfferPrice": 599,
+        "timerStartTime": null,
+        "timerStartDate": null,
+        "timerEndTime": null,
+        "timerEndDate": null,
+        "timerMessage": null,
+        "timerActive": false,
+        "timerEnabled": false,
+        "freeDelivery": false,
+        "likes": 322,
+        "deliveryPriceDhaka": 100,
+        "deliveryPriceChattogram": 150,
+        "deliveryPriceRajshahi": 150,
+        "deliveryPriceKhulna": 150,
+        "deliveryPriceBarishal": 150,
+        "deliveryPriceSylhet": 150,
+        "deliveryPriceRangpur": 150,
+        "deliveryPriceMymensingh": 150
       }
     },
     "productSeo": {
@@ -9674,6 +10501,18 @@
         "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, Blaster Splatter Gel Gun AKM-47 price in bangladesh, stylex Blaster Splatter Gel Gun AKM-47, buy Blaster Splatter Gel Gun AKM-47 online bd, authentic style x Blaster Splatter Gel Gun AKM-47",
         "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, blaster splatter gel gun akm-47 price in bangladesh, stylex blaster splatter gel gun akm-47, buy blaster splatter gel gun akm-47 online bd, authentic style x blaster splatter gel gun akm-47",
         "seoSlug": "blaster-splatter-gel-gun-akm-47-stylex-bd",
+        "canonicalUrl": "",
+        "ogTitle": "",
+        "ogDescription": "",
+        "ogImage": "",
+        "robots": "index, follow"
+      },
+      "xtn76vd0": {
+        "seoTitle": "100% Cotton Baggy Trouser | STYLE X BD",
+        "seoDescription": "Buy the official STYLE X Baggy Trouser online in Bangladesh. Enjoy 100% authentic quality, nationwide secure Cash on Delivery (COD), and premium curation. Shop now!",
+        "seoKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, baggy trouser price in bangladesh, stylex baggy trouser, buy baggy trouser online bd, authentic style x baggy trouser",
+        "metaKeywords": "stylex, style x, style x bd, stylex bd, style x bangladesh, stylex online shopping, stylex clothing, baggy trouser price in bangladesh, stylex baggy trouser, buy baggy trouser online bd, authentic style x baggy trouser",
+        "seoSlug": "baggy-trouser-stylex-bd",
         "canonicalUrl": "",
         "ogTitle": "",
         "ogDescription": "",

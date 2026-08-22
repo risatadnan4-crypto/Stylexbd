@@ -3054,87 +3054,126 @@ app.get("/api/products/:id", async (req, res) => {
   res.status(404).json({ message: "Product not found" });
 });
 
+let cachedProductsTableColumns: string[] | null = null;
+
+async function discoverProductsTableColumns(): Promise<string[]> {
+  if (cachedProductsTableColumns && cachedProductsTableColumns.length > 0) {
+    return cachedProductsTableColumns;
+  }
+  try {
+    const { data, error } = await supabase.from("products").select("*").limit(1);
+    if (!error && data && data.length > 0) {
+      cachedProductsTableColumns = Object.keys(data[0]);
+      console.log("ℹ️ [PRODUCTS_SCHEMA] Discovered physical columns of products table:", cachedProductsTableColumns);
+      return cachedProductsTableColumns;
+    }
+  } catch (err: any) {
+    console.warn("⚠️ [PRODUCTS_SCHEMA] Failed to query products table columns:", err.message);
+  }
+  
+  // Hardcoded fallback list matching the known working schema from Supabase
+  const fallbackColumns = [
+    "id", "code", "title", "description", "price", "category", "stock",
+    "imageUrl", "images", "sizes", "dimensions", "whyBuy", "trending",
+    "featured", "deliveryPrice", "deliveryPriceDhaka", "deliveryPriceOutside",
+    "deliveryPriceChattogram", "deliveryPriceRajshahi", "deliveryPriceKhulna",
+    "deliveryPriceBarishal", "deliveryPriceSylhet", "deliveryPriceRangpur",
+    "deliveryPriceMymensingh", "lotteryEligible", "couponCode",
+    "couponDiscountPercent", "offerPrice", "timerEndTime", "timerMessage"
+  ];
+  return fallbackColumns;
+}
+
 // Resilient helper to upsert product data to Supabase, automatically handling schema columns mismatch and database alters
 async function upsertProductToSupabase(productPayload: any) {
   const basePayload = { ...productPayload };
 
   // Helper to normalize array fields from strings or JSON arrays to native arrays
-  const tryParseToNativeArray = (val: any): any[] => {
-    if (val === undefined || val === null) return [];
-    if (Array.isArray(val)) return val;
+  const normalizeArrayForDb = (val: any): string => {
+    if (val === undefined || val === null) return "[]";
+    if (Array.isArray(val)) return JSON.stringify(val);
     if (typeof val === "string") {
-      try {
-        const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-      if (val.trim() !== "") {
-        return val.split(",").map((s: string) => s.trim()).filter(Boolean);
+      const trimmed = val.trim();
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        return trimmed;
+      }
+      if (trimmed === "") return "[]";
+      return JSON.stringify(trimmed.split(",").map(s => s.trim()).filter(Boolean));
+    }
+    return "[]";
+  };
+
+  const colAliases: { [key: string]: string[] } = {
+    deliveryPrice: ["deliveryCharge", "delivery_charge", "deliveryFee", "delivery_fee", "deliveryPrice"],
+    deliveryPriceDhaka: ["deliveryDhaka", "delivery_dhaka", "deliveryPriceDhaka", "deliveryPriceDhaka"],
+    deliveryPriceOutside: ["deliveryOutside", "delivery_outside", "deliveryPriceOutside"],
+    offerPrice: ["timerOfferPrice", "timer_offer_price", "offerPrice", "offer_price"],
+    timerEndTime: ["timer_end_time", "timer_end_at", "timerEndTime", "timerEndTime"]
+  };
+
+  const mapPayloadValueForColumn = (colName: string, payload: any): any => {
+    const aliases = colAliases[colName] || [];
+    let rawVal: any = undefined;
+    
+    for (const alias of aliases) {
+      if (payload[alias] !== undefined) {
+        rawVal = payload[alias];
+        break;
       }
     }
-    return [];
+    
+    if (rawVal === undefined && payload[colName] !== undefined) {
+      rawVal = payload[colName];
+    }
+    
+    if (rawVal === undefined) {
+      const normalizedCol = colName.toLowerCase().replace(/_/g, "");
+      for (const key of Object.keys(payload)) {
+        if (key.toLowerCase().replace(/_/g, "") === normalizedCol) {
+          rawVal = payload[key];
+          break;
+        }
+      }
+    }
+    
+    if (rawVal === undefined || rawVal === null) {
+      if (colName === "id") return payload.id;
+      if (colName === "images" || colName === "sizes") return "[]";
+      if (["trending", "featured"].includes(colName)) return true;
+      if (["lotteryEligible"].includes(colName)) return false;
+      if (colName.toLowerCase().includes("price") || colName.toLowerCase().includes("percent") || colName.toLowerCase().includes("stock")) {
+        return 0;
+      }
+      return "";
+    }
+    
+    if (colName === "images" || colName === "sizes") {
+      return normalizeArrayForDb(rawVal);
+    }
+    
+    if (["trending", "featured", "lotteryEligible"].includes(colName)) {
+      if (typeof rawVal === "boolean") return rawVal;
+      if (rawVal === "true" || rawVal === "1" || rawVal === 1) return true;
+      if (rawVal === "false" || rawVal === "0" || rawVal === 0) return false;
+      return !!rawVal;
+    }
+    
+    if (colName.toLowerCase().includes("price") || colName.toLowerCase().includes("percent") || colName === "stock") {
+      if (rawVal === "") return 0;
+      const num = Number(rawVal);
+      return isNaN(num) ? 0 : num;
+    }
+    
+    return String(rawVal);
   };
 
-  const imagesNormalized = tryParseToNativeArray(basePayload.images);
-  const sizesNormalized = tryParseToNativeArray(basePayload.sizes);
-  const colorsNormalized = tryParseToNativeArray(basePayload.colors);
+  const columns = await discoverProductsTableColumns();
+  const currentPayload: any = {};
+  for (const col of columns) {
+    if (col === "created_at") continue;
+    currentPayload[col] = mapPayloadValueForColumn(col, basePayload);
+  }
 
-  // Construct a strict, canonical snake_case only payload matching products table schema.
-  // This eliminates column-does-not-exist retries/failures and prevents dynamic column pruning from deleting valid columns.
-  const payloadSnake: any = {
-    id: basePayload.id,
-    code: basePayload.code || "",
-    title: basePayload.title || "",
-    description: basePayload.description || "",
-    price: basePayload.price !== undefined ? Number(basePayload.price) : 0,
-    category: basePayload.category || "UNISEX",
-    stock: basePayload.stock !== undefined ? Number(basePayload.stock) : 0,
-    dimensions: basePayload.dimensions || "Standard Fitting",
-    why_buy: basePayload.whyBuy || basePayload.why_buy || "",
-    trending: basePayload.trending !== undefined ? !!basePayload.trending : true,
-    featured: basePayload.featured !== undefined ? !!basePayload.featured : true,
-    is_pinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : (basePayload.is_pinned !== undefined ? !!basePayload.is_pinned : false),
-    lottery_eligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : (basePayload.lottery_eligible !== undefined ? !!basePayload.lottery_eligible : true),
-    free_delivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : (basePayload.free_delivery !== undefined ? !!basePayload.free_delivery : false),
-    likes: basePayload.likes !== undefined ? Number(basePayload.likes) : 0,
-    image_url: basePayload.imageUrl || basePayload.image_url || "",
-    images: imagesNormalized,
-    sizes: sizesNormalized,
-    colors: colorsNormalized,
-    video_url: basePayload.videoUrl || basePayload.video_url || "",
-    coupon_code: basePayload.couponCode || basePayload.coupon_code || "",
-    delivery_fee: basePayload.deliveryFee !== undefined ? Number(basePayload.deliveryFee) : (basePayload.delivery_fee !== undefined ? Number(basePayload.delivery_fee) : 100),
-    delivery_charge: basePayload.deliveryCharge !== undefined ? Number(basePayload.deliveryCharge) : (basePayload.delivery_charge !== undefined ? Number(basePayload.delivery_charge) : 100),
-    delivery_charges: basePayload.deliveryCharges !== undefined ? Number(basePayload.deliveryCharges) : (basePayload.delivery_charges !== undefined ? Number(basePayload.delivery_charges) : 100),
-    delivery_dhaka: basePayload.deliveryPriceDhaka !== undefined ? Number(basePayload.deliveryPriceDhaka) : (basePayload.delivery_dhaka !== undefined ? Number(basePayload.delivery_dhaka) : 100),
-    delivery_chattogram: basePayload.deliveryPriceChattogram !== undefined ? Number(basePayload.deliveryPriceChattogram) : (basePayload.delivery_chattogram !== undefined ? Number(basePayload.delivery_chattogram) : 150),
-    delivery_rajshahi: basePayload.deliveryPriceRajshahi !== undefined ? Number(basePayload.deliveryPriceRajshahi) : (basePayload.delivery_rajshahi !== undefined ? Number(basePayload.delivery_rajshahi) : 150),
-    delivery_khulna: basePayload.deliveryPriceKhulna !== undefined ? Number(basePayload.deliveryPriceKhulna) : (basePayload.delivery_khulna !== undefined ? Number(basePayload.delivery_khulna) : 150),
-    delivery_barishal: basePayload.deliveryPriceBarishal !== undefined ? Number(basePayload.deliveryPriceBarishal) : (basePayload.delivery_barishal !== undefined ? Number(basePayload.delivery_barishal) : 150),
-    delivery_sylhet: basePayload.deliveryPriceSylhet !== undefined ? Number(basePayload.deliveryPriceSylhet) : (basePayload.delivery_sylhet !== undefined ? Number(basePayload.delivery_sylhet) : 150),
-    delivery_rangpur: basePayload.deliveryPriceRangpur !== undefined ? Number(basePayload.deliveryPriceRangpur) : (basePayload.delivery_rangpur !== undefined ? Number(basePayload.delivery_rangpur) : 150),
-    delivery_mymensingh: basePayload.deliveryPriceMymensingh !== undefined ? Number(basePayload.deliveryPriceMymensingh) : (basePayload.delivery_mymensingh !== undefined ? Number(basePayload.delivery_mymensingh) : 150),
-    payment_type: basePayload.paymentType || basePayload.payment_type || "cod",
-    payment_percentage: basePayload.paymentPercentage !== undefined ? Number(basePayload.paymentPercentage) : (basePayload.payment_percentage !== undefined ? Number(basePayload.payment_percentage) : 10),
-    bkash_number: basePayload.bkashNumber || basePayload.bkash_number || "",
-    nagad_number: basePayload.nagadNumber || basePayload.nagad_number || "",
-    timer_start_time: basePayload.timerStartTime || basePayload.timer_start_time || null,
-    timer_end_time: basePayload.timerEndTime || basePayload.timer_end_time || null,
-    timer_end_at: basePayload.timer_end_at || basePayload.timerEndTime || basePayload.timer_end_time || null,
-    timer_message: basePayload.timerMessage || basePayload.timer_message || "",
-    timer_active: basePayload.timerActive !== undefined ? !!basePayload.timerActive : (basePayload.timer_active !== undefined ? !!basePayload.timer_active : false),
-    timer_enabled: basePayload.timer_enabled !== undefined ? !!basePayload.timer_enabled : (basePayload.timerActive !== undefined ? !!basePayload.timerActive : false),
-    seo_title: basePayload.seoTitle || basePayload.seo_title || "",
-    seo_description: basePayload.seoDescription || basePayload.seo_description || "",
-    seo_keywords: basePayload.seoKeywords || basePayload.seo_keywords || basePayload.metaKeywords || basePayload.meta_keywords || "",
-    meta_keywords: basePayload.metaKeywords || basePayload.meta_keywords || basePayload.seoKeywords || basePayload.seo_keywords || "",
-    canonical_url: basePayload.canonicalUrl || basePayload.canonical_url || "",
-    og_title: basePayload.ogTitle || basePayload.og_title || "",
-    og_description: basePayload.ogDescription || basePayload.og_description || "",
-    og_image: basePayload.ogImage || basePayload.og_image || "",
-    robots: basePayload.robots || "index, follow"
-  };
-
-  let currentPayload = { ...payloadSnake };
   let result: any;
   try {
     result = await supabase.from("products").upsert(currentPayload, { onConflict: "id" });
@@ -3155,14 +3194,14 @@ async function upsertProductToSupabase(productPayload: any) {
   let retries = 0;
   while (result.error && (result.error.message?.includes("column") || result.error.message?.includes("does not exist") || result.error.code === "42703" || result.error.code === "PGRST102") && retries < 25) {
     retries++;
-    const match = result.error.message.match(/column "([^"]+)"/);
+    const match = result.error.message.match(/column "([^"]+)"/) || result.error.message.match(/column '([^']+)'/);
     if (match && match[1]) {
       const colName = match[1];
       console.log(`[PRODUCTS_SYNC] Pruning missing column from products table payload: "${colName}"`);
       delete currentPayload[colName];
     } else {
       console.log("[PRODUCTS_SYNC] Unable to parse column name. Pruning all non-core columns.");
-      const coreKeys = ["id", "code", "title", "price", "stock", "image_url"];
+      const coreKeys = ["id", "code", "title", "price", "stock", "imageUrl", "image_url"];
       for (const key of Object.keys(currentPayload)) {
         if (!coreKeys.includes(key)) {
           delete currentPayload[key];
