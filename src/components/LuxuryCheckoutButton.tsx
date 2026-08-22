@@ -469,10 +469,11 @@ export default function LuxuryCheckoutButton({
           .viewport-3d {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 2px 0 !important;
+            padding: 4px 0 !important;
+            margin-bottom: 6px !important;
           }
           .luxury-btn {
-            height: 54px !important;
+            height: 48px !important;
             border-radius: 9999px !important;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(147, 51, 234, 0.48) 25%, rgba(88, 28, 135, 0.62) 50%, rgba(30, 10, 50, 0.9) 75%, rgba(6, 2, 12, 0.98) 100%) !important;
             backdrop-filter: blur(24px) saturate(210%) brightness(110%) !important;
@@ -535,8 +536,11 @@ export default function LuxuryCheckoutButton({
         }
 
         @media (max-width: 380px) {
+          .viewport-3d {
+            margin-bottom: 4px !important;
+          }
           .luxury-btn {
-            height: 48px !important;
+            height: 44px !important;
             border-radius: 9999px !important;
             border: 1.5px solid rgba(233, 213, 255, 0.7) !important;
           }

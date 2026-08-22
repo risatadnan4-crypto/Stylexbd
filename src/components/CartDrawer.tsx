@@ -1053,6 +1053,7 @@ export default function CartDrawer({
         top: 0 !important;
         right: 0 !important;
         height: 100vh !important;
+        height: 100dvh !important;
         width: 100% !important;
         max-width: 100% !important;
       }
@@ -1093,7 +1094,7 @@ export default function CartDrawer({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className={`relative bg-[#0f0822] border flex flex-col shadow-2xl z-10 overflow-hidden transition-all duration-300 ${
               checkoutStep !== 'cart'
-                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-xl sm:rounded-2xl md:rounded-3xl h-[96vh] sm:h-[95vh] max-h-[98vh] sm:max-h-[95vh] min-h-[85vh] sm:min-h-[90vh] my-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
+                ? 'w-full max-w-full sm:max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl border-0 sm:border border-purple-500/20 rounded-none sm:rounded-2xl md:rounded-3xl h-[100dvh] sm:h-[95vh] max-h-[100dvh] sm:max-h-[95vh] min-h-[100dvh] sm:min-h-[90vh] my-0 sm:my-auto shadow-[0_0_100px_rgba(123,44,191,0.45)] mx-auto' 
                 : 'premium-cart-drawer border-l border-white/5'
             }`}
           >
@@ -1249,7 +1250,7 @@ export default function CartDrawer({
                     </div>
 
                     {/* Cart Footer */}
-                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3.5 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-4 sm:p-5 pb-[calc(1.6rem+env(safe-area-inset-bottom,12px))] sm:pb-[calc(1.2rem+env(safe-area-inset-bottom,0px))] space-y-3.5 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="space-y-2 text-xs">
                         <div className="flex justify-between text-purple-200/70"><span>Segment Subtotal</span><span className="font-mono text-purple-100">{formatPrice(itemsTotal)}</span></div>
                         {appliedCoupon && (
@@ -1903,7 +1904,7 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 1 Footer */}
-                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(1.4rem+env(safe-area-inset-bottom,12px))] sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="flex justify-between items-center text-xs px-0.5">
                         <button 
                           type="button" 
@@ -2317,7 +2318,7 @@ export default function CartDrawer({
                     </div>
 
                     {/* Step 2 Sticky Mobile Footer */}
-                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
+                    <div className="bg-gradient-to-t from-[#0c031c]/98 via-[#120626]/98 to-[#190936]/95 backdrop-blur-2xl border-t border-purple-500/35 p-3 sm:p-4 pb-[calc(1.4rem+env(safe-area-inset-bottom,12px))] sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-2 shrink-0 shadow-[0_-12px_40px_rgba(147,51,234,0.22)] z-20">
                       <div className="flex justify-between items-center text-xs px-1">
                         <button 
                           type="button" 
