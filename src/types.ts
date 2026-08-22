@@ -42,11 +42,15 @@ export interface Product {
   timerMessage?: string;
   timerActive?: boolean;
   timerEnabled?: boolean;
+  timer_end_at?: string | null;
+  timer_enabled?: boolean;
   bkashNumber?: string;
   nagadNumber?: string;
   paymentType?: 'cod' | 'delivery_charge' | 'full_advance' | 'percentage';
   paymentPercentage?: number;
   deliveryCharge?: number;
+  delivery_charge?: number;
+  delivery_charges?: number;
   deliveryDays?: string; // How many days for delivery
   freeDelivery?: boolean;
   likes?: number;

@@ -2691,7 +2691,7 @@ function serializeDimensions(dimensionsVal: any, colorsVal: any, extraMeta?: any
 
 function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): Product {
   const local = localProduct || {};
-  const id = String(local.id || p?.id || `prod_${Date.now()}`);
+  const id = String(p?.id || local.id || pm?.id || `prod_${Date.now()}`);
   const paymentMeta = pm && Object.keys(pm).length > 0 
     ? pm 
     : (((db.settings as any)?.productPayments && id && (db.settings as any).productPayments[id]) || {});
@@ -2707,11 +2707,6 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     localDimObj = tryJsonParse(local.dimensions) || {};
   }
   const dimObj = { ...localDimObj, ...pDimObj };
-
-  let parsedColors: any[] = [];
-  let rawColors = (p?.colors !== undefined && p?.colors !== null && (!Array.isArray(p.colors) || p.colors.length > 0))
-    ? p.colors 
-    : ((local.colors !== undefined && local.colors !== null) ? local.colors : (dimObj?.colors || []));
 
   // Sizes - prioritizing Supabase database first
   let parsedSizes: string[] = [];
@@ -2759,6 +2754,11 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
       break;
     }
   }
+
+  let parsedColors: any[] = [];
+  let rawColors = (p?.colors !== undefined && p?.colors !== null && (!Array.isArray(p.colors) || p.colors.length > 0))
+    ? p.colors 
+    : ((local.colors !== undefined && local.colors !== null) ? local.colors : (dimObj?.colors || []));
 
   if (rawColors !== undefined && rawColors !== null) {
     const res = tryJsonParse(rawColors);
@@ -2812,9 +2812,10 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return "Standard Fitting";
   })();
 
-  let resolvedPrice = getNum(p?.price, local.price, dimObj?.price, 0) ?? 0;
+  // Single price field: price
+  const resolvedPrice = getNum(p?.price, local.price, dimObj?.price, 0) ?? 0;
 
-  let resolvedOfferPrice = (() => {
+  const resolvedOfferPrice = (() => {
     const candidateOffers = [
       p?.offerPrice,
       p?.offer_price,
@@ -2836,11 +2837,11 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     return null;
   })();
 
-  if (resolvedOfferPrice !== null && (resolvedOfferPrice <= 0 || resolvedOfferPrice >= resolvedPrice)) {
-    resolvedOfferPrice = null;
-  }
+  const finalOfferPrice = (resolvedOfferPrice !== null && resolvedOfferPrice > 0 && resolvedOfferPrice < resolvedPrice)
+    ? resolvedOfferPrice
+    : null;
 
-  const resolvedSeoKeywords = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, seoMeta.seoKeywords, dimObj?.seoKeywords, local.seoKeywords, local.seo_keywords, local.metaKeywords, "");
+  const resolvedSeoKeywords = getStr(p?.seoKeywords, p?.seo_keywords, p?.metaKeywords, p?.meta_keywords, seoMeta.seoKeywords, dimObj?.seoKeywords, local.seoKeywords, local.seo_keywords, local.metaKeywords, "");
   const resolvedSeoTitle = getStr(p?.seoTitle, p?.seo_title, seoMeta.seoTitle, dimObj?.seoTitle, local.seoTitle, "");
   const resolvedSeoDesc = getStr(p?.seoDescription, p?.seo_description, seoMeta.seoDescription, dimObj?.seoDescription, local.seoDescription, "");
   const resolvedSeoSlug = getStr(p?.seoSlug, p?.seo_slug, seoMeta.seoSlug, dimObj?.seoSlug, local.seoSlug, "");
@@ -2859,27 +2860,54 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 
   const consolidatedImages = Array.from(new Set([resolvedImageUrl, ...parsedImages].filter(Boolean)));
 
-  const resolvedTimerEndTime = getStr(p?.timerEndTime, p?.timer_end_time, p?.timerEndDate, p?.timer_end_date, paymentMeta?.timerEndTime, paymentMeta?.timerEndDate, dimObj?.timerEndTime, dimObj?.timerEndDate, local.timerEndTime, "") || null;
+  // Timer must use timer_enabled and timer_end_at
+  const resolvedTimerEndTime = getStr(
+    p?.timer_end_at,
+    p?.timer_end_time,
+    p?.timerEndTime,
+    p?.timerEndDate,
+    paymentMeta?.timerEndTime,
+    paymentMeta?.timer_end_at,
+    dimObj?.timerEndTime,
+    local.timerEndTime,
+    local.timer_end_at,
+    ""
+  ) || null;
 
-  const resolvedTimerStartTime = getStr(p?.timerStartTime, p?.timer_start_time, p?.timerStartDate, p?.timer_start_date, paymentMeta?.timerStartTime, paymentMeta?.timerStartDate, dimObj?.timerStartTime, dimObj?.timerStartDate, local.timerStartTime, "") || null;
+  const resolvedTimerStartTime = getStr(
+    p?.timer_start_time,
+    p?.timerStartTime,
+    p?.timerStartDate,
+    paymentMeta?.timerStartTime,
+    dimObj?.timerStartTime,
+    local.timerStartTime,
+    ""
+  ) || null;
 
-  const resolvedTimerMessage = getStr(p?.timerMessage, p?.timer_message, paymentMeta?.timerMessage, dimObj?.timerMessage, local.timerMessage, "") || null;
+  const resolvedTimerMessage = getStr(
+    p?.timer_message,
+    p?.timerMessage,
+    paymentMeta?.timerMessage,
+    dimObj?.timerMessage,
+    local.timerMessage,
+    ""
+  ) || null;
 
-  const hasTimerConfig = !!resolvedTimerEndTime;
-  const resolvedTimerActive = p?.timerActive !== undefined
-    ? (p.timerActive !== false && String(p.timerActive) !== 'false')
+  const resolvedTimerEnabled = p?.timer_enabled !== undefined
+    ? (p.timer_enabled !== false && String(p.timer_enabled) !== "false")
     : (p?.timer_active !== undefined
-        ? (p.timer_active !== false && String(p.timer_active) !== 'false')
-        : (paymentMeta?.timerActive !== undefined
-            ? (paymentMeta.timerActive !== false && String(paymentMeta.timerActive) !== 'false')
-            : (dimObj?.timerActive !== undefined
-                ? (dimObj.timerActive !== false && String(dimObj.timerActive) !== 'false')
-                : (local.timerActive !== undefined
-                    ? (local.timerActive !== false && String(local.timerActive) !== 'false')
-                    : hasTimerConfig))));
-  const resolvedTimerEnabled = p?.timerEnabled !== undefined
-    ? (p.timerEnabled !== false && String(p.timerEnabled) !== 'false')
-    : resolvedTimerActive;
+        ? (p.timer_active !== false && String(p.timer_active) !== "false")
+        : (p?.timerEnabled !== undefined
+            ? (p.timerEnabled !== false && String(p.timerEnabled) !== "false")
+            : (p?.timerActive !== undefined
+                ? (p.timerActive !== false && String(p.timerActive) !== "false")
+                : (local.timerEnabled !== undefined
+                    ? (local.timerEnabled !== false && String(local.timerEnabled) !== "false")
+                    : (local.timerActive !== undefined
+                        ? (local.timerActive !== false && String(local.timerActive) !== "false")
+                        : !!resolvedTimerEndTime)))));
+
+  const resolvedTimerActive = resolvedTimerEnabled;
 
   const resolvedDeliveryPrice = getNum(
     p?.deliveryPrice, p?.delivery_price,
@@ -2902,7 +2930,16 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
   const resolvedDeliveryRangpur = getNum(p?.deliveryPriceRangpur, p?.delivery_price_rangpur, paymentMeta?.deliveryPriceRangpur, dimObj?.deliveryPriceRangpur, local.deliveryPriceRangpur, 150) ?? 150;
   const resolvedDeliveryMymensingh = getNum(p?.deliveryPriceMymensingh, p?.delivery_price_mymensingh, paymentMeta?.deliveryPriceMymensingh, dimObj?.deliveryPriceMymensingh, local.deliveryPriceMymensingh, 150) ?? 150;
 
-  const resolvedDeliveryCharge = getNum(p?.deliveryCharge, p?.delivery_charge, paymentMeta?.deliveryCharge, dimObj?.deliveryCharge, local.deliveryCharge, resolvedDeliveryPrice) ?? 100;
+  // Canonical Delivery Charge field: delivery_charge
+  const resolvedDeliveryCharge = getNum(
+    p?.delivery_charge,
+    p?.delivery_charges,
+    p?.deliveryCharge,
+    local.deliveryCharge,
+    paymentMeta?.deliveryCharge,
+    dimObj?.deliveryCharge,
+    resolvedDeliveryPrice
+  ) ?? 100;
 
   return {
     id,
@@ -2933,12 +2970,14 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, local.lotteryEligible, true),
     couponCode: getStr(p?.couponCode, p?.coupon_code, dimObj?.couponCode, local.couponCode, ""),
     couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
-    offerPrice: resolvedOfferPrice,
-    timerOfferPrice: resolvedOfferPrice,
+    offerPrice: finalOfferPrice,
+    timerOfferPrice: finalOfferPrice,
     timerStartTime: resolvedTimerStartTime,
     timerStartDate: resolvedTimerStartTime,
     timerEndTime: resolvedTimerEndTime,
     timerEndDate: resolvedTimerEndTime,
+    timer_end_at: resolvedTimerEndTime,
+    timer_enabled: resolvedTimerEnabled,
     timerMessage: resolvedTimerMessage,
     timerActive: resolvedTimerActive,
     timerEnabled: resolvedTimerEnabled,
@@ -3017,102 +3056,82 @@ app.get("/api/products/:id", async (req, res) => {
 
 // Resilient helper to upsert product data to Supabase, automatically handling schema columns mismatch and database alters
 async function upsertProductToSupabase(productPayload: any) {
-  // We do NOT hard-delete payment/delivery parameters here because the products table
-  // may have these columns; if they don't exist, our dynamic pruning loop below
-  // will gracefully prune them and retry! This guarantees perfect persistence.
   const basePayload = { ...productPayload };
 
-  // Try dynamic payload supporting both snake_case and camelCase SEO, OpenGraph, division-wise delivery prices, and payment options, pruning any unsupported columns dynamically in a loop
+  // Helper to normalize array fields from strings or JSON arrays to native arrays
+  const tryParseToNativeArray = (val: any): any[] => {
+    if (val === undefined || val === null) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === "string") {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+      if (val.trim() !== "") {
+        return val.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  const imagesNormalized = tryParseToNativeArray(basePayload.images);
+  const sizesNormalized = tryParseToNativeArray(basePayload.sizes);
+  const colorsNormalized = tryParseToNativeArray(basePayload.colors);
+
+  // Construct a strict, canonical snake_case only payload matching products table schema.
+  // This eliminates column-does-not-exist retries/failures and prevents dynamic column pruning from deleting valid columns.
   const payloadSnake: any = {
-    ...basePayload,
-    // SEO & OG mappings
-    seo_title: basePayload.seoTitle || null,
-    seo_description: basePayload.seoDescription || null,
-    seo_keywords: basePayload.seoKeywords || basePayload.metaKeywords || null,
-    meta_keywords: basePayload.metaKeywords || basePayload.seoKeywords || null,
-    seo_slug: basePayload.seoSlug || null,
-    canonical_url: basePayload.canonicalUrl || null,
-    og_title: basePayload.ogTitle || null,
-    og_description: basePayload.ogDescription || null,
-    og_image: basePayload.ogImage || null,
-    robots: basePayload.robots || null,
-    
-    // Division-wise delivery prices snake_case mappings
-    delivery_price: basePayload.deliveryPrice !== undefined && basePayload.deliveryPrice !== null ? Number(basePayload.deliveryPrice) : null,
-    delivery_price_dhaka: basePayload.deliveryPriceDhaka !== undefined && basePayload.deliveryPriceDhaka !== null ? Number(basePayload.deliveryPriceDhaka) : null,
-    delivery_price_chattogram: basePayload.deliveryPriceChattogram !== undefined && basePayload.deliveryPriceChattogram !== null ? Number(basePayload.deliveryPriceChattogram) : null,
-    delivery_price_rajshahi: basePayload.deliveryPriceRajshahi !== undefined && basePayload.deliveryPriceRajshahi !== null ? Number(basePayload.deliveryPriceRajshahi) : null,
-    delivery_price_khulna: basePayload.deliveryPriceKhulna !== undefined && basePayload.deliveryPriceKhulna !== null ? Number(basePayload.deliveryPriceKhulna) : null,
-    delivery_price_barishal: basePayload.deliveryPriceBarishal !== undefined && basePayload.deliveryPriceBarishal !== null ? Number(basePayload.deliveryPriceBarishal) : null,
-    delivery_price_sylhet: basePayload.deliveryPriceSylhet !== undefined && basePayload.deliveryPriceSylhet !== null ? Number(basePayload.deliveryPriceSylhet) : null,
-    delivery_price_rangpur: basePayload.deliveryPriceRangpur !== undefined && basePayload.deliveryPriceRangpur !== null ? Number(basePayload.deliveryPriceRangpur) : null,
-    delivery_price_mymensingh: basePayload.deliveryPriceMymensingh !== undefined && basePayload.deliveryPriceMymensingh !== null ? Number(basePayload.deliveryPriceMymensingh) : null,
-
-    // Product other fields mapping to snake_case
-    image_url: basePayload.imageUrl || null,
-    why_buy: basePayload.whyBuy || null,
-    lottery_eligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : null,
-    coupon_code: basePayload.couponCode || null,
-    coupon_discount_percent: basePayload.couponDiscountPercent !== undefined && basePayload.couponDiscountPercent !== null ? Number(basePayload.couponDiscountPercent) : null,
-    offer_price: basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : null,
-    timer_offer_price: basePayload.timerOfferPrice !== undefined && basePayload.timerOfferPrice !== null ? Number(basePayload.timerOfferPrice) : (basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : null),
-    timer_start_time: basePayload.timerStartTime || null,
-    timer_start_date: basePayload.timerStartDate || basePayload.timerStartTime || null,
-    timer_end_time: basePayload.timerEndTime || null,
-    timer_end_date: basePayload.timerEndDate || basePayload.timerEndTime || null,
-    timer_message: basePayload.timerMessage || null,
-    timer_active: basePayload.timerActive !== undefined ? !!basePayload.timerActive : null,
-    timer_enabled: basePayload.timerEnabled !== undefined ? !!basePayload.timerEnabled : (basePayload.timerActive !== undefined ? !!basePayload.timerActive : null),
-
-    // Payment and custom delivery fields mappings
-    bkash_number: basePayload.bkashNumber || null,
-    nagad_number: basePayload.nagadNumber || null,
-    payment_type: basePayload.paymentType || null,
-    payment_percentage: basePayload.paymentPercentage !== undefined && basePayload.paymentPercentage !== null ? Number(basePayload.paymentPercentage) : null,
-    delivery_charge: basePayload.deliveryCharge !== undefined && basePayload.deliveryCharge !== null ? Number(basePayload.deliveryCharge) : null,
-    delivery_days: basePayload.deliveryDays || null,
-    is_pinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : null,
-    free_delivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : null,
-    likes: basePayload.likes !== undefined && basePayload.likes !== null ? Number(basePayload.likes) : null,
-
-    // Support camelCase properties as well
-    isPinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : undefined,
-    deliveryPrice: basePayload.deliveryPrice !== undefined && basePayload.deliveryPrice !== null ? Number(basePayload.deliveryPrice) : undefined,
-    deliveryPriceDhaka: basePayload.deliveryPriceDhaka !== undefined && basePayload.deliveryPriceDhaka !== null ? Number(basePayload.deliveryPriceDhaka) : undefined,
-    deliveryPriceChattogram: basePayload.deliveryPriceChattogram !== undefined && basePayload.deliveryPriceChattogram !== null ? Number(basePayload.deliveryPriceChattogram) : undefined,
-    deliveryPriceRajshahi: basePayload.deliveryPriceRajshahi !== undefined && basePayload.deliveryPriceRajshahi !== null ? Number(basePayload.deliveryPriceRajshahi) : undefined,
-    deliveryPriceKhulna: basePayload.deliveryPriceKhulna !== undefined && basePayload.deliveryPriceKhulna !== null ? Number(basePayload.deliveryPriceKhulna) : undefined,
-    deliveryPriceBarishal: basePayload.deliveryPriceBarishal !== undefined && basePayload.deliveryPriceBarishal !== null ? Number(basePayload.deliveryPriceBarishal) : undefined,
-    deliveryPriceSylhet: basePayload.deliveryPriceSylhet !== undefined && basePayload.deliveryPriceSylhet !== null ? Number(basePayload.deliveryPriceSylhet) : undefined,
-    deliveryPriceRangpur: basePayload.deliveryPriceRangpur !== undefined && basePayload.deliveryPriceRangpur !== null ? Number(basePayload.deliveryPriceRangpur) : undefined,
-    deliveryPriceMymensingh: basePayload.deliveryPriceMymensingh !== undefined && basePayload.deliveryPriceMymensingh !== null ? Number(basePayload.deliveryPriceMymensingh) : undefined,
-    lotteryEligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : undefined,
-    couponCode: basePayload.couponCode,
-    couponDiscountPercent: basePayload.couponDiscountPercent !== undefined && basePayload.couponDiscountPercent !== null ? Number(basePayload.couponDiscountPercent) : undefined,
-    offerPrice: basePayload.offerPrice !== undefined && basePayload.offerPrice !== null ? Number(basePayload.offerPrice) : undefined,
-    timerOfferPrice: basePayload.timerOfferPrice !== undefined && basePayload.timerOfferPrice !== null ? Number(basePayload.timerOfferPrice) : undefined,
-    timerStartTime: basePayload.timerStartTime,
-    timerEndTime: basePayload.timerEndTime,
-    timerMessage: basePayload.timerMessage,
-    timerActive: basePayload.timerActive !== undefined ? !!basePayload.timerActive : undefined,
-    bkashNumber: basePayload.bkashNumber,
-    nagadNumber: basePayload.nagadNumber,
-    paymentType: basePayload.paymentType,
-    paymentPercentage: basePayload.paymentPercentage !== undefined && basePayload.paymentPercentage !== null ? Number(basePayload.paymentPercentage) : undefined,
-    deliveryCharge: basePayload.deliveryCharge !== undefined && basePayload.deliveryCharge !== null ? Number(basePayload.deliveryCharge) : undefined,
-    deliveryDays: basePayload.deliveryDays,
-    freeDelivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : undefined,
-
-    // Support camelCase SEO properties
-    seoTitle: basePayload.seoTitle || null,
-    seoDescription: basePayload.seoDescription || null,
-    seoKeywords: basePayload.seoKeywords || basePayload.metaKeywords || null,
-    metaKeywords: basePayload.metaKeywords || basePayload.seoKeywords || null,
-    seoSlug: basePayload.seoSlug || null,
-    canonicalUrl: basePayload.canonicalUrl || null,
-    ogTitle: basePayload.ogTitle || null,
-    ogDescription: basePayload.ogDescription || null,
-    ogImage: basePayload.ogImage || null
+    id: basePayload.id,
+    code: basePayload.code || "",
+    title: basePayload.title || "",
+    description: basePayload.description || "",
+    price: basePayload.price !== undefined ? Number(basePayload.price) : 0,
+    category: basePayload.category || "UNISEX",
+    stock: basePayload.stock !== undefined ? Number(basePayload.stock) : 0,
+    dimensions: basePayload.dimensions || "Standard Fitting",
+    why_buy: basePayload.whyBuy || basePayload.why_buy || "",
+    trending: basePayload.trending !== undefined ? !!basePayload.trending : true,
+    featured: basePayload.featured !== undefined ? !!basePayload.featured : true,
+    is_pinned: basePayload.isPinned !== undefined ? !!basePayload.isPinned : (basePayload.is_pinned !== undefined ? !!basePayload.is_pinned : false),
+    lottery_eligible: basePayload.lotteryEligible !== undefined ? !!basePayload.lotteryEligible : (basePayload.lottery_eligible !== undefined ? !!basePayload.lottery_eligible : true),
+    free_delivery: basePayload.freeDelivery !== undefined ? !!basePayload.freeDelivery : (basePayload.free_delivery !== undefined ? !!basePayload.free_delivery : false),
+    likes: basePayload.likes !== undefined ? Number(basePayload.likes) : 0,
+    image_url: basePayload.imageUrl || basePayload.image_url || "",
+    images: imagesNormalized,
+    sizes: sizesNormalized,
+    colors: colorsNormalized,
+    video_url: basePayload.videoUrl || basePayload.video_url || "",
+    coupon_code: basePayload.couponCode || basePayload.coupon_code || "",
+    delivery_fee: basePayload.deliveryFee !== undefined ? Number(basePayload.deliveryFee) : (basePayload.delivery_fee !== undefined ? Number(basePayload.delivery_fee) : 100),
+    delivery_charge: basePayload.deliveryCharge !== undefined ? Number(basePayload.deliveryCharge) : (basePayload.delivery_charge !== undefined ? Number(basePayload.delivery_charge) : 100),
+    delivery_charges: basePayload.deliveryCharges !== undefined ? Number(basePayload.deliveryCharges) : (basePayload.delivery_charges !== undefined ? Number(basePayload.delivery_charges) : 100),
+    delivery_dhaka: basePayload.deliveryPriceDhaka !== undefined ? Number(basePayload.deliveryPriceDhaka) : (basePayload.delivery_dhaka !== undefined ? Number(basePayload.delivery_dhaka) : 100),
+    delivery_chattogram: basePayload.deliveryPriceChattogram !== undefined ? Number(basePayload.deliveryPriceChattogram) : (basePayload.delivery_chattogram !== undefined ? Number(basePayload.delivery_chattogram) : 150),
+    delivery_rajshahi: basePayload.deliveryPriceRajshahi !== undefined ? Number(basePayload.deliveryPriceRajshahi) : (basePayload.delivery_rajshahi !== undefined ? Number(basePayload.delivery_rajshahi) : 150),
+    delivery_khulna: basePayload.deliveryPriceKhulna !== undefined ? Number(basePayload.deliveryPriceKhulna) : (basePayload.delivery_khulna !== undefined ? Number(basePayload.delivery_khulna) : 150),
+    delivery_barishal: basePayload.deliveryPriceBarishal !== undefined ? Number(basePayload.deliveryPriceBarishal) : (basePayload.delivery_barishal !== undefined ? Number(basePayload.delivery_barishal) : 150),
+    delivery_sylhet: basePayload.deliveryPriceSylhet !== undefined ? Number(basePayload.deliveryPriceSylhet) : (basePayload.delivery_sylhet !== undefined ? Number(basePayload.delivery_sylhet) : 150),
+    delivery_rangpur: basePayload.deliveryPriceRangpur !== undefined ? Number(basePayload.deliveryPriceRangpur) : (basePayload.delivery_rangpur !== undefined ? Number(basePayload.delivery_rangpur) : 150),
+    delivery_mymensingh: basePayload.deliveryPriceMymensingh !== undefined ? Number(basePayload.deliveryPriceMymensingh) : (basePayload.delivery_mymensingh !== undefined ? Number(basePayload.delivery_mymensingh) : 150),
+    payment_type: basePayload.paymentType || basePayload.payment_type || "cod",
+    payment_percentage: basePayload.paymentPercentage !== undefined ? Number(basePayload.paymentPercentage) : (basePayload.payment_percentage !== undefined ? Number(basePayload.payment_percentage) : 10),
+    bkash_number: basePayload.bkashNumber || basePayload.bkash_number || "",
+    nagad_number: basePayload.nagadNumber || basePayload.nagad_number || "",
+    timer_start_time: basePayload.timerStartTime || basePayload.timer_start_time || null,
+    timer_end_time: basePayload.timerEndTime || basePayload.timer_end_time || null,
+    timer_end_at: basePayload.timer_end_at || basePayload.timerEndTime || basePayload.timer_end_time || null,
+    timer_message: basePayload.timerMessage || basePayload.timer_message || "",
+    timer_active: basePayload.timerActive !== undefined ? !!basePayload.timerActive : (basePayload.timer_active !== undefined ? !!basePayload.timer_active : false),
+    timer_enabled: basePayload.timer_enabled !== undefined ? !!basePayload.timer_enabled : (basePayload.timerActive !== undefined ? !!basePayload.timerActive : false),
+    seo_title: basePayload.seoTitle || basePayload.seo_title || "",
+    seo_description: basePayload.seoDescription || basePayload.seo_description || "",
+    seo_keywords: basePayload.seoKeywords || basePayload.seo_keywords || basePayload.metaKeywords || basePayload.meta_keywords || "",
+    meta_keywords: basePayload.metaKeywords || basePayload.meta_keywords || basePayload.seoKeywords || basePayload.seo_keywords || "",
+    canonical_url: basePayload.canonicalUrl || basePayload.canonical_url || "",
+    og_title: basePayload.ogTitle || basePayload.og_title || "",
+    og_description: basePayload.ogDescription || basePayload.og_description || "",
+    og_image: basePayload.ogImage || basePayload.og_image || "",
+    robots: basePayload.robots || "index, follow"
   };
 
   let currentPayload = { ...payloadSnake };
@@ -3132,6 +3151,7 @@ async function upsertProductToSupabase(productPayload: any) {
     }
   }
 
+  // Resilient column pruning fallback (only for unmapped schema changes)
   let retries = 0;
   while (result.error && (result.error.message?.includes("column") || result.error.message?.includes("does not exist") || result.error.code === "42703" || result.error.code === "PGRST102") && retries < 25) {
     retries++;
@@ -3142,7 +3162,7 @@ async function upsertProductToSupabase(productPayload: any) {
       delete currentPayload[colName];
     } else {
       console.log("[PRODUCTS_SYNC] Unable to parse column name. Pruning all non-core columns.");
-      const coreKeys = ["id", "code", "title", "price", "stock", "imageUrl"];
+      const coreKeys = ["id", "code", "title", "price", "stock", "image_url"];
       for (const key of Object.keys(currentPayload)) {
         if (!coreKeys.includes(key)) {
           delete currentPayload[key];
@@ -3493,13 +3513,22 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
     try {
       const { error: upsertError } = await upsertProductToSupabase(payload);
       if (upsertError) {
-        console.warn("⚠️ Non-fatal warning mirroring product creation to Supabase: ", formatSupabaseError(upsertError));
+        console.error("❌ Database save failed on Supabase:", formatSupabaseError(upsertError));
+        db.products = db.products.filter(p => String(p.id) !== String(newProduct.id));
+        saveDB();
+        return res.status(500).json({ message: "Database save failed: " + formatSupabaseError(upsertError) });
       }
     } catch (upsertEx: any) {
-      console.warn("⚠️ Exception during Supabase product creation upsert: ", formatSupabaseError(upsertEx));
+      console.error("❌ Exception during Supabase product save:", upsertEx.message);
+      db.products = db.products.filter(p => String(p.id) !== String(newProduct.id));
+      saveDB();
+      return res.status(500).json({ message: "Database save failed: " + upsertEx.message });
     }
   } catch (err: any) {
-    console.warn("⚠️ Failed to mirror product creation to cloud database (saved locally): ", formatSupabaseError(err));
+    console.error("❌ Database save exception:", err.message);
+    db.products = db.products.filter(p => String(p.id) !== String(newProduct.id));
+    saveDB();
+    return res.status(500).json({ message: "Database save failed: " + err.message });
   }
 
   // Dispatch Real-Time Push Notification for New Product Drop
@@ -3749,16 +3778,26 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
         robots: target.robots || "index, follow"
       };
 
+      const backupProduct = { ...existingProd };
       try {
         let { error: upsertError } = await upsertProductToSupabase(payload);
         if (upsertError) {
-          console.warn("⚠️ Non-fatal warning mirroring product update to Supabase: ", formatSupabaseError(upsertError));
+          console.error("❌ Database update failed on Supabase:", formatSupabaseError(upsertError));
+          db.products[idx] = backupProduct;
+          saveDB();
+          return res.status(500).json({ message: "Database update failed: " + formatSupabaseError(upsertError) });
         }
       } catch (upsertEx: any) {
-        console.warn("⚠️ Exception during Supabase product update upsert: ", formatSupabaseError(upsertEx));
+        console.error("❌ Exception during Supabase product update:", upsertEx.message);
+        db.products[idx] = backupProduct;
+        saveDB();
+        return res.status(500).json({ message: "Database update failed: " + upsertEx.message });
       }
     } catch (err: any) {
-      console.warn("⚠️ Failed to mirror product update to Supabase (saved locally): ", formatSupabaseError(err));
+      console.error("❌ Database update exception:", err.message);
+      db.products[idx] = existingProd;
+      saveDB();
+      return res.status(500).json({ message: "Database update failed: " + err.message });
     }
 
     res.json(target);

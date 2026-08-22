@@ -2580,13 +2580,16 @@ export default function AdminPanel({
       timerOfferPrice: finalOfferPrice,
       timerStartTime: formTimerStartTime || null,
       timerEndTime: formTimerEndTime || null,
+      timer_end_at: formTimerEndTime || null,
       timerMessage: formTimerMessage || null,
       timerActive: Boolean(formTimerActive),
+      timer_enabled: Boolean(formTimerActive),
       bkashNumber: formBkashNumber || '',
       nagadNumber: formNagadNumber || '',
       paymentType: formPaymentType || 'cod',
       paymentPercentage: Number(formPaymentPercentage || 10),
       deliveryCharge: Number(formDeliveryCharge || formDeliveryPriceDhaka || 100),
+      delivery_charge: Number(formDeliveryCharge || formDeliveryPriceDhaka || 100),
       deliveryDays: formDeliveryDays || '3-5',
       likes: Number(formLikes || 0),
       seoTitle: formSeoTitle || null,
@@ -2726,14 +2729,14 @@ export default function AdminPanel({
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
     setFormTimerStartTime(formatForDateTimeInput(prod.timerStartTime));
-    setFormTimerEndTime(formatForDateTimeInput(prod.timerEndTime));
+    setFormTimerEndTime(formatForDateTimeInput(prod.timerEndTime || prod.timer_end_at));
     setFormTimerMessage(prod.timerMessage || '');
-    setFormTimerActive(prod.timerActive !== false);
+    setFormTimerActive(prod.timerActive === true || prod.timerEnabled === true || prod.timer_enabled === true);
     setFormBkashNumber(prod.bkashNumber || '');
     setFormNagadNumber(prod.nagadNumber || '');
     setFormPaymentType(prod.paymentType || 'cod');
     setFormPaymentPercentage(prod.paymentPercentage !== undefined ? prod.paymentPercentage : 10);
-    setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100));
+    setFormDeliveryCharge(prod.deliveryCharge !== undefined ? prod.deliveryCharge : (prod.delivery_charge !== undefined ? prod.delivery_charge : (prod.deliveryPrice !== undefined ? prod.deliveryPrice : 100)));
     setFormDeliveryDays(prod.deliveryDays !== undefined ? String(prod.deliveryDays) : '3-5');
     setFormLikes(prod.likes !== undefined ? Number(prod.likes) : 0);
     setFormSeoTitle(prod.seoTitle || '');
