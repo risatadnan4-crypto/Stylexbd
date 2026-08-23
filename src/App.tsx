@@ -251,9 +251,22 @@ const FormMediaUploadWidget = React.memo(({
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
             {images.map((imgSrc, idx) => (
-              <div key={idx} className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-luxury-gold/30 bg-black/50 shadow-md">
-                <img src={imgSrc} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-                <div className="absolute top-1 left-1 bg-black/80 text-luxury-gold text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow">
+              <div key={idx} className="relative group/thumb aspect-square rounded-lg overflow-hidden border border-luxury-gold/30 hover:border-luxury-gold/60 bg-[#080312] shadow-md transition-all duration-300">
+                {/* Blurred background image to fill gaps of non-square aspect ratios beautifully */}
+                <img 
+                  src={imgSrc} 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md scale-110 pointer-events-none select-none" 
+                  referrerPolicy="no-referrer"
+                />
+                {/* Main image rendered in full containing perfectly */}
+                <img 
+                  src={imgSrc} 
+                  alt={`Upload ${idx + 1}`} 
+                  className="relative z-10 w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover/thumb:scale-[1.04]" 
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-1 left-1 bg-black/80 text-luxury-gold text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow z-20">
                   #{idx + 1}
                 </div>
                 <button
@@ -262,7 +275,7 @@ const FormMediaUploadWidget = React.memo(({
                     e.stopPropagation();
                     handleRemove(idx);
                   }}
-                  className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition-all hover:scale-110"
+                  className="absolute top-1 right-1 bg-red-600/90 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs shadow cursor-pointer transition-all hover:scale-110 z-20"
                   title="Remove image"
                 >
                   ×
