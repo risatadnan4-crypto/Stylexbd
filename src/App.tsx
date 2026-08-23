@@ -717,10 +717,41 @@ export default function App() {
       }
     }
 
+    if (pathname === '/products') {
+      setSelectedProduct(null);
+      setIsAdminView(false);
+      setIsTrackMode(false);
+      setIsWishlistPage(false);
+      setIsSearchPage(false);
+      setSearchQuery('');
+      setActiveCategory('ALL');
+      return;
+    }
+
     if (pathname.startsWith('/products/') || pathname.startsWith('/product/')) {
       const segments = pathname.split('/');
       const codeSegment = decodeURIComponent(segments[segments.length - 1] || '').toLowerCase();
       if (codeSegment) {
+        if (["new-arrivals", "shirts", "pants", "streetwear", "sale"].includes(codeSegment)) {
+          setIsAdminView(false);
+          setIsTrackMode(false);
+          setIsWishlistPage(false);
+          setSelectedProduct(null);
+          setIsSearchPage(true);
+          if (codeSegment === "new-arrivals") {
+            setSearchQuery("new");
+          } else if (codeSegment === "shirts") {
+            setSearchQuery("shirt");
+          } else if (codeSegment === "pants") {
+            setSearchQuery("pant");
+          } else if (codeSegment === "streetwear") {
+            setSearchQuery("streetwear");
+          } else if (codeSegment === "sale") {
+            setSearchQuery("sale");
+          }
+          return;
+        }
+
         if (productList.length === 0) {
           // Products are still loading; preserve path and do not reset state
           return;
@@ -917,12 +948,15 @@ export default function App() {
         element.remove();
       }
       if (product) {
-        const pSlug = (product.title || '')
+        const pSlug = product.seoSlug || product.slug || (product.title || '')
           .toString()
           .toLowerCase()
           .trim()
-          .replace(/[\s\-]+/g, '')
-          .replace(/[^\w]+/g, '');
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
         const schema = {
           "@context": "https://schema.org",
           "@type": "Product",
@@ -946,6 +980,41 @@ export default function App() {
             "seller": {
               "@type": "Organization",
               "name": "Style X"
+            },
+            "hasMerchantReturnPolicy": {
+              "@type": "MerchantReturnPolicy",
+              "applicableCountry": "BD",
+              "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+              "merchantReturnDays": 7,
+              "returnMethod": "https://schema.org/ReturnByMail",
+              "returnFees": "https://schema.org/FreeReturn"
+            },
+            "shippingDetails": {
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": 120,
+                "currency": "BDT"
+              },
+              "shippingDestination": {
+                "@type": "DefinedRegion",
+                "addressCountry": "BD"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 0,
+                  "maxValue": 1,
+                  "unitCode": "DAY"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 4,
+                  "unitCode": "DAY"
+                }
+              }
             }
           }
         };
@@ -978,12 +1047,15 @@ export default function App() {
       title = selectedProduct.seoTitle || `${selectedProduct.title} | Premium Style X BD`;
       desc = selectedProduct.seoDescription || selectedProduct.description || `Purchase ${selectedProduct.title} from STYLE X BD. Premium apparel item designed with high fashion standards, starting from ${selectedProduct.price} BDT.`;
       keywords = selectedProduct.seoKeywords || `${selectedProduct.title}, style x, style x bd, premium clothing, luxury apparel, streetwear bangladesh`;
-      const pSlug = (selectedProduct.title || '')
+      const pSlug = selectedProduct.seoSlug || selectedProduct.slug || (selectedProduct.title || '')
         .toString()
         .toLowerCase()
         .trim()
-        .replace(/[\s\-]+/g, '')
-        .replace(/[^\w]+/g, '');
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
       canonical = `https://stylexbd.vercel.app/products/${pSlug || encodeURIComponent(code)}`;
       if (selectedProduct.imageUrl) {
         imageUrl = selectedProduct.imageUrl;
@@ -1030,6 +1102,30 @@ export default function App() {
           keywords = "luxury accessories, premium wardrobe additions, style x ensemble, designer socks, signature jewelry, style x caps";
           canonical = "https://stylexbd.vercel.app/category/accessories";
         }
+      } else if (currentPath === '/products') {
+        title = "Premium Apparel Catalog | Complete Curated Collection | STYLE X";
+        desc = "Browse our full archives of high-end garments. Shop premium shirts, luxury oversized t-shirts, tactical cargo pants, and designer accessories.";
+        canonical = "https://stylexbd.vercel.app/products";
+      } else if (currentPath === '/products/new-arrivals') {
+        title = "New Arrivals Collection | High-End Streetwear | STYLE X";
+        desc = "Discover our latest premium apparel drops. Explore brand new oversized tees, luxury cargo pants, and designer hoodies freshly arrived at STYLE X BD.";
+        canonical = "https://stylexbd.vercel.app/products/new-arrivals";
+      } else if (currentPath === '/products/shirts') {
+        title = "Premium Designer Shirts & Casual Button-Downs | STYLE X";
+        desc = "Shop the finest luxury shirts in Bangladesh. Tailored with premium linen, oxford cotton, and structured fits, perfect for casual and formal statements.";
+        canonical = "https://stylexbd.vercel.app/products/shirts";
+      } else if (currentPath === '/products/pants') {
+        title = "Designer Cargo Pants, Denim & Premium Trousers | STYLE X";
+        desc = "Engineered for style and comfort. Browse the signature cargo trousers, luxury tactical utility pants, and streetwear pants collection at STYLE X BD.";
+        canonical = "https://stylexbd.vercel.app/products/pants";
+      } else if (currentPath === '/products/streetwear') {
+        title = "Elite Streetwear Hoodies, Jackets & Drop Shoulder Tee Series | STYLE X";
+        desc = "The ultimate high fashion streetwear collection in Bangladesh. Featuring premium drop shoulder graphic t-shirts, tactical jackets, and luxury hoodies.";
+        canonical = "https://stylexbd.vercel.app/products/streetwear";
+      } else if (currentPath === '/products/sale') {
+        title = "Exclusive Seasonal Sale & Designer Clearance Deals | STYLE X";
+        desc = "Shop premium fashion and high-end streetwear on sale. Limited-time clearance on luxury shirts, oversized tees, hoodies, and jackets from STYLE X BD.";
+        canonical = "https://stylexbd.vercel.app/products/sale";
       } else if (currentPath === '/about') {
         title = "About StyleX BD | The Curated Luxury Fashion Experience";
         desc = "Discover the heritage, curation standards, and vision of StyleX BD. Bangladesh's premium destination for high-end streetwear and artisanal fashion curation.";
@@ -1105,12 +1201,15 @@ export default function App() {
       } else if (isTrackMode) {
         expectedHash = '#/track';
       } else if (selectedProduct) {
-        const pSlug = (selectedProduct.title || '')
+        const pSlug = selectedProduct.seoSlug || selectedProduct.slug || (selectedProduct.title || '')
           .toString()
           .toLowerCase()
           .trim()
-          .replace(/[\s\-]+/g, '')
-          .replace(/[^\w]+/g, '');
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
         expectedHash = `#/products/${pSlug || encodeURIComponent(selectedProduct.code || selectedProduct.id)}`;
       } else if (activeCategory && activeCategory !== 'ALL') {
         expectedHash = `#/category/${activeCategory.toLowerCase()}`;

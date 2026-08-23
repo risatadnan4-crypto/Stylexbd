@@ -1,10 +1,14 @@
 User-agent: *
 Allow: /
+Allow: /products
+Allow: /products/
 Allow: /product/
 Allow: /category/
 Allow: /search
+Allow: /sitemap.xml
 Allow: /api/sitemap
 Disallow: /admin
+Disallow: /xxxrisatxxx
 Disallow: /wishlist
 Disallow: /cart
 Disallow: /checkout

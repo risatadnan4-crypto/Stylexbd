@@ -46,6 +46,12 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 
   const staticPages = [
     { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+    { loc: `${baseUrl}/products`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/new-arrivals`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/shirts`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/pants`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/streetwear`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/sale`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/men`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/women`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/unisex`, priority: "0.9", changefreq: "weekly" },
@@ -54,7 +60,10 @@ Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
     { loc: `${baseUrl}/faq`, priority: "0.6", changefreq: "monthly" },
     { loc: `${baseUrl}/delivery`, priority: "0.5", changefreq: "monthly" },
     { loc: `${baseUrl}/returns`, priority: "0.5", changefreq: "monthly" },
-    { loc: `${baseUrl}/contact`, priority: "0.5", changefreq: "monthly" }
+    { loc: `${baseUrl}/contact`, priority: "0.5", changefreq: "monthly" },
+    { loc: `${baseUrl}/blog`, priority: "0.6", changefreq: "weekly" },
+    { loc: `${baseUrl}/rewards`, priority: "0.6", changefreq: "monthly" },
+    { loc: `${baseUrl}/size-guide`, priority: "0.6", changefreq: "monthly" }
   ];
 
   try {

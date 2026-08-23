@@ -60,6 +60,7 @@ export interface Product {
   seo_keywords?: string;
   metaKeywords?: string;
   seoSlug?: string;
+  slug?: string;
   canonicalUrl?: string;
   ogTitle?: string;
   ogDescription?: string;

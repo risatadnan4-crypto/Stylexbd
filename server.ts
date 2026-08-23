@@ -8210,6 +8210,12 @@ async function handleSitemapRequest(req: any, res: any) {
   // Static pages (homepage, categories, static pages) - Excludes /wishlist
   const staticPages = [
     { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily" },
+    { loc: `${baseUrl}/products`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/new-arrivals`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/shirts`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/pants`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/streetwear`, priority: "0.9", changefreq: "weekly" },
+    { loc: `${baseUrl}/products/sale`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/men`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/women`, priority: "0.9", changefreq: "weekly" },
     { loc: `${baseUrl}/category/unisex`, priority: "0.9", changefreq: "weekly" },
@@ -8218,7 +8224,10 @@ async function handleSitemapRequest(req: any, res: any) {
     { loc: `${baseUrl}/faq`, priority: "0.6", changefreq: "monthly" },
     { loc: `${baseUrl}/delivery`, priority: "0.5", changefreq: "monthly" },
     { loc: `${baseUrl}/returns`, priority: "0.5", changefreq: "monthly" },
-    { loc: `${baseUrl}/contact`, priority: "0.5", changefreq: "monthly" }
+    { loc: `${baseUrl}/contact`, priority: "0.5", changefreq: "monthly" },
+    { loc: `${baseUrl}/blog`, priority: "0.6", changefreq: "weekly" },
+    { loc: `${baseUrl}/rewards`, priority: "0.6", changefreq: "monthly" },
+    { loc: `${baseUrl}/size-guide`, priority: "0.6", changefreq: "monthly" }
   ];
 
   let productPages: any[] = [];
@@ -8306,11 +8315,15 @@ app.get("/api/sitemap", handleSitemapRequest);
 app.get("/robots.txt", (req, res) => {
   const robots = `User-agent: *
 Allow: /
+Allow: /products
+Allow: /products/
 Allow: /product/
 Allow: /category/
 Allow: /search
+Allow: /sitemap.xml
 Allow: /api/sitemap
 Disallow: /admin
+Disallow: /xxxrisatxxx
 Disallow: /wishlist
 Disallow: /cart
 Disallow: /checkout
@@ -8321,7 +8334,7 @@ Disallow: /track
 
 # Host & XML Sitemap Reference
 Host: https://stylexbd.vercel.app
-Sitemap: https://stylexbd.vercel.app/api/sitemap`;
+Sitemap: https://stylexbd.vercel.app/sitemap.xml`;
 
   res.header("Content-Type", "text/plain");
   res.send(robots);
@@ -8496,7 +8509,35 @@ if (!isProduction) {
 
         if (pathSegments[0] === "products" || pathSegments[0] === "product") {
           const productCode = decodeURIComponent(pathSegments[1] || "").toLowerCase();
-          if (productCode && db.products) {
+          if (!productCode || ["new-arrivals", "shirts", "pants", "streetwear", "sale"].includes(productCode)) {
+            foundMatch = true;
+            if (productCode === "new-arrivals") {
+              customTitle = "New Arrivals Collection | High-End Streetwear | STYLE X";
+              desc = "Discover our latest premium apparel drops. Explore brand new oversized tees, luxury cargo pants, and designer hoodies freshly arrived at STYLE X BD.";
+              keywords = "style x new arrivals, premium clothing drops, latest streetwear bangladesh, new clothing arrivals dhaka";
+            } else if (productCode === "shirts") {
+              customTitle = "Premium Designer Shirts & Casual Button-Downs | STYLE X";
+              desc = "Shop the finest luxury shirts in Bangladesh. Tailored with premium linen, oxford cotton, and structured fits, perfect for casual and formal statements.";
+              keywords = "premium shirts bd, luxury designer shirts, buy shirts online dhaka, streetwear shirts, casual luxury shirts";
+            } else if (productCode === "pants") {
+              customTitle = "Designer Cargo Pants, Denim & Premium Trousers | STYLE X";
+              desc = "Engineered for style and comfort. Browse the signature cargo trousers, luxury tactical utility pants, and streetwear pants collection at STYLE X BD.";
+              keywords = "designer cargo pants, premium cargo pants bangladesh, luxury streetwear pants, tactical trousers dhaka";
+            } else if (productCode === "streetwear") {
+              customTitle = "Elite Streetwear Hoodies, Jackets & Drop Shoulder Tee Series | STYLE X";
+              desc = "The ultimate high fashion streetwear collection in Bangladesh. Featuring premium drop shoulder graphic t-shirts, tactical jackets, and luxury hoodies.";
+              keywords = "streetwear bangladesh, buy oversized hoodies, crop-shoulder t-shirts bd, high fashion streetwear dhaka";
+            } else if (productCode === "sale") {
+              customTitle = "Exclusive Seasonal Sale & Designer Clearance Deals | STYLE X";
+              desc = "Shop premium fashion and high-end streetwear on sale. Limited-time clearance on luxury shirts, oversized tees, hoodies, and jackets from STYLE X BD.";
+              keywords = "style x sale, clothing discounts bangladesh, luxury fashion discount, streetwear clearance dhaka";
+            } else {
+              // `/products`
+              customTitle = "Premium Apparel Catalog | Complete Curated Collection | STYLE X";
+              desc = "Browse our full archives of high-end garments. Shop premium shirts, luxury oversized t-shirts, tactical cargo pants, and designer accessories.";
+              keywords = "style x products, premium clothing catalog, luxury apparel bangladesh, streetwear shop dhaka, buy clothes online";
+            }
+          } else if (productCode && db.products) {
             const productCodeNoHyphens = productCode.replace(/[\s\-]+/g, '');
             const foundProduct = db.products.find((p: any) => {
               const pCode = (p.code || "").toLowerCase();
@@ -8592,6 +8633,41 @@ if (!isProduction) {
                   "seller": {
                     "@type": "Organization",
                     "name": "Style X"
+                  },
+                  "hasMerchantReturnPolicy": {
+                    "@type": "MerchantReturnPolicy",
+                    "applicableCountry": "BD",
+                    "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+                    "merchantReturnDays": 7,
+                    "returnMethod": "https://schema.org/ReturnByMail",
+                    "returnFees": "https://schema.org/FreeReturn"
+                  },
+                  "shippingDetails": {
+                    "@type": "OfferShippingDetails",
+                    "shippingRate": {
+                      "@type": "MonetaryAmount",
+                      "value": 120,
+                      "currency": "BDT"
+                    },
+                    "shippingDestination": {
+                      "@type": "DefinedRegion",
+                      "addressCountry": "BD"
+                    },
+                    "deliveryTime": {
+                      "@type": "ShippingDeliveryTime",
+                      "handlingTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 0,
+                        "maxValue": 1,
+                        "unitCode": "DAY"
+                      },
+                      "transitTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 1,
+                        "maxValue": 4,
+                        "unitCode": "DAY"
+                      }
+                    }
                   }
                 }
               };
@@ -8746,6 +8822,41 @@ if (!isProduction) {
                   "seller": {
                     "@type": "Organization",
                     "name": "Style X"
+                  },
+                  "hasMerchantReturnPolicy": {
+                    "@type": "MerchantReturnPolicy",
+                    "applicableCountry": "BD",
+                    "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnPeriod",
+                    "merchantReturnDays": 7,
+                    "returnMethod": "https://schema.org/ReturnByMail",
+                    "returnFees": "https://schema.org/FreeReturn"
+                  },
+                  "shippingDetails": {
+                    "@type": "OfferShippingDetails",
+                    "shippingRate": {
+                      "@type": "MonetaryAmount",
+                      "value": 120,
+                      "currency": "BDT"
+                    },
+                    "shippingDestination": {
+                      "@type": "DefinedRegion",
+                      "addressCountry": "BD"
+                    },
+                    "deliveryTime": {
+                      "@type": "ShippingDeliveryTime",
+                      "handlingTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 0,
+                        "maxValue": 1,
+                        "unitCode": "DAY"
+                      },
+                      "transitTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 1,
+                        "maxValue": 4,
+                        "unitCode": "DAY"
+                      }
+                    }
                   }
                 }
               };
@@ -8817,15 +8928,229 @@ if (!isProduction) {
         }
 
         // Pre-render semantic fallback DOM inside <div id="root"> for non-JS crawlers
-        const prHeading = customTitle ? customTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "StyleX BD";
-        const prDesc = desc ? desc.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
-        const prImage = image ? image.replace(/"/g, "&quot;") : "";
+        let prBody = "";
+        const firstSegment = pathSegments[0] || "";
 
-        let prBody = `<main style="padding:2rem;max-width:1200px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
-          `<header><h1 style="font-size:2rem;margin-bottom:0.75rem;">${prHeading}</h1></header>` +
-          `<article><p style="font-size:1.1rem;line-height:1.6;">${prDesc}</p>` +
-          (prImage ? `<img src="${prImage}" alt="${prHeading}" style="max-width:100%;height:auto;margin:1rem 0;border-radius:8px;" />` : "") +
-          `</article></main>`;
+        if (firstSegment === "blog") {
+          prBody = `<main style="padding:2rem;max-width:1200px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">StyleX Editorial Blog</h1>` +
+            `<p style="font-size:1.1rem;color:#888;">Luxury Fashion, Streetwear Trends & Garment Curation Insights</p></header>` +
+            `<section style="margin-top:2rem;display:flex;flex-direction:column;gap:2rem;">` +
+              `<article style="border-bottom:1px solid #222;padding-bottom:1.5rem;">` +
+                `<h2 style="font-size:1.6rem;color:#d4af37;"><a href="/blog/streetwear-evolution-dhaka" style="color:#d4af37;text-decoration:none;">The Streetwear Revolution in Dhaka: From Subculture to Luxury Standards</a></h2>` +
+                `<p style="font-size:0.9rem;color:#666;">Published August 15, 2026 | By StyleX Editorial</p>` +
+                `<p style="font-size:1rem;line-height:1.6;color:#ccc;">How oversized drop-shoulder tees, heavyweight hoodies, and tactical cargo trousers became the defining uniform of Dhaka's elite youth. Curation standards are shifting from mass apparel to rare limited-batch releases.</p>` +
+              `</article>` +
+              `<article style="border-bottom:1px solid #222;padding-bottom:1.5rem;">` +
+                `<h2 style="font-size:1.6rem;color:#d4af37;"><a href="/blog/premium-denim-care-guide" style="color:#d4af37;text-decoration:none;">The Ultimate Care Guide for Premium Heavyweight Garments</a></h2>` +
+                `<p style="font-size:0.9rem;color:#666;">Published August 10, 2026 | By Curation Team</p>` +
+                `<p style="font-size:1rem;line-height:1.6;color:#ccc;">To preserve the luxury texture, high GSM fabric thickness, and deep color saturation of your premium StyleX garments, follow our expert washing, drying, and storage procedures. Learn why air-drying is the secret to lifetime streetwear aesthetics.</p>` +
+              `</article>` +
+              `<article style="border-bottom:1px solid #222;padding-bottom:1.5rem;">` +
+                `<h2 style="font-size:1.6rem;color:#d4af37;"><a href="/blog/textiles-curated-by-stylex" style="color:#d4af37;text-decoration:none;">A Look into Our Sourcing & Curation Standards</a></h2>` +
+                `<p style="font-size:0.9rem;color:#666;">Published August 01, 2026 | By Lead Designer</p>` +
+                `<p style="font-size:1rem;line-height:1.6;color:#ccc;">At StyleX BD, every piece is handpicked and undergoes a multi-point inspection. We focus on authentic fabric weight (minimum 240 GSM for t-shirts, 400 GSM for hoodies), seamless stitching, and organic dyes to deliver true luxury apparel.</p>` +
+              `</article>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;border-top:1px solid #222;padding-top:1rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Main Archives</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "contact") {
+          prBody = `<main style="padding:2rem;max-width:800px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">Contact StyleX BD Concierge</h1>` +
+            `<p style="font-size:1.1rem;color:#ccc;">Bespoke order assistance, WhatsApp support, and physical head-office coordinates.</p></header>` +
+            `<section style="margin-top:2rem;background:#0c0c12;border:1px solid #222;padding:2rem;border-radius:12px;line-height:1.8;">` +
+              `<h2 style="font-size:1.4rem;color:#d4af37;margin-top:0;">Direct Communication Channels</h2>` +
+              `<p><strong>WhatsApp Support:</strong> <a href="https://wa.me/8801755104443" style="color:#d4af37;text-decoration:none;">+880 1755-104443</a> (Available 24/7 for VIP order coordination)</p>` +
+              `<p><strong>Official Email:</strong> <a href="mailto:support@stylexbd.com" style="color:#d4af37;text-decoration:none;">support@stylexbd.com</a></p>` +
+              `<p><strong>Operational Hours:</strong> 10:00 AM - 10:00 PM (Daily)</p>` +
+              `<p><strong>Central Showroom & Curation Desk:</strong> Gulshan, Dhaka, Bangladesh</p>` +
+              `<hr style="border:0;border-top:1px solid #222;margin:1.5rem 0;" />` +
+              `<h3 style="font-size:1.2rem;color:#d4af37;margin-bottom:0.5rem;">Partner & Media Queries</h3>` +
+              `<p>For corporate bulk partnerships, authentic manufacturing collaborations, and design features, contact us at <a href="mailto:partners@stylexbd.com" style="color:#d4af37;">partners@stylexbd.com</a>.</p>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "faq") {
+          prBody = `<main style="padding:2rem;max-width:900px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">Frequently Asked Questions</h1>` +
+            `<p style="font-size:1.1rem;color:#888;">Find answers regarding our luxury garments, shipping, custom sizing, and authentication.</p></header>` +
+            `<section style="margin-top:2rem;display:flex;flex-direction:column;gap:1.5rem;">` +
+              `<div style="background:#0c0c12;border:1px solid #222;padding:1.5rem;border-radius:8px;">` +
+                `<h3 style="color:#d4af37;margin-top:0;">How do I select the perfect fit?</h3>` +
+                `<p style="color:#ccc;line-height:1.6;margin-bottom:0;">Please refer to our official <a href="/size-guide" style="color:#d4af37;">Apparel Size Guide</a> which lists exact chest, length, and shoulder width measurements. For most shirts and hoodies, we offer premium true-to-size and luxury oversized fits.</p>` +
+              `</div>` +
+              `<div style="background:#0c0c12;border:1px solid #222;padding:1.5rem;border-radius:8px;">` +
+                `<h3 style="color:#d4af37;margin-top:0;">What are the delivery charges and times?</h3>` +
+                `<p style="color:#ccc;line-height:1.6;margin-bottom:0;">We offer express shipping across Bangladesh. Inside Dhaka, delivery takes 24-48 hours. Outside Dhaka, delivery takes 2-4 business days. COD (Cash on Delivery) is fully supported nationwide.</p>` +
+              `</div>` +
+              `<div style="background:#0c0c12;border:1px solid #222;padding:1.5rem;border-radius:8px;">` +
+                `<h3 style="color:#d4af37;margin-top:0;">Are your premium products authentic?</h3>` +
+                `<p style="color:#ccc;line-height:1.6;margin-bottom:0;">Yes! Every single item undergoes physical checks for fabrication, weight, seams, and finishing before dispatch. We source directly from authorized manufacturers to ensure 100% authentic quality standards.</p>` +
+              `</div>` +
+              `<div style="background:#0c0c12;border:1px solid #222;padding:1.5rem;border-radius:8px;">` +
+                `<h3 style="color:#d4af37;margin-top:0;">Can I return or exchange my order?</h3>` +
+                `<p style="color:#ccc;line-height:1.6;margin-bottom:0;">Absolutely. We provide a hassle-free 7-day exchange window. Read our detailed <a href="/returns" style="color:#d4af37;">Returns & Exchange Policy</a> for instructions on claims.</p>` +
+              `</div>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "delivery") {
+          prBody = `<main style="padding:2rem;max-width:800px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">Nationwide Premium Delivery Logistics</h1>` +
+            `<p style="font-size:1.1rem;color:#ccc;">Timelines, verification standards, and Cash on Delivery handoff across Bangladesh.</p></header>` +
+            `<section style="margin-top:2rem;background:#0c0c12;border:1px solid #222;padding:2rem;border-radius:12px;line-height:1.8;color:#ccc;">` +
+              `<h2 style="font-size:1.4rem;color:#d4af37;margin-top:0;">Delivery Methods & Timelines</h2>` +
+              `<ul style="padding-left:1.5rem;">` +
+                `<li><strong>Inside Dhaka Metro:</strong> Express Home Delivery in 24 to 48 Hours. (Premium 12-hour delivery available on demand)</li>` +
+                `<li><strong>Dhaka Suburbs:</strong> Home Delivery in 48 to 72 Hours.</li>` +
+                `<li><strong>Outside Dhaka (All Districts):</strong> Nationwide Home Delivery in 2 to 4 Business Days.</li>` +
+              `</ul>` +
+              `<h3 style="font-size:1.2rem;color:#d4af37;margin-top:1.5rem;">Standard Cash on Delivery (COD)</h3>` +
+              `<p>You can pay our premium courier partner in cash upon receipt. We encourage customers to inspect the outer packaging and verify the product code during physical hand-off.</p>` +
+              `<h3 style="font-size:1.2rem;color:#d4af37;margin-top:1.5rem;">Pre-Dispatch Quality Inspection</h3>` +
+              `<p>Every package is checked manually under CCTV cameras. It is sealed with StyleX signature security tape to ensure complete product authenticity and safety.</p>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "returns") {
+          prBody = `<main style="padding:2rem;max-width:800px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">Easy Returns & Exchange Policy</h1>` +
+            `<p style="font-size:1.1rem;color:#ccc;">Hassle-free 7-day apparel claim and size exchange guidelines.</p></header>` +
+            `<section style="margin-top:2rem;background:#0c0c12;border:1px solid #222;padding:2rem;border-radius:12px;line-height:1.8;color:#ccc;">` +
+              `<h2 style="font-size:1.4rem;color:#d4af37;margin-top:0;">How to Request an Exchange</h2>` +
+              `<p>If you encounter sizing issues, color preferences, or defect claims, StyleX BD offers a robust 7-day exchange window. Follow these simple steps:</p>` +
+              `<ol style="padding-left:1.5rem;">` +
+                `<li>Keep the product unused, unwashed, and with all original tags attached.</li>` +
+                `<li>Contact our Private WhatsApp Concierge at <strong>+880 1755-104443</strong> with your order ID and pictures of the product.</li>` +
+                `<li>Our courier will deliver the replacement to your doorstep and collect the return items simultaneously.</li>` +
+              `</ol>` +
+              `<p style="font-size:0.9rem;color:#888;margin-top:1.5rem;">* Note: Sizing exchanges are free inside Dhaka Metro. For other regions, minor delivery partner charges may apply.</p>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "size-guide") {
+          prBody = `<main style="padding:2rem;max-width:800px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.75rem;">Official StyleX BD Size Chart</h1>` +
+            `<p style="font-size:1.1rem;color:#ccc;">Find the perfect fit for shirts, graphic tees, cargo trousers, and jackets.</p></header>` +
+            `<section style="margin-top:2rem;background:#0c0c12;border:1px solid #222;padding:2rem;border-radius:12px;line-height:1.8;">` +
+              `<h2 style="font-size:1.4rem;color:#d4af37;margin-top:0;">Premium Shirts & T-Shirts (Inches)</h2>` +
+              `<table style="width:100%;border-collapse:collapse;color:#ccc;text-align:left;margin-bottom:2rem;">` +
+                `<thead>` +
+                  `<tr style="border-bottom:1px solid #333;color:#fff;">` +
+                    `<th style="padding:0.75rem;">Size</th><th style="padding:0.75rem;">Chest</th><th style="padding:0.75rem;">Length</th><th style="padding:0.75rem;">Sleeve</th>` +
+                  `</tr>` +
+                `</thead>` +
+                `<tbody>` +
+                  `<tr style="border-bottom:1px solid #222;"><td>M</td><td>40"</td><td>27.5"</td><td>8.5"</td></tr>` +
+                  `<tr style="border-bottom:1px solid #222;"><td>L</td><td>42"</td><td>28.5"</td><td>9.0"</td></tr>` +
+                  `<tr style="border-bottom:1px solid #222;"><td>XL</td><td>44"</td><td>29.5"</td><td>9.5"</td></tr>` +
+                  `<tr style="border-bottom:1px solid #222;"><td>XXL</td><td>46"</td><td>30.5"</td><td>10.0"</td></tr>` +
+                `</tbody>` +
+              `</table>` +
+              `<h2 style="font-size:1.4rem;color:#d4af37;">Tactical Cargo Trousers & Pants</h2>` +
+              `<p style="color:#ccc;">Available waist sizes: 30, 32, 34, 36, 38 with standard length of 39" to 41". Elastic waistbands provide comfortable streetwear posture.</p>` +
+            `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else {
+          // Default pre-render body for homepage, category, and products
+          const prHeading = customTitle ? customTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "StyleX BD";
+          const prDesc = desc ? desc.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+          const prImage = image ? image.replace(/"/g, "&quot;") : "";
+
+          // Filter products logic based on route segment
+          let crawlableProducts: any[] = [];
+          if (db.products && Array.isArray(db.products)) {
+            if (firstSegment === "products" || firstSegment === "product") {
+              const sub = pathSegments[1] ? pathSegments[1].toLowerCase() : "";
+              if (!sub) {
+                crawlableProducts = db.products;
+              } else if (sub === "new-arrivals") {
+                crawlableProducts = db.products.filter((p: any) => p.featured || p.trending);
+              } else if (sub === "shirts") {
+                crawlableProducts = db.products.filter((p: any) => 
+                  (p.title || "").toLowerCase().includes("shirt") || 
+                  (p.description || "").toLowerCase().includes("shirt")
+                );
+              } else if (sub === "pants") {
+                crawlableProducts = db.products.filter((p: any) => 
+                  (p.title || "").toLowerCase().includes("pant") || 
+                  (p.title || "").toLowerCase().includes("cargo") || 
+                  (p.title || "").toLowerCase().includes("trouser") ||
+                  (p.description || "").toLowerCase().includes("pant") || 
+                  (p.description || "").toLowerCase().includes("cargo")
+                );
+              } else if (sub === "streetwear") {
+                crawlableProducts = db.products.filter((p: any) => 
+                  (p.title || "").toLowerCase().includes("streetwear") || 
+                  (p.title || "").toLowerCase().includes("hoodie") || 
+                  (p.title || "").toLowerCase().includes("jacket") ||
+                  (p.description || "").toLowerCase().includes("streetwear") || 
+                  (p.description || "").toLowerCase().includes("hoodie")
+                );
+              } else if (sub === "sale") {
+                crawlableProducts = db.products.filter((p: any) => 
+                  p.trending || (p.description || "").toLowerCase().includes("sale") || (p.title || "").toLowerCase().includes("sale")
+                );
+              }
+            } else if (firstSegment === "category" && pathSegments[1]) {
+              const cat = pathSegments[1].toUpperCase();
+              crawlableProducts = db.products.filter((p: any) => (p.category || "").toUpperCase() === cat);
+            } else if (!firstSegment || firstSegment === "index.html") {
+              crawlableProducts = db.products.slice(0, 16); // Curated pieces for homepage
+            }
+          }
+
+          let prProductsHtml = "";
+          if (crawlableProducts.length > 0) {
+            prProductsHtml = `<section style="margin-top:2rem;">` +
+              `<h2 style="font-size:1.5rem;border-bottom:1px solid #333;padding-bottom:0.5rem;margin-bottom:1rem;">Featured Pieces</h2>` +
+              `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:1.5rem;">` +
+              crawlableProducts.map((p: any) => {
+                const pSlug = (p.title || "")
+                  .toString()
+                  .toLowerCase()
+                  .trim()
+                  .replace(/\s+/g, '-')
+                  .replace(/[^\w\-]+/g, '')
+                  .replace(/\-\-+/g, '-')
+                  .replace(/^-+/, '')
+                  .replace(/-+$/, '') || p.code || String(p.id);
+                const pLink = `/products/${pSlug}`;
+                return `<div style="border:1px solid #222;padding:1rem;border-radius:8px;background:#0c0c12;">` +
+                  `<a href="${pLink}" style="color:#d4af37;text-decoration:none;font-weight:bold;font-size:1.1rem;">${p.title}</a>` +
+                  `<p style="font-size:0.9rem;color:#ccc;margin:0.5rem 0;">Code: ${p.code || p.id} | Price: ${p.price} BDT</p>` +
+                  `<p style="font-size:0.85rem;color:#888;">${p.description ? p.description.substring(0, 100) + '...' : ''}</p>` +
+                  `</div>`;
+              }).join("") +
+              `</div>` +
+              `</section>`;
+          }
+
+          prBody = `<main style="padding:2rem;max-width:1200px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2rem;margin-bottom:0.75rem;">${prHeading}</h1></header>` +
+            `<article><p style="font-size:1.1rem;line-height:1.6;">${prDesc}</p>` +
+            (prImage ? `<img src="${prImage}" alt="${prHeading}" style="max-width:100%;height:auto;margin:1rem 0;border-radius:8px;" />` : "") +
+            `</article>` +
+            prProductsHtml +
+            `<footer style="margin-top:3rem;border-top:1px solid #222;padding-top:1.5rem;display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;font-size:0.9rem;">` +
+              `<a href="/products" style="color:#ccc;text-decoration:none;">All Archives</a>` +
+              `<a href="/products/new-arrivals" style="color:#ccc;text-decoration:none;">New Arrivals</a>` +
+              `<a href="/products/shirts" style="color:#ccc;text-decoration:none;">Shirts</a>` +
+              `<a href="/products/pants" style="color:#ccc;text-decoration:none;">Pants</a>` +
+              `<a href="/products/streetwear" style="color:#ccc;text-decoration:none;">Streetwear</a>` +
+              `<a href="/products/sale" style="color:#ccc;text-decoration:none;">On Sale</a>` +
+              `<a href="/category/men" style="color:#ccc;text-decoration:none;">Men Collection</a>` +
+              `<a href="/category/women" style="color:#ccc;text-decoration:none;">Women Haute Couture</a>` +
+              `<a href="/about" style="color:#ccc;text-decoration:none;">Our Heritage</a>` +
+              `<a href="/faq" style="color:#ccc;text-decoration:none;">Help Center</a>` +
+              `<a href="/delivery" style="color:#ccc;text-decoration:none;">Shipping Policy</a>` +
+              `<a href="/returns" style="color:#ccc;text-decoration:none;">Returns & Claims</a>` +
+              `<a href="/contact" style="color:#ccc;text-decoration:none;">WhatsApp Concierge</a>` +
+              `<a href="/blog" style="color:#ccc;text-decoration:none;">Editorial Blog</a>` +
+            `</footer>` +
+            `</main>`;
+        }
 
         if (html.includes('<div id="root"></div>')) {
           html = html.replace('<div id="root"></div>', `<div id="root">${prBody}</div>`);

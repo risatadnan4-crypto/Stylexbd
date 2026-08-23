@@ -129,12 +129,15 @@ function ProductCard({
   const originalPrice = priceDetails.originalPrice;
   const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
 
-  const pSlug = (product.title || '')
+  const pSlug = product.seoSlug || product.slug || (product.title || '')
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/[\s\-]+/g, '')
-    .replace(/[^\w]+/g, '');
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
   const productPathUrl = `/products/${pSlug || encodeURIComponent(product.code || product.id)}`;
 
   const rawKeywords = product.seo_keywords || product.seoKeywords || product.metaKeywords || '';
