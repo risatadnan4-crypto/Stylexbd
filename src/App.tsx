@@ -3461,6 +3461,51 @@ export default function App() {
               </div>
             </div>
 
+            {/* Frequently Searched & Trending Keywords Section */}
+            <div className="bg-[#0b0518]/40 border border-white/[0.04] p-6 rounded-3xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.05] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-luxury-gold text-sm">⚜️</span>
+                  <h3 className="text-xs font-mono font-bold tracking-widest text-white uppercase">
+                    FREQUENTLY SEARCHED ARCHIVES
+                  </h3>
+                </div>
+                <p className="text-[10px] text-zinc-500 font-mono uppercase">
+                  HIGH-INTENT TRENDING KEYWORDS
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                {[
+                  { label: "Premium Linen Shirts", query: "shirt", desc: "Oxford & Casual classics" },
+                  { label: "Tactical Cargo Pants", query: "pant", desc: "Streetwear utility trousers" },
+                  { label: "Oversized Hoodies", query: "hoodie", desc: "Heavyweight drop-shoulder fleece" },
+                  { label: "Royal Silk Panjabi", query: "panjabi", desc: "Luxury festival ethnic wear" },
+                  { label: "Velvet Midnight Blazers", query: "blazer", desc: "Bespoke evening tailoring" },
+                  { label: "Drop Shoulder Streetwear", query: "streetwear", desc: "Graphic tees & modern cuts" },
+                  { label: "Designer Winter Jackets", query: "jacket", desc: "Bomber & utility styles" },
+                  { label: "Exclusive Clearance Sale", query: "sale", desc: "Limited-time high fashion markdowns" }
+                ].map((item, idx) => (
+                  <a
+                    key={`freq-search-${idx}`}
+                    href={`#/search?q=${encodeURIComponent(item.query)}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSearchQuery(item.query);
+                      setIsSearchPage(true);
+                    }}
+                    className="group flex flex-col items-start p-3 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-luxury-gold/40 hover:bg-luxury-purple/10 active:scale-95 transition-all text-left min-w-[140px] sm:min-w-[170px]"
+                  >
+                    <span className="text-xs font-bold text-white group-hover:text-luxury-gold transition-colors font-serif tracking-wide truncate w-full">
+                      {item.label}
+                    </span>
+                    <span className="text-[9px] text-zinc-500 group-hover:text-zinc-400 font-mono uppercase mt-0.5 tracking-wider truncate w-full">
+                      {item.desc}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
             {/* Results Grid block */}
             {filteredProducts.length > 0 ? (
               <AnimatePresence mode="wait">

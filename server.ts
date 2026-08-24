@@ -8744,6 +8744,18 @@ if (!isProduction) {
           customTitle = "Authentic Order Tracking Portal | STYLE X BD";
           desc = "Monitor the real-time shipping status, premium courier assignment, and safe hand-off fulfillment of your elite Style X garments.";
           foundMatch = true;
+        } else if (pathSegments[0] === "search") {
+          const searchQueryParam = String(req.query.q || req.query.query || "").trim();
+          if (searchQueryParam) {
+            customTitle = `Premium Search Results for "${searchQueryParam}" | STYLE X BD`;
+            desc = `Browse luxury garments, streetwear capsules, and high-end apparel matching "${searchQueryParam}" at StyleX BD. Secure nationwide COD delivery.`;
+            keywords = `${searchQueryParam}, style x search, luxury streetwear, buy ${searchQueryParam} bangladesh, premium clothing dhaka`;
+          } else {
+            customTitle = "Search & Discovery | Premium Fashion Curation Portal | STYLE X BD";
+            desc = "Search and discover premium drop allocations, designer shirts, tactical cargo trousers, heavyweight hoodies, and custom streetwear at StyleX BD.";
+            keywords = "search style x, fashion search engine, discover clothing bangladesh, luxury garments online";
+          }
+          foundMatch = true;
         }
 
         // Fallback to query param parsing if no clean route matched
@@ -9050,6 +9062,70 @@ if (!isProduction) {
               `<h2 style="font-size:1.4rem;color:#d4af37;">Tactical Cargo Trousers & Pants</h2>` +
               `<p style="color:#ccc;">Available waist sizes: 30, 32, 34, 36, 38 with standard length of 39" to 41". Elastic waistbands provide comfortable streetwear posture.</p>` +
             `</section>` +
+            `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
+            `</main>`;
+        } else if (firstSegment === "search") {
+          const q = String(req.query.q || req.query.query || "").trim();
+          let searchResultsHtml = "";
+          let matchedProducts: any[] = [];
+          if (q && db.products && Array.isArray(db.products)) {
+            const lowQ = q.toLowerCase();
+            matchedProducts = db.products.filter((p: any) => 
+              (p.title || "").toLowerCase().includes(lowQ) || 
+              (p.description || "").toLowerCase().includes(lowQ) ||
+              (p.category || "").toLowerCase().includes(lowQ) ||
+              (p.code || "").toLowerCase().includes(lowQ)
+            );
+          }
+
+          if (matchedProducts.length > 0) {
+            searchResultsHtml = `<section style="margin-top:2rem;">` +
+              `<h2 style="font-size:1.5rem;color:#fff;border-bottom:1px solid #333;padding-bottom:0.5rem;margin-bottom:1rem;">Available Curation Pieces Found (${matchedProducts.length})</h2>` +
+              `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:1.5rem;">` +
+              matchedProducts.map((p: any) => {
+                const pSlug = (p.title || "")
+                  .toString()
+                  .toLowerCase()
+                  .trim()
+                  .replace(/\s+/g, '-')
+                  .replace(/[^\w\-]+/g, '')
+                  .replace(/\-\-+/g, '-')
+                  .replace(/^-+/, '')
+                  .replace(/-+$/, '') || p.code || String(p.id);
+                return `<div style="border:1px solid #222;padding:1rem;border-radius:8px;background:#0c0c12;">` +
+                  `<a href="/products/${pSlug}" style="color:#d4af37;text-decoration:none;font-weight:bold;font-size:1.1rem;">${p.title}</a>` +
+                  `<p style="font-size:0.9rem;color:#ccc;margin:0.5rem 0;">Code: ${p.code || p.id} | Price: ${p.price} BDT</p>` +
+                  `<p style="font-size:0.85rem;color:#888;">${p.description ? p.description.substring(0, 100) + '...' : ''}</p>` +
+                  `</div>`;
+              }).join("") +
+              `</div>` +
+              `</section>`;
+          } else if (q) {
+            searchResultsHtml = `<div style="text-align:center;padding:3rem;border:1px solid #222;background:#090312;border-radius:12px;margin-top:2rem;">` +
+              `<h3 style="font-size:1.3rem;color:#fff;margin-bottom:0.5rem;">No corresponding artifacts found for "${q}"</h3>` +
+              `<p style="color:#666;font-size:0.95rem;">Adjust search credentials, or select one of our trending categories below.</p>` +
+              `</div>`;
+          }
+
+          prBody = `<main style="padding:2rem;max-width:1200px;margin:0 auto;color:#fff;background:#050505;font-family:sans-serif;">` +
+            `<header><h1 style="font-size:2.2rem;margin-bottom:0.5rem;">Search & Discovery Archives</h1>` +
+            `<p style="font-size:1.1rem;color:#ccc;">Instant access to high-intent premium luxury capsules.</p></header>` +
+            
+            `<section style="margin-top:2rem;background:#0b0518;border:1px solid #222;padding:2rem;border-radius:12px;">` +
+              `<h2 style="font-size:1.2rem;color:#d4af37;margin-top:0;margin-bottom:1rem;border-bottom:1px solid #222;padding-bottom:0.5rem;">Frequently Searched Archives & Keywords</h2>` +
+              `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:1rem;">` +
+                `<a href="/search?q=shirt" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Linen Shirts <span style="font-size:0.8rem;color:#888;display:block;">Premium Casual Classics</span></a>` +
+                `<a href="/search?q=pant" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Cargo Pants <span style="font-size:0.8rem;color:#888;display:block;">Streetwear Utility Trousers</span></a>` +
+                `<a href="/search?q=hoodie" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Oversized Hoodies <span style="font-size:0.8rem;color:#888;display:block;">Heavyweight Fleece Series</span></a>` +
+                `<a href="/search?q=panjabi" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Silk Panjabi <span style="font-size:0.8rem;color:#888;display:block;">Luxury Ethnic Collection</span></a>` +
+                `<a href="/search?q=blazer" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Velvet Blazers <span style="font-size:0.8rem;color:#888;display:block;">Midnight Curation Tailoring</span></a>` +
+                `<a href="/search?q=streetwear" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Streetwear Series <span style="font-size:0.8rem;color:#888;display:block;">Graphic Tees & Sizing Fits</span></a>` +
+                `<a href="/search?q=jacket" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Elite Jackets <span style="font-size:0.8rem;color:#888;display:block;">Tactical & Bomber Drops</span></a>` +
+                `<a href="/search?q=sale" style="color:#fff;text-decoration:none;font-weight:bold;display:block;background:#140e24;padding:0.75rem;border-radius:6px;border:1px solid #333;">Clearance Sale <span style="font-size:0.8rem;color:#888;display:block;">Seasonal Capsule Markdowns</span></a>` +
+              `</div>` +
+            `</section>` +
+            
+            searchResultsHtml +
             `<footer style="margin-top:3rem;text-align:center;"><a href="/" style="color:#d4af37;">Return to Home</a></footer>` +
             `</main>`;
         } else {
