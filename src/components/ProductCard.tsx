@@ -422,7 +422,7 @@ function ProductCard({
             e.preventDefault();
             onProductClick(product);
           }}
-          className="absolute inset-0 z-0" 
+          className="absolute inset-0 z-[15] cursor-pointer pointer-events-auto touch-manipulation" 
         />
         
         {/* Premium Floating Free Delivery Badge */}

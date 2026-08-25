@@ -3823,7 +3823,7 @@ export default function App() {
                 </div>
 
                 {/* Reset Filters & Quick Stats */}
-                <div className="flex flex-col justify-between md:items-end gap-3 pt-2 md:pt-0">
+                <div className="flex flex-col justify-between md:items-end gap-3 pt-2 md:pt-0 relative z-20 pointer-events-auto">
                   <div className="text-left md:text-right space-y-1 font-mono text-[9px] uppercase tracking-wide">
                     <p className="text-white/40">Drop Status: <span className="text-green-400">Secured Gate</span></p>
                     <p className="text-white/40">Matching: <span className="text-luxury-gold font-bold">{filteredProducts.length} variations</span></p>
@@ -3838,7 +3838,7 @@ export default function App() {
                       setShowInStockOnly(false);
                       setSortBy('RELEVANCE');
                     }}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2 border border-red-500/25 text-red-400 hover:text-red-300 hover:bg-red-500/5 hover:border-red-500/35 text-[10px] uppercase tracking-widest font-semibold font-mono rounded transition-all cursor-pointer w-full md:w-auto"
+                    className="flex items-center justify-center gap-1.5 px-5 py-2.5 sm:px-4 sm:py-2 border border-red-500/25 text-red-400 hover:text-red-300 hover:bg-red-500/5 hover:border-red-500/35 text-[10px] uppercase tracking-widest font-semibold font-mono rounded transition-all cursor-pointer w-full md:w-auto relative z-30 pointer-events-auto touch-manipulation active:scale-[0.97]"
                   >
                     <RotateCcw size={11} />
                     <span>Clear Filters</span>
