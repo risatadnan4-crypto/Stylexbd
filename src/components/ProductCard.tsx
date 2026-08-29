@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp, ChevronLeft, ChevronRight, Images } from 'lucide-react';
+import { Heart, ChevronDown, ChevronUp, ShoppingBag, Eye, Send, Bell, Mail, X, Check, QrCode, MessageSquare, Sparkles, Truck, ThumbsUp, ChevronLeft, ChevronRight, Images, Star } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice } from '../utils';
 import { getProductPriceDetails } from '../utils/totalHelper';
@@ -21,6 +21,7 @@ interface ProductCardProps {
   onAuthRequired?: () => void;
   viewMode?: 'GRID' | 'LIST';
   index?: number;
+  reviews?: any[];
 }
 
 function ProductCard({
@@ -37,8 +38,19 @@ function ProductCard({
   onAuthRequired,
   viewMode = 'GRID',
   index,
+  reviews = [],
 }: ProductCardProps) {
   const isMobileListMode = viewMode === 'LIST';
+
+  const productReviews = React.useMemo(() => {
+    return (reviews || []).filter((r: any) => r.productId === product.id && r.isApproved);
+  }, [reviews, product.id]);
+
+  const avgRating = React.useMemo(() => {
+    if (productReviews.length === 0) return 0;
+    const sum = productReviews.reduce((acc: number, r: any) => acc + (Number(r.rating) || 5), 0);
+    return sum / productReviews.length;
+  }, [productReviews]);
 
   const availableSizes = React.useMemo(() => {
     let list: string[] = [];
@@ -606,6 +618,27 @@ function ProductCard({
               {product.title}
             </a>
           </h3>
+
+          {/* Dynamic Star Rating Block */}
+          <div className="flex items-center gap-1 mt-1 mb-2 select-none" id={`card-rating-${product.id}`}>
+            <div className="flex text-luxury-gold gap-0.5">
+              {[...Array(5)].map((_, i) => {
+                const isFull = i < Math.floor(avgRating);
+                const isHalf = !isFull && i < Math.ceil(avgRating) && avgRating % 1 !== 0;
+                return (
+                  <Star 
+                    key={i} 
+                    size={10} 
+                    fill={isFull ? "#D4AF37" : "transparent"} 
+                    className={`${isFull ? "text-luxury-gold" : isHalf ? "text-luxury-gold/70" : "text-white/10"}`} 
+                  />
+                );
+              })}
+            </div>
+            <span className="text-[9.5px] font-mono text-white/50 tracking-wider">
+              {avgRating > 0 ? `${avgRating.toFixed(1)} (${productReviews.length})` : "No reviews"}
+            </span>
+          </div>
 
           {/* SEO Keywords tags are indexed via SEOManager; removed from card visual render for a cleaner premium UI */}
 

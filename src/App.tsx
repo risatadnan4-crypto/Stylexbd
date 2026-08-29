@@ -2103,8 +2103,8 @@ export default function App() {
       const res = await fetch('/api/reviews');
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const list: Review[] = await res.json();
-        // Return onlyApproved reviews for guest visitors
-        setPublicReviews(list.filter(r => r.isApproved));
+        // Display all reviews immediately without manual approval
+        setPublicReviews(list);
       }
     } catch (err) {}
   };
@@ -3341,6 +3341,7 @@ export default function App() {
                     currentCustomer={currentCustomer}
                     onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
                     viewMode={viewMode}
+                    reviews={publicReviews}
                   />
                 ))}
               </div>
@@ -3538,6 +3539,7 @@ export default function App() {
                       currentCustomer={currentCustomer}
                       onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
                       viewMode={viewMode}
+                      reviews={publicReviews}
                     />
                   ))}
                 </motion.div>
@@ -3913,6 +3915,7 @@ export default function App() {
                       currentCustomer={currentCustomer}
                       onAuthRequired={() => handleAuthRequired('WhatsApp-এ সরাসরি যোগাযোগ করতে দয়া করে লগইন বা সাইনআপ করুন। (Please sign up or log in to inquire via WhatsApp.)')}
                       viewMode={viewMode}
+                      reviews={publicReviews}
                     />
                   ))}
                 </motion.div>
@@ -5050,6 +5053,9 @@ export default function App() {
           whatsappNumber={settings.whatsappNumber}
           isNotifyMeDeactivated={settings?.isNotifyMeDeactivated}
           globalDeliveryDays={settings?.globalDeliveryDays}
+          reviews={publicReviews}
+          onRefreshReviews={loadReviews}
+          isAdmin={isAuthAdmin}
         />
       )}
 

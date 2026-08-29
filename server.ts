@@ -5795,7 +5795,7 @@ app.post("/api/reviews", async (req, res) => {
     customerName,
     rating: Number(rating) || 5,
     comment,
-    isApproved: false, // Moderated by default to keep the luxury vibe pristine
+    isApproved: true, // Auto-approve instantly upon user request
     date: new Date().toISOString()
   };
   db.reviews.push(newReview);

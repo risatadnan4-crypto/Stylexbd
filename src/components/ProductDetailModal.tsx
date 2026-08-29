@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram, ChevronLeft, ChevronRight, Images } from 'lucide-react';
+import { X, Heart, ShieldAlert, ShoppingBag, Eye, Send, Share2, Copy, Check, Facebook, MessageCircle, Instagram, ChevronLeft, ChevronRight, Images, Star, StarHalf, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Product, ProductColor } from '../types';
+import { Product, ProductColor, Review } from '../types';
 import { formatPrice } from '../utils';
 import { getProductPriceDetails, getProductActivePrice } from '../utils/totalHelper';
 import LuxuryCheckoutButton from './LuxuryCheckoutButton';
@@ -18,6 +18,9 @@ interface ProductDetailModalProps {
   whatsappNumber?: string;
   isNotifyMeDeactivated?: boolean;
   globalDeliveryDays?: string;
+  reviews?: Review[];
+  onRefreshReviews?: () => Promise<void>;
+  isAdmin?: boolean;
 }
 
 export default function ProductDetailModal({
@@ -30,7 +33,10 @@ export default function ProductDetailModal({
   onToggleWishlist,
   whatsappNumber = "8801755104443",
   isNotifyMeDeactivated = false,
-  globalDeliveryDays
+  globalDeliveryDays,
+  reviews = [],
+  onRefreshReviews,
+  isAdmin = false
 }: ProductDetailModalProps) {
   const availableSizes = useMemo(() => {
     if (!product) return [];
@@ -78,6 +84,105 @@ export default function ProductDetailModal({
   const savings = originalPrice - sellingPrice;
   const discountPercent = hasActiveOffer ? priceDetails.discountPercent : 0;
   const hasDiscount = hasActiveOffer && savings > 0;
+
+  // Per-product reviews calculation & state
+  const productReviews = useMemo(() => {
+    return (reviews || []).filter(r => r.productId === product.id);
+  }, [reviews, product.id]);
+
+  const avgRating = useMemo(() => {
+    if (productReviews.length === 0) return 0;
+    const sum = productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    return sum / productReviews.length;
+  }, [productReviews]);
+
+  // Star Distribution
+  const starDistribution = useMemo(() => {
+    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    productReviews.forEach(r => {
+      const ratingKey = Math.min(5, Math.max(1, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5;
+      counts[ratingKey]++;
+    });
+    const total = productReviews.length || 1;
+    return {
+      counts,
+      percentages: {
+        5: Math.round((counts[5] / total) * 100),
+        4: Math.round((counts[4] / total) * 100),
+        3: Math.round((counts[3] / total) * 100),
+        2: Math.round((counts[2] / total) * 100),
+        1: Math.round((counts[1] / total) * 100),
+      }
+    };
+  }, [productReviews]);
+
+  const [newReviewName, setNewReviewName] = useState('');
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  const handleReviewSubmitInModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReviewMessage('');
+    setReviewSuccess(false);
+
+    if (!newReviewName.trim() || !newReviewComment.trim()) {
+      setReviewMessage('দয়া করে আপনার নাম এবং মন্তব্য লিখুন। (Please write your name and comment.)');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          productTitle: product.title,
+          customerName: newReviewName,
+          rating: newReviewRating,
+          comment: newReviewComment
+        })
+      });
+
+      if (res.ok) {
+        setNewReviewName('');
+        setNewReviewComment('');
+        setNewReviewRating(5);
+        setReviewSuccess(true);
+        setReviewMessage('🌟 আপনার মূল্যবান রিভিউ সফলভাবে রেকর্ড করা হয়েছে এবং এটি লাইভ রয়েছে! (Your review has been logged and is live!)');
+        if (onRefreshReviews) {
+          await onRefreshReviews();
+        }
+      } else {
+        setReviewMessage('সার্ভার সিঙ্ক ত্রুটি। পরে আবার চেষ্টা করুন। (Server sync failure. Try again.)');
+      }
+    } catch (err) {
+      setReviewMessage('নেটওয়ার্ক ত্রুটি। (Network connection failure.)');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+
+  const handleDeleteReview = async (id: string) => {
+    setDeletingReviewId(id);
+    try {
+      const res = await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (onRefreshReviews) {
+          await onRefreshReviews();
+        }
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to delete review:", err);
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
 
   const scrollBodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -740,6 +845,42 @@ export default function ProductDetailModal({
               </h1>
             </div>
 
+            {/* Elegant Header Star Rating Summary */}
+            <div className="flex items-center gap-2 mt-1 mb-4 select-none">
+              <div className="flex text-luxury-gold gap-0.5">
+                {[...Array(5)].map((_, i) => {
+                  const isFull = i < Math.floor(avgRating);
+                  const isHalf = !isFull && i < Math.ceil(avgRating) && avgRating % 1 !== 0;
+                  return (
+                    <Star 
+                      key={i} 
+                      size={13} 
+                      fill={isFull ? "#D4AF37" : "transparent"} 
+                      className={`${isFull ? "text-luxury-gold" : isHalf ? "text-luxury-gold/70" : "text-white/10"}`} 
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-xs font-mono text-white/60 tracking-wider">
+                {avgRating > 0 ? (
+                  <>
+                    <span className="text-white font-bold">{avgRating.toFixed(1)}</span>
+                    <span className="text-white/30 mx-1.5">|</span>
+                    <span className="underline decoration-luxury-gold/30 underline-offset-4 cursor-pointer hover:text-luxury-gold transition-colors" onClick={() => {
+                      const element = document.getElementById('product-reviews-section');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}>
+                      {productReviews.length} {productReviews.length === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-white/30 italic">No verified reviews. Be the first to share!</span>
+                )}
+              </span>
+            </div>
+
             <div className="space-y-4">
               <div className="space-y-4">
                 {/* Premium Luxury Price Display Section with smooth fade-in and slide transition on change */}
@@ -1369,6 +1510,256 @@ export default function ProductDetailModal({
               })()}</span>
               <span>•</span>
               <span>VIP SHAPE ENGINE GUARANTEED ⚜️</span>
+            </div>
+
+            {/* PRODUCT SPECIFIC REVIEWS & EXPERIENCE SYSTEM */}
+            <div 
+              id="product-reviews-section" 
+              className="mt-12 pt-10 border-t border-white/5 space-y-8 pb-8 relative text-white"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-[1px] bg-gradient-to-r from-transparent via-luxury-gold/30 to-transparent"></div>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide uppercase flex items-center gap-2">
+                    <span className="text-luxury-gold">⚜️</span> VIP EXPERIENCE LEDGER
+                  </h4>
+                  <p className="text-[10px] text-white/40 uppercase font-mono tracking-widest mt-0.5">Verified Luxury Patrons & Authentic Reviews</p>
+                </div>
+                
+                <div className="flex items-center gap-2 bg-white/[0.02] px-3 py-1.5 rounded-lg border border-white/5">
+                  <ShieldAlert size={12} className="text-luxury-gold" />
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-white/50">SECURED MODERATION ACTIVE</span>
+                </div>
+              </div>
+
+              {/* Stats & Distribution Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center bg-[#09090d]/60 border border-white/5 rounded-2xl p-6 shadow-2xl">
+                {/* Overall Rating Stats */}
+                <div className="lg:col-span-4 text-center lg:text-left lg:border-r lg:border-white/5 lg:pr-8 flex flex-col items-center lg:items-start space-y-2">
+                  <div className="flex items-baseline gap-1 justify-center lg:justify-start">
+                    <span className="text-4xl sm:text-5xl font-serif font-black text-white">{avgRating > 0 ? avgRating.toFixed(1) : "0.0"}</span>
+                    <span className="text-white/30 text-lg">/5.0</span>
+                  </div>
+                  
+                  <div className="flex text-luxury-gold gap-1 justify-center lg:justify-start select-none">
+                    {[...Array(5)].map((_, i) => {
+                      const isFull = i < Math.floor(avgRating);
+                      const isHalf = !isFull && i < Math.ceil(avgRating) && avgRating % 1 !== 0;
+                      return (
+                        <Star 
+                          key={i} 
+                          size={16} 
+                          fill={isFull ? "#D4AF37" : "transparent"} 
+                          className={`${isFull ? "text-luxury-gold" : isHalf ? "text-luxury-gold/70" : "text-white/5"}`} 
+                        />
+                      );
+                    })}
+                  </div>
+                  
+                  <p className="text-xs text-white/50 font-sans tracking-wide">
+                    Based on <strong className="text-white font-semibold">{productReviews.length} verified</strong> acquisitions.
+                  </p>
+                </div>
+
+                {/* Rating Distribution Bars */}
+                <div className="lg:col-span-8 space-y-2 w-full">
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const count = starDistribution.counts[stars as 1 | 2 | 3 | 4 | 5] || 0;
+                    const pct = starDistribution.percentages[stars as 1 | 2 | 3 | 4 | 5] || 0;
+                    return (
+                      <div key={stars} className="flex items-center gap-3 text-xs">
+                        <span className="w-8 font-mono text-white/40 text-right">{stars} ★</span>
+                        <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="h-full bg-gradient-to-r from-luxury-gold to-[#facc15] rounded-full"
+                          />
+                        </div>
+                        <span className="w-12 font-mono text-white/40 text-left">{pct}% ({count})</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Reviews Display and Submitting Form container */}
+              <div className="space-y-10">
+                {/* Verified Ledgers Section (On Top) */}
+                <div className="space-y-4">
+                  <h5 className="font-serif text-xs font-bold uppercase text-white/40 tracking-[0.2em] mb-2 font-mono">
+                    VERIFIED LEDGERS ({productReviews.length})
+                  </h5>
+
+                  {productReviews.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl bg-white/[0.01] text-white/30 space-y-2">
+                      <p className="text-xs italic">No verifications logged yet for this curation piece.</p>
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold/60">BE THE FIRST PATRON REVIEWER</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {productReviews.map((r) => (
+                        <div 
+                          key={r.id} 
+                          className="bg-[#12101a] border border-white/10 hover:border-luxury-gold/30 p-5 rounded-xl space-y-3.5 transition-all duration-300 relative shadow-xl"
+                        >
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteReview(r.id)}
+                              disabled={deletingReviewId === r.id}
+                              className="absolute top-4 right-4 text-red-400 hover:text-red-500 hover:scale-110 active:scale-95 p-1.5 bg-red-950/20 hover:bg-red-950/40 border border-red-500/10 rounded-lg transition-all cursor-pointer"
+                              title="Delete Review (রিভিউ ডিলিট করুন)"
+                            >
+                              {deletingReviewId === r.id ? (
+                                <div className="w-3.5 h-3.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 size={13} />
+                              )}
+                            </button>
+                          )}
+
+                          <div className="flex justify-between items-center">
+                            <span className="font-serif font-extrabold text-white text-[13px] sm:text-sm uppercase tracking-wide">{r.customerName}</span>
+                            <span className="text-[10px] text-white/50 font-mono">{new Date(r.date).toLocaleDateString()}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="flex text-luxury-gold gap-1 select-none">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  size={13} 
+                                  fill={i < (r.rating || 5) ? "#D4AF37" : "transparent"} 
+                                  className={i < (r.rating || 5) ? "text-luxury-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.3)]" : "text-white/10"} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[9px] bg-luxury-gold/15 text-luxury-gold font-mono px-2 py-0.5 rounded uppercase tracking-widest font-semibold border border-luxury-gold/10">
+                              Verified Order
+                            </span>
+                          </div>
+
+                          <p className="text-[13px] text-white leading-relaxed font-sans font-normal bg-black/40 p-3 rounded-lg border border-white/[0.05]">
+                            &ldquo;{r.comment}&rdquo;
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Form to Submit Review (At the Bottom, Centered) */}
+                <div className="max-w-3xl mx-auto w-full bg-gradient-to-b from-[#0e0a16]/60 via-[#07050b]/90 to-black/40 border border-white/5 hover:border-luxury-gold/20 rounded-2xl p-6 space-y-4 shadow-xl transition-all duration-300">
+                  <div className="border-b border-white/5 pb-3">
+                    <h5 className="font-serif text-base font-bold uppercase text-white tracking-wider flex items-center gap-1.5">
+                      <span>⚜️</span> SUBMIT EXPERIENCE
+                    </h5>
+                    <p className="text-[9px] text-white/40 uppercase font-mono tracking-widest mt-0.5">Share Your Personal Collection Legacy</p>
+                  </div>
+
+                  <form onSubmit={handleReviewSubmitInModal} className="space-y-4">
+                    {/* Interactive Star Rating Selector */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-white tracking-wide uppercase block font-sans mb-1">
+                        EXQUISITENESS LEVEL (RATING)
+                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex gap-1.5 bg-black/40 p-2 rounded-lg border border-white/5">
+                          {[1, 2, 3, 4, 5].map((stars) => (
+                            <button
+                              type="button"
+                              key={stars}
+                              onClick={() => setNewReviewRating(stars)}
+                              className="text-luxury-gold hover:scale-125 transition-transform duration-200 cursor-pointer p-0.5"
+                            >
+                              <Star 
+                                size={20} 
+                                fill={stars <= newReviewRating ? "#D4AF37" : "transparent"} 
+                                className={stars <= newReviewRating ? "text-luxury-gold drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "text-white/10"} 
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-xs font-mono text-luxury-gold uppercase tracking-wider font-bold">
+                          {newReviewRating === 5 ? "👑 Royal/Masterpiece" :
+                           newReviewRating === 4 ? "✨ Excellent Curation" :
+                           newReviewRating === 3 ? "⚜️ Satisfactory Fit" :
+                           newReviewRating === 2 ? "⚠️ Minor Flaws" : "❌ Disappointing"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Patron Name Input */}
+                      <div className="space-y-1.5">
+                        <label htmlFor="modal-rev-name" className="text-xs font-semibold text-white tracking-wide uppercase block font-sans mb-1">
+                          YOUR NAME (আপনার নাম)
+                        </label>
+                        <input 
+                          id="modal-rev-name"
+                          type="text" 
+                          placeholder="e.g. Adnan Rahman"
+                          value={newReviewName}
+                          onChange={(e) => setNewReviewName(e.target.value)}
+                          className="w-full bg-black/60 border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white placeholder-white/20 focus:border-luxury-gold/50 focus:ring-1 focus:ring-luxury-gold/30 outline-none transition-all font-sans"
+                          required
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="flex items-end">
+                        <button
+                          type="submit"
+                          disabled={isSubmittingReview}
+                          className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-luxury-purple via-[#8318f8] to-[#9A4DFF] hover:opacity-90 active:scale-[0.98] transition-all text-white text-[10px] uppercase tracking-[0.2em] font-mono font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-purple-900/35 disabled:opacity-40"
+                        >
+                          {isSubmittingReview ? (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          ) : (
+                            <>
+                              <Send size={11} />
+                              <span>Transmit Experience Ledger</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Feedback Comment Textarea */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="modal-rev-comment" className="text-xs font-semibold text-white tracking-wide uppercase block font-sans mb-1">
+                        EXPERIENCE RECORD (মন্তব্য)
+                      </label>
+                      <textarea 
+                        id="modal-rev-comment"
+                        rows={3}
+                        placeholder="Write details regarding fit, fabric premium feel, shipping concierge speed, etc..."
+                        value={newReviewComment}
+                        onChange={(e) => setNewReviewComment(e.target.value)}
+                        className="w-full bg-black/60 border border-white/5 rounded-lg px-3.5 py-2 text-xs text-white placeholder-white/20 focus:border-luxury-gold/50 focus:ring-1 focus:ring-luxury-gold/30 outline-none transition-all font-sans resize-none"
+                        required
+                      />
+                    </div>
+
+                    {/* Feedback Messages */}
+                    {reviewMessage && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`p-3 rounded-lg border text-[11px] leading-relaxed font-sans ${
+                          reviewSuccess 
+                            ? "bg-green-500/10 border-green-500/20 text-green-300" 
+                            : "bg-red-500/10 border-red-500/20 text-red-300"
+                        }`}
+                      >
+                        {reviewMessage}
+                      </motion.div>
+                    )}
+                  </form>
+                </div>
+              </div>
             </div>
 
           </div>
