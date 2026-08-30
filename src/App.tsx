@@ -5056,6 +5056,7 @@ export default function App() {
           reviews={publicReviews}
           onRefreshReviews={loadReviews}
           isAdmin={isAuthAdmin}
+          allProducts={products}
         />
       )}
 

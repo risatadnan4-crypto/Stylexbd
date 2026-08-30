@@ -2970,6 +2970,9 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
     lotteryEligible: getBool(p?.lotteryEligible, p?.lottery_eligible, dimObj?.lotteryEligible, local.lotteryEligible, true),
     couponCode: getStr(p?.couponCode, p?.coupon_code, dimObj?.couponCode, local.couponCode, ""),
     couponDiscountPercent: getNum(p?.couponDiscountPercent, p?.coupon_discount_percent, dimObj?.couponDiscountPercent, local.couponDiscountPercent) ?? undefined,
+    buyAndGetOfferEnabled: getBool(p?.buyAndGetOfferEnabled, p?.buy_and_get_offer_enabled, dimObj?.buyAndGetOfferEnabled, paymentMeta?.buyAndGetOfferEnabled, local.buyAndGetOfferEnabled, false),
+    buyAndGetDiscountPercent: getNum(p?.buyAndGetDiscountPercent, p?.buy_and_get_discount_percent, dimObj?.buyAndGetDiscountPercent, paymentMeta?.buyAndGetDiscountPercent, local.buyAndGetDiscountPercent) ?? undefined,
+    buyAndGetMessage: getStr(p?.buyAndGetMessage, p?.buy_and_get_message, dimObj?.buyAndGetMessage, local.buyAndGetMessage, ""),
     offerPrice: finalOfferPrice,
     timerOfferPrice: finalOfferPrice,
     timerStartTime: resolvedTimerStartTime,
@@ -3363,6 +3366,9 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
   newProduct.timerEnabled = newProduct.timerActive;
   newProduct.couponCode = newProduct.couponCode ? String(newProduct.couponCode).trim() : "";
   newProduct.couponDiscountPercent = newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null && (newProduct.couponDiscountPercent as any) !== "" ? Number(newProduct.couponDiscountPercent) : null;
+  newProduct.buyAndGetOfferEnabled = !!newProduct.buyAndGetOfferEnabled;
+  newProduct.buyAndGetDiscountPercent = newProduct.buyAndGetDiscountPercent !== undefined && newProduct.buyAndGetDiscountPercent !== null && (newProduct.buyAndGetDiscountPercent as any) !== "" ? Number(newProduct.buyAndGetDiscountPercent) : null;
+  newProduct.buyAndGetMessage = newProduct.buyAndGetMessage ? String(newProduct.buyAndGetMessage).trim() : "";
   newProduct.likes = Number(newProduct.likes || 0);
   
   db.products.push(newProduct);
@@ -3486,6 +3492,9 @@ app.post("/api/products", xoroAdminAuthMiddleware, async (req, res) => {
         lotteryEligible: newProduct.lotteryEligible !== undefined ? !!newProduct.lotteryEligible : true,
         couponCode: newProduct.couponCode ? newProduct.couponCode.trim() : "",
         couponDiscountPercent: newProduct.couponDiscountPercent !== undefined && newProduct.couponDiscountPercent !== null ? Number(newProduct.couponDiscountPercent) : null,
+        buyAndGetOfferEnabled: !!newProduct.buyAndGetOfferEnabled,
+        buyAndGetDiscountPercent: newProduct.buyAndGetDiscountPercent !== undefined && newProduct.buyAndGetDiscountPercent !== null ? Number(newProduct.buyAndGetDiscountPercent) : null,
+        buyAndGetMessage: newProduct.buyAndGetMessage ? String(newProduct.buyAndGetMessage).trim() : "",
         offerPrice: resolvedOfferPrice,
         timerOfferPrice: resolvedOfferPrice,
         timerStartTime: newProduct.timerStartTime,
@@ -3633,6 +3642,9 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
       lotteryEligible: b.lotteryEligible !== undefined ? !!b.lotteryEligible : existingProd.lotteryEligible,
       couponCode: b.couponCode !== undefined ? String(b.couponCode).trim() : existingProd.couponCode,
       couponDiscountPercent: b.couponDiscountPercent !== undefined ? (b.couponDiscountPercent === null || b.couponDiscountPercent === "" ? null : Number(b.couponDiscountPercent)) : existingProd.couponDiscountPercent,
+      buyAndGetOfferEnabled: b.buyAndGetOfferEnabled !== undefined ? !!b.buyAndGetOfferEnabled : existingProd.buyAndGetOfferEnabled,
+      buyAndGetDiscountPercent: b.buyAndGetDiscountPercent !== undefined ? (b.buyAndGetDiscountPercent === null || b.buyAndGetDiscountPercent === "" ? null : Number(b.buyAndGetDiscountPercent)) : existingProd.buyAndGetDiscountPercent,
+      buyAndGetMessage: b.buyAndGetMessage !== undefined ? String(b.buyAndGetMessage).trim() : existingProd.buyAndGetMessage,
       offerPrice: resolvedOfferPrice,
       timerOfferPrice: resolvedOfferPrice,
       timerStartTime: b.timerStartTime !== undefined ? (b.timerStartTime || null) : existingProd.timerStartTime,
@@ -3754,6 +3766,9 @@ app.put("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
           lotteryEligible: target.lotteryEligible !== undefined ? !!target.lotteryEligible : true,
           couponCode: target.couponCode ? target.couponCode.trim() : "",
           couponDiscountPercent: target.couponDiscountPercent !== undefined && target.couponDiscountPercent !== null ? Number(target.couponDiscountPercent) : null,
+          buyAndGetOfferEnabled: !!target.buyAndGetOfferEnabled,
+          buyAndGetDiscountPercent: target.buyAndGetDiscountPercent !== undefined && target.buyAndGetDiscountPercent !== null ? Number(target.buyAndGetDiscountPercent) : null,
+          buyAndGetMessage: target.buyAndGetMessage ? String(target.buyAndGetMessage).trim() : "",
           offerPrice: target.offerPrice,
           timerOfferPrice: target.timerOfferPrice,
           timerStartTime: target.timerStartTime,
@@ -5272,6 +5287,73 @@ app.post("/api/orders", async (req, res) => {
   // Generate Unique Order Tracking ID
   const trackingId = "STX-" + Math.floor(100000 + Math.random() * 900000);
 
+  // Check if any ordered product has Buy & Get offer enabled
+  let bestBuyAndGetDiscount = 0;
+  for (const item of items) {
+    const prod = db.products.find(p => p.id === item.productId);
+    if (prod && prod.buyAndGetOfferEnabled && (prod.buyAndGetDiscountPercent || 0) > 0) {
+      const disc = Number(prod.buyAndGetDiscountPercent);
+      if (disc > bestBuyAndGetDiscount) {
+        bestBuyAndGetDiscount = disc;
+      }
+    }
+  }
+
+  let generatedRewardCoupon: Coupon | null = null;
+  if (bestBuyAndGetDiscount > 0) {
+    // Generate an 8-character unique single-use coupon code e.g. BG-8K4N2P
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let randomPart = '';
+    for (let i = 0; i < 6; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    let uniqueCode = `BG${randomPart}`;
+    while (db.coupons.some(c => c.code === uniqueCode)) {
+      randomPart = '';
+      for (let i = 0; i < 6; i++) {
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      uniqueCode = `BG${randomPart}`;
+    }
+
+    generatedRewardCoupon = {
+      code: uniqueCode,
+      type: 'PERCENTAGE',
+      value: bestBuyAndGetDiscount,
+      active: true,
+      maxUses: 1,
+      usedCount: 0,
+      isOneTime: true,
+      customerPhone: customerPhone ? String(customerPhone).trim() : undefined,
+      customerEmail: customerEmail ? String(customerEmail).trim() : undefined,
+      sourceOrderId: trackingId,
+      sourceType: 'BUY_AND_GET',
+      description: `Buy & Get ${bestBuyAndGetDiscount}% OFF Single-Use Reward from Order #${trackingId}`,
+      createdAt: new Date().toISOString()
+    };
+
+    db.coupons.push(generatedRewardCoupon);
+    saveDB();
+
+    // Persist reward coupon to Supabase
+    try {
+      await supabase.from("coupons").insert({
+        code: uniqueCode,
+        type: 'PERCENTAGE',
+        value: bestBuyAndGetDiscount,
+        active: true,
+        maxUses: 1,
+        usedCount: 0,
+        isOneTime: true,
+        customerPhone: customerPhone ? String(customerPhone).trim() : null,
+        sourceOrderId: trackingId,
+        sourceType: 'BUY_AND_GET'
+      });
+    } catch (cErr: any) {
+      console.warn("⚠️ Buy & Get coupon Supabase insert note:", cErr.message);
+    }
+  }
+
   const newOrder: Order = {
     id: trackingId,
     customerName,
@@ -5291,7 +5373,14 @@ app.post("/api/orders", async (req, res) => {
     paidAmount: paidAmount !== undefined ? Number(paidAmount) : 0,
     transactionId: transactionId || "",
     paymentScreenshot: paymentScreenshot || "",
-    userId: userId || ""
+    userId: userId || "",
+    ...(generatedRewardCoupon ? {
+      rewardCoupon: {
+        code: generatedRewardCoupon.code,
+        discountPercent: generatedRewardCoupon.value,
+        isOneTime: true
+      }
+    } : {})
   };
 
   db.orders.push(newOrder);
@@ -5508,13 +5597,14 @@ ${newOrder.paymentType !== 'cod' ? `🔑 Transaction ID: ${newOrder.transactionI
 
   // Generate beautiful message for WhatsApp Redirect
   const itemsText = items.map((i: any) => `- ${i.title} (${i.selectedSize}) x${i.quantity} @ ৳${i.price}`).join("\n");
-  const wsMessage = `👑 *STYLE X LUXURY CONFIRMATION* 👑\n\nHello Style X Team, I would like to confirm my luxury collection:\n\n*Order Tracking ID:* ${trackingId}\n\n*Item Details:*\n${itemsText}\n\n*Total Order Value:* ৳${totalAmount}\n\n*Delivery Credentials:*\nName: ${customerName}\nPhone: ${customerPhone}\nAddress: ${customerAddress}, ${customerCity}\nNotes: ${customerNotes || 'None'}\n\nThank you!`;
+  const rewardWsText = generatedRewardCoupon ? `\n\n🎁 *EXCLUSIVE BUY & GET REWARD:* You earned a single-use coupon *${generatedRewardCoupon.code}* for *${generatedRewardCoupon.value}% OFF* on your next purchase!` : '';
+  const wsMessage = `👑 *STYLE X LUXURY CONFIRMATION* 👑\n\nHello Style X Team, I would like to confirm my luxury collection:\n\n*Order Tracking ID:* ${trackingId}\n\n*Item Details:*\n${itemsText}\n\n*Total Order Value:* ৳${totalAmount}${rewardWsText}\n\n*Delivery Credentials:*\nName: ${customerName}\nPhone: ${customerPhone}\nAddress: ${customerAddress}, ${customerCity}\nNotes: ${customerNotes || 'None'}\n\nThank you!`;
   const encodedMsg = encodeURIComponent(wsMessage);
   
   const activeWhatsappNumber = db.settings?.whatsappNumber || "8801755104443";
   const whatsappUrl = `https://wa.me/${activeWhatsappNumber}?text=${encodedMsg}`; // Style X Direct Support
 
-  res.status(201).json({ order: newOrder, whatsappUrl });
+  res.status(201).json({ order: newOrder, whatsappUrl, rewardCoupon: generatedRewardCoupon });
 });
 
 function formatPhoneNumber(phone: string): string {
@@ -5858,7 +5948,14 @@ app.get("/api/coupons", async (req, res) => {
           active,
           maxUses,
           usedCount,
-          isEspecial
+          isEspecial,
+          isOneTime: c.isOneTime ?? c.is_one_time ?? existingLocal?.isOneTime,
+          customerPhone: c.customerPhone || c.customer_phone || existingLocal?.customerPhone,
+          customerEmail: c.customerEmail || c.customer_email || existingLocal?.customerEmail,
+          sourceOrderId: c.sourceOrderId || c.source_order_id || existingLocal?.sourceOrderId,
+          sourceType: c.sourceType || c.source_type || existingLocal?.sourceType,
+          description: c.description || existingLocal?.description,
+          createdAt: c.createdAt || c.created_at || existingLocal?.createdAt
         };
       });
       db.coupons = coupons;

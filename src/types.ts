@@ -33,6 +33,9 @@ export interface Product {
   lotteryEligible?: boolean;
   couponCode?: string;
   couponDiscountPercent?: number;
+  buyAndGetOfferEnabled?: boolean;
+  buyAndGetDiscountPercent?: number;
+  buyAndGetMessage?: string;
   offerPrice?: number;
   timerOfferPrice?: number;
   timerStartTime?: string;
@@ -106,6 +109,11 @@ export interface Order {
   transactionId?: string;
   paymentScreenshot?: string;
   userId?: string;
+  rewardCoupon?: {
+    code: string;
+    discountPercent: number;
+    isOneTime: boolean;
+  };
 }
 
 export interface Banner {
@@ -136,6 +144,14 @@ export interface Coupon {
   maxUses?: number;
   usedCount?: number;
   isEspecial?: boolean;
+  isOneTime?: boolean;
+  customerPhone?: string;
+  customerEmail?: string;
+  sourceOrderId?: string;
+  sourceType?: 'BUY_AND_GET' | 'LOTTERY' | 'ADMIN' | 'PROMO';
+  description?: string;
+  expiryDate?: string;
+  createdAt?: string;
 }
 
 export interface ChatMessage {

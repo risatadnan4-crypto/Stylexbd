@@ -5,7 +5,7 @@ import {
   Trash2, Edit, Check, Eye, ChevronRight, Upload, X, Settings, Gift, Bell, ShoppingBag, Download,
   Facebook, Instagram, Menu, LogOut, ExternalLink, Mail, Send, Phone, Smartphone,
   Bot, ShieldCheck, ShieldAlert, Undo, Search, Lock, AlertTriangle,
-  Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator
+  Activity, Terminal, Cpu, RefreshCw, Layers, Key, Calculator, Save, Clock
 } from 'lucide-react';
 import SourceProtectionModal from './SourceProtectionModal';
 import {
@@ -1516,6 +1516,9 @@ export default function AdminPanel({
   const [formFreeDelivery, setFormFreeDelivery] = useState<boolean>(false);
   const [formCouponCode, setFormCouponCode] = useState<string>('');
   const [formCouponDiscountPercent, setFormCouponDiscountPercent] = useState<number>(15);
+  const [formBuyAndGetEnabled, setFormBuyAndGetEnabled] = useState<boolean>(false);
+  const [formBuyAndGetDiscountPercent, setFormBuyAndGetDiscountPercent] = useState<number>(15);
+  const [formBuyAndGetMessage, setFormBuyAndGetMessage] = useState<string>('');
   const [formOfferPrice, setFormOfferPrice] = useState<number | ''>('');
   const [formOfferDiscountPercent, setFormOfferDiscountPercent] = useState<number | ''>('');
   const [formOldPriceField, setFormOldPriceField] = useState<number | ''>('');
@@ -2576,6 +2579,9 @@ export default function AdminPanel({
       lotteryEligible: Boolean(formLotteryEligible),
       couponCode: formCouponCode || '',
       couponDiscountPercent: Number(formCouponDiscountPercent || 0),
+      buyAndGetOfferEnabled: Boolean(formBuyAndGetEnabled),
+      buyAndGetDiscountPercent: Number(formBuyAndGetDiscountPercent || 0),
+      buyAndGetMessage: formBuyAndGetMessage || '',
       offerPrice: finalOfferPrice,
       timerOfferPrice: finalOfferPrice,
       timerStartTime: formTimerStartTime || null,
@@ -2728,6 +2734,9 @@ export default function AdminPanel({
     setFormFreeDelivery(prod.freeDelivery || false);
     setFormCouponCode(prod.couponCode || '');
     setFormCouponDiscountPercent(prod.couponDiscountPercent !== undefined ? prod.couponDiscountPercent : 15);
+    setFormBuyAndGetEnabled(Boolean(prod.buyAndGetOfferEnabled));
+    setFormBuyAndGetDiscountPercent(prod.buyAndGetDiscountPercent !== undefined ? prod.buyAndGetDiscountPercent : 15);
+    setFormBuyAndGetMessage(prod.buyAndGetMessage || '');
     setFormTimerStartTime(formatForDateTimeInput(prod.timerStartTime));
     setFormTimerEndTime(formatForDateTimeInput(prod.timerEndTime || prod.timer_end_at));
     setFormTimerMessage(prod.timerMessage || '');
@@ -3788,6 +3797,9 @@ export default function AdminPanel({
                   setFormLotteryEligible(true);
                   setFormCouponCode('');
                   setFormCouponDiscountPercent(15);
+                  setFormBuyAndGetEnabled(false);
+                  setFormBuyAndGetDiscountPercent(15);
+                  setFormBuyAndGetMessage('');
                   setFormTimerStartTime('');
                   setFormTimerEndTime('');
                   setFormTimerMessage('');
@@ -5110,6 +5122,89 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         </div>
                         <span className="text-[9px] text-zinc-500 block leading-normal mt-1">If set, customers can checkout this exact product with this coupon code.</span>
                       </div>
+
+                      {/* üéÅ BUY & GET OFFER (‡¶¨‡¶æ‡¶á ‡¶è‡¶®‡ßç‡¶° ‡¶ó‡ßá‡¶ü ‡¶Ö‡¶´‡¶æ‡¶∞) */}
+                      <div className="space-y-3 bg-gradient-to-br from-[#1b0d36] to-[#0d071c] p-4 rounded-xl border-2 border-purple-500/40 shadow-[0_0_25px_rgba(147,51,234,0.15)]">
+                        <div className="flex items-center justify-between border-b border-purple-500/25 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg animate-bounce">üéÅ</span>
+                            <div>
+                              <span className="block text-xs font-bold text-white uppercase tracking-wider font-display">
+                                Buy & Get Offer (‡¶¨‡¶æ‡¶á ‡¶è‡¶®‡ßç‡¶° ‡¶ó‡ßá‡¶ü ‡¶Ö‡¶´‡¶æ‡¶∞)
+                              </span>
+                              <span className="text-[9.5px] text-purple-300/80 font-sans block">
+                                ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞ ‡¶∏‡¶Æ‡ßç‡¶™‡¶®‡ßç‡¶® ‡¶π‡¶≤‡ßá ‡¶ï‡¶æ‡¶∏‡ßç‡¶ü‡¶Æ‡¶æ‡¶∞ ‡¶™‡¶∞‡¶¨‡¶∞‡ßç‡¶§‡ßÄ ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡ßá‡¶∞ ‡¶ú‡¶®‡ßç‡¶Ø ‡ßß-‡¶ü‡¶æ‡¶á‡¶Æ ‡¶ï‡ßÅ‡¶™‡¶® ‡¶™‡¶æ‡¶¨‡ßá‡¶®
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setFormBuyAndGetEnabled(!formBuyAndGetEnabled)}
+                              className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formBuyAndGetEnabled ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_12px_rgba(168,85,247,0.5)]" : "bg-zinc-800"}`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${formBuyAndGetEnabled ? "translate-x-5" : "translate-x-0"}`}
+                              />
+                            </button>
+                            <span className={`text-[10px] font-mono font-bold ${formBuyAndGetEnabled ? "text-purple-300" : "text-zinc-500"}`}>
+                              {formBuyAndGetEnabled ? "ACTIVE" : "OFF"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {formBuyAndGetEnabled && (
+                          <div className="space-y-3 pt-1 animate-fade-in">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[9px] uppercase font-mono text-purple-200/90 mb-1 font-bold">
+                                  Next Order Discount Percent (%)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    value={formBuyAndGetDiscountPercent}
+                                    onChange={(e) => setFormBuyAndGetDiscountPercent(Number(e.target.value))}
+                                    placeholder="e.g. 15"
+                                    min={1}
+                                    max={100}
+                                    className="w-full bg-[#0b0517] text-white text-xs border border-purple-500/40 rounded py-2 px-2.5 focus:outline-none focus:border-purple-400 font-mono font-bold text-center"
+                                  />
+                                  <span className="text-sm font-mono text-purple-300 font-bold">%</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[9px] uppercase font-mono text-purple-200/90 mb-1 font-bold">
+                                  Quick Discount Presets
+                                </label>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {[10, 15, 20, 25, 30, 50].map((pct) => (
+                                    <button
+                                      key={pct}
+                                      type="button"
+                                      onClick={() => setFormBuyAndGetDiscountPercent(pct)}
+                                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                        formBuyAndGetDiscountPercent === pct
+                                          ? "bg-purple-600 text-white border border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                                          : "bg-black/50 text-purple-300 border border-purple-500/30 hover:bg-purple-950/60"
+                                      }`}
+                                    >
+                                      {pct}%
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-purple-950/50 border border-purple-500/30 rounded-lg p-2.5 text-[10.5px] text-purple-200 leading-relaxed font-sans flex items-start gap-2">
+                              <span className="text-purple-400 font-bold shrink-0 text-sm">‚ú®</span>
+                              <span>
+                                ‡¶ï‡¶æ‡¶∏‡ßç‡¶ü‡¶Æ‡¶æ‡¶∞ ‡¶è‡¶á ‡¶™‡ßç‡¶∞‡ßã‡¶°‡¶æ‡¶ï‡ßç‡¶ü‡¶ü‡¶ø ‡¶ï‡¶ø‡¶®‡¶≤‡ßá ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡ßá‡¶∞ ‡¶∏‡¶æ‡¶•‡ßá ‡¶∏‡¶æ‡¶•‡ßá ‡¶§‡¶æ‡¶∞ ‡¶™‡¶∞‡¶¨‡¶∞‡ßç‡¶§‡ßÄ ‡¶ï‡ßá‡¶®‡¶æ‡¶ï‡¶æ‡¶ü‡¶æ‡¶∞ ‡¶ú‡¶®‡ßç‡¶Ø ‡¶è‡¶ï‡¶ü‡¶ø <strong>{formBuyAndGetDiscountPercent}% ‡¶°‡¶ø‡¶∏‡¶ï‡¶æ‡¶â‡¶®‡ßç‡¶ü‡ßá‡¶∞ ‡¶á‡¶â‡¶®‡¶ø‡¶ï ‡¶ì‡ßü‡¶æ‡¶®-‡¶ü‡¶æ‡¶á‡¶Æ (‡¶è‡¶ï‡¶¨‡¶æ‡¶∞ ‡¶¨‡ßç‡¶Ø‡¶¨‡¶π‡¶æ‡¶∞‡¶Ø‡ßã‡¶ó‡ßç‡¶Ø) ‡¶ï‡ßÅ‡¶™‡¶® ‡¶ï‡ßã‡¶°</strong> (‡¶Ø‡ßá‡¶Æ‡¶®: <code className="text-luxury-gold bg-black/40 px-1 py-0.5 rounded font-mono font-bold">BG8X2K9P</code>) ‡¶§‡ßà‡¶∞‡¶ø ‡¶π‡¶¨‡ßá ‡¶Ø‡¶æ ‡¶ï‡¶æ‡¶∏‡ßç‡¶ü‡¶Æ‡¶æ‡¶∞ ‡¶∏‡ßç‡¶ï‡ßç‡¶∞‡¶ø‡¶® ‡¶ì WhatsApp-‡¶è ‡¶™‡¶æ‡¶¨‡ßá‡¶®‡•§
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -6137,6 +6232,11 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                                   üè∑Ô∏è {p.couponCode} (-{p.couponDiscountPercent || 15}%)
                                 </span>
                               )}
+                              {p.buyAndGetOfferEnabled && (
+                                <span className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 font-extrabold px-1.5 py-0.5 rounded border border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.2)]">
+                                  üéÅ BUY & GET (-{p.buyAndGetDiscountPercent || 15}%)
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -6679,6 +6779,11 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
                         {c.isEspecial && (
                           <span className="text-[8px] font-mono font-black text-[#15151d] bg-[#d4af37] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(212,175,55,0.3)]">
                             üëë Especial
+                          </span>
+                        )}
+                        {(c.isOneTime || c.sourceType === 'BUY_AND_GET' || c.code.startsWith('BG')) && (
+                          <span className="text-[8px] font-mono font-black text-purple-200 bg-purple-900/70 border border-purple-500/40 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                            üéÅ Buy & Get 1-Time
                           </span>
                         )}
                       </div>
@@ -9266,2153 +9371,87 @@ CREATE POLICY all_form_submissions_perm ON public.form_submissions FOR ALL USING
             )}
           </div>
         )}
-
-        {activeTab === 'alerts' && (
-          <div className="space-y-6 max-w-5xl animate-fade-in text-white">
-            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
-                  <Bell size={18} className="text-luxury-gold" />
-                  Restock Alerts & Push Hub
-                </h2>
-                <p className="text-xs text-white/50 mt-1 font-sans">
-                  Manage restock registrations and dispatch direct push alerts to collectors.
-                </p>
-              </div>
-              <button 
-                onClick={fetchAlerts}
-                className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer self-start sm:self-auto"
-              >
-                üîÑ Refresh Registry
-              </button>
-            </div>
-
-            {/* DIRECT WEB PUSH DISPATCHER PANEL */}
-            <div className="border border-luxury-gold/20 bg-[#0d0d0d] p-6 rounded-lg shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/5 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="flex items-center gap-2.5 mb-4 border-b border-white/5 pb-3">
-                <Sparkles size={16} className="text-luxury-gold animate-pulse" />
-                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
-                  Global Web Push Campaign
-                </h3>
-              </div>
-              <p className="text-xs text-white/60 mb-5 max-w-2xl leading-relaxed font-sans">
-                This form dispatches an official real-time web push notification directly to the system background of all clients who opted in. They will receive the banner on their computer or mobile device even if they are currently browsing Facebook, outside Chrome, or in other applications.
-              </p>
-
-              <form onSubmit={handleDispatchPush} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Notification Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Luxury Drops Incoming..."
-                    value={pushTitleInput}
-                    onChange={e => setPushTitleInput(e.target.value)}
-                    className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Custom Body Text</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="New highly curated collection is officially live."
-                    value={pushBodyInput}
-                    onChange={e => setPushBodyInput(e.target.value)}
-                    className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
-                  />
-                </div>
-                <div className="space-y-1.5 flex flex-col justify-between">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold">Destination Link (Optional)</label>
-                    <input
-                      type="url"
-                      placeholder="https://stylex.store/shop"
-                      value={pushLinkInput}
-                      onChange={e => setPushLinkInput(e.target.value)}
-                      className="w-full bg-[#141414] border border-white/10 focus:border-luxury-gold text-white px-3.5 py-2 rounded text-xs tracking-wide focus:outline-none transition-all placeholder:text-zinc-600"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isDispatchingPush}
-                    className="w-full bg-luxury-gold hover:bg-amber-400 disabled:bg-zinc-800 text-luxury-black font-bold uppercase py-2 rounded text-[10px] tracking-wider transition-all cursor-pointer mt-3"
-                  >
-                    {isDispatchingPush ? "Dispatched Campaign..." : "üì£ Dispatch Broadcast"}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Back in stock alert subscriptions table */}
-            <div className="bg-[#090909] border border-white/5 rounded-lg p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-white/5">
-                <div>
-                  <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
-                    Collector Restock Subscriptions
-                  </h3>
-                  <p className="text-[11px] text-white/40 mt-0.5">
-                    Live waitlist registry for items with depleted stock levels.
-                  </p>
-                </div>
-                {backInStockAlerts.length > 0 && (
-                  <button
-                    onClick={() => {
-                      const emails = backInStockAlerts.map(a => a.email).join(', ');
-                      try {
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                          navigator.clipboard.writeText(emails);
-                        } else {
-                          const t = document.createElement("textarea");
-                          t.value = emails;
-                          t.style.position = "fixed";
-                          document.body.appendChild(t);
-                          t.select();
-                          document.execCommand("copy");
-                          document.body.removeChild(t);
-                        }
-                      } catch (err) {
-                        console.warn("Emails copy failed with navigator, fell back:", err);
-                      }
-                      alert("All collector email addresses copied to clipboard!");
-                    }}
-                    className="bg-purple-950/40 hover:bg-purple-900 border border-purple-500/20 text-purple-300 hover:text-white px-3 py-1.5 text-[9px] font-mono uppercase rounded transition-all cursor-pointer"
-                  >
-                    üìã Copy All Emails List
-                  </button>
-                )}
-              </div>
-              
-              {backInStockAlerts.length === 0 ? (
-                <div className="text-center py-12 text-zinc-600">
-                  <Bell size={24} className="mx-auto text-zinc-700 mb-3 opacity-30" />
-                  <p className="font-sans text-xs uppercase tracking-wider">No active restock alert registrations.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-[11.5px] whitespace-nowrap min-w-[700px]">
-                    <thead className="bg-[#050505] text-zinc-500 uppercase text-[9px] tracking-wider border-b border-white/5">
-                      <tr>
-                        <th className="p-4 font-bold">Date Registered</th>
-                        <th className="p-4 font-bold">Collector Email</th>
-                        <th className="p-4 font-bold">Luxury product</th>
-                        <th className="p-4 font-bold">Product code</th>
-                        <th className="p-4 font-bold text-center">Current stock status</th>
-                        <th className="p-4 font-bold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {backInStockAlerts.map((alertItem: any) => {
-                        const originalProduct = products.find(p => p.id === alertItem.productId);
-                        const isInStock = originalProduct?.stock && originalProduct.stock > 0;
-                        return (
-                          <tr key={alertItem.id} className="hover:bg-white/[0.01] transition-all">
-                            <td className="p-4 text-white/55">
-                              {new Date(alertItem.requestedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                            </td>
-                            <td className="p-4 text-white font-sans font-medium hover:text-luxury-gold transition-colors">
-                              <a href={`mailto:${alertItem.email}`} className="underline tracking-wide">{alertItem.email}</a>
-                            </td>
-                            <td className="p-4 text-luxury-gold/90 uppercase font-sans font-semibold">
-                              {alertItem.productTitle}
-                            </td>
-                            <td className="p-4 text-zinc-400">
-                              {originalProduct?.code || "SKU-" + alertItem.productId.substring(0, 5).toUpperCase()}
-                            </td>
-                            <td className="p-4 text-center">
-                              {isInStock ? (
-                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
-                                  IN STOCK ({originalProduct?.stock})
-                                </span>
-                              ) : (
-                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded text-[8.5px] uppercase font-black tracking-wider leading-none">
-                                  OUT OF STOCK
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              {isInStock && (
-                                <button
-                                  onClick={() => {
-                                    window.open(`mailto:${alertItem.email}?subject=${encodeURIComponent(`Luxury restock update: ${alertItem.productTitle} is back!`)}&body=${encodeURIComponent(`Dear Collector,\n\nWe are pleased to inform you that "${alertItem.productTitle}" is officially back in stock and ready to order!\n\nView and order here: ${window.location.origin}\n\nWarm regards,\nStyle X VIP Team`)}`);
-                                  }}
-                                  className="border border-emerald-500/25 hover:border-emerald-400 text-emerald-400 hover:text-white bg-emerald-950/40 px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
-                                >
-                                  üì® Ping Collector
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDeleteAlert(alertItem.id)}
-                                className="border border-red-500/25 hover:border-red-400 hover:bg-red-950/20 text-red-400 hover:text-white px-2.5 py-1 rounded text-[9.5px] font-bold transition-all cursor-pointer"
-                              >
-                                Archive
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
+        {/* SMS GATEWAY DASHBOARD */}
         {activeTab === 'sms' && (
           <div className="space-y-6 max-w-5xl animate-fade-in text-white">
             <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
-                  <Mail size={18} className="text-luxury-gold" />
-                  STYLE X Bangla SMS Gateway Hub (‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶ó‡ßá‡¶ü‡¶ì‡¶Ø‡¶º‡ßá)
+                  <Smartphone size={18} className="text-luxury-gold" />
+                  Bangla SMS Gateway Dashboard
                 </h2>
                 <p className="text-xs text-white/50 mt-1 font-sans">
-                  ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞ ‡¶∏‡ßç‡¶ü‡ßç‡¶Ø‡¶æ‡¶ü‡¶æ‡¶∏ ‡¶™‡¶∞‡¶ø‡¶¨‡¶∞‡ßç‡¶§‡¶®‡ßá‡¶∞ ‡¶∏‡ßç‡¶¨‡¶Ø‡¶º‡¶Ç‡¶ï‡ßç‡¶∞‡¶ø‡¶Ø‡¶º ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶ü‡ßç‡¶∞‡ßç‡¶Ø‡¶æ‡¶ï ‡¶ï‡¶∞‡ßÅ‡¶® ‡¶Ö‡¶•‡¶¨‡¶æ ‡¶ó‡ßç‡¶∞‡¶æ‡¶π‡¶ï‡¶ï‡ßá ‡¶∏‡¶∞‡¶æ‡¶∏‡¶∞‡¶ø ‡¶¨‡¶æ‡¶∞‡ßç‡¶§‡¶æ ‡¶™‡¶æ‡¶†‡¶æ‡¶®‡•§
+                  Configure SMS delivery providers and send manual promotional or confirmation SMS.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button 
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
                   onClick={fetchSmsLogs}
                   disabled={fetchingSmsLogs}
-                  className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer disabled:opacity-40"
+                  className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-[10px] uppercase rounded transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  {fetchingSmsLogs ? "üîÑ ‡¶∞‡¶ø‡¶´‡ßç‡¶∞‡ßá‡¶∂ ‡¶ï‡¶∞‡¶æ ‡¶π‡¶ö‡ßç‡¶õ‡ßá..." : "üîÑ Refresh Logs"}
+                  <RefreshCw size={12} className={fetchingSmsLogs ? "animate-spin" : ""} />
+                  Refresh Logs
                 </button>
                 {smsLogs.length > 0 && (
-                  <button 
+                  <button
+                    type="button"
                     onClick={handleClearSmsLogs}
-                    className="px-3 py-1.5 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-white font-mono text-[10px] uppercase rounded bg-red-950/10 transition-all cursor-pointer"
+                    className="px-3 py-1.5 border border-red-500/30 hover:border-red-500 text-red-400 hover:text-white bg-red-950/20 font-mono text-[10px] uppercase rounded transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    üóëÔ∏è Purge Logs
+                    <Trash2 size={12} />
+                    Clear Logs
                   </button>
                 )}
               </div>
             </div>
 
-            {/* INFO BANNER explaining dynamic SMS options */}
-            <div className="bg-[#0b132b]/30 border border-blue-500/25 p-4 rounded-lg flex items-start gap-3.5">
-              <span className="text-blue-400 text-lg">‚ÑπÔ∏è</span>
-              <div className="text-xs space-y-1">
-                <p className="font-bold text-blue-200 font-mono">‡¶∞‡¶ø‡ßü‡ßá‡¶≤-‡¶ü‡¶æ‡¶á‡¶Æ ‡¶¨‡¶æ‡¶Ç‡¶≤‡¶æ ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶ó‡ßá‡¶ü‡¶ì‡ßü‡ßá (Real-Time SMS Engine):</p>
-                <p className="text-white/75 leading-relaxed font-sans">
-                  ‡¶Ü‡¶Æ‡¶∞‡¶æ ‡¶è‡¶ñ‡¶® <strong>Greenweb SMS (Bangladesh)</strong> ‡¶è‡¶¨‡¶Ç <strong>Twilio Premium SMS (Global)</strong> ‡¶ó‡ßá‡¶ü‡¶ì‡¶Ø‡¶º‡ßá ‡¶∏‡¶æ‡¶™‡ßã‡¶∞‡ßç‡¶ü ‡¶ï‡¶∞‡¶ø‡•§ ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶®‡¶ø‡¶ú‡ßá‡¶∞ ‡¶è‡¶™‡¶ø‡¶Ü‡¶á ‡¶ö‡¶æ‡¶¨‡¶ø ‡¶¨‡¶æ ‡¶ï‡ßç‡¶∞‡ßá‡¶°‡ßá‡¶®‡¶∂‡¶ø‡ßü‡¶æ‡¶≤‡¶∏ ‡¶∏‡ßá‡¶ü ‡¶ï‡¶∞‡ßá ‡¶∞‡¶ø‡¶Ø‡¶º‡ßá‡¶≤-‡¶ü‡¶æ‡¶á‡¶Æ ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶°‡ßá‡¶≤‡¶ø‡¶≠‡¶æ‡¶∞‡¶ø ‡¶∏‡¶ö‡¶≤ ‡¶ï‡¶∞‡¶§‡ßá ‡¶™‡¶æ‡¶∞‡ßá‡¶®‡•§ ‡¶ï‡ßç‡¶∞‡ßá‡¶°‡ßá‡¶®‡¶∂‡¶ø‡ßü‡¶æ‡¶≤‡¶∏ ‡¶®‡¶æ ‡¶•‡¶æ‡¶ï‡¶≤‡ßá ‡¶è‡¶ü‡¶ø <strong>‡¶∏‡¶ø‡¶Æ‡ßÅ‡¶≤‡ßá‡¶∂‡¶® ‡¶Æ‡ßã‡¶°</strong>-‡¶è ‡¶ï‡¶æ‡¶ú ‡¶ï‡¶∞‡¶¨‡ßá ‡¶è‡¶¨‡¶Ç ‡¶∏‡¶¨ ‡¶Ü‡¶â‡¶ü‡¶¨‡¶æ‡¶â‡¶®‡ßç‡¶° ‡¶Æ‡ßá‡¶∏‡ßá‡¶ú ‡¶®‡¶ø‡¶ö‡ßá ‡¶≤‡¶ó ‡¶ï‡¶∞‡¶¨‡ßá‡•§
-                </p>
+            {/* QUICK SEND MANUAL SMS */}
+            <div className="border border-luxury-gold/20 bg-[#0d0d0d] p-6 rounded-lg shadow-xl relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
+                <Send size={16} className="text-luxury-gold" />
+                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white">
+                  Send Instant Bangla SMS
+                </h3>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* CONFIGURATION & TEST FORMS COLUMN */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* GATEWAY SETTINGS CARD */}
-                <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)] space-y-4">
-                  <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-purple-400 border-b border-white/5 pb-2 flex items-center gap-1.5">
-                    ‚öôÔ∏è Gateway Setup (‡¶ó‡ßá‡¶ü‡¶ì‡¶Ø‡¶º‡ßá ‡¶ï‡¶®‡¶´‡¶ø‡¶ó‡¶æ‡¶∞‡ßá‡¶∂‡¶®)
-                  </h3>
-                  
-                  <form onSubmit={handleSaveSmsGatewaySettings} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">SMS Provider (‡¶ó‡ßá‡¶ü‡¶ì‡ßü‡ßá ‡¶∏‡¶æ‡¶∞‡ßç‡¶≠‡¶ø‡¶∏)</label>
-                      <select
-                        value={smsProviderInput}
-                        onChange={(e) => setSmsProviderInput(e.target.value as any)}
-                        className="w-full bg-[#121212] border border-white/10 focus:border-purple-400 text-white px-3 py-2 rounded text-xs focus:outline-none transition-all"
-                      >
-                        <option value="mock" className="bg-[#121212] text-white">üî¨ Simulation / Logging Mode (No API Needed)</option>
-                        <option value="greenweb" className="bg-[#121212] text-white">üü¢ Greenweb SMS (Bangladesh Gateway)</option>
-                        <option value="twilio" className="bg-[#121212] text-white">üî¥ Twilio Premium (International/Local)</option>
-                      </select>
-                    </div>
-
-                    {smsProviderInput === 'greenweb' && (
-                      <div className="space-y-3 p-3 bg-green-950/10 border border-green-500/15 rounded animate-fade-in text-[11px] space-y-2">
-                        <p className="text-green-400 text-[10px] font-mono uppercase font-semibold">Greenweb API Configurations</p>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-mono text-zinc-500 uppercase">API Token</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 10185121920XXXXXXXXXXXXX"
-                            value={greenwebTokenInput}
-                            onChange={(e) => setGreenwebTokenInput(e.target.value)}
-                            className="w-full bg-[#161616] border border-white/10 focus:border-green-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
-                          />
-                        </div>
-                        <p className="text-[9px] text-zinc-400 font-mono leading-tight">Greenweb BD-‡¶∞ ‡¶è‡¶™‡¶ø‡¶Ü‡¶á ‡¶ü‡ßã‡¶ï‡ßá‡¶® ‡¶¨‡ßç‡¶Ø‡¶¨‡¶π‡¶æ‡¶∞ ‡¶ï‡¶∞‡ßá ‡¶∏‡¶∞‡¶æ‡¶∏‡¶∞‡¶ø ‡ß¶‡ßß‡ß≠/‡ß¶‡ßß‡ßÆ ‡¶®‡¶æ‡¶Æ‡ßç‡¶¨‡¶æ‡¶∞‡ßá ‡¶¨‡¶æ‡¶Ç‡¶≤‡¶æ ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶°‡ßá‡¶≤‡¶ø‡¶≠‡¶æ‡¶∞‡¶ø ‡¶ï‡¶∞‡¶æ ‡¶Ø‡¶æ‡¶¨‡ßá‡•§</p>
-                      </div>
-                    )}
-
-                    {smsProviderInput === 'twilio' && (
-                      <div className="space-y-3 p-3 bg-red-950/10 border border-red-500/15 rounded animate-fade-in text-[11px] space-y-2">
-                        <p className="text-red-400 text-[10px] font-mono uppercase font-semibold">Twilio API Configurations</p>
-                        <div className="space-y-2">
-                          <div className="space-y-1">
-                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Account SID</label>
-                            <input
-                              type="text"
-                              placeholder="ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                              value={twilioAccountSidInput}
-                              onChange={(e) => setTwilioAccountSidInput(e.target.value)}
-                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Auth Token</label>
-                            <input
-                              type="password"
-                              placeholder="Auth Token"
-                              value={twilioAuthTokenInput}
-                              onChange={(e) => setTwilioAuthTokenInput(e.target.value)}
-                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="block text-[9px] font-mono text-zinc-500 uppercase">Twilio Number / Msg SID</label>
-                            <input
-                              type="text"
-                              placeholder="+1XXXXXXXXXX or MGXXXX"
-                              value={twilioFromNumberInput}
-                              onChange={(e) => setTwilioFromNumberInput(e.target.value)}
-                              className="w-full bg-[#161616] border border-white/10 focus:border-red-500 text-white px-2.5 py-1.5 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-700"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={savingSmsGateway}
-                      className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 text-white font-bold uppercase py-2 rounded text-[9px] tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 animate-pulse"
-                    >
-                      <span>{savingSmsGateway ? "‡¶∏‡¶Ç‡¶∞‡¶ï‡ßç‡¶∑‡¶£ ‡¶ï‡¶∞‡¶æ ‡¶π‡¶ö‡ßç‡¶õ‡ßá..." : "Save Gateway Config üíæ"}</span>
-                    </button>
-                  </form>
-                </div>
-
-                {/* TEST FORM PANEL */}
-                <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-                  <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-luxury-gold mb-3 border-b border-white/5 pb-2">
-                    Test-Send SMS (‡¶ó‡ßç‡¶∞‡¶æ‡¶π‡¶ï‡¶ï‡ßá ‡¶∏‡¶∞‡¶æ‡¶∏‡¶∞‡¶ø ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶™‡¶æ‡¶†‡¶æ‡¶®)
-                  </h3>
-                  
-                  <form onSubmit={handleSendManualSms} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">‡¶ó‡ßç‡¶∞‡¶æ‡¶π‡¶ï‡ßá‡¶∞ ‡¶´‡ßã‡¶® ‡¶®‡¶Æ‡ßç‡¶¨‡¶∞ (Customer Phone)</label>
+              <form onSubmit={handleSendManualSms} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase tracking-widest text-luxury-gold font-bold mb-1.5">
+                      Recipient Phone (01XXXXXXXXX)
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="017XXXXXXXX"
+                      placeholder="01712345678"
                       value={manualSmsPhone}
                       onChange={e => setManualSmsPhone(e.target.value)}
-                      className="w-full bg-[#121212] border border-white/10 focus:border-luxury-gold text-white px-3 py-2 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-600"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">‡¶¨‡¶æ‡¶∞‡ßç‡¶§‡¶æ (Message in Bangla)</label>
-                      <span className="text-[9px] text-luxury-gold/75 font-mono">{manualSmsMsg.length} Chars</span>
-                    </div>
-                    <textarea
-                      required
-                      rows={4}
-                      placeholder="‡¶è‡¶ñ‡¶æ‡¶®‡ßá ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶¨‡¶æ‡¶Ç‡¶≤‡¶æ ‡¶¨‡¶æ‡¶∞‡ßç‡¶§‡¶æ‡¶ü‡¶ø ‡¶≤‡¶ø‡¶ñ‡ßÅ‡¶®..."
-                      value={manualSmsMsg}
-                      onChange={e => setManualSmsMsg(e.target.value)}
-                      className="w-full bg-[#121212] border border-white/10 focus:border-luxury-gold text-white px-3 py-2 rounded text-xs focus:outline-none transition-all placeholder:text-zinc-600 leading-relaxed"
-                    />
-                  </div>
-
-                  {/* PRESET CHIPS */}
-                  <div className="space-y-1.5">
-                    <span className="block text-[9px] font-mono uppercase tracking-widest text-zinc-500 font-bold">‡¶¶‡ßç‡¶∞‡ßÅ‡¶§ ‡¶¨‡¶æ‡¶Ç‡¶≤‡¶æ ‡¶™‡ßç‡¶∞‡¶ø‡¶∏‡ßá‡¶ü‡¶∏‡¶Æ‡ßÇ‡¶π (Quick Presets)</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setManualSmsMsg("‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶∏‡ßç‡¶ü‡¶æ‡¶á‡¶≤ ‡¶è‡¶ï‡ßç‡¶∏ ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡¶ü‡¶ø ‡¶∏‡¶´‡¶≤‡¶≠‡¶æ‡¶¨‡ßá ‡¶™‡ßç‡¶Ø‡¶æ‡¶ï ‡¶ï‡¶∞‡¶æ ‡¶π‡ßü‡ßá‡¶õ‡ßá! ‡¶ï‡¶ø‡¶õ‡ßÅ‡¶ï‡ßç‡¶∑‡¶£‡ßá‡¶∞ ‡¶Æ‡¶ß‡ßç‡¶Ø‡ßá ‡¶è‡¶ü‡¶ø ‡¶∂‡¶ø‡¶™ ‡¶ï‡¶∞‡¶æ ‡¶π‡¶¨‡ßá‡•§ ‡¶∏‡ßç‡¶ü‡¶æ‡¶á‡¶≤ ‡¶è‡¶ï‡ßç‡¶∏ ‡¶è‡¶∞ ‡¶∏‡¶æ‡¶•‡ßá ‡¶•‡¶æ‡¶ï‡¶æ‡¶∞ ‡¶ú‡¶®‡ßç‡¶Ø ‡¶ß‡¶®‡ßç‡¶Ø‡¶¨‡¶æ‡¶¶‡•§")}
-                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
-                      >
-                        üì¶ Packed
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setManualSmsMsg("‡¶Ö‡¶≠‡¶ø‡¶®‡¶®‡ßç‡¶¶‡¶®! ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶∏‡ßç‡¶ü‡¶æ‡¶á‡¶≤ ‡¶è‡¶ï‡ßç‡¶∏ ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡¶ü‡¶ø ‡¶∂‡¶ø‡¶™ ‡¶ï‡¶∞‡¶æ ‡¶π‡ßü‡ßá‡¶õ‡ßá‡•§ ‡¶∂‡ßÄ‡¶ò‡ßç‡¶∞‡¶á ‡¶°‡ßá‡¶≤‡¶ø‡¶≠‡¶æ‡¶∞‡¶ø ‡¶™‡¶æ‡¶∞‡ßç‡¶ü‡¶®‡¶æ‡¶∞ ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶†‡¶ø‡¶ï‡¶æ‡¶®‡¶æ‡ßü ‡¶Ø‡ßã‡¶ó‡¶æ‡¶Ø‡ßã‡¶ó ‡¶ï‡¶∞‡¶¨‡ßá‡¶®‡•§")}
-                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
-                      >
-                        üöö Shipped
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setManualSmsMsg("‡¶∏‡ßç‡¶ü‡¶æ‡¶á‡¶≤ ‡¶è‡¶ï‡ßç‡¶∏-‡¶è ‡¶Ü‡¶™‡¶®‡¶æ‡¶ï‡ßá ‡¶∏‡ßç‡¶¨‡¶æ‡¶ó‡¶§‡¶Æ! ‡¶Ü‡¶Æ‡¶æ‡¶¶‡ßá‡¶∞ ‡¶®‡¶§‡ßÅ‡¶® ‡¶≤‡¶æ‡¶ï‡ßç‡¶∏‡¶æ‡¶∞‡¶ø ‡¶´‡ßç‡¶Ø‡¶æ‡¶∂‡¶® ‡¶ï‡¶æ‡¶≤‡ßá‡¶ï‡¶∂‡¶®‡¶ó‡ßÅ‡¶≤‡ßã ‡¶è‡¶ï‡ßç‡¶∏‡¶™‡ßç‡¶≤‡ßã‡¶∞ ‡¶ï‡¶∞‡ßÅ‡¶®‡•§")}
-                        className="bg-white/5 hover:bg-white/10 border border-white/5 px-2 py-1 rounded text-[10px] text-zinc-300 transition-all cursor-pointer"
-                      >
-                        ‚ú® Welcome
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={sendingManualSms}
-                    className="w-full bg-luxury-gold hover:bg-amber-400 disabled:bg-zinc-800 text-luxury-black font-bold uppercase py-2.5 rounded text-[10px] tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
-                  >
-                    <Send size={11} />
-                    {sendingManualSms ? "‡¶™‡¶æ‡¶†‡¶æ‡¶®‡ßã ‡¶π‡¶ö‡ßç‡¶õ‡ßá..." : "Fast-Track Send SMS"}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* OUTBOUND LOGS LIST */}
-              <div className="lg:col-span-2 bg-[#090909] border border-white/5 rounded-lg p-5">
-                <h3 className="font-serif text-xs font-bold uppercase tracking-wider text-white mb-4 border-b border-white/5 pb-2">
-                  Outbound SMS Broadcast Log (‡¶Ü‡¶â‡¶ü‡¶¨‡¶æ‡¶â‡¶®‡ßç‡¶° ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶π‡¶ø‡¶∏‡ßç‡¶ü‡ßç‡¶∞‡¶ø)
-                </h3>
-
-                {smsLogs.length === 0 ? (
-                  <div className="text-center py-16 text-zinc-600">
-                    <Mail size={28} className="mx-auto text-zinc-700 mb-3 opacity-30 animate-pulse" />
-                    <p className="font-sans text-xs uppercase tracking-wider mb-1">‡¶ï‡ßã‡¶®‡ßã ‡¶Æ‡ßá‡¶∏‡ßá‡¶ú ‡¶≤‡¶ó ‡¶™‡¶æ‡¶ì‡ßü‡¶æ ‡¶Ø‡¶æ‡ßü‡¶®‡¶ø‡•§</p>
-                    <p className="text-[10px] text-white/30 max-w-sm mx-auto font-sans leading-relaxed">
-                      ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞ ‡¶∏‡ßç‡¶ü‡ßç‡¶Ø‡¶æ‡¶ü‡¶æ‡¶∏ 'Packed' ‡¶¨‡¶æ 'Shipped'-‡¶è ‡¶®‡¶ø‡ßü‡ßá ‡¶Ø‡¶æ‡¶® ‡¶Ö‡¶•‡¶¨‡¶æ ‡¶¨‡¶æ‡¶Æ‡¶¶‡¶ø‡¶ï‡ßá‡¶∞ ‡¶´‡¶∞‡ßç‡¶Æ ‡¶•‡ßá‡¶ï‡ßá ‡¶ü‡ßá‡¶∏‡ßç‡¶ü ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶™‡¶æ‡¶†‡¶æ‡¶®‡•§
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-                    {smsLogs.map((log: any) => (
-                      <div key={log.id} className="border border-white/5 bg-[#0d0d0d] rounded p-4 hover:border-luxury-gold/30 transition-all">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2 mb-2 font-mono text-[10.5px]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-luxury-gold font-bold">üì≤ {log.phone}</span>
-                            <span className="text-zinc-600">|</span>
-                            <span className="text-zinc-400">{log.system || "STYLE X Gateway"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-zinc-500">
-                              {new Date(log.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'medium' })}
-                            </span>
-                            <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[9px] font-sans font-bold uppercase tracking-wider leading-none">
-                              {log.status || "Delivered ‚úîÔ∏è"}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-white/90 leading-relaxed font-sans bg-[#060606] p-2.5 rounded border border-white/5 whitespace-pre-wrap">
-                          {log.message}
-                        </p>
-                        {log.sid && (
-                          <div className="text-[9px] font-mono text-zinc-500 mt-2 text-right">
-                            Tracking SID: <span className="text-zinc-400 font-bold">{log.sid}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'customer_phones' && (
-          <div className="space-y-6 max-w-6xl animate-fade-in text-white">
-            <div className="pb-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
-                  <Smartphone size={18} className="text-luxury-gold" />
-                  Customer Phone Vault (‡¶ó‡ßç‡¶∞‡¶æ‡¶π‡¶ï ‡¶´‡ßã‡¶® ‡¶§‡¶æ‡¶≤‡¶ø‡¶ï‡¶æ)
-                </h2>
-                <p className="text-xs text-white/50 mt-1 font-sans">
-                  ‡¶®‡¶ø‡¶¨‡¶®‡ßç‡¶ß‡¶ø‡¶§ ‡¶∏‡¶¶‡¶∏‡ßç‡¶Ø, ‡¶ö‡ßá‡¶ï‡¶Ü‡¶â‡¶ü ‡ßß ‡¶´‡¶∞‡ßç‡¶Æ ‡¶™‡ßÇ‡¶∞‡¶£‡¶ï‡¶æ‡¶∞‡ßÄ ‡¶è‡¶¨‡¶Ç ‡¶è‡¶∏‡¶è‡¶Æ‡¶è‡¶∏ ‡¶∏‡¶æ‡¶¨‡¶∏‡ßç‡¶ï‡ßç‡¶∞‡¶æ‡¶á‡¶¨‡¶æ‡¶∞‡¶¶‡ßá‡¶∞ ‡¶∏‡¶Æ‡¶∏‡ßç‡¶§ ‡¶´‡ßã‡¶® ‡¶®‡¶Æ‡ßç‡¶¨‡¶∞ ‡¶è‡¶ñ‡¶æ‡¶®‡ßá ‡¶∏‡¶Ç‡¶∞‡¶ï‡ßç‡¶∑‡¶ø‡¶§ ‡¶Ü‡¶õ‡ßá‡•§
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsAddingPhone(!isAddingPhone)}
-                  className="px-3 py-1.5 bg-luxury-gold text-luxury-black font-semibold text-xs uppercase rounded hover:bg-opacity-90 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-                >
-                  <Plus size={14} />
-                  {isAddingPhone ? "Cancel" : "Add Number"}
-                </button>
-                <button 
-                  onClick={fetchCustomerPhones}
-                  disabled={fetchingCustomerPhones}
-                  className="px-3 py-1.5 border border-white/10 hover:border-luxury-gold text-white hover:text-luxury-gold font-mono text-xs uppercase rounded transition-all cursor-pointer disabled:opacity-40"
-                >
-                  {fetchingCustomerPhones ? "üîÑ Refreshing..." : "üîÑ Refresh Vault"}
-                </button>
-              </div>
-            </div>
-
-            {/* Manual Entry Form */}
-            {isAddingPhone && (
-              <form onSubmit={handleAddCustomerPhone} className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-5 space-y-4 animate-fade-in">
-                <h3 className="text-sm font-semibold text-luxury-gold uppercase tracking-wider font-serif">Add Custom Phone Record</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Mobile Number *</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 017XXXXXXXX"
-                      required
-                      value={manualPhoneInput}
-                      onChange={(e) => setManualPhoneInput(e.target.value)}
-                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Customer Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="Name"
-                      value={manualNameInput}
-                      onChange={(e) => setManualNameInput(e.target.value)}
-                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Email Address</label>
-                    <input 
-                      type="email" 
-                      placeholder="Email"
-                      value={manualEmailInput}
-                      onChange={(e) => setManualEmailInput(e.target.value)}
-                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-white/50 uppercase tracking-widest font-mono">Channel Source</label>
-                    <select 
-                      value={manualSourceInput}
-                      onChange={(e) => setManualSourceInput(e.target.value)}
-                      className="w-full bg-[#0B0B0F] border border-white/10 rounded px-3 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
-                    >
-                      <option value="manual">‚úçÔ∏è Manual Ledger</option>
-                      <option value="signup">üÜï Account Registration</option>
-                      <option value="checkout_step1">üõí Cart Recovery Step 1</option>
-                      <option value="sms_opt_in">üì± SMS Newsletter</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsAddingPhone(false)}
-                    className="px-4 py-2 border border-white/10 text-white hover:text-white/80 rounded text-xs uppercase cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-4 py-2 bg-luxury-gold text-luxury-black font-semibold rounded text-xs uppercase hover:bg-opacity-90 transition-all cursor-pointer shadow-md"
-                  >
-                    Save Phone
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Smart Stats Dashboard for Phone Sources */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Total Stored</span>
-                <span className="text-2xl font-serif font-bold text-white mt-1">{customerPhones.length}</span>
-                <span className="text-[10px] font-sans text-white/30 mt-2">Verified Unique Mobile Contacts</span>
-              </div>
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Account Signups</span>
-                <span className="text-2xl font-serif font-bold text-teal-400 mt-1">
-                  {customerPhones.filter(p => p.source === 'signup').length}
-                </span>
-                <span className="text-[10px] font-sans text-white/30 mt-2">Registered client accounts</span>
-              </div>
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">Step 1 Recoveries</span>
-                <span className="text-2xl font-serif font-bold text-amber-400 mt-1">
-                  {customerPhones.filter(p => p.source === 'checkout_step1').length}
-                </span>
-                <span className="text-[10px] font-sans text-white/30 mt-2">Abandoned cart checkout logs</span>
-              </div>
-              <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl p-4 flex flex-col justify-between">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider">SMS Opt-Ins</span>
-                <span className="text-2xl font-serif font-bold text-sky-400 mt-1">
-                  {customerPhones.filter(p => p.source === 'sms_opt_in').length}
-                </span>
-                <span className="text-[10px] font-sans text-white/30 mt-2">Mobile updates subscriptions</span>
-              </div>
-            </div>
-
-            {/* Live Search & Segment Filters */}
-            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="relative flex-1">
-                <input 
-                  type="text"
-                  placeholder="Search by name, phone or email..."
-                  value={phoneSearchQuery}
-                  onChange={(e) => setPhoneSearchQuery(e.target.value)}
-                  className="w-full bg-[#0B0B0F] border border-white/10 rounded-md pl-3 pr-10 py-2 text-xs focus:outline-none focus:border-luxury-gold text-white"
-                />
-                {phoneSearchQuery && (
-                  <button 
-                    type="button" 
-                    onClick={() => setPhoneSearchQuery('')}
-                    className="absolute right-2.5 top-2.5 text-white/40 hover:text-white"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 items-center">
-                <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider mr-1">Filter Source:</span>
-                {(['all', 'signup', 'checkout_step1', 'sms_opt_in', 'manual'] as const).map((src) => (
-                  <button
-                    key={src}
-                    type="button"
-                    onClick={() => setSourceFilter(src)}
-                    className={`px-2.5 py-1.5 rounded text-[10px] uppercase font-mono tracking-wider transition-all cursor-pointer border ${
-                      sourceFilter === src 
-                        ? 'bg-luxury-gold border-luxury-gold text-luxury-black font-bold' 
-                        : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {src === 'all' && "All"}
-                    {src === 'signup' && "Signups"}
-                    {src === 'checkout_step1' && "Step 1"}
-                    {src === 'sms_opt_in' && "Opt-In"}
-                    {src === 'manual' && "Manual"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Main Phone Table */}
-            <div className="bg-[#15151D] border border-[rgba(255,255,255,0.08)] shadow-[0_8px_30px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden">
-              {fetchingCustomerPhones ? (
-                <div className="py-20 text-center text-xs text-white/40">
-                  <span className="inline-block animate-spin mr-2">üîÑ</span> Loading Phone Ledger...
-                </div>
-              ) : customerPhones.length === 0 ? (
-                <div className="py-20 text-center text-xs text-white/40">
-                  No phone numbers collected yet. (‡¶ï‡ßã‡¶®‡ßã ‡¶´‡ßã‡¶® ‡¶®‡¶Æ‡ßç‡¶¨‡¶∞ ‡¶è‡¶ñ‡¶®‡¶ì ‡¶∏‡¶Ç‡¶ó‡ßç‡¶∞‡¶π ‡¶ï‡¶∞‡¶æ ‡¶π‡¶Ø‡¶º‡¶®‡¶ø‡•§)
-                </div>
-              ) : customerPhones.filter(cp => {
-                  const matchesSearch = 
-                    String(cp.phone).includes(phoneSearchQuery) ||
-                    String(cp.name || '').toLowerCase().includes(phoneSearchQuery.toLowerCase()) ||
-                    String(cp.email || '').toLowerCase().includes(phoneSearchQuery.toLowerCase());
-                  
-                  const matchesSource = sourceFilter === 'all' || cp.source === sourceFilter;
-                  return matchesSearch && matchesSource;
-                }).length === 0 ? (
-                <div className="py-20 text-center text-xs text-white/40">
-                  No records matching your search or filter.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-white/5 bg-white/[0.01]">
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Patron / Customer</th>
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Mobile Contact</th>
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Email Node</th>
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Capture Source</th>
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest">Recorded Date</th>
-                        <th className="p-4 text-[10px] font-mono text-white/40 uppercase tracking-widest text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {customerPhones
-                        .filter(cp => {
-                          const matchesSearch = 
-                            String(cp.phone).includes(phoneSearchQuery) ||
-                            String(cp.name || '').toLowerCase().includes(phoneSearchQuery.toLowerCase()) ||
-                            String(cp.email || '').toLowerCase().includes(phoneSearchQuery.toLowerCase());
-                          
-                          const matchesSource = sourceFilter === 'all' || cp.source === sourceFilter;
-                          return matchesSearch && matchesSource;
-                        })
-                        .map((cp) => {
-                          return (
-                            <tr key={cp.id} className="hover:bg-white/[0.02] transition-colors group">
-                              <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center font-serif text-luxury-gold font-bold text-xs uppercase shadow-inner">
-                                    {(cp.name || cp.phone || "C").charAt(0)}
-                                  </div>
-                                  <div>
-                                    <div className="text-xs font-semibold text-white group-hover:text-luxury-gold transition-colors">
-                                      {cp.name || "Anonymous Patron"}
-                                    </div>
-                                    <div className="text-[10px] text-white/40 font-mono mt-0.5">
-                                      ID: {cp.id}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-mono font-bold tracking-wider text-white bg-white/5 px-2 py-1 rounded">
-                                    {cp.phone}
-                                  </span>
-                                  <button 
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(cp.phone);
-                                      setAdminToast({ message: "‡¶®‡¶Æ‡ßç‡¶¨‡¶∞‡¶ü‡¶ø ‡¶ï‡ßç‡¶≤‡¶ø‡¶™‡¶¨‡ßã‡¶∞‡ßç‡¶°‡ßá ‡¶ï‡¶™‡¶ø ‡¶ï‡¶∞‡¶æ ‡¶π‡ßü‡ßá‡¶õ‡ßá! (Copied!)", type: 'success' });
-                                    }}
-                                    className="p-1 text-white/40 hover:text-luxury-gold rounded hover:bg-white/5 transition-all"
-                                    title="Copy to Clipboard"
-                                  >
-                                    <Check size={12} />
-                                  </button>
-                                  <a 
-                                    href={`https://wa.me/${String(cp.phone).replace(/[^0-9]/g, '')}`} 
-                                    target="_blank" 
-                                    referrerPolicy="no-referrer"
-                                    className="p-1 text-green-500/60 hover:text-green-400 rounded hover:bg-green-500/10 transition-all"
-                                    title="WhatsApp Chat"
-                                  >
-                                    <MessageSquare size={12} />
-                                  </a>
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                {cp.email ? (
-                                  <span className="text-xs text-white/70 font-sans">{cp.email}</span>
-                                ) : (
-                                  <span className="text-xs text-white/30 italic">No email</span>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                {cp.source === 'signup' && (
-                                  <span className="bg-teal-500/10 text-teal-400 border border-teal-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
-                                    üÜï Registered
-                                  </span>
-                                )}
-                                {cp.source === 'checkout_step1' && (
-                                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
-                                    üõí Step 1 Cart
-                                  </span>
-                                )}
-                                {cp.source === 'sms_opt_in' && (
-                                  <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
-                                    üì± SMS Opt-In
-                                  </span>
-                                )}
-                                {cp.source === 'manual' && (
-                                  <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold">
-                                    ‚úçÔ∏è Manual Record
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                <span className="text-[10px] font-mono text-white/50">
-                                  {new Date(cp.timestamp).toLocaleDateString('bn-BD', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setActiveTab('sms');
-                                      setManualSmsPhone(cp.phone);
-                                      setManualSmsMsg(`üì± STYLE X Alert üì±\nHello ${cp.name || 'Patron'},\n`);
-                                    }}
-                                    className="px-2 py-1 bg-white/5 hover:bg-luxury-gold hover:text-luxury-black border border-white/5 hover:border-luxury-gold text-white/70 rounded text-[10px] uppercase font-mono tracking-wider transition-all cursor-pointer"
-                                    title="Compose SMS to user"
-                                  >
-                                    Compose SMS
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteCustomerPhone(cp.phone)}
-                                    className="p-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
-                                    title="Delete contact record"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="space-y-8 max-w-4xl animate-fade-in text-white">
-            
-            {/* Elegant Subtitle with Gold divider */}
-            <div className="pb-4 border-b border-white/5">
-              <h2 className="text-lg font-serif font-semibold uppercase tracking-wider text-luxury-gold flex items-center gap-2">
-                System Customization Suite
-              </h2>
-              <p className="text-xs text-white/50 mt-1 font-sans">
-                Adjust international parameters, configure direct integration routing nodes, and modify client display assets instantly.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-              {/* SYSTEM ROUTING CONTROLLER CARD */}
-              <form onSubmit={handleSaveSettings} className="border border-[#d4af37]/30 hover:border-[#d4af37]/60 bg-[#121218] p-8 rounded-2xl space-y-5 shadow-[0_12px_40px_rgba(0,0,0,0.5)] relative overflow-hidden transition-all duration-300 backdrop-blur-md">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-luxury-gold/5 rounded-full blur-xl"></div>
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded bg-green-500/10 border border-green-500/30 text-green-400">
-                    <Settings size={18} />
-                  </div>
-                  <div>
-                    <h3 
-                      onDoubleClick={() => setShowAccentConfig(!showAccentConfig)}
-                      className="text-sm font-serif font-semibold text-white uppercase tracking-wider cursor-pointer select-none hover:text-luxury-gold transition-colors"
-                      title="Double-click to open advanced theme settings"
-                    >
-                      Store Routing Parameters <span className="inline-block w-1.5 h-1.5 bg-luxury-gold rounded-full opacity-60 ml-1 hover:opacity-100" onClick={(e) => { e.stopPropagation(); setShowAccentConfig(!showAccentConfig); }} title="Click for custom theme options"></span>
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 font-mono">REALTIME VIP NOTIFICATION DIRECTIVES</p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-white/60 leading-relaxed font-sans mt-2">
-                  Adjust target endpoints instantly. Changes safely propagate to customer click-to-chat targets, footer nodes, and the Google Apps Script email relay webhook.
-                </p>
-
-                {showAccentConfig && (
-                  <div className="space-y-3 p-4 bg-luxury-gold/5 border border-luxury-gold/20 rounded-lg animate-fade-in mt-2">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-luxury-gold rounded-full animate-pulse"></span>
-                      Global Theme Accent Color:
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="color"
-                        value={accentColorInput}
-                        onChange={(e) => setAccentColorInput(e.target.value)}
-                        className="w-10 h-10 bg-transparent border border-white/10 rounded cursor-pointer"
-                        title="Choose custom color"
-                      />
-                      <input 
-                        type="text"
-                        value={accentColorInput}
-                        onChange={(e) => setAccentColorInput(e.target.value)}
-                        placeholder="#D4AF37"
-                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {[
-                        { name: "Luxury Gold", hex: "#D4AF37" },
-                        { name: "Emerald Green", hex: "#00C853" },
-                        { name: "Crimson Red", hex: "#FF1744" },
-                        { name: "Sapphire Blue", hex: "#2979FF" },
-                        { name: "Neon Violet", hex: "#AA00FF" },
-                        { name: "Pure Silver", hex: "#E0E0E0" },
-                        { name: "Amber Orange", hex: "#FF9100" }
-                      ].map((preset) => (
-                        <button
-                          key={preset.hex}
-                          type="button"
-                          onClick={() => setAccentColorInput(preset.hex)}
-                          className="w-5 h-5 rounded-full border border-white/20 transition-all hover:scale-110 cursor-pointer"
-                          style={{ backgroundColor: preset.hex }}
-                          title={`${preset.name} (${preset.hex})`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-[9px] text-zinc-500 font-mono">This dynamically updates <span className="text-luxury-gold">--color-luxury-gold</span> site-wide. Preserves full UI/UX.</p>
-                  </div>
-                )}
-
-                <div className="space-y-4 pt-2">
-                  {/* BRAND CUSTOM LOGO URL */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
-                      <span>Brand Custom Logo URL:</span>
-                      <span className="text-[8px] bg-luxury-purple/80 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">PREMIUM</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={logoUrlInput}
-                        onChange={(e) => setLogoUrlInput(e.target.value)}
-                        placeholder="e.g. https://domain.com/my-logo.png"
-                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      />
-                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
-                        <Upload size={12} />
-                        <span>{logoUploading ? "Uploading..." : "Upload File"}</span>
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={logoUploading}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {logoUploadProgress && (
-                      <p className="text-[9px] text-luxury-gold font-mono tracking-wide mt-1 animate-pulse">
-                        ‚öúÔ∏è {logoUploadProgress}
-                      </p>
-                    )}
-                    {logoUrlInput && (
-                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Monogram:</span>
-                        <img 
-                          src={logoUrlInput} 
-                          alt="Bespoke Logo Preview" 
-                          className="h-6 object-contain filter max-w-[120px]"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default typography brand monogram inside the elite header.</p>
-                  </div>
-
-                  {/* XORO MASCOT AVATAR IMAGE */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
-                      <span>Xoro Mascot Avatar Image:</span>
-                      <span className="text-[8px] bg-luxury-gold text-luxury-black px-1.5 py-0.5 rounded font-bold tracking-widest">XORO</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={xoroAvatarUrlInput}
-                        onChange={(e) => setXoroAvatarUrlInput(e.target.value)}
-                        placeholder="e.g. https://domain.com/xoro-avatar.png"
-                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      />
-                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
-                        <Upload size={12} />
-                        <span>{xoroUploading ? "Uploading..." : "Upload File"}</span>
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePaymentLogoUpload('xoro', e)}
-                          disabled={xoroUploading}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {xoroUploadProgress && (
-                      <p className="text-[9px] text-luxury-gold font-mono tracking-wide mt-1 animate-pulse">
-                        ‚öúÔ∏è {xoroUploadProgress}
-                      </p>
-                    )}
-                    {xoroAvatarUrlInput && (
-                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Mascot:</span>
-                        <img 
-                          src={xoroAvatarUrlInput} 
-                          alt="Bespoke Xoro Mascot Preview" 
-                          className="h-10 w-10 rounded-full object-cover border border-luxury-gold/30"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or upload a custom image for Xoro's avatar. Highly visible on the homepage assistant container.</p>
-                  </div>
-
-                  {/* XORO ONLY ANSWER IN TEXT TOGGLE */}
-                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
-                          <span>üí¨ Xoro Only Answer in Text</span>
-                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">TEXT ONLY</span>
-                        </label>
-                        <p className="text-[9px] text-zinc-500 font-mono">‡¶Ö‡¶® ‡¶ï‡¶∞‡¶≤‡ßá ‡¶ú‡ßã‡¶∞‡ßã ‡¶∂‡ßÅ‡¶ß‡ßÅ ‡¶ü‡ßá‡¶ï‡ßç‡¶∏‡¶ü‡ßá ‡¶â‡¶§‡ßç‡¶§‡¶∞ ‡¶¶‡¶ø‡¶¨‡ßá, ‡¶ï‡ßã‡¶®‡ßã ‡¶≠‡ßü‡ßá‡¶∏ ‡¶¨‡¶æ ‡¶â‡¶ö‡ßç‡¶ö‡¶æ‡¶∞‡¶£ ‡¶ï‡¶∞‡¶¨‡ßá ‡¶®‡¶æ‡•§ (When ON, Xoro answers strictly in text without voice audio).</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={isXoroTextOnlyInput}
-                          onChange={(e) => handleToggleXoroSetting({ isXoroTextOnly: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* XORO VOICE OVERLAY TOGGLE */}
-                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
-                          <span>üéôÔ∏è Xoro Voice Output</span>
-                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">SPEECH API</span>
-                        </label>
-                        <p className="text-[9px] text-zinc-500 font-mono">‡¶Ö‡¶® ‡¶•‡¶æ‡¶ï‡¶≤‡ßá ‡¶ú‡ßã‡¶∞‡ßã ‡¶≠‡¶Ø‡¶º‡ßá‡¶∏ ‡¶¶‡¶ø‡ßü‡ßá ‡¶â‡¶§‡ßç‡¶§‡¶∞ ‡¶™‡ßú‡ßá ‡¶∂‡ßã‡¶®‡¶æ‡¶¨‡ßá‡•§ (Toggle whether Xoro reads answers aloud with voice output).</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={!isXoroVoiceDisabledInput}
-                          onChange={(e) => handleToggleXoroSetting({ isXoroVoiceDisabled: !e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* XORO VOICE AND ANSWER ACTIVE TOGGLE */}
-                  <div className="border border-purple-500/20 bg-purple-950/10 p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <label className="block text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold flex items-center gap-1.5">
-                          <span>ü§ñ Xoro Voice & Answer Active</span>
-                          <span className="text-[7px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-1 py-0.2 rounded font-mono font-black">ACTIVE</span>
-                        </label>
-                        <p className="text-[9px] text-zinc-500 font-mono">‡¶Ö‡¶´ ‡¶ï‡¶∞‡ßá ‡¶¶‡¶ø‡¶≤‡ßá ‡¶ú‡ßã‡¶∞‡ßã ‡¶ï‡ßã‡¶®‡ßã ‡¶≠‡ßü‡ßá‡¶∏ ‡¶¨‡¶æ ‡¶ö‡ßç‡¶Ø‡¶æ‡¶ü ‡¶â‡¶§‡ßç‡¶§‡¶∞ ‡¶¶‡¶ø‡¶¨‡ßá ‡¶®‡¶æ‡•§ (If off, Xoro won't speak or answer queries).</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={!isXoroVoiceAndAnswerDisabledInput}
-                          onChange={(e) => handleToggleXoroSetting({ isXoroVoiceAndAnswerDisabled: !e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* SOURCE CODE PROTECTION NOTICE SETTINGS */}
-                  <div className="border border-red-500/30 bg-red-950/10 p-4 sm:p-5 rounded-xl space-y-4 relative overflow-hidden">
-                    <div className="flex items-center justify-between border-b border-red-500/20 pb-3 gap-2">
-                      <div className="flex items-center gap-2">
-                        <ShieldAlert className="text-red-500 shrink-0" size={18} />
-                        <div>
-                          <h4 className="text-xs font-mono text-red-400 uppercase tracking-wider font-bold">
-                            Source Code Protection Notice (‡¶∏‡ßã‡¶∞‡ßç‡¶∏ ‡¶ï‡ßã‡¶° ‡¶™‡ßç‡¶∞‡ßã‡¶ü‡ßá‡¶ï‡¶∂‡¶® ‡¶®‡ßã‡¶ü‡¶ø‡¶∂)
-                          </h4>
-                          <p className="text-[10px] text-zinc-400 font-sans">
-                            ‡¶ï‡ßá‡¶â ‡¶∏‡ßã‡¶∞‡ßç‡¶∏ ‡¶ï‡ßã‡¶° ‡¶¶‡ßá‡¶ñ‡¶æ‡¶∞ ‡¶ö‡ßá‡¶∑‡ßç‡¶ü‡¶æ ‡¶ï‡¶∞‡¶≤‡ßá (DevTools/Right Click Inspection) ‡¶Ø‡ßá ‡¶ì‡ßü‡¶æ‡¶∞‡ßç‡¶®‡¶ø‡¶Ç ‡¶™‡¶™‡¶Ü‡¶™ ‡¶¶‡ßá‡¶ñ‡¶æ‡¶¨‡ßá, ‡¶∏‡ßá‡¶ü‡¶ø ‡¶ï‡¶æ‡¶∏‡ßç‡¶ü‡¶Æ‡¶æ‡¶á‡¶ú ‡¶ï‡¶∞‡ßÅ‡¶®‡•§
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowTestProtectionModal(true)}
-                        className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                      >
-                        <Eye size={12} />
-                        <span>Test View</span>
-                      </button>
-                    </div>
-
-                    {/* NOTICE BANNER / IMAGE URL & UPLOAD */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
-                        <span>Notice Image / Banner URL (‡¶®‡ßã‡¶ü‡¶ø‡¶∂ ‡¶õ‡¶¨‡¶ø / ‡¶¨‡ßç‡¶Ø‡¶æ‡¶®‡¶æ‡¶∞ URL):</span>
-                        <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">IMAGE</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={sourceProtectionImageUrlInput}
-                          onChange={(e) => setSourceProtectionImageUrlInput(e.target.value)}
-                          placeholder="e.g. https://domain.com/warning-banner.jpg"
-                          className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                        />
-                        <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-red-600 text-white rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none shrink-0">
-                          <Upload size={12} />
-                          <span>{sourceProtectionUploading ? "Uploading..." : "Upload File"}</span>
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handlePaymentLogoUpload('source_protection', e)}
-                            disabled={sourceProtectionUploading}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                      {sourceProtectionUploadProgress && (
-                        <p className="text-[9px] text-red-400 font-mono tracking-wide mt-1 animate-pulse">
-                          üõ°Ô∏è {sourceProtectionUploadProgress}
-                        </p>
-                      )}
-                      {sourceProtectionImageUrlInput && (
-                        <div className="mt-2 p-2 bg-[#050209] border border-red-500/20 rounded-lg flex items-center gap-3">
-                          <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Banner Preview:</span>
-                          <img 
-                            src={sourceProtectionImageUrlInput} 
-                            alt="Notice Banner Preview" 
-                            className="h-12 max-w-[160px] object-cover rounded border border-red-500/30"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                      )}
-                      <p className="text-[9px] text-zinc-500 font-mono">
-                        ‡¶®‡ßã‡¶ü‡¶ø‡¶∂ ‡¶™‡¶™‡¶Ü‡¶™‡ßá ‡¶¨‡ßú ‡¶ï‡¶∞‡ßá ‡¶™‡ßç‡¶∞‡¶¶‡¶∞‡ßç‡¶∂‡¶®‡ßá‡¶∞ ‡¶ú‡¶®‡ßç‡¶Ø ‡¶õ‡¶¨‡¶ø ‡¶≤‡¶ø‡¶ô‡ßç‡¶ï ‡¶¶‡¶ø‡¶® ‡¶¨‡¶æ ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶°‡¶ø‡¶≠‡¶æ‡¶á‡¶∏ ‡¶•‡ßá‡¶ï‡ßá ‡¶Ü‡¶™‡¶≤‡ßã‡¶° ‡¶ï‡¶∞‡ßÅ‡¶®‡•§
-                      </p>
-                    </div>
-
-                    {/* NOTICE HEADING / TITLE */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono text-red-400 uppercase tracking-widest font-semibold">
-                        Notice Title (‡¶®‡ßã‡¶ü‡¶ø‡¶∂ ‡¶∂‡¶ø‡¶∞‡ßã‡¶®‡¶æ‡¶Æ):
-                      </label>
-                      <input 
-                        type="text"
-                        value={sourceProtectionTitleInput}
-                        onChange={(e) => setSourceProtectionTitleInput(e.target.value)}
-                        placeholder="e.g. Nice Try! üõë or Warning: Access Restricted"
-                        className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all"
-                      />
-                    </div>
-
-                    {/* NOTICE DESCRIPTION / BORO LIKHA */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-mono text-red-400 uppercase tracking-widest font-semibold flex items-center justify-between">
-                        <span>Notice Long Warning Text / Boro Likha (‡¶¨‡¶ø‡¶∏‡ßç‡¶§‡¶æ‡¶∞‡¶ø‡¶§ ‡¶¨‡ßú ‡¶≤‡ßá‡¶ñ‡¶æ):</span>
-                        <span className="text-[8px] text-zinc-500 font-normal">Multi-line text</span>
-                      </label>
-                      <textarea 
-                        rows={4}
-                        value={sourceProtectionDescriptionInput}
-                        onChange={(e) => setSourceProtectionDescriptionInput(e.target.value)}
-                        placeholder="‡¶è‡¶ñ‡¶æ‡¶®‡ßá ‡¶¨‡ßú ‡¶ï‡¶∞‡ßá ‡¶Ü‡¶™‡¶®‡¶æ‡¶∞ ‡¶∏‡¶ø‡¶ï‡¶ø‡¶â‡¶∞‡¶ø‡¶ü‡¶ø ‡¶ì‡ßü‡¶æ‡¶∞‡ßç‡¶®‡¶ø‡¶Ç ‡¶¨‡¶æ ‡¶®‡ßã‡¶ü‡¶ø‡¶∂ ‡¶ü‡ßá‡¶ï‡ßç‡¶∏‡¶ü ‡¶≤‡¶ø‡¶ñ‡ßÅ‡¶®..."
-                        className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded text-xs p-3 font-sans text-zinc-200 leading-relaxed transition-all resize-y"
-                      />
-                    </div>
-                  </div>
-
-                  {/* bKash CUSTOM LOGO URL */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
-                      <span>bKash Custom Logo URL:</span>
-                      <span className="text-[8px] bg-pink-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">bKash</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={bkashLogoUrlInput}
-                        onChange={(e) => setBkashLogoUrlInput(e.target.value)}
-                        placeholder="e.g. https://domain.com/bkash-logo.png"
-                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      />
-                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
-                        <Upload size={12} />
-                        <span>{bkashUploading ? "Uploading..." : "Upload File"}</span>
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePaymentLogoUpload('bkash', e)}
-                          disabled={bkashUploading}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {bkashUploadProgress && (
-                      <p className="text-[9px] text-[#e2136e] font-mono tracking-wide mt-1 animate-pulse">
-                        ‚öúÔ∏è {bkashUploadProgress}
-                      </p>
-                    )}
-                    {bkashLogoUrlInput && (
-                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Logo:</span>
-                        <img 
-                          src={bkashLogoUrlInput} 
-                          alt="bKash Logo Preview" 
-                          className="h-6 object-contain rounded shadow-sm max-w-[120px]"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default bKash icon inside the cart drawer checkout.</p>
-                  </div>
-
-                  {/* Nagad CUSTOM LOGO URL */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold flex items-center gap-1">
-                      <span>Nagad Custom Logo URL:</span>
-                      <span className="text-[8px] bg-orange-600 text-white px-1.5 py-0.5 rounded font-bold tracking-widest">Nagad</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={nagadLogoUrlInput}
-                        onChange={(e) => setNagadLogoUrlInput(e.target.value)}
-                        placeholder="e.g. https://domain.com/nagad-logo.png"
-                        className="flex-1 bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      />
-                      <label className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-luxury-gold text-luxury-black rounded font-display font-black text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all outline-none cursor-pointer select-none">
-                        <Upload size={12} />
-                        <span>{nagadUploading ? "Uploading..." : "Upload File"}</span>
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePaymentLogoUpload('nagad', e)}
-                          disabled={nagadUploading}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {nagadUploadProgress && (
-                      <p className="text-[9px] text-[#f45c24] font-mono tracking-wide mt-1 animate-pulse">
-                        ‚öúÔ∏è {nagadUploadProgress}
-                      </p>
-                    )}
-                    {nagadLogoUrlInput && (
-                      <div className="mt-2 p-2 bg-[#050209] border border-white/5 rounded-lg flex items-center gap-3">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest">Active Logo:</span>
-                        <img 
-                          src={nagadLogoUrlInput} 
-                          alt="Nagad Logo Preview" 
-                          className="h-6 object-contain rounded shadow-sm max-w-[120px]"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-                    <p className="text-[9px] text-zinc-500 font-mono">Provide an image URL or choose a high-resolution file to replace the default Nagad icon inside the cart drawer checkout.</p>
-                  </div>
-
-                  {/* WHATSAPP INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">WhatsApp Concierge:</label>
-                    <input 
-                      type="text"
-                      value={whatsappNumberInput}
-                      onChange={(e) => setWhatsappNumberInput(e.target.value)}
-                      placeholder="e.g. 8801755104443"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Please enter numerical format with country code.</p>
-                  </div>
-
-                  {/* NOTIFICATION EMAIL INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Target Notification Email:</label>
-                    <input 
-                      type="email"
-                      value={adminEmailInput}
-                      onChange={(e) => setAdminEmailInput(e.target.value)}
-                      placeholder="e.g. risatadnan4@gmail.com"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Order confirmation alerts will be dispatched directly to this inbox.</p>
-                  </div>
-
-                  {/* ADMIN SECURITY PASSWORD INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Admin Security Passcode:</label>
-                    <input 
-                      type="text"
-                      value={adminPasswordInput}
-                      onChange={(e) => setAdminPasswordInput(e.target.value)}
-                      placeholder="Enter admin password"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Verify and change the secure owner admin login password passcode.</p>
-                  </div>
-
-                  {/* APPS SCRIPT WEBHOOK URL INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Apps Script Webhook URL:</label>
-                    <input 
-                      type="text"
-                      value={appsScriptUrlInput}
-                      onChange={(e) => setAppsScriptUrlInput(e.target.value)}
-                      placeholder="e.g. https://script.google.com/macros/s/.../exec"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Input your deployed Google Apps Script Web App URL ending in /exec.</p>
-                  </div>
-
-                  {/* FACEBOOK PAGE URL INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Official Facebook Page URL:</label>
-                    <input 
-                      type="url"
-                      value={facebookUrlInput}
-                      onChange={(e) => setFacebookUrlInput(e.target.value)}
-                      placeholder="e.g. https://facebook.com/yourpage"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Input your store's Facebook Page link for direct footer and floating menu connections.</p>
-                  </div>
-
-                  {/* INSTAGRAM PROFILE URL INPUT */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Official Instagram URL:</label>
-                    <input 
-                      type="url"
-                      value={instagramUrlInput}
-                      onChange={(e) => setInstagramUrlInput(e.target.value)}
-                      placeholder="e.g. https://instagram.com/yourprofile"
-                      className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                      required
-                    />
-                    <p className="text-[9px] text-zinc-500 font-mono">Input your store's Instagram Profile link for direct footer and floating menu connections.</p>
-                  </div>
-
-                  {/* CATALOG DEACTIVATION SECTION */}
-                  <div className="border border-red-500/20 bg-[#0c050b]/60 p-5 rounded-xl space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-red-400 uppercase tracking-widest font-bold">üö® Catalog Status &amp; Deactivation</span>
-                        <span className="text-[8px] bg-red-500/10 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">CRITICAL</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={isCatalogDeactivatedInput}
-                          onChange={(e) => setIsCatalogDeactivatedInput(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
-                      </label>
-                    </div>
-
-                    <div className="space-y-3.5">
-                      <div className="space-y-1">
-                        <label className="block text-[9.5px] font-mono text-zinc-400 uppercase tracking-widest font-semibold">Store Deactivation Message:</label>
-                        <textarea 
-                          rows={3}
-                          value={deactivatedMessageInput}
-                          onChange={(e) => setDeactivatedMessageInput(e.target.value)}
-                          placeholder="The VIP showcase catalog is currently undergoing seasonal curation refresh. Private concierge is fully active ‚Äî contact via WhatsApp for custom order loops."
-                          className="w-full bg-[#101010] border border-white/10 hover:border-white/20 focus:border-red-500 focus:outline-none rounded-xl text-xs px-3.5 py-2.5 font-sans text-zinc-300 transition-all resize-none"
-                          disabled={!isCatalogDeactivatedInput}
-                        />
-                        <p className="text-[8.5px] text-zinc-500 font-mono">This message will be showcased to customers in premium styling instead of the product grid if deactivated.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* LOTTERY DEACTIVATION SECTION */}
-                  <div className="border border-amber-500/20 bg-[#0b0906]/60 p-5 rounded-xl space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">üé° Fortuna Wheel &amp; Lottery Status</span>
-                        <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">GAME MODE</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={isLotteryDeactivatedInput}
-                          onChange={(e) => setIsLotteryDeactivatedInput(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                      </label>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-zinc-300 font-sans leading-relaxed">
-                        {isLotteryDeactivatedInput ? (
-                          <span className="text-red-400 font-bold uppercase tracking-wide">‚ö†Ô∏è Lottery Wheel Deactivated:</span>
-                        ) : (
-                          <span className="text-emerald-400 font-bold uppercase tracking-wide">‚úÖ Lottery Wheel Active:</span>
-                        )}{" "}
-                        Disabling this switch will hide all Fortune Wheel games, gift buttons, launcher overlays, and floating fortune vouchers from the store view.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* RESTOCK NOTIFICATION DEACTIVATION SECTION */}
-                  <div className="border border-purple-500/20 bg-[#09060b]/60 p-5 rounded-xl space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-purple-400 uppercase tracking-widest font-bold">üîî Product Restock Notify Me Status</span>
-                        <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">COLLECTOR HUB</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={isNotifyMeDeactivatedInput}
-                          onChange={(e) => setIsNotifyMeDeactivatedInput(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
-                      </label>
-                    </div>
-
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-zinc-300 font-sans leading-relaxed">
-                        {isNotifyMeDeactivatedInput ? (
-                          <span className="text-red-400 font-bold uppercase tracking-wide">‚ö†Ô∏è Notify Me System Deactivated:</span>
-                        ) : (
-                          <span className="text-emerald-400 font-bold uppercase tracking-wide">‚úÖ Notify Me System Active:</span>
-                        )}{" "}
-                        When deactivated, out-of-stock items will display a disabled "Out of Stock" button instead of allowing collectors to register for back-in-stock notifications.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* GLOBAL PUBLIC STORE SETTINGS SUITE */}
-                  <div className="border border-luxury-gold/30 bg-[#090514]/80 p-5 rounded-xl space-y-5 relative overflow-hidden">
-                    {/* Glowing Accent */}
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-luxury-gold/5 rounded-full blur-xl pointer-events-none"></div>
-
-                    <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono text-luxury-gold uppercase tracking-widest font-black flex items-center gap-1.5">
-                          <Sparkles size={12} className="text-luxury-gold animate-pulse" />
-                          üåê Global Public Store Synchronizer
-                        </span>
-                        <span className="text-[7.5px] bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">LIVE SYNC</span>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-zinc-400 font-sans leading-relaxed">
-                      Configure global store-wide variables below. Changes here are synchronized immediately in real-time across all visitor devices worldwide.
-                    </p>
-
-                    {/* SECTION 1: GLOBAL COUNTDOWN TIMER */}
-                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-4">
-                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                        <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold">‚è±Ô∏è Global Countdown Timer Override</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={globalTimerActiveInput}
-                            onChange={(e) => setGlobalTimerActiveInput(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-[#202020] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-luxury-gold"></div>
-                        </label>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Event End Date &amp; Time:</label>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
-                                  setGlobalTimerActiveInput(true);
-                                }}
-                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
-                              >
-                                +24h
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
-                                  setGlobalTimerActiveInput(true);
-                                }}
-                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
-                              >
-                                +3d
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                                  setGlobalTimerEndTimeInput(d.toISOString().slice(0, 16));
-                                  setGlobalTimerActiveInput(true);
-                                }}
-                                className="text-[8px] font-mono bg-white/5 hover:bg-luxury-gold/20 text-zinc-300 hover:text-luxury-gold px-1.5 py-0.5 rounded border border-white/10"
-                              >
-                                +7d
-                              </button>
-                              {globalTimerEndTimeInput && (
-                                <button
-                                  type="button"
-                                  onClick={() => setGlobalTimerEndTimeInput('')}
-                                  className="text-[8px] font-mono text-red-400 hover:text-red-300 px-1 py-0.5"
-                                >
-                                  Clear
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          <input 
-                            type="datetime-local"
-                            value={globalTimerEndTimeInput}
-                            onChange={(e) => setGlobalTimerEndTimeInput(e.target.value)}
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2 py-2.5 font-mono text-white transition-all"
-                          />
-                          <p className="text-[8px] text-zinc-500 font-mono">Specify when the global flash sale countdown should expire (optional; if blank, banner message displays directly).</p>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Promotion Headline Message / Banner Message:</label>
-                          <input 
-                            type="text"
-                            value={globalTimerMessageInput}
-                            onChange={(e) => setGlobalTimerMessageInput(e.target.value)}
-                            placeholder="e.g. SPECIAL ROYAL EID CARRIAGE PRIVILEGES ACTIVE"
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans text-white transition-all"
-                          />
-                          <p className="text-[8px] text-zinc-500 font-mono">Display message text rendered in the luxury global store announcement / countdown banner.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* SECTION 2: GLOBAL PAYMENT & OVERRIDES */}
-                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-4">
-                      <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold block pb-2 border-b border-white/5">üí≥ Global Payment Architecture Overrides</span>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Primary Payment Gateway Brand:</label>
-                          <select 
-                            value={globalPaymentSystemInput}
-                            onChange={(e) => setGlobalPaymentSystemInput(e.target.value)}
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                          >
-                            <option value="product_defined" className="bg-[#121212] text-white">Product Default (Defined individually by product)</option>
-                            <option value="always_bkash" className="bg-[#121212] text-white">Force bKash Only (Globally across all products)</option>
-                            <option value="always_nagad" className="bg-[#121212] text-white">Force Nagad Only (Globally across all products)</option>
-                            <option value="always_both" className="bg-[#121212] text-white">Force Both Brand Channels (bKash + Nagad everywhere)</option>
-                          </select>
-                          <p className="text-[8px] text-zinc-500 font-mono">Define the default visual mobile banking logos presented during checkout flow.</p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Acceptable Payment Mode Options:</label>
-                          <select 
-                            value={globalPaymentMethodInput}
-                            onChange={(e) => setGlobalPaymentMethodInput(e.target.value)}
-                            className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                          >
-                            <option value="both" className="bg-[#121212] text-white">Standard Multi-Mode (Allow Cash on Delivery &amp; Mobile Prepayment)</option>
-                            <option value="cod_only" className="bg-[#121212] text-white">Strict Cash on Delivery (COD Only - Disable prepayments)</option>
-                            <option value="prepay_only" className="bg-[#121212] text-white">Strict Mobile Prepayment Only (Disable COD checkout options)</option>
-                          </select>
-                          <p className="text-[8px] text-zinc-500 font-mono">Select if you want to completely restrict available transaction channels globally.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* SECTION 3: GLOBAL DELIVERY DAYS OVERRIDE */}
-                    <div className="bg-[#121212]/40 border border-white/5 p-4 rounded-xl space-y-3">
-                      <span className="text-[9.5px] font-mono text-zinc-300 uppercase tracking-widest font-bold block pb-2 border-b border-white/5">üöö Global Delivery Estimates Override</span>
-
-                      <div className="space-y-1">
-                        <label className="block text-[9px] font-mono text-luxury-gold uppercase tracking-widest font-semibold">Global Delivery Days Override:</label>
-                        <input 
-                          type="text"
-                          value={globalDeliveryDaysInput}
-                          onChange={(e) => setGlobalDeliveryDaysInput(e.target.value)}
-                          placeholder="Leave blank to use product defaults, or enter override (e.g., 2-3 Days)"
-                          className="w-full bg-[#121212] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-mono text-white transition-all"
-                        />
-                        <p className="text-[8px] text-zinc-500 font-mono">Inputting a value here instantly overrides delivery badges for all store items globally (e.g. <strong>3-5 Days</strong>).</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CUSTOM ORDER/PAYMENT BADGE SECTION (WRITE YOUR OWN IDEA!) */}
-                  <div className="border border-luxury-gold/20 bg-[#060309] p-5 rounded-xl space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b border-white/5">
-                      <span className="text-[10px] font-mono text-luxury-gold uppercase tracking-widest font-bold">‚öúÔ∏è Bespoke Checkout Payment Badge (Your Own Idea)</span>
-                      <span className="text-[8px] bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 px-1.5 py-0.5 rounded font-black tracking-widest font-mono">EDITABLE</span>
-                    </div>
-
-                    <div className="space-y-3.5">
-                      {/* Badge Title */}
-                      <div className="space-y-1">
-                        <label className="block text-[9.5px] font-mono text-zinc-400 uppercase tracking-widest font-semibold">Custom Verification Title:</label>
-                        <input 
-                          type="text"
-                          value={paymentBadgeTitleInput}
-                          onChange={(e) => setPaymentBadgeTitleInput(e.target.value)}
-                          placeholder="SECURE CASH ON DELIVERY GUARANTEED"
-                          className="w-full bg-[#101010] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded text-xs px-3.5 py-2.5 font-sans font-extrabold text-[#ffd700] uppercase tracking-wide transition-all"
-                          required
-                        />
-                        <p className="text-[8.5px] text-zinc-500 font-mono">Add a security claim or standard shipping policy notice.</p>
-                      </div>
-
-                      {/* Badge Description */}
-                      <div className="space-y-1">
-                        <label className="block text-[9.5px] font-mono text-zinc-400 uppercase tracking-widest font-semibold">Bespoke Guidance Details / Idea Text:</label>
-                        <textarea 
-                          rows={3}
-                          value={paymentBadgeDescriptionInput}
-                          onChange={(e) => setPaymentBadgeDescriptionInput(e.target.value)}
-                          placeholder="Type your tailored idea or instructions for customers regarding delivery, payments, or processing..."
-                          className="w-full bg-[#101010] border border-white/10 hover:border-white/20 focus:border-luxury-gold focus:outline-none rounded-xl text-xs px-3.5 py-2.5 font-sans text-zinc-300 transition-all resize-none"
-                          required
-                        />
-                        <p className="text-[8.5px] text-zinc-500 font-mono">Custom text will dynamically replace the physical dispatch notice on checkout.</p>
-                      </div>
-
-                      {/* Real-Time Client Side Device Preview Simulator */}
-                      <div className="bg-[#020005] border border-purple-900/40 p-4 rounded-xl space-y-2">
-                        <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Simulator: Checkout Page Preview</span>
-                        
-                        <div className="bg-gradient-to-r from-luxury-gold/5 to-[#160b24]/20 border border-luxury-gold/25 rounded-xl p-3.5 space-y-1 relative overflow-hidden">
-                          <div className="absolute top-2.5 right-2.5 opacity-20 pointer-events-none text-luxury-gold">
-                            <Gift size={24} />
-                          </div>
-                          
-                          <div className="flex items-center gap-2 text-luxury-gold">
-                            <span className="w-2 h-2 rounded bg-green-500 animate-pulse"></span>
-                            <span className="font-display font-black uppercase tracking-widest text-[9.5px] truncate max-w-[280px]">
-                              {paymentBadgeTitleInput || "SECURE CASH ON DELIVERY GUARANTEED"}
-                            </span>
-                          </div>
-                          <p className="text-[9.5px] text-zinc-300 font-sans leading-relaxed break-words whitespace-pre-wrap pl-4 max-w-sm">
-                            {paymentBadgeDescriptionInput || "Pay upon secure physical delivery handoff. We verify each individual container personally with verified secure luxury seal tags. Zero online gateway threat risk."}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4">
-                  {settingsSuccess ? (
-                    <span className="text-[11px] font-mono text-green-400 flex items-center gap-1.5 bg-green-500/5 border border-green-500/20 px-2.5 py-1 rounded animate-fade-in">
-                      <Check size={12} /> CONFIG OK
-                    </span>
-                  ) : <span />}
-
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className="bg-gradient-to-r from-luxury-gold-dark to-luxury-gold text-luxury-black font-display font-black text-[10.5px] uppercase tracking-widest px-6 py-2.5 rounded transition-all hover:brightness-110 disabled:opacity-50 cursor-pointer shadow-md"
-                  >
-                    {savingSettings ? "Saving Settings..." : "Save Configuration"}
-                  </button>
-                </div>
-              </form>
-
-              {/* ORDER EMAIL NOTIFICATION DESTINATION CONTROL CARD */}
-              <div className="border border-white/5 bg-[#090909] p-6 rounded-lg space-y-4 flex flex-col justify-between shadow-xl relative overflow-hidden font-sans">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded bg-luxury-gold/5 border border-luxury-gold/20 text-luxury-gold">
-                      <Star size={18} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-serif font-semibold text-white uppercase tracking-wider">Apps Script E-Mail Relay</h3>
-                      <p className="text-[10px] text-green-400 font-bold tracking-widest">‚óè DIRECTIVE ACTIVE</p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-white/50 leading-relaxed italic">
-                    Whenever an order is confirmed, system triggers a non-blocking asynchronous payload dispatch to your Google Apps Script Webhook.
-                  </p>
-
-                  <div className="bg-[#121212] border border-white/5 p-3 rounded font-mono space-y-1.5 text-xs text-zinc-400">
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-white/40">DESTINATION INBOX:</span>
-                      <span className="text-luxury-gold font-bold">{settings?.adminEmail || "risatadnan4@gmail.com"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-white/40">APPS SCRIPT ID:</span>
-                      <span className="text-[10px] text-slate-400 truncate max-w-[170px]" title={settings?.appsScriptUrl || "Default"}>
-                        {settings?.appsScriptUrl ? (settings.appsScriptUrl.split("/macros/s/")[1]?.split("/exec")[0]?.slice(0, 24) + "...") : "Default System ID"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[10px] text-white/40">TRIGGER TYPE:</span>
-                      <span className="text-[10.5px]/none uppercase px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 font-bold">doPost</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-white/5 pt-4">
-                  <button
-                    onClick={() => {
-                      alert("Webapp triggers Apps Script directly on all live checkouts! Active listening state verified.");
-                    }}
-                    className="w-full text-center border border-white/10 hover:border-white/30 text-white/75 hover:text-white font-mono text-[10px] tracking-widest py-2 rounded uppercase transition-all"
-                  >
-                    üîç Verify Script Endpoints
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            {/* IMPERIAL INSTANT DISCOUNT MANAGER - ULTRA PREMIUM CONTROLLER */}
-            <div className="border-2 border-luxury-gold/30 hover:border-luxury-gold/60 bg-gradient-to-b from-[#0e0a12] via-[#07000c] to-[#040008] p-8 rounded-2xl space-y-8 shadow-[0_0_40px_rgba(212,175,55,0.08)] relative overflow-hidden transition-all duration-500 animate-fade-in">
-              {/* Luxury ambient light spheres */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-luxury-gold/10 rounded-full blur-[80px] pointer-events-none"></div>
-              <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-luxury-purple/15 rounded-full blur-[80px] pointer-events-none"></div>
-              
-              {/* Sleek top status header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-luxury-black via-[#140124] to-luxury-black border border-luxury-gold/50 text-luxury-gold shadow-lg shadow-luxury-gold/10 animate-pulse">
-                    <Gift size={22} className="text-luxury-gold" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-luxury-gold to-white uppercase tracking-widest leading-none">
-                      Imperial Instant Discount Controller
-                    </h3>
-                    <p className="text-[10px] text-luxury-gold font-mono uppercase tracking-[0.18em] mt-1.5 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
-                      ACTIVE GLOBAL VOUCHER SYSTEM
-                    </p>
-                  </div>
-                </div>
-                
-                <span className="self-start sm:self-center font-mono text-[9px] bg-white/5 border border-white/10 text-white/60 px-3 py-1.5 rounded-lg tracking-widest uppercase">
-                  Version 4.1.2 Pro
-                </span>
-              </div>
-
-              <p className="text-xs text-zinc-300 leading-relaxed font-sans max-w-4xl">
-                Fine-tune the global instant discount incentive presented to VIP invitees. When shoppers trigger the promotional drawer modal, they are instantly rewarded with the discount percentage specified below. No lottery spins, no chance mechanics‚Äîstrict high-conversion luxury retail rewards.
-              </p>
-
-              {/* CORE INTERACTIVE MATRIX */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
-                {/* COLUMN 1: CONTROLLERS (7 COLS) */}
-                <div className="lg:col-span-7 space-y-6">
-                  
-                  {/* PRESET INTEGRATED PREMIUM BUTTON CHIPS */}
-                  <div className="space-y-2.5">
-                    <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-widest font-bold">
-                      ‚öúÔ∏è Choose Imperial Preset Tier
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {[
-                        { label: "Bronze", value: 10, glow: "border-amber-700/40 text-amber-500" },
-                        { label: "Silver", value: 12, glow: "border-slate-400/40 text-slate-300" },
-                        { label: "Imperial Gold", value: 15, glow: "border-luxury-gold/40 text-luxury-gold" },
-                        { label: "Platinum VIP", value: 20, glow: "border-indigo-400/40 text-indigo-300" },
-                        { label: "Sovereign", value: 25, glow: "border-purple-400/40 text-purple-300" }
-                      ].map((preset) => (
-                        <button
-                          key={preset.value}
-                          type="button"
-                          onClick={() => setLotteryDiscountPercentageInput(preset.value)}
-                          className={`px-3 py-2.5 rounded-lg border text-center font-serif text-[11px] font-bold tracking-wider hover:bg-white/5 cursor-pointer transition-all duration-300 ${
-                            lotteryDiscountPercentageInput === preset.value
-                              ? "bg-luxury-gold/10 border-luxury-gold text-white font-extrabold shadow-[0_0_15px_rgba(212,175,55,0.2)]"
-                              : "bg-black/30 border-white/5 text-zinc-400"
-                          }`}
-                        >
-                          <span className="block text-[8px] font-mono uppercase tracking-widest text-[#9a4dff] mb-0.5">{preset.label}</span>
-                          <span className="text-sm font-bold">{preset.value}% OFF</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* HIGH PRECISION INTEGRATED CONTROL COMPONENT */}
-                  <div className="bg-black/40 border border-white/5 p-5 rounded-xl space-y-5 shadow-inner">
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold">
-                        Adjust Precision Percentage:
-                      </span>
-                      <span className="font-mono text-xs font-black text-luxury-gold">1% - 100% Limit</span>
-                    </div>
-
-                    {/* DUAL INTERACTIVE RANGE COMPONENT & TEXT BOX */}
-                    <div className="flex flex-col sm:flex-row items-center gap-6">
-                      
-                      {/* Premium range slider */}
-                      <div className="flex-1 w-full space-y-2">
-                        <input
-                          type="range"
-                          min="1"
-                          max="100"
-                          value={lotteryDiscountPercentageInput}
-                          onChange={(e) => setLotteryDiscountPercentageInput(Number(e.target.value))}
-                          className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-luxury-gold focus:outline-none transition-all"
-                          style={{
-                            background: `linear-gradient(to right, #d4af37 0%, #d4af37 ${lotteryDiscountPercentageInput}%, #27272a ${lotteryDiscountPercentageInput}%, #27272a 100%)`
-                          }}
-                        />
-                        <div className="flex justify-between text-[9px] font-mono text-zinc-500">
-                          <span>MIN (1%)</span>
-                          <span>MID (50%)</span>
-                          <span>MAX (100%)</span>
-                        </div>
-                      </div>
-
-                      {/* Manual numeric field */}
-                      <div className="relative w-full sm:w-32">
-                        <input 
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={lotteryDiscountPercentageInput}
-                          onChange={(e) => setLotteryDiscountPercentageInput(Math.min(100, Math.max(1, Number(e.target.value) || 15)))}
-                          className="w-full text-center bg-[#141414] border-2 border-luxury-gold/20 focus:border-luxury-gold focus:outline-none rounded-xl text-base font-bold py-3 text-white transition-all font-mono"
-                          required
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-luxury-gold font-black text-sm">%</span>
-                      </div>
-
-                    </div>
-
-                    {/* Voucher Code Prefix Field */}
-                    <div className="border-t border-white/5 pt-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold block">
-                            üé° Customize Voucher Code Prefix:
-                          </span>
-                          <span className="text-[8.5px] text-zinc-500 font-mono block">Change this code prefix to instantly invalidate old codes.</span>
-                        </div>
-                        <div className="relative w-full sm:w-48">
-                          <input 
-                            type="text"
-                            value={lotteryCouponPrefixInput}
-                            onChange={(e) => setLotteryCouponPrefixInput(e.target.value.trim().toUpperCase())}
-                            placeholder="e.g. RISAT"
-                            className="w-full text-center bg-[#141414] border-2 border-luxury-gold/20 focus:border-luxury-gold focus:outline-none rounded-xl text-xs font-bold py-2.5 text-white tracking-widest font-mono uppercase"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* COLUMN 2: REAL-TIME SIMULATED REPLICA VOUCHER DEVICE (5 COLS) */}
-                <div className="lg:col-span-5">
-                  <div className="bg-gradient-to-b from-[#11012a] to-[#040008] border-2 border-dashed border-luxury-gold/40 p-5 rounded-2xl relative overflow-hidden shadow-2xl group">
-                    {/* Glowing particle sheen animation */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[2000ms] pointer-events-none z-10"></div>
-                    
-                    <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-white/5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping"></span>
-                        <span className="text-[8px] font-mono text-orange-400 uppercase tracking-widest font-bold">Simulator Preview</span>
-                      </div>
-                      <span className="text-[7.5px] text-zinc-500 font-mono uppercase tracking-widest">Client Viewport Replica</span>
-                    </div>
-
-                    <div className="bg-[#030107] border border-luxury-gold/20 p-5 rounded-xl text-center relative overflow-hidden space-y-4">
-                      {/* Inner glowing element */}
-                      <div className="absolute top-0 left-0 w-1.5 h-full bg-luxury-gold"></div>
-                      
-                      <div className="absolute top-2.5 right-2.5 bg-gradient-to-r from-luxury-gold to-yellow-600 text-luxury-black text-[7px] font-display font-black px-1.5 py-0.5 rounded tracking-widest uppercase">
-                        ‚òÖ VIP PASS
-                      </div>
-
-                      <div>
-                        <span className="text-[8px] font-mono text-luxury-gold tracking-[0.2em] font-extrabold uppercase block">
-                          THE IMPERIAL EXCLUSIVE VOUCHER
-                        </span>
-                        
-                        <div className="py-2.5 select-none">
-                          <span className="block font-serif text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-luxury-gold via-white to-luxury-gold leading-none tracking-tighter drop-shadow-md">
-                            {lotteryDiscountPercentageInput}% OFF
-                          </span>
-                        </div>
-
-                        <div className="border-t border-dashed border-luxury-gold/20 my-3"></div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[7px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">
-                            CODE ACTIVE TODAY
-                          </span>
-                          <div className="bg-[#121212] border border-white/10 px-3 py-1.5 rounded-lg w-full max-w-[180px] text-center">
-                            <span className="text-xs font-mono font-bold tracking-widest text-[#ffd700]">
-                              {lotteryCouponPrefixInput || "RISAT"}{lotteryDiscountPercentageInput}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-[8px] text-zinc-500 font-mono text-center mt-3">
-                      When users open the invite coupon modal, they will instantly see this gorgeous card in their session without any complicated setup.
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* SAVING FOOTER ACTION SECTION */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-white/15">
-                <div className="flex items-center gap-2">
-                  {settingsSuccess ? (
-                    <span className="text-xs font-mono text-green-400 flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded-xl animate-fade-in font-bold">
-                      <Check size={14} className="animate-bounce" /> SYSTEM MEMORY UPDATED: {lotteryDiscountPercentageInput}% SAVED
-                    </span>
-                  ) : (
-                    <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-wider">
-                      ‚òÖ Updates will propagate instantly to all client browser sessions upon saving.
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSaveSettings(undefined)}
-                  disabled={savingSettings}
-                  className="bg-gradient-to-r from-[#d4af37] via-[#ffd700] to-[#f7e2a0] text-luxury-black font-display font-black text-xs uppercase tracking-[0.15em] px-8 py-4 rounded-xl transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_4px_20px_rgba(212,175,55,0.25)] flex items-center gap-2 justify-center"
-                >
-                  {savingSettings ? "Updating System Modules..." : "Commit Instant Voucher Configuration"}
-                </button>
-              </div>
-            </div>
-
-            {/* PLATFORM INFRASTRUCTURE LEDGER */}
-            <div className="border border-[rgba(255,255,255,0.08)] bg-[#15151D] p-6 rounded-2xl space-y-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
-              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-widest">
-                ‚öôÔ∏è SECURE MEMORY DATABASE & PERSISTENCE METRICS
-              </h3>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-center">
-                <div className="bg-luxury-charcoal/30 border border-white/5 p-3 rounded">
-                  <span className="block text-[10px] text-white/40 mb-1">PRODUCTS IN DB</span>
-                  <span className="text-lg font-bold text-luxury-gold">{products.length} Items</span>
-                </div>
-                <div className="bg-luxury-charcoal/30 border border-white/5 p-3 rounded">
-                  <span className="block text-[10px] text-white/40 mb-1">ORDERS LOGGED</span>
-                  <span className="text-lg font-bold text-luxury-gold">{orders.length} Receipts</span>
-                </div>
-                <div className="bg-luxury-charcoal/30 border border-white/5 p-3 rounded">
-                  <span className="block text-[10px] text-white/40 mb-1">VIP COUPONS</span>
-                  <span className="text-lg font-bold text-luxury-gold">{coupons.length} Registered</span>
-                </div>
-                <div className="bg-luxury-charcoal/30 border border-white/5 p-3 rounded">
-                  <span className="block text-[10px] text-white/40 mb-1">CAMPAIGNS LOCK</span>
-                  <span className="text-lg font-bold text-luxury-gold">{campaigns.length} Active</span>
-                </div>
-              </div>
-              
-              <div className="text-center pt-2">
-                <button
-                  onClick={async () => {
-                    alert("Local JSON state hot cache is fully synchronous with cloud database!");
-                  }}
-                  className="px-6 py-2 border border-luxury-gold/30 hover:border-luxury-gold text-luxury-gold hover:bg-luxury-gold hover:text-luxury-black font-display text-[9.5px] uppercase tracking-widest rounded transition-all"
-                >
-                  Force Complete Synchronize
-                </button>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        </div>
-      </main>
-
-      {/* üîî AUTOMATED NEW ORDER TOAST NOTIFICATIONS */}
-      <div className="fixed bottom-24 right-6 z-[9999] flex flex-col gap-3 items-end pointer-events-none">
-        {newOrderToasts.map((toast) => (
-          <div
-            key={toast.id}
-            className="pointer-events-auto w-80 bg-[#0e0e14]/95 border-l-4 border-l-luxury-gold border border-white/10 rounded-r-xl p-4 shadow-[0_15px_40px_rgba(212,175,55,0.15)] flex flex-col gap-2.5 animate-slide-in backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:border-luxury-gold/50"
-          >
-            {/* Subtle background pulse */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-luxury-gold/5 rounded-full filter blur-xl pointer-events-none" />
-
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center text-luxury-gold shrink-0">
-                  <ShoppingBag size={15} />
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-mono tracking-widest text-luxury-gold font-extrabold uppercase">
-                    NEW ORDER RECEIVED
-                  </h4>
-                  <p className="text-[9px] font-mono text-zinc-500">{toast.id}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setNewOrderToasts(prev => prev.filter(t => t.id !== toast.id))}
-                className="text-white/40 hover:text-white transition-colors cursor-pointer p-0.5 rounded-md hover:bg-white/5"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <div className="space-y-1 font-sans">
-              <p className="text-[11px] text-zinc-300 font-bold">
-                Customer: <span className="text-white">{toast.customerName}</span>
-              </p>
-              <p className="text-[10px] text-zinc-400">
-                Location: <span className="text-zinc-200">{toast.customerCity}</span>
-              </p>
-              <div className="flex items-center justify-between text-[11px] border-t border-white/5 pt-2 mt-1">
-                <span className="text-zinc-400">
-                  Total: <span className="text-white font-mono font-bold">‡ß≥{toast.totalAmount}</span>
-                </span>
-                <span className="text-[9px] font-mono px-2 py-0.5 bg-luxury-gold/10 text-luxury-gold rounded-full border border-luxury-gold/20 font-bold">
-                  {toast.itemsCount} {toast.itemsCount === 1 ? 'item' : 'items'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-1 border-t border-white/5 mt-1 justify-end">
-              <button
-                onClick={() => {
-                  setActiveTab('orders');
-                  setNewOrderToasts(prev => prev.filter(t => t.id !== toast.id));
-                }}
-                className="text-[9px] font-mono font-bold tracking-wider uppercase text-luxury-gold hover:text-white hover:bg-luxury-gold/20 px-2.5 py-1 rounded border border-luxury-gold/25 transition-all cursor-pointer flex items-center gap-1"
-              >
-                <span>View Order</span>
-                <ChevronRight size={10} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {adminToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-luxury-black/95 border-2 border-luxury-gold/50 text-white px-5 py-3.5 rounded-xl shadow-[0_10px_30px_rgba(212,175,55,0.2)] animate-fade-in font-display backdrop-blur-md">
-          <div className={`w-2.5 h-2.5 rounded-full ${adminToast.type === 'error' ? 'bg-red-500' : 'bg-luxury-gold'} animate-ping`} />
-          <span className="text-[11px] uppercase tracking-wider font-bold">{adminToast.message}</span>
-          <button onClick={() => setAdminToast(null)} className="text-white/50 hover:text-white transition-colors ml-2 cursor-pointer">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* üßπ CLEAR DASHBOARD DATA MODAL */}
-      {showClearDashboardModal && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0e0e12] border-2 border-red-500/50 rounded-2xl p-6 max-w-lg w-full text-left shadow-[0_0_50px_rgba(239,68,68,0.25)] space-y-5 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-red-500/20 border border-red-500/40 rounded-xl text-red-400">
-                  <Trash2 size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold font-display text-white tracking-wide">Clear Dashboard Data</h3>
-                  <p className="text-xs text-zinc-400 font-sans">‡¶°‡ßç‡¶Ø‡¶æ‡¶∂‡¶¨‡ßã‡¶∞‡ßç‡¶°‡ßá‡¶∞ ‡¶Æ‡ßá‡¶ü‡ßç‡¶∞‡¶ø‡¶ï‡ßç‡¶∏ ‡¶ì ‡¶°‡¶æ‡¶ü‡¶æ ‡¶∞‡¶ø‡¶∏‡ßá‡¶ü/‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶ï‡¶∞‡ßÅ‡¶®</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowClearDashboardModal(false)}
-                className="p-1.5 text-zinc-400 hover:text-white bg-white/5 rounded-lg border border-white/10 transition-all cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-xs font-mono text-luxury-gold uppercase tracking-wider font-semibold">
-                Select Data Scope to Clear (‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶ï‡¶∞‡¶æ‡¶∞ ‡¶ï‡ßç‡¶Ø‡¶æ‡¶ü‡¶æ‡¶ó‡¶∞‡¶ø ‡¶®‡¶ø‡¶∞‡ßç‡¶¨‡¶æ‡¶ö‡¶® ‡¶ï‡¶∞‡ßÅ‡¶®):
-              </label>
-
-              <div className="grid grid-cols-1 gap-2.5">
-                <label 
-                  onClick={() => setClearDashboardTarget('all')}
-                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'all' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'all' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
-                      {clearDashboardTarget === 'all' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold font-mono uppercase text-white">Full Dashboard Reset (‡¶∏‡¶Æ‡¶∏‡ßç‡¶§ ‡¶°‡ßç‡¶Ø‡¶æ‡¶∂‡¶¨‡ßã‡¶∞‡ßç‡¶° ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞)</p>
-                      <p className="text-[10px] text-zinc-400">‡¶≠‡¶ø‡¶ú‡¶ø‡¶ü‡¶∞ ‡¶è‡¶®‡¶æ‡¶≤‡¶ø‡¶ü‡¶ø‡¶ï‡ßç‡¶∏, ‡¶Ö‡¶≤ ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡ßç‡¶∏, ‡¶®‡ßã‡¶ü‡¶ø‡¶´‡¶ø‡¶ï‡ßá‡¶∂‡¶® ‡¶ì ‡¶∏‡¶ø‡¶∏‡ßç‡¶ü‡ßá‡¶Æ ‡¶≤‡¶ó ‡¶è‡¶ï‡¶∏‡¶æ‡¶• ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶π‡¶¨‡ßá</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 bg-red-500/20 text-red-300 rounded border border-red-500/30 font-bold uppercase">All Data</span>
-                </label>
-
-                <label 
-                  onClick={() => setClearDashboardTarget('traffic')}
-                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'traffic' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'traffic' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
-                      {clearDashboardTarget === 'traffic' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold font-mono uppercase text-white">Traffic & Visitor Analytics Only</p>
-                      <p className="text-[10px] text-zinc-400">‡¶ï‡ßá‡¶¨‡¶≤‡¶Æ‡¶æ‡¶§‡ßç‡¶∞ ‡¶ì‡ßü‡ßá‡¶¨‡¶∏‡¶æ‡¶á‡¶ü‡ßá‡¶∞ ‡¶≠‡¶ø‡¶ú‡¶ø‡¶ü‡¶∞ ‡¶ï‡¶æ‡¶â‡¶®‡ßç‡¶ü, ‡¶™‡ßá‡¶ú‡¶≠‡¶ø‡¶â ‡¶ì ‡¶≤‡¶æ‡¶á‡¶≠ ‡¶≠‡¶ø‡¶â ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶π‡¶¨‡ßá</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold uppercase">Traffic Only</span>
-                </label>
-
-                <label 
-                  onClick={() => setClearDashboardTarget('orders')}
-                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'orders' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'orders' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
-                      {clearDashboardTarget === 'orders' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold font-mono uppercase text-white">Orders & Receipts List Only</p>
-                      <p className="text-[10px] text-zinc-400">‡¶ï‡ßá‡¶¨‡¶≤‡¶Æ‡¶æ‡¶§‡ßç‡¶∞ ‡¶°‡¶æ‡¶ü‡¶æ‡¶¨‡ßá‡¶ú ‡¶•‡ßá‡¶ï‡ßá ‡¶∏‡¶Æ‡¶∏‡ßç‡¶§ ‡¶Ö‡¶∞‡ßç‡¶°‡¶æ‡¶∞‡ßá‡¶∞ ‡¶≤‡¶ø‡¶∏‡ßç‡¶ü ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶π‡¶¨‡ßá</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 font-bold uppercase">Orders Only</span>
-                </label>
-
-                <label 
-                  onClick={() => setClearDashboardTarget('logs')}
-                  className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${clearDashboardTarget === 'logs' ? 'bg-red-950/40 border-red-500 text-white shadow-lg' : 'bg-[#15151c] border-white/10 text-zinc-400 hover:border-white/20'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${clearDashboardTarget === 'logs' ? 'border-red-400 bg-red-500' : 'border-zinc-500'}`}>
-                      {clearDashboardTarget === 'logs' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold font-mono uppercase text-white">System & Audit Logs Only</p>
-                      <p className="text-[10px] text-zinc-400">‡¶®‡ßã‡¶ü‡¶ø‡¶´‡¶ø‡¶ï‡ßá‡¶∂‡¶®, SMS ‡¶≤‡¶ó ‡¶ì ‡¶∏‡¶ø‡¶∏‡ßç‡¶ü‡ßá‡¶Æ ‡¶è‡¶ï‡¶ü‡¶ø‡¶≠‡¶ø‡¶ü‡¶ø ‡¶π‡¶ø‡¶∏‡ßç‡¶ü‡ßã‡¶∞‡¶ø ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶π‡¶¨‡ßá</p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded border border-purple-500/30 font-bold uppercase">Logs Only</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-[11px] text-red-300 font-sans leading-relaxed">
-              ‚ö†Ô∏è <strong>Warning:</strong> ‡¶ï‡ßç‡¶≤‡¶ø‡ßü‡¶æ‡¶∞ ‡¶ï‡¶∞‡¶æ‡¶∞ ‡¶∏‡¶æ‡¶•‡ßá ‡¶∏‡¶æ‡¶•‡ßá ‡¶§‡¶•‡ßç‡¶Ø‡¶ó‡ßÅ‡¶≤‡ßã ‡¶Æ‡ßá‡¶Æ‡ßã‡¶∞‡¶ø ‡¶ì ‡¶°‡¶æ‡¶ü‡¶æ‡¶¨‡ßá‡¶ú ‡¶•‡ßá‡¶ï‡ßá ‡¶∏‡ßç‡¶•‡¶æ‡ßü‡ßÄ‡¶≠‡¶æ‡¶¨‡ßá ‡¶Æ‡ßÅ‡¶õ‡ßá ‡¶Ø‡¶æ‡¶¨‡ßá‡•§ ‡¶è‡¶ü‡¶ø ‡¶∞‡¶ø‡¶ï‡¶≠‡¶æ‡¶∞ ‡¶ï‡¶∞‡¶æ ‡¶∏‡¶Æ‡ßç‡¶≠‡¶¨ ‡¶®‡ßü‡•§
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowClearDashboardModal(false)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-zinc-300 rounded-xl text-xs font-mono font-bold uppercase transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleClearDashboard}
-                disabled={isClearingDashboard}
-                className="px-5 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all shadow-lg shadow-red-600/30 flex items-center gap-2 cursor-pointer"
-              >
-                {isClearingDashboard ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                <span>{isClearingDashboard ? "Clearing..." : "Confirm & Clear Now"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <SourceProtectionModal
-        isOpen={showTestProtectionModal}
-        onClose={() => setShowTestProtectionModal(false)}
-        title={sourceProtectionTitleInput}
-        description={sourceProtectionDescriptionInput}
-        imageUrl={sourceProtectionImageUrlInput}
-      />
-    </div>
-  );
-}
+                      className="w-full bg-[#141414] border border-white/10 focus:border-luxuryxúÏ][s…u~˜Øh¡éÆ5 xÅVKì¥! §P!AÜ •lmT⁄–∆öõg±¥™Úí‰¡ïá$ÂJU¸∞Â\(WºqRyä_Ïø¬Ú/ÿüê”óÃ•{f ê"•(ë@c∫ß˚ÙwNüs˙ÃiehÈ‰·Oôå4#˚BŸ(Uë=U÷ëcçÕÊ__∏ËÃ2=≈∞Lyé⁄≠ôCe¢0î˜«Óñ5ˆtÕƒäiôò\`∫ößY¶¢Íz·{H*Ô
+ä∑ÀÌ\¯î£æÆ∫n[5N¡lı-]qm’T÷¢PGW{X◊ÍÈVˇ5–k˚‚ehPc€∆N_uqtxÆ«Æ◊«cg™PÇ—J=ÚŒË)k•™‰˛b◊Uáü™ÊPWQ5·ØÊéV≈.”KF£ôˆÿì‹»õ⁄0<“Q1±rœ∆öÉíØm]Ì„	;;ÖÎ´øΩæ˙œÎ´ﬂ\_˝·˙Í–ı’ﬂ¿üÎ∑}ıkVt}ııı’·ãˇªæ˙Ìı’ˇ^_˝˝‚õÎ∑•ˇLØÖ´~}ıo˘óÙ√)x˚5\s}ı+Ú˚?˛äﬁíëÎˇõ‘'≠\=êç‚\’«xÁ“PÕ±™w˜–æë\jôıPÆ∆hgπÿ;’*‚íß:CÏïhì´≤VB‡ô(gc]GΩ°Ú≈˜◊6…œK‘≥†ˇ√x®ºV·,¡K√»……js2§EÀ≥ö¨8∆g:æ@?ªûv6U∞9≤¿voÏyñ)ÏC¨;Óö≥ÕU{:Ï\∫p†F0‚…
+Û˘0Bıëuéù-(dîÛspˇö—Ó\0e‡GÌS“¢T%ÚB.%`>”ŸÑIÊ3:MÓHXEÔfù$∞a˝t˚™éïµJ©}O;«º‡≥j@ë-ÀV˚ö7U™‘;ÆÂ(∂•ô ëŒ“pï>¶%C’	)†òXÃ$àç~å∂OôÉ›Q}Ç\Ì+‡®µÕ7ar´¶f®i¨ô@⁄B€h&tuyW<i€DÇÔän∫“ae®sÿ)ïJ+–(-"üQ€ö¨ºŸ.” Bl3‰ÂÑ˜v˘Ãråh)ø0RvY˛Ñﬁ}ø÷mæ®}éÍGÌΩ÷˛ÈI≠€:j£O —!∆YF"+ò<©¬O„%≤C< ˙EÄò/*ØûÿØ6`…zÂ{j±Úà˛î6™´/P°èï©≤ô`B!◊F–·≥p{åMøwΩh7ALıîèoè6"ÌS9ÑÌå±çkÑ÷J	Î8a°(ÉØpí;#ÎÉ˙s§=é‡2æpƒíêN)‡wÃ_∑Ã3m8vT¬¥Ùå6D 0L‹7°`ÄÄX'¢QAE‡êP6¢∞	_ΩQô—TH°ïËÿ±Œ	°∑Äπ◊ˇ‘"ÍDí)≈L%f¬5∞Œv®ﬂπÑÂv†„ézéÅÉ9A;ÿÛ`¶›»º»õÑÏ–—à¸R@ﬂsï5öﬂÏ„:≈á®÷“;Pø“Ãæ≤Y©dÈÇ>¬|˙/†∫X«}ô
+»U£ÏfØ§z‘â’å©HHuëjNÁ÷î÷÷nMM
+ÊH¨@»fb€≤	wsäò˙¬ÓÅ´,Íh∆Xßº∫:»◊“A{ﬂs0Â"œ≠ÊuªÃö»yá!‘7'∏Wÿ›ÁÔ3 E#0∆˙k"ÑÊmV’mòBÏvk‰jc/‘ÓúçyM◊¨¬nó˛E˚∫’#Ù8Ï§∑‚ÇÇr.c.R¥≥≥ÉV|2≠†áQQ|;)OﬂW_˚SZ;n°Æıãı›ﬁŒ∞Ô|}ŸÜ±MÄ_dˆQÃê˙F˚%Øƒeá?ÙÍTÈ!í˚â⁄yç¨˚(<$VS
+™Ö√ì@ùq[–•0I·Ä;„Ñ∏ÿ®ı˚@fuZy”˘ ìÚx;»+¬	µ˙•U·|¿fáè•£2XAƒ]Q˘˘·~rÑî'R∏Ç~yø1;ˆF©Ç˚Ê õ-æc∞Â]Ãﬂq‡¬ÄÚà‹FZ¯[·∑w[‚jèà?∞=6zìÇÛDÓ◊÷76´è?}ÚY%7t˜À`cYª±&æõ‡›V~Aw/≤=ôWÊ¶|æÍ90…ÃëêÈÛ*s˚éﬁôK5(YØÑ'Fæ√5c◊ôˇ*ÊÃΩy«klƒB«Îz∂„U=«°´≥Ø…õÆthY‡s%Ì	›cwËÅ=8⁄Ô†nÌÈAsN∑Î‘}∫^≠>ÚˇWJï'´/£nÿ∞ñ ËL∑& H∞ôÀ%õÈàµïÕÑlI:]#\Á{h√˘œÚ9#”ù±¡r†_»Î∞yt:NpzÓ¢"1w¨°[“±9ÙFoí˚ús¯cçQÀ© MZLIÚÆ≠≥ëp^ú1}y≥Âw∫m&]€¢c#€B™◊°ëÊzñCˆá •|∏^ Ón ±E{ñXÆzD0
+ñ(Ê0∆g^xÉûÕ˘€≥¢„f>W”ö8™çÕT ¬è´≤›soÑ’AlWÌãÔW™‰Áe'’J%'zÎœ»}c»í†\™Îl{Nä¬xàL8YaChÌj(W™aoóΩ—‚Õ ∞5[-◊èXÆﬂç∞L+a¶(Ïv<’ªiÌ¡wíI µ 2ÏÙ¨¡4‹@<Ù]ô"˛&kÚﬁ7TªX‘≠·q>?B⁄‡bôTΩ[%jüÿ{¬˙‡†◊x∫s	ïK⁄ ˝¸Á§rd˘å)_¿R∞&cø—Aí∫!·R≠Ñıˇ‘¶`å§gûTl&û†¨¥≈»´%œ¢ﬁi‹Ò`ß"*+Ìrm%MóÖ˘ëLN÷HÑë.Ö]⁄[õXooõÔÚ˘rÍ"Ò06˚0t~É1Ãw
+ñ∞∏h‚3√Ü√YäÄcÖÏ¨,qGÈí©[û/øm≤û>a‚[¥É˙ÉÀ‘ª DFÁRˆfGw‹ÔMW»HﬂA«W2⁄CD1N¡vT}@Ñ~∞[ÈójGµ≠’ÎïÏ{l—{®Ñª#w`%…ˆgWfµ˛ÊÀ7È√Ÿë”Ö‡Åí%ç≈d LÙä48…≈+®SÍ·*V∫©íêSÁéµü∏&V óÔâ^?Ìtèõ'Ë¯ŸQªŸAœkß›à6~…‚W∫jè·,eœDº¢RƒMxø„jëøM¸òãâ*h„æ≈s¶¬"¢ô!©cºÑJÿ#*wö¢M~ë]e‰[ÙΩcM»˚àQü„
+πxZÏ<⁄≠'Ü(7¡ﬂZéòâà§û'rÇ9ç∏ë¯dëòâ:üKÓzÆéu=DDe<¡CPïù© Ü£uMÏƒ˝…ÇYTOYÀP◊ÎñN6"Az˙8CÜ’”àŒı ä†Ô;ñÅ˙$^ƒ{è19›G ©àDH¶aW§◊€˘¢!2cmd"wô0á	˚Z‰I∞Ã∫Æı_Ô\Wπ¨Â÷$jäNKÒÅ˛((Q
+˜SÅ·Äñè°ãÑœEÉÁ$rπ|*§sÃOíDåv$:˚∆I4$sáDËEñº∫jˆ±N!Cª‹Ôë‚ıX~éœ0X°>ﬂ—é!g.4Zì]'Ç bü'áB™œì]#÷'√&ÍÕ‚"' “Ωj∫b˛∂-T(H‡ƒÔê â"s÷⁄ßµTk4ÿ ãˆéN^∞í˚ÃÈ~≤Xú3˝‰á)ö™2ãQ,Œ©q^ÈëÉæwÊFVAŸéJD2– UDò<∂∂1Áñh1≈
+c‚†’ò"+n"¬tåpÑ[$‡mìHäπx¿€gR◊`bk™∞ﬁoBü‹ó'*kü˙ªMπ†£ò3>Ó0VsŸGàØπ*›X
+…Rü!¬¢Ÿî“˝'¡C{MÛ?êsÎ`8ë¥sõXãÄÈDi™ç,›®èÄâtn!,ﬂ7(Ω7 j™¶£‚ç`Tı’e1ÑI{π@‰!?í*•æe‰¬ÌB`ö’|ﬂ–tÛÇIbá…ûSJﬂµŒ≥o-!ÊçP@‰–È&7–|3ü∫<_p4›Ó•ãúƒ˚$≥p‰±ÇΩ]·≈ay—ÕﬁfÌ§˛Ìµ∫ÕìÃΩ^±˙∑⁄j%üB∫´„I]qªÉUß?Jy»ƒﬂxK$R%mMä~oÍ3„;èf.˙π÷ÿÈ„R©îlãKZù5ıcÏ¬)írÂ8V'[ÆôÄÇ”V≤YúÙÓÑª5£Â„Je.Ië {bƒ‚X[Œ¯OJbÙ++´…â˜«ÏÑÜﬂ–fÌ≤–k•√rõâbómÇi∏Gˆc|ƒ«G0G(ÜL$B¢Ò*Ã(qÉﬁBÒRﬂ2]È–o¥Éb}•{±6›â•-ÿl?êÏñÿ´•ü¬rS\˘+seıG¬ñMı\™ûÂî˙∫f˜,’¸∏4q`æ∫@”"π•§&pcm`hf◊R]Øxâ¯Ó‡*––G~ì»…”‰øΩ~˚ãÎ´ﬂ ˙Ù˙ÔhÒ7Ïˆ_“g⁄ˇ(˝*÷-[ÉŸ"ã(µÓÉ’¬#JŸ≠–&⁄aGﬂdª÷÷πu£Vçá®˘*≈ÿF•í•ˆ.®à˙Ì◊ˇÙ$ò¢öÆ/„ª1$Ñ˘Ñ+exuë3cÕ),h9wÃ>FÛ‹M4OÿÈ¥\MÃ£∞LS™t°2:r¥°f.h‡ëDÄ,„}ë'˚D"‹”ü®åê∑t¶È@ö»“ìˇ¿ñ∞üQ•o≈ı@M3¡N]î,8·vlêZ®HV ÎŸ<bÇ‚¨Ä ≥A$ÑñA–Ámﬂ4H˚vâhÚ6·:}÷≥Ên≈¡ﬁÿ1a§%ê ˙xÄ›"•ﬁ*i…4D•pÀx±¸Ì∆ÖuädtWˆ,≥Ÿıé) 10¨π–å‘¿ˆò÷ÿ]…1t
+¸&BrD’Ï:ﬂ}Œ—“ ‰ÄﬂNﬂ¡iPÛ¬Qb°‚YåXÉ’
+‚ƒXÄ‘€ÒÈóá“ëWNP¸FÍX”ÛÜ¢˘}»å÷Jo>çÛÈ_≤›Ãÿ≥ $71Ä@
+öÁ»Y≤q∫Ç=ºií≠H[©^¥+ÀTâørô.ÒW8Âãáqì*#‘¸¶‚äk∏2”&˙⁄ÒWÃ.¨{Ïÿ4€OÖÃk¿P~q"éAb‡68xQÃvX⁄bàø≤Ò@,ä¸˘Y{≤Òì‚\å]˘Æê∆ˆoX«él·Œ∞¥ÃlÉæGßz#4’¥,1œ§4<…‰ÛÊ=òaFöõ⁄lëï3I^©z»˝©|ﬁ:Fùœ;›Ê!Í4ª›V{øìPÈÚ‰:#)Ô,í“œo¥T0%ù˜)òÚ€‡ÌVc'Ÿc}ı	Ñ1=Õç\%~7§é¡Ñí>}ÓÔ≤’©A‹˘∂≤R√<à≤Ø∂™MpÈX˙{LŸYÍ†o®Óà:,≠Å™=G≤´*¶ ÚÕX,//Î1qüÿ^]ÒÄ˝‰c¨í™%B.W∞è-‰åÆD[œwIâå*ÛFù7∆2g]J“≤¥TeèP#˚ÈI≠›@≠F≥›mÌµö'Ùê$Ï÷Í›Nb„%kÎÂùdÃºõ#e_°ôñOp]ïGrO—ÈUñ˜îä•áDPëPnT~ I’ÖíRò˜°Êï{1R=∑f€®ZéáûYt√T¢È‹^ﬂiûê˛®∂ù#çCrÀ˘E≤rﬁhñhÓâ'O*küV¯kÆòç;Õ˜nB®n	âtè4XR@w@4 ÈVPòÖ≈aHóE¢©j—ä¡èﬁ¸'Æ7©ò˙ıÄ∑ ¿cÇ™ééyÆ•[A`V"ß0˝é,Ç√H›Ö†¯ßø˛◊Ã·˘n2¿Z÷P«÷ju˙éf{ËÓç,Î5:=9@E∂C–ôö˝€9`Ïd
+MËÎŸ©3∑‹L‘]Ø#œ≥›≠rŸ•MïÜîfDÜñµÔXnŸ-„‹ÿÎ#bo±{01=ÇœcräÄÙépy∆˚1?*˜b5ó¬§ﬂ
+G∂∫‚;bÀt=uË®∆]#QÛ;2?[Ò™Ka1Ë»FI¬∞§káø÷>?l∂ªË!zZkÏ7;ß4|Ù ‰Ù N[`æôcÓ~™Üÿ∫Øî∏≤«ˆw›;!zÜ’¡]˙f∏ﬂûv¶´y˙ºè≠Î/$«:Õ˙ÈI’kùgÿ≤—<h=oû|éˆOk'µv∑Ÿl‹iˆ.®Q\v∆=R˚>¿≤ÅôÊØYÈÈã”¡oe!àBÉ@nÀÑ∆˚doÃM]çú1¿∫vN¢…ÊÅuvvèÃë™¸(
+±l£t®Ê9=eHÔ≈o≈Ó4'
+˜%-,˚PÊΩ?F≈v¨¡∏ÔΩ‡3X·XæBRÄ¨ [&√d˙ësü§B©˚älÇÇ6ÄªGº k∂≠O&Ï9ag‹a°ÛKÓ7Ébod-‚ˆúõAÿùñaêP<ÉÙ,oTÿ}
+øQ±Æ∫#†âûb+…QÔœ°¨‹VáÍ`^ÆË[ÉWñ©Oªâvè†xŒ÷†%‡Wﬁ Ì*#⁄/‘–@™ŒIZ§ç/¿^sö{G›.—¢˝⁄akØUˇhÊ-gÊŸ™ÛZ«n‘∆k–ÑÃûÂxc£#rÓ!:†â”¶©qKK€{ÔèΩÁ”£°πÏ$úÑKÒœn«£œïêiüÜf¬ ‰®°^¿∑ïäÏ{.Yfº©?ûc @LŒk:§∂Sd˛Ò5‡=ZﬁkªnQ;ÁÿUÌ‚Æ¨@é4÷÷ï≈0ñh!´ígù∫±£ÚŸÇ{G'›”vÛ˛zÔ,iJ$ëÜÌ	"·xŸ †©7{ñ‘O≠v
+æº¡4÷ô<›$•9iç‰9|†πâZÛ:ÁeM‡·7Ã'î6—(ú†%æd<X÷ó,÷+HÌÇvõÍŸ∆ß/Áò›@xå<CáÖZHLQºpz6%ÚIÏ…ôiöÙ±f¶[∂röt ”~ •…ÕhÖ˚GOk®~t⁄Ó6é^¥Q∑u(»s_¥¬õ<¶Y™ŸΩK’S&#Ít-ã®ñ‹z›”-ïhêd-2=†ßIŒ25ÖáZâu e¢∆iÌ9†“ü#JFê≥¡ë√(ˆ$ó)Cay…r˘•É…µÁi‘NSË GJM ™;r4Ûµí8ﬁ«+[õh!í°g∫∑Â∏h¿è˚Q÷A` Ö¢ôä5ˆD˘y~p)IûÕáE”ßB1O*ï¬õ/≈£óZ≠…L˙l¨
+>áÅ∏¨CúHLá"ôHf:F%ãüõã3¥>D‰9Z Êå(rj§ù÷◊…”6Jïé<\B«.?n4Ì¡©úŸlbπ|µP˛dæ|(Õ6…*‘†Éh¥:ÏÉÏ±*˘ÈP˘Öºº7í√S⁄Kå?%ì˜Ô¸a&%?bF÷∑8{8MÖè˘ÈTÒÕé∞∏â¸˘E„ˇÂ◊®Ÿj†√Ê~ÌÌÅ–l7:®’N	#ª?;7ÛC|/A⁄4Y^ÙëâΩEîígﬂ…—9äN“!ÃÉWË#˘ª^√M|∑øñ|ëµ\eÔùû‘õ†≤7öË¯‰®€¨SG.yúÍ‰Ë‡˛>Nıù—›•@<R›`tÏX¶9áPﬂ3èMSø≈èovAXÕ˙îÒ¯¶¯ Ñπ⁄ò"IÛqêñç?ˇô¢dÙàö¯ˆŒ5<N«\Gu~¿¡ZåR/T«$Ü(p∫+g(À3CÓ"—ZiÖ√¥5`ÚÆ3}Äæ˝˙Wˇp<°†?>
+ƒP0”}Å„‚QZqPﬁL§ñcŸéÜ°‚¡<aœE*	ÿbw¡É*@kNWhßˆºâûûvªπv≈≥’€õ•ˇ≤≥?^˙°>ñ<Ujµ=~2ãÉ!∑∆\ßΩ˜cXyaæ	<H
+Ä‚Ω$Pò>Œâÿß!:Z=#Ö<ü|‚t?3Å‡⁄≈ù&ΩÅƒÛpâ£J≤œ«`˝	A˙F$ETπô‰ª÷B
+Mp¢îKÚ◊)kï*bynx¡g’Ä [h‚ö7U™	gÓÛ◊E–à—YxÚ˙Ê\'Øo N^èûª>ª!?u=¿c‰¯ı––ˇb˛”«Ñô1‚9˘SREæ⁄.™fíÜHòoø~˚{T?h÷NP£÷yˆÙ®v“@áGç⁄AH‡\∫‚d*QyêG⁄0•fÇQ*¡¶Y˘	ºáø˚P2vàÙÖ\|ÒèqM4aCÜçE…
+∂Y>%cÄ¯ÚAÏKéqj^rÀ±¯¶«vFí••Ã»‰ÒP9wFÑí3^w¸>Çˇqﬂπü’fMñ∫l=«¸Ñì›àMÜh^ô«B«πlÂº13Zî'ãΩD©l˝KZ¿‚e]≤Ü§õ√˘3ù©∫õqêC45t"ˇPrø(=Àú`V˛2î<+y|ÜP®	3˚dÂ¬˙¥:yàAé«S»v⁄NÊÔÔ–∏Eímª?"©X	öZc4—‹ÇUv¢Ÿòù(Íç@Ï≥Ù]‰¬\ZB›ëÊ“uÃ2º£èÎô[„X^,ö+U¯R$ÈöπÎDÄÎ.U…)òÅâ)⁄≤xbnRÙ#pd7»s*I]P/f4Ä@EÁ<†$]ﬂcùc*§ﬁœN<
+≤œÒ∑Ö”pH4@4™¬Óø&âÒı»Yï®rÒÏLÎ?B4çÄ˚·»ëºù√:∞RCÌcÌ{¨%íîúÄû7åj¶™O=≠OÒ{ÆœfOéG”ûvè«0Wºü¸x≈9[“a@û6ågŒõç4µ)qD≤Pûà÷Lπ")MÉê(_ﬁΩ‹¶DQté≥&BG#›@6πld≥„usâ¸•â 2ΩE©ô§‡Ãˆ“\z-0W ÂQÇWÇÊq%ñ’ï,†"SFêŒoû	àh'B√D«˚E“» ¢∆ÁùC°¥†¢∫ùƒÜ
+éj›µ‡í›]£@S[:D<0i—∂&âï™jH"gf”v‹—E7®•πG66w®U$ÿ£òçö¿◊rqémç∏Làª7ü'y0s¬Õ„ÎÉ	‚SGO÷iÒo"∏nlıGﬂ{ÛΩˇ  ˇˇ *ß)R

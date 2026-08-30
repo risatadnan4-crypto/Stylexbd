@@ -724,6 +724,19 @@ function ProductCard({
             </div>
           )}
 
+          {/* Buy & Get Exclusive Reward Offer Capsule */}
+          {product.buyAndGetOfferEnabled && (
+            <div className="w-full bg-gradient-to-r from-purple-950/70 via-fuchsia-950/50 to-pink-950/70 border border-purple-500/40 hover:border-purple-400 rounded-xl py-1 px-2 flex items-center justify-between gap-1 text-[8.5px] sm:text-[9.5px] font-mono font-black text-purple-200 my-0.5 tracking-wide shadow-[0_0_12px_rgba(168,85,247,0.25)] transition-all">
+              <div className="flex items-center gap-1">
+                <span className="text-xs">🎁</span>
+                <span className="text-purple-300 font-bold uppercase">BUY & GET:</span>
+              </div>
+              <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-extrabold px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] shadow-sm uppercase tracking-wider">
+                GET {product.buyAndGetDiscountPercent || 15}% OFF NEXT
+              </span>
+            </div>
+          )}
+
           {/* Delivery Row Capsule */}
           {product.freeDelivery ? (
             <button

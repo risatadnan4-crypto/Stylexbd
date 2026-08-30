@@ -174,6 +174,8 @@ export default function CartDrawer({
   const [placedWhatsAppUrl, setPlacedWhatsAppUrl] = useState('');
   const [placedPaymentLabel, setPlacedPaymentLabel] = useState('');
   const [placedDeliveryDate, setPlacedDeliveryDate] = useState('');
+  const [placedRewardCoupon, setPlacedRewardCoupon] = useState<any | null>(null);
+  const [copiedRewardCode, setCopiedRewardCode] = useState(false);
 
   // Ripple Click state
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
@@ -978,6 +980,7 @@ export default function CartDrawer({
 
       setPlacedOrderId(data.order.id);
       setPlacedWhatsAppUrl(data.whatsappUrl);
+      setPlacedRewardCoupon(data.rewardCoupon || data.order?.rewardCoupon || null);
       
       const pLabel = activePaymentMethod === 'cod' 
         ? 'Cash on Delivery (COD)' 
@@ -2401,6 +2404,62 @@ export default function CartDrawer({
                           <span className="text-luxury-gold font-black uppercase">{placedPaymentLabel}</span>
                         </div>
                       </div>
+
+                      {/* 🎁 EXCLUSIVE BUY & GET REWARD COUPON BOX */}
+                      {placedRewardCoupon && (
+                        <motion.div
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className="w-full max-w-sm bg-gradient-to-br from-purple-950/90 via-[#1a0c30] to-pink-950/90 border-2 border-purple-400/70 rounded-2xl p-4 text-left shadow-[0_0_35px_rgba(168,85,247,0.4)] space-y-2.5 relative overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl animate-bounce">🎁</span>
+                              <span className="text-xs font-display font-black text-white uppercase tracking-wider">
+                                BUY & GET REWARD EARNED!
+                              </span>
+                            </div>
+                            <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-mono text-[8.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                              1-Time Use
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-purple-200/90 leading-relaxed font-sans">
+                            অভিনন্দন! আপনার অর্ডারের জন্য আপনি পেয়েছেন একটি স্পেশাল <strong>{placedRewardCoupon.value || placedRewardCoupon.discountPercent}% ছাড়ের</strong> ওয়ান-টাইম কুপন কোড! পরবর্তী অর্ডারে এটি ব্যবহার করুন:
+                          </p>
+
+                          <div className="flex items-center justify-between bg-black/80 border border-purple-400/50 rounded-xl p-2.5 px-3">
+                            <div>
+                              <span className="block text-[8px] font-mono uppercase tracking-wider text-purple-300/70 font-bold">YOUR EXCLUSIVE COUPON:</span>
+                              <span className="font-mono text-base font-black text-luxury-gold tracking-widest select-all">
+                                {placedRewardCoupon.code}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(placedRewardCoupon.code);
+                                setCopiedRewardCode(true);
+                                setTimeout(() => setCopiedRewardCode(false), 2500);
+                              }}
+                              className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 text-white text-[10px] font-mono font-bold px-3 py-1.5 rounded-lg transition-all shadow-md active:scale-95 cursor-pointer"
+                            >
+                              {copiedRewardCode ? (
+                                <>
+                                  <Check size={12} className="text-white" />
+                                  <span>COPIED</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={12} />
+                                  <span>COPY</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
 
                     {/* Step 3 Footer buttons */}
