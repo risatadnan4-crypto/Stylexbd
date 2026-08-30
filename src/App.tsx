@@ -9,6 +9,8 @@ import {
   Upload, Image as ImageIcon, Trash2
 } from 'lucide-react';
 import { Product, CartItem, Banner, Coupon, Campaign, Review, Order, Customer } from './types';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ProductCard from './components/ProductCard';
@@ -5383,6 +5385,8 @@ export default function App() {
         description={settings?.sourceProtectionDescription}
         imageUrl={settings?.sourceProtectionImageUrl}
       />
+      <Analytics />
+      <SpeedInsights />
 
     </div>
   );

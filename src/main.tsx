@@ -1,14 +1,8 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import { inject } from '@vercel/analytics';
-import { injectSpeedInsights } from '@vercel/speed-insights';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
-
-// Initialize Vercel Analytics & Speed Insights
-inject();
-injectSpeedInsights();
 
 // Resilience against unhandled cross-origin scripts or chrome/platform extension crashes
 if (typeof window !== "undefined") {
