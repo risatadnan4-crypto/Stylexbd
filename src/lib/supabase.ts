@@ -5,10 +5,20 @@ const DEFAULT_URL = 'https://kvwfibxfutoulvymmlfd.supabase.co';
 const DEFAULT_KEY = 'sb_publishable_H9VO46sxlCErey2huyYgSw_ltLEvlx2';
 
 // Retrieve values from environment
+const getEnvVar = (key: string): string | undefined => {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  try {
+    return (import.meta as any)?.env?.[key];
+  } catch {
+    return undefined;
+  }
+};
+
 const rawSupabaseUrl = 
-  (typeof process !== 'undefined' ? process.env.SUPABASE_URL : undefined) ||
-  (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : undefined) ||
-  (typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env.VITE_SUPABASE_URL : undefined);
+  getEnvVar('SUPABASE_URL') ||
+  getEnvVar('VITE_SUPABASE_URL');
 
 // Sanitize URL helper
 const sanitizeUrl = (url: string | undefined): string => {
@@ -28,9 +38,8 @@ const sanitizeUrl = (url: string | undefined): string => {
 const tempUrl = sanitizeUrl(rawSupabaseUrl);
 
 const rawSupabaseAnonKey = 
-  (typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : undefined) ||
-  (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) ||
-  (typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined);
+  getEnvVar('SUPABASE_ANON_KEY') ||
+  getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY');
 
 const isValidUrl = (url: string): boolean => {
   const u = url.trim();
