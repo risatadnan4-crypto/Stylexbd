@@ -12335,6 +12335,42 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-31T09:41:31.301Z",
       "created_at": "2026-08-31T09:41:31.364109+00:00"
+    },
+    {
+      "id": "room-lgv0qhg2",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T10:11:50.588Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T10:11:50.588Z",
+      "created_at": "2026-08-31T10:11:50.636963+00:00"
+    },
+    {
+      "id": "room-qrcslmsd",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T10:23:40.322Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T10:23:40.322Z",
+      "created_at": "2026-08-31T10:23:40.365748+00:00"
     }
   ],
   "carts": {
