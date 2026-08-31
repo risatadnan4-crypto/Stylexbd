@@ -6,12 +6,12 @@
       "name": "Style X Free Tier Key 3",
       "encryptedKey": "122e6d79668822e18d328543b7ed3922d243ef62b80d5f818e4e680ffa22c52c",
       "keyHint": "••••41B0",
-      "status": "active",
+      "status": "invalid",
       "priority": 2,
       "totalRequests": 17,
       "successRequests": 17,
       "errorCount": 0,
-      "lastLatencyMs": 10025,
+      "lastLatencyMs": 47,
       "avgLatencyMs": 3232,
       "latencyHistory": [
         {
@@ -73,10 +73,15 @@
           "timestamp": "2026-08-10T08:25:07.909Z",
           "latencyMs": 10025,
           "status": "success"
+        },
+        {
+          "timestamp": "2026-08-31T08:51:07.857Z",
+          "latencyMs": 47,
+          "status": "error"
         }
       ],
       "lastUsed": "2026-08-10T08:24:57.883Z",
-      "lastError": null,
+      "lastError": "Invalid API Key",
       "createdTime": "2026-07-29T05:49:49.435Z"
     },
     {
@@ -123,13 +128,18 @@
       "successRequests": 0,
       "errorCount": 1,
       "lastUsed": "2026-08-14T12:53:05.809Z",
-      "lastError": "Invalid/Corrupted API Key: {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"reason\":\"API_KEY_INVALID\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"}},{\"@type\":\"type.googleapis.com/google.rpc.LocalizedMessage\",\"locale\":\"en-US\",\"message\":\"API key not valid. Please pass a valid API key.\"}]}}",
+      "lastError": "Invalid API Key",
       "createdTime": "2026-08-12T12:27:02.717Z",
-      "lastLatencyMs": 53,
+      "lastLatencyMs": 47,
       "latencyHistory": [
         {
           "timestamp": "2026-08-14T12:53:05.864Z",
           "latencyMs": 53,
+          "status": "error"
+        },
+        {
+          "timestamp": "2026-08-31T08:51:12.734Z",
+          "latencyMs": 47,
           "status": "error"
         }
       ]
@@ -139,15 +149,15 @@
       "name": "Fah",
       "encryptedKey": "0f508120549de4ad86c9b7de76da3e0c:045e0f9fe3a21d65a9cd13a3f0b7c0fa156e7fac9b7db48259c44012c383d021d984445873f26ee6494131553dd38b6dc259d1dc05fa353c55f674cb092cb707",
       "keyHint": "••••dqiQ",
-      "status": "active",
+      "status": "invalid",
       "priority": 1,
-      "totalRequests": 6,
+      "totalRequests": 7,
       "successRequests": 4,
-      "errorCount": 0,
-      "lastUsed": "2026-08-14T13:49:38.180Z",
-      "lastError": null,
+      "errorCount": 1,
+      "lastUsed": "2026-08-31T08:50:41.197Z",
+      "lastError": "Invalid API Key",
       "createdTime": "2026-08-13T09:17:57.336Z",
-      "lastLatencyMs": 10090,
+      "lastLatencyMs": 51,
       "avgLatencyMs": 9161,
       "latencyHistory": [
         {
@@ -169,6 +179,16 @@
           "timestamp": "2026-08-14T13:49:48.273Z",
           "latencyMs": 10090,
           "status": "success"
+        },
+        {
+          "timestamp": "2026-08-31T08:50:41.259Z",
+          "latencyMs": 55,
+          "status": "error"
+        },
+        {
+          "timestamp": "2026-08-31T08:51:06.217Z",
+          "latencyMs": 51,
+          "status": "error"
         }
       ]
     }
@@ -1122,31 +1142,7 @@
       "robots": "index, follow"
     }
   ],
-  "orders": [
-    {
-      "id": "STX-235805",
-      "customerName": "Mojib",
-      "customerPhone": "01854664666",
-      "customerAddress": "Hsjjsjdjusjdjhdh",
-      "customerCity": null,
-      "customerNotes": null,
-      "items": [
-        {
-          "productId": "bqjaeckq",
-          "title": "Stylish Drop Shoulder T-Shirt",
-          "price": 499,
-          "selectedSize": "M",
-          "selectedColorImage": "https://kvwfibxfutoulvymmlfd.supabase.co/storage/v1/object/public/media/uploaded_1783321328404_ChatGPT_Image_Jul_6,_2026,_01_01_42_PM.png",
-          "quantity": 1
-        }
-      ],
-      "totalAmount": 619,
-      "status": "PENDING",
-      "date": "2026-08-26T08:04:37.716Z",
-      "created_at": "2026-08-26T08:04:39.652969+00:00",
-      "userId": null
-    }
-  ],
+  "orders": [],
   "backInStockAlerts": [],
   "smsSubscriptions": [
     {
@@ -11853,6 +11849,276 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-31T03:47:00.041Z",
       "created_at": "2026-08-31T03:47:00.762189+00:00"
+    },
+    {
+      "id": "room-rrj31j42",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T03:48:23.952Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T03:48:23.952Z",
+      "created_at": "2026-08-31T03:48:24.006281+00:00"
+    },
+    {
+      "id": "room-gk5kh94b",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T04:10:20.098Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T04:10:20.098Z",
+      "created_at": "2026-08-31T04:10:20.638103+00:00"
+    },
+    {
+      "id": "room-emjfhs6f",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T04:10:25.296Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T04:10:25.296Z",
+      "created_at": "2026-08-31T04:10:26.000452+00:00"
+    },
+    {
+      "id": "room-qtv7ls7u",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T04:10:28.531Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T04:10:28.531Z",
+      "created_at": "2026-08-31T04:10:29.210604+00:00"
+    },
+    {
+      "id": "room-a05p23r5",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T04:10:36.409Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T04:10:36.409Z",
+      "created_at": "2026-08-31T04:10:36.558494+00:00"
+    },
+    {
+      "id": "room-msvroqj1",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T07:12:51.832Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T07:12:51.832Z",
+      "created_at": "2026-08-31T07:12:51.983971+00:00"
+    },
+    {
+      "id": "room-0i8kquys",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T07:12:58.111Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T07:12:58.111Z",
+      "created_at": "2026-08-31T07:12:58.810486+00:00"
+    },
+    {
+      "id": "room-x6j0sbbo",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T07:16:15.166Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T07:16:15.166Z",
+      "created_at": "2026-08-31T07:16:15.226066+00:00"
+    },
+    {
+      "id": "room-y0ne9nti",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T07:16:45.200Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T07:16:45.200Z",
+      "created_at": "2026-08-31T07:16:45.863799+00:00"
+    },
+    {
+      "id": "room-omzs9tq0",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T08:49:20.937Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T08:49:20.937Z",
+      "created_at": "2026-08-31T08:49:21.233697+00:00"
+    },
+    {
+      "id": "room-aoopom77",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T08:54:53.100Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T08:54:53.100Z",
+      "created_at": "2026-08-31T08:54:53.232553+00:00"
+    },
+    {
+      "id": "room-81442xus",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T09:14:48.105Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T09:14:48.105Z",
+      "created_at": "2026-08-31T09:14:48.169477+00:00"
+    },
+    {
+      "id": "room-fcydwmfq",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T09:17:40.257Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T09:17:40.257Z",
+      "created_at": "2026-08-31T09:17:40.90896+00:00"
+    },
+    {
+      "id": "room-pvzkmvss",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T09:17:46.068Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T09:17:46.068Z",
+      "created_at": "2026-08-31T09:17:46.71386+00:00"
+    },
+    {
+      "id": "room-l85drfmx",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T09:18:26.799Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T09:18:26.799Z",
+      "created_at": "2026-08-31T09:18:27.449747+00:00"
     }
   ],
   "carts": {
@@ -12179,7 +12445,7 @@
   },
   "forms": [],
   "formSubmissions": [],
-  "visits": 50,
+  "visits": 44,
   "liveViews": 1,
   "countedSessions": [
     "visitor_8fhjs41hqwm_1785575815595",
@@ -12225,13 +12491,7 @@
     "visitor_okrtmf9cwmf_1787393459450",
     "visitor_qot12ju88j_1787393909855",
     "visitor_dbcysrfbnha_1787393918385",
-    "visitor_9jm9yzyd5s6_1788072846697",
-    "visitor_hwhvzoofto_1788073495826",
-    "visitor_i6td8nm8isc_1788077061850",
-    "visitor_o1njnnk7n4_1788077106774",
-    "visitor_uhleliueys_1788077585316",
-    "visitor_zp5spm5wzbm_1788100446452",
-    "visitor_flmmch88uav_1788147828977"
+    "visitor_iv83oj53jaq_1788167856681"
   ],
   "notifications": [],
   "failed_notifications": [],
