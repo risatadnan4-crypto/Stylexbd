@@ -100,6 +100,16 @@ export default function SEOManager({ products, selectedProduct, currentPath }: S
         updateMetaTag('description', 'Discover elite luxury fashion garments curated by STYLE X Bangladesh. Nationwide secure cash on delivery.');
       }
     }
+
+    // 5. Track GA4 SPA page_view if gtag is available on window
+    if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+      (window as any).gtag('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: currentPath || window.location.pathname,
+        send_to: 'G-F523XY9WL5'
+      });
+    }
   }, [products, selectedProduct, currentPath]);
 
   return null; // Work entirely via side-effects
