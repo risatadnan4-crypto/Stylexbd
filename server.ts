@@ -1027,7 +1027,11 @@ function isSupabaseGatewayError(err: any): boolean {
     raw.includes("Service Unavailable") ||
     raw.includes("ECONNREFUSED") ||
     raw.includes("ETIMEDOUT") ||
-    raw.includes("fetch failed")
+    raw.includes("fetch failed") ||
+    raw.includes("429") ||
+    raw.includes("Rate exceeded") ||
+    raw.includes("rate limit") ||
+    raw.includes("Too Many Requests")
   );
 }
 
@@ -1046,6 +1050,14 @@ function formatSupabaseError(err: any): string {
   }
   if (raw.includes("503") || raw.includes("504") || raw.includes("Gateway Timeout") || raw.includes("Service Unavailable")) {
     return "HTTP 503/504 Service Unavailable (Supabase temporarily unresponsive; active memory cache serving requests)";
+  }
+  if (
+    raw.includes("429") ||
+    raw.includes("Rate exceeded") ||
+    raw.includes("rate limit") ||
+    raw.includes("Too Many Requests")
+  ) {
+    return "HTTP 429 Too Many Requests (Supabase API rate limits exceeded; active memory cache serving requests)";
   }
   if (raw.includes("FetchError") || raw.includes("ECONNREFUSED") || raw.includes("ETIMEDOUT") || raw.includes("fetch failed")) {
     return "Network connection issue with Supabase endpoint; local database active";
@@ -2277,6 +2289,18 @@ app.post("/api/admin/clear-dashboard", xoroAdminAuthMiddleware, async (req, res)
 
 // App Settings (Dynamic WhatsApp etc.)
 app.get("/api/settings", async (req, res) => {
+  const token = crypto.randomBytes(24).toString("hex");
+  activeCsrfTokens.add(token);
+  if (activeCsrfTokens.size > 100) {
+    const firstValue = activeCsrfTokens.values().next().value;
+    if (firstValue) activeCsrfTokens.delete(firstValue);
+  }
+
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.settings && db.settings.whatsappNumber && req.query.refresh !== "true") {
+    return res.json({ ...db.settings, csrfToken: token });
+  }
+
   try {
     if (isSettingsTableAvailable && supabase) {
       const { data: settingsResult, error } = await supabase.from("settings").select("*");
@@ -2428,13 +2452,6 @@ app.get("/api/settings", async (req, res) => {
     }
   } catch (err) {
     console.warn("⚠️ API dynamically reading settings table bypass:", err);
-  }
-
-  const token = crypto.randomBytes(24).toString("hex");
-  activeCsrfTokens.add(token);
-  if (activeCsrfTokens.size > 100) {
-    const firstValue = activeCsrfTokens.values().next().value;
-    if (firstValue) activeCsrfTokens.delete(firstValue);
   }
 
   const baseSettings = db.settings || { 
@@ -3008,6 +3025,15 @@ function buildProductObject(p: any = {}, localProduct: any = {}, pm: any = {}): 
 
 // Products Base API
 app.get("/api/products", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.products && db.products.length > 0 && req.query.refresh !== "true") {
+    const cachedProducts = db.products.map((lp: any) => {
+      const pm = (db.settings?.productPayments && db.settings.productPayments[lp.id]) || {};
+      return buildProductObject({}, lp, pm);
+    });
+    return res.json(cachedProducts);
+  }
+
   try {
     const { data: productsData, error: pError } = await supabase.from("products").select("*");
     if (!pError && productsData) {
@@ -3020,6 +3046,8 @@ app.get("/api/products", async (req, res) => {
       db.products = supabaseProducts;
       saveDB();
       return res.json(supabaseProducts);
+    } else if (pError) {
+      console.warn("⚠️ Direct products fetch returned error, falling back:", formatSupabaseError(pError));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct products fetch fallback to memory cache:", formatSupabaseError(err));
@@ -3036,11 +3064,18 @@ app.get("/api/products/:id", async (req, res) => {
   const localProduct = db.products ? db.products.find((lp: any) => String(lp.id) === String(prodId)) : null;
   const pm = (db.settings?.productPayments && db.settings.productPayments[prodId]) || {};
 
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (localProduct && req.query.refresh !== "true") {
+    return res.json(buildProductObject({}, localProduct, pm));
+  }
+
   try {
     const { data, error } = await supabase.from("products").select("*").eq("id", prodId).single();
     if (!error && data) {
       const prod = buildProductObject(data, localProduct, pm);
       return res.json(prod);
+    } else if (error) {
+      console.warn("⚠️ Direct product selected select error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct product selected select fallback:", formatSupabaseError(err));
@@ -4001,6 +4036,11 @@ app.delete("/api/products/:id", xoroAdminAuthMiddleware, async (req, res) => {
 
 // Banners API
 app.get("/api/banners", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.banners && db.banners.length > 0 && req.query.refresh !== "true") {
+    return res.json((db.banners || []).filter((b: any) => !b.id?.startsWith("system_") && !b.title?.startsWith("SYSTEM_")));
+  }
+
   try {
     const { data, error } = await supabase.from("banners").select("*");
     if (!error && data) {
@@ -4012,6 +4052,8 @@ app.get("/api/banners", async (req, res) => {
       db.seededBanners = true;
       saveDB();
       return res.json(banners);
+    } else if (error) {
+      console.warn("⚠️ Direct banners fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     if (!isSupabaseGatewayError(err)) {
@@ -4069,6 +4111,11 @@ app.delete("/api/banners/:id", async (req, res) => {
 
 // Orders API
 app.get("/api/orders", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.orders && db.orders.length > 0 && req.query.refresh !== "true") {
+    return res.json(db.orders);
+  }
+
   try {
     const { data, error } = await supabase.from("orders").select("*");
     if (!error && data) {
@@ -4080,6 +4127,8 @@ app.get("/api/orders", async (req, res) => {
       db.orders = orders;
       saveDB();
       return res.json(orders);
+    } else if (error) {
+      console.warn("⚠️ Direct orders fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct orders fetch fallback:", err.message);
@@ -4088,6 +4137,13 @@ app.get("/api/orders", async (req, res) => {
 });
 
 app.get("/api/orders/:id", async (req, res) => {
+  const localOrder = db.orders.find(o => o.id === req.params.id || o.customerPhone === req.params.id);
+  
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (localOrder && req.query.refresh !== "true") {
+    return res.json(localOrder);
+  }
+
   try {
     const { data, error } = await supabase
       .from("orders")
@@ -4100,13 +4156,15 @@ app.get("/api/orders/:id", async (req, res) => {
         totalAmount: Number(o.totalAmount)
       }));
       return res.json(dbOrders[0]);
+    } else if (error) {
+      console.warn("⚠️ Direct order by id fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct order by id fetch fallback:", err.message);
   }
-  const order = db.orders.find(o => o.id === req.params.id || o.customerPhone === req.params.id);
-  if (order) {
-    res.json(order);
+  
+  if (localOrder) {
+    res.json(localOrder);
   } else {
     res.status(404).json({ message: "Order not found" });
   }
@@ -5858,6 +5916,11 @@ app.delete("/api/orders/:id", xoroAdminAuthMiddleware, async (req, res) => {
 
 // Reviews API
 app.get("/api/reviews", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.reviews && db.reviews.length > 0 && req.query.refresh !== "true") {
+    return res.json(db.reviews);
+  }
+
   try {
     const { data, error } = await supabase.from("reviews").select("*");
     if (!error && data && data.length > 0) {
@@ -5869,6 +5932,8 @@ app.get("/api/reviews", async (req, res) => {
       db.reviews = reviews;
       saveDB();
       return res.json(reviews);
+    } else if (error) {
+      console.warn("⚠️ Direct reviews fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct reviews fetch fallback:", err.message);
@@ -5932,6 +5997,11 @@ app.delete("/api/reviews/:id", async (req, res) => {
 
 // Coupons API
 app.get("/api/coupons", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.coupons && db.coupons.length > 0 && req.query.refresh !== "true") {
+    return res.json(db.coupons);
+  }
+
   try {
     const { data, error } = await supabase.from("coupons").select("*");
     if (!error && data) {
@@ -5962,6 +6032,8 @@ app.get("/api/coupons", async (req, res) => {
       db.seededCoupons = true;
       saveDB();
       return res.json(coupons);
+    } else if (error) {
+      console.warn("⚠️ Direct coupons fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct coupons fetch fallback:", err.message);
@@ -6557,6 +6629,11 @@ app.post("/api/cart", async (req, res) => {
 
 // Campaigns API
 app.get("/api/campaigns", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.campaigns && db.campaigns.length > 0 && req.query.refresh !== "true") {
+    return res.json(db.campaigns);
+  }
+
   try {
     const { data, error } = await supabase.from("campaigns").select("*");
     if (!error && data) {
@@ -6568,6 +6645,8 @@ app.get("/api/campaigns", async (req, res) => {
       db.seededCampaigns = true;
       saveDB();
       return res.json(campaigns);
+    } else if (error) {
+      console.warn("⚠️ Direct campaigns fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct campaigns fetch fallback:", err.message);
@@ -6625,6 +6704,11 @@ app.delete("/api/campaigns/:id", async (req, res) => {
 
 // Live Chat API with short polling support
 app.get("/api/chat", async (req, res) => {
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (db.chats && db.chats.length > 0 && req.query.refresh !== "true") {
+    return res.json(db.chats);
+  }
+
   try {
     const { data, error } = await supabase.from("chats").select("*");
     if (!error && data && data.length > 0) {
@@ -6639,6 +6723,8 @@ app.get("/api/chat", async (req, res) => {
       db.chats = chats;
       saveDB();
       return res.json(chats);
+    } else if (error) {
+      console.warn("⚠️ Direct chats fetch returned error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct chats fetch fallback:", err.message);
@@ -6647,6 +6733,13 @@ app.get("/api/chat", async (req, res) => {
 });
 
 app.get("/api/chat/:id", async (req, res) => {
+  const localChat = db.chats.find(c => c.id === req.params.id);
+  
+  // Serve from memory cache if available to prevent Supabase 429 Rate limits
+  if (localChat && req.query.refresh !== "true") {
+    return res.json(localChat);
+  }
+
   try {
     const { data, error } = await supabase.from("chats").select("*").eq("id", req.params.id).single();
     if (!error && data) {
@@ -6667,12 +6760,14 @@ app.get("/api/chat/:id", async (req, res) => {
       }
       saveDB();
       return res.json(room);
+    } else if (error) {
+      console.warn("⚠️ Direct chat select error, falling back:", formatSupabaseError(error));
     }
   } catch (err: any) {
     console.warn("⚠️ Direct chat select fallback:", err.message);
   }
 
-  let room = db.chats.find(c => c.id === req.params.id);
+  let room = localChat;
   if (!room) {
     // Create new temporary room for this guest visitor
     room = {
