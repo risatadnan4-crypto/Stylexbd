@@ -3070,7 +3070,7 @@ app.get("/api/products/:id", async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase.from("products").select("*").eq("id", prodId).single();
+    const { data, error } = await supabase.from("products").select("*").eq("id", prodId).maybeSingle();
     if (!error && data) {
       const prod = buildProductObject(data, localProduct, pm);
       return res.json(prod);
@@ -6741,7 +6741,7 @@ app.get("/api/chat/:id", async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase.from("chats").select("*").eq("id", req.params.id).single();
+    const { data, error } = await supabase.from("chats").select("*").eq("id", req.params.id).maybeSingle();
     if (!error && data) {
       const room = {
         ...data,
