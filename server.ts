@@ -8551,6 +8551,7 @@ if (!isProduction) {
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="kYvZXOxkGl1IWRnlD_Sgp0h9RL7Rg90ZgmTKdAz9Fvs" />
     <title>StyleX BD | Premium Clothing Bangladesh & Luxury Fashion Dhaka</title>
     <meta name="description" content="Discover StyleX BD, Bangladesh's leading destination for luxury fashion, streetwear, and premium clothing." />
     <link rel="icon" type="image/jpg" href="/stylex_logo.jpg" />
