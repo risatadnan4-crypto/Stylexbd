@@ -12479,6 +12479,78 @@
       "onlineAdmin": true,
       "lastUpdated": "2026-08-31T11:31:55.338Z",
       "created_at": "2026-08-31T11:31:55.358625+00:00"
+    },
+    {
+      "id": "room-geexmojg",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T11:52:19.626Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T11:52:19.626Z",
+      "created_at": "2026-08-31T11:52:19.623571+00:00"
+    },
+    {
+      "id": "room-2ozz0fyv",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T17:00:50.039Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T17:00:50.039Z",
+      "created_at": "2026-08-31T17:00:50.165911+00:00"
+    },
+    {
+      "id": "room-tuaa2n7b",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-08-31T17:45:31.551Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-08-31T17:45:31.551Z",
+      "created_at": "2026-08-31T17:45:31.65926+00:00"
+    },
+    {
+      "id": "room-kwlqsriw",
+      "customerName": "Anonymous Guest",
+      "messages": [
+        {
+          "id": "welcome-msg",
+          "sender": "admin",
+          "text": "Welcome to STYLE X. We are delighted to assist you. Ask us anything about our custom materials, bespoke fitting, or current drops.",
+          "date": "2026-09-01T04:55:06.383Z"
+        }
+      ],
+      "typingCustomer": false,
+      "typingAdmin": false,
+      "onlineCustomer": true,
+      "onlineAdmin": true,
+      "lastUpdated": "2026-09-01T04:55:06.383Z",
+      "created_at": "2026-09-01T04:55:06.393686+00:00"
     }
   ],
   "carts": {
@@ -12805,7 +12877,7 @@
   },
   "forms": [],
   "formSubmissions": [],
-  "visits": 48,
+  "visits": 49,
   "liveViews": 1,
   "countedSessions": [
     "visitor_8fhjs41hqwm_1785575815595",
@@ -12855,7 +12927,8 @@
     "visitor_vdssmeq4yog_1788168098576",
     "visitor_hvascq24hxa_1788168199445",
     "visitor_k5hkw8xndli_1788168748699",
-    "visitor_4ixn4gcpiso_1788168748926"
+    "visitor_4ixn4gcpiso_1788168748926",
+    "visitor_ro87zoz7dzs_1788229679072"
   ],
   "notifications": [],
   "failed_notifications": [],
